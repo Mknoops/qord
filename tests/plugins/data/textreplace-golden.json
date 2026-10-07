@@ -1,0 +1,604 @@
+[
+ {
+  "name": "simple",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "brb",
+    "replace": "be right back",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "brb, brb!",
+  "scope": "myMessages",
+  "expected": "be right back, be right back!"
+ },
+ {
+  "name": "newline escape",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "nl",
+    "replace": "a\\nb",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "x nl y",
+  "scope": "myMessages",
+  "expected": "x a\nb y"
+ },
+ {
+  "name": "dollar in string rule",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "cat",
+    "replace": "[$&|$$]",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a cat",
+  "scope": "myMessages",
+  "expected": "a [cat|$]"
+ },
+ {
+  "name": "padding and edge whitespace",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "hi",
+    "replace": "hello",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "hi",
+  "scope": "myMessages",
+  "expected": "hello"
+ },
+ {
+  "name": "find with spaces",
+  "stringRules": [
+   {
+    "name": "",
+    "find": " x ",
+    "replace": "-",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "x y x",
+  "scope": "myMessages",
+  "expected": "-y-"
+ },
+ {
+  "name": "only if includes",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "zzz",
+    "scope": "myMessages",
+    "id": "x"
+   },
+   {
+    "name": "",
+    "find": "c",
+    "replace": "d",
+    "onlyIfIncludes": "c",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a c",
+  "scope": "myMessages",
+  "expected": "a d"
+ },
+ {
+  "name": "chained rules",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   },
+   {
+    "name": "",
+    "find": "b",
+    "replace": "c",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a",
+  "scope": "myMessages",
+  "expected": "c"
+ },
+ {
+  "name": "others scope skipped on send",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "othersMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a",
+  "scope": "myMessages",
+  "expected": "a"
+ },
+ {
+  "name": "others scope on incoming",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "othersMessages",
+    "id": "x"
+   },
+   {
+    "name": "",
+    "find": "c",
+    "replace": "d",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a c",
+  "scope": "othersMessages",
+  "expected": "b c"
+ },
+ {
+  "name": "all scope everywhere",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "allMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a",
+  "scope": "othersMessages",
+  "expected": "b"
+ },
+ {
+  "name": "tester applies every scope",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "othersMessages",
+    "id": "x"
+   },
+   {
+    "name": "",
+    "find": "c",
+    "replace": "d",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "a c",
+  "scope": "allMessages",
+  "expected": "b d"
+ },
+ {
+  "name": "empty find skipped",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "",
+    "replace": "x",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "",
+    "replace": "y",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "abc",
+  "scope": "myMessages",
+  "expected": "abc"
+ },
+ {
+  "name": "empty content",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [],
+  "input": "",
+  "scope": "myMessages",
+  "expected": ""
+ },
+ {
+  "name": "whitespace only content",
+  "stringRules": [],
+  "regexRules": [],
+  "input": "   ",
+  "scope": "myMessages",
+  "expected": ""
+ },
+ {
+  "name": "result trimmed",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "x",
+    "replace": "",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "  x  y x ",
+  "scope": "myMessages",
+  "expected": "y"
+ },
+ {
+  "name": "bare regex is global",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "o+",
+    "replace": "0",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "foo boo",
+  "scope": "myMessages",
+  "expected": "f0 b0"
+ },
+ {
+  "name": "slash regex without flags",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/o/",
+    "replace": "0",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "foo",
+  "scope": "myMessages",
+  "expected": "f0o"
+ },
+ {
+  "name": "slash regex flags",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/O/gi",
+    "replace": "0",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "fOo",
+  "scope": "myMessages",
+  "expected": "f00"
+ },
+ {
+  "name": "duplicate flags",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/o/ggi",
+    "replace": "0",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "fOo",
+  "scope": "myMessages",
+  "expected": "f00"
+ },
+ {
+  "name": "flags without leading slash",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "o/i",
+    "replace": "0",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "fOo",
+  "scope": "myMessages",
+  "expected": "f0o"
+ },
+ {
+  "name": "captures",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/(\\w+)@(\\w+)/g",
+    "replace": "$2 at $1",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "me@home you@work",
+  "scope": "myMessages",
+  "expected": "home at me work at you"
+ },
+ {
+  "name": "named capture",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "(?<w>\\d+)",
+    "replace": "<$<w>>",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a1b22",
+  "scope": "myMessages",
+  "expected": "a<1>b<22>"
+ },
+ {
+  "name": "invalid regex skipped",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/(/",
+    "replace": "x",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   },
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a(",
+  "scope": "myMessages",
+  "expected": "b("
+ },
+ {
+  "name": "regex newline replacement",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": ";",
+    "replace": "\\n",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a;b",
+  "scope": "myMessages",
+  "expected": "a\nb"
+ },
+ {
+  "name": "find containing newline",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "a\nb",
+    "replace": "X",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a\nb a\nb",
+  "scope": "myMessages",
+  "expected": "X a\nb"
+ },
+ {
+  "name": "find ending in newline",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "b\n",
+    "replace": "X",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "ab\nb\nc",
+  "scope": "myMessages",
+  "expected": "aXb\nc"
+ },
+ {
+  "name": "regex scope others",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "a",
+    "replace": "b",
+    "onlyIfIncludes": "",
+    "scope": "othersMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a",
+  "scope": "othersMessages",
+  "expected": "b"
+ },
+ {
+  "name": "string then regex order",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "x",
+    "replace": "y",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "y",
+    "replace": "z",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "x",
+  "scope": "myMessages",
+  "expected": "z"
+ },
+ {
+  "name": "multiline flag",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/^/gm",
+    "replace": "> ",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "a\nb",
+  "scope": "myMessages",
+  "expected": "> a\n> b"
+ },
+ {
+  "name": "dollar end",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/b$/",
+    "replace": "!",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "ab\nab",
+  "scope": "myMessages",
+  "expected": "ab\na!"
+ },
+ {
+  "name": "unicode",
+  "stringRules": [
+   {
+    "name": "",
+    "find": "é",
+    "replace": "e",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "/ß/",
+    "replace": "ss",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "café ßtraße",
+  "scope": "myMessages",
+  "expected": "cafe sstraße"
+ },
+ {
+  "name": "zero width regex",
+  "stringRules": [],
+  "regexRules": [
+   {
+    "name": "",
+    "find": "\\b",
+    "replace": "|",
+    "onlyIfIncludes": "",
+    "scope": "myMessages",
+    "id": "x"
+   }
+  ],
+  "input": "ab cd",
+  "scope": "myMessages",
+  "expected": "|ab| |cd|"
+ }
+]

@@ -56,6 +56,7 @@
 #include "Core/Presence/PresenceManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/Theme/Manager.hpp"
+#include "Plugins/PluginHost.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #include "VoiceStatusBar.hpp"
@@ -1325,7 +1326,8 @@ void MainWindow::setupUi()
         Snowflake replyTo = messageInput->replyTargetMessageId();
         if (!chatModel->isAtLatest())
             chatView->jumpToPresent();
-        currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments);
+        currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments,
+                                                 messageInput->replyMentionEnabled());
 
         int rateLimit = currentInstance->getChannelRateLimit(channelId);
         Snowflake userId = currentInstance->accountId();
@@ -1401,12 +1403,42 @@ void MainWindow::setupUi()
 
     connect(chatView, &ChatView::editMessageRequested, this,
             [this](Snowflake channelId, Snowflake messageId, const QString &content) {
-                if (currentInstance)
-                    currentInstance->discord()->editMessage(channelId, messageId, content);
+                if (!currentInstance)
+                    return;
+                QString edited = content;
+                auto *plugins = Qord::Plugins::PluginHost::instance();
+                if (plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeEdit)) {
+                    Qord::Plugins::OutgoingMessage out;
+                    out.accountId = quint64(currentInstance->accountId());
+                    out.channelId = quint64(channelId);
+                    out.guildId = quint64(currentInstance->discord()->getGuildIdForChannel(channelId));
+                    out.messageId = quint64(messageId);
+                    out.isEdit = true;
+                    out.content = content;
+                    plugins->dispatchBeforeEdit(out);
+                    edited = out.content;
+                }
+                currentInstance->discord()->editMessage(channelId, messageId, edited);
             });
 
     connect(chatView, &ChatView::replyToMessageRequested, this,
             [this](Snowflake channelId, Snowflake messageId) {
+                // Like Discord, shift-replying doesn't ping; plugins may decide otherwise
+                const bool shiftHeld = QGuiApplication::queryKeyboardModifiers() & Qt::ShiftModifier;
+                auto mentionAuthor = [&](Snowflake authorId) {
+                    auto *plugins = Qord::Plugins::PluginHost::instance();
+                    if (!plugins || !plugins->hasHook(Qord::Plugins::Hook::ShouldMentionOnReply))
+                        return !shiftHeld;
+                    Qord::Plugins::ReplyContext reply;
+                    reply.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
+                    reply.channelId = quint64(channelId);
+                    reply.guildId = quint64(chatModel->getActiveGuildId());
+                    reply.messageId = quint64(messageId);
+                    reply.authorId = quint64(authorId);
+                    reply.shiftHeld = shiftHeld;
+                    return plugins->dispatchShouldMentionOnReply(reply);
+                };
+
                 // Find the message in the model to get author name and content
                 for (int row = 0; row < chatModel->rowCount(); ++row) {
                     QModelIndex idx = chatModel->index(row, 0);
@@ -1414,12 +1446,13 @@ void MainWindow::setupUi()
                     if (msgId == messageId) {
                         QString authorName = idx.data(ChatModel::UsernameRole).toString();
                         QString content = idx.data(ChatModel::ContentRole).toString();
-                        messageInput->setReplyTarget(messageId, authorName, content);
+                        Snowflake authorId = idx.data(ChatModel::UserIdRole).toULongLong();
+                        messageInput->setReplyTarget(messageId, authorName, content, mentionAuthor(authorId));
                         return;
                     }
                 }
                 // Fallback if message not found in model
-                messageInput->setReplyTarget(messageId, tr("Unknown"), QString());
+                messageInput->setReplyTarget(messageId, tr("Unknown"), QString(), mentionAuthor(Snowflake::Invalid));
             });
 
     connect(chatView, &ChatView::addReactionRequested, this,

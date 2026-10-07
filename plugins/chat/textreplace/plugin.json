@@ -1,0 +1,33 @@
+{
+  "id": "textreplace",
+  "equicordName": "TextReplace",
+  "equicordPath": "src/plugins/textReplace",
+  "name": "TextReplace",
+  "description": "Replace text in your messages. You can find pre-made rules in the #textreplace-rules channel in Vencord's Server",
+  "categories": ["chat", "utility"],
+  "tags": ["Chat", "Customisation", "Utility"],
+  "authors": ["AutumnVN", "TheKodeToad", "Etorix", "Ape"],
+  "permissions": ["modify_outgoing_messages", "modify_displayed_messages"],
+  "hooks": ["onBeforeSend", "transformIncomingContent"],
+  "settings": [
+    {
+      "key": "stringRules",
+      "type": "json",
+      "default": [],
+      "label": "Simple Replacements",
+      "description": "Simple find and replace rules. For example, find 'brb' and replace it with 'be right back'"
+    },
+    {
+      "key": "regexRules",
+      "type": "json",
+      "default": [],
+      "label": "Regex Replacements",
+      "description": "More powerful replacements using Regular Expressions. This section is for advanced users. If you don't understand it, just ignore it"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Rules scoped to others' messages change only how messages are shown to you; messages already on screen update when the channel is re-rendered. Regex rules use JavaScript syntax, translated to PCRE2 (\\uXXXX, [^], end-of-input $)."
+}

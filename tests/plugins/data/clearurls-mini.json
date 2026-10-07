@@ -1,0 +1,10 @@
+{"providers":{
+    "zeta":{"urlPattern":"^https?://zeta\\.test","completeProvider":false,
+            "rules":["tok"],"rawRules":["/ref=[^/?]*"]},
+    "alpha":{"urlPattern":"^https?://zeta\\.test","completeProvider":false,
+             "rawRules":["\\?x=1$"]},
+    "except":{"urlPattern":".*","completeProvider":false,"rules":["drop"],
+              "exceptions":["^https?://keep\\.test"]},
+    "broken":{"urlPattern":"(","rules":["x"]},
+    "partly":{"urlPattern":"^https?://partly\\.test","rules":["(","gone"]}
+}}

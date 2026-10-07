@@ -826,7 +826,8 @@ void Client::onGatewayGuildRoleDelete(const GuildRoleDelete &event)
 }
 
 void Client::sendMessage(Snowflake channelId, const QString &content, const QString &nonce,
-                         Snowflake replyToMessageId, const QList<Core::PendingAttachment> &attachments)
+                         Snowflake replyToMessageId, const QList<Core::PendingAttachment> &attachments,
+                         bool mentionRepliedUser)
 {
     // todo extract to struct probably
     QJsonObject payload;
@@ -841,6 +842,14 @@ void Client::sendMessage(Snowflake channelId, const QString &content, const QStr
         messageReference["message_id"] = QString::number(replyToMessageId);
         messageReference["channel_id"] = QString::number(channelId);
         payload["message_reference"] = messageReference;
+
+        // Same shape the official client sends with the reply ping turned off
+        if (!mentionRepliedUser) {
+            QJsonObject allowedMentions;
+            allowedMentions["parse"] = QJsonArray { "users", "roles", "everyone" };
+            allowedMentions["replied_user"] = false;
+            payload["allowed_mentions"] = allowedMentions;
+        }
     }
 
     if (!attachments.isEmpty()) {

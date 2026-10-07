@@ -1,0 +1,4 @@
+# Pinned upstream data and golden test files are compared byte-for-byte
+# (SHA256 in data/equicord/source-version.json): never convert line endings.
+data/equicord/plugins.json -text
+tests/plugins/data/*.json -text

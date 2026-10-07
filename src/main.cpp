@@ -4,6 +4,7 @@
 #include "Core/Session.hpp"
 #include "Core/Logging.hpp"
 #include "Core/Theme/Manager.hpp"
+#include "Plugins/Client/ClientPlugins.hpp"
 
 #include <curl/curl.h>
 
@@ -119,6 +120,7 @@ int main(int argc, char *argv[])
 
     {
         Core::Session session;
+        Qord::Plugins::ClientPlugins plugins(&session);
         UI::MainWindow window(&session);
         window.show();
 

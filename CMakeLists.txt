@@ -485,6 +485,9 @@ else()
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC src/pch.h)
 
+# Qord: native plugin host, plugins and their tests
+include(qord.cmake)
+
 include(CheckCXXSymbolExists)
 get_target_property(_curl_incs CURL::libcurl INTERFACE_INCLUDE_DIRECTORIES)
 if(_curl_incs)

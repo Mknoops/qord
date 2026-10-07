@@ -54,7 +54,8 @@ public:
     void requestLoadAround(Snowflake channelId, Snowflake messageId);
     void sendMessage(Snowflake channelId, const QString &content,
                      Snowflake replyToMessageId = Snowflake::Invalid,
-                     const QList<PendingAttachment> &attachments = {});
+                     const QList<PendingAttachment> &attachments = {},
+                     bool mentionRepliedUser = true);
     void cancelSend(Snowflake channelId, const QString &nonce);
     void addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst);
 

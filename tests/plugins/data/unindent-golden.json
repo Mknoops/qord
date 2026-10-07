@@ -1,0 +1,87 @@
+[
+ {
+  "name": "basic",
+  "input": "```\n    a\n      b\n```",
+  "expected": "```\na\n  b\n```"
+ },
+ {
+  "name": "language line kept",
+  "input": "```py\n    def f():\n        pass\n```",
+  "expected": "```py\ndef f():\n    pass\n```"
+ },
+ {
+  "name": "tabs",
+  "input": "```\n\tif x:\n\t\ty\n```",
+  "expected": "```\nif x:\n    y\n```"
+ },
+ {
+  "name": "mixed tabs and spaces",
+  "input": "```\n  \ta\n      b\n```",
+  "expected": "```\na\nb\n```"
+ },
+ {
+  "name": "blank lines ignored",
+  "input": "```\n    a\n\n    b\n```",
+  "expected": "```\na\n\nb\n```"
+ },
+ {
+  "name": "whitespace-only line",
+  "input": "```\n    a\n  \n    b\n```",
+  "expected": "```\na\n  \nb\n```"
+ },
+ {
+  "name": "already flush",
+  "input": "```\na\n  b\n```",
+  "expected": "```\na\n  b\n```"
+ },
+ {
+  "name": "inline code untouched",
+  "input": "use `  x  ` and ```  y  ``` here",
+  "expected": "use `  x  ` and ```  y  ``` here"
+ },
+ {
+  "name": "single line block untouched",
+  "input": "```    one line```",
+  "expected": "```    one line```"
+ },
+ {
+  "name": "closing fence on code line",
+  "input": "```\n    a\n    b```",
+  "expected": "```\na\nb```\n"
+ },
+ {
+  "name": "empty block",
+  "input": "```\n```",
+  "expected": "```\n\n```"
+ },
+ {
+  "name": "two blocks",
+  "input": "x\n```\n  a\n```\ny\n```js\n        b\n          c\n```",
+  "expected": "x\n```\na\n```\ny\n```js\nb\n  c\n```"
+ },
+ {
+  "name": "no code",
+  "input": "hello\n    world",
+  "expected": "hello\n    world"
+ },
+ {
+  "name": "unclosed",
+  "input": "```\n    a\n    b",
+  "expected": "```\n    a\n    b"
+ },
+ {
+  "name": "text around",
+  "input": "before ```\n   a\n   b\n``` after",
+  "expected": "before ```\na\nb\n``` after"
+ },
+ {
+  "name": "crlf not matched across lines",
+  "input": "```\r\n    a\r\n```",
+  "expected": "```\r\n    a\r\n```"
+ },
+ {
+  "name": "nbsp line",
+  "input": "```\n    a\n  b\n```",
+  "expected": "```\na\n  b\n```"
+ }
+]

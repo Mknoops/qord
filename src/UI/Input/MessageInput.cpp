@@ -99,6 +99,16 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     replyLabel->setStyleSheet("color: #b5bac1; font-size: 12px;");
     replyLayout->addWidget(replyLabel, 1);
 
+    replyMentionButton = new QToolButton(replyBar);
+    replyMentionButton->setAutoRaise(true);
+    replyMentionButton->setCursor(Qt::PointingHandCursor);
+    replyMentionButton->setToolTip(tr("Click to toggle whether this reply pings the author"));
+    replyLayout->addWidget(replyMentionButton);
+    connect(replyMentionButton, &QToolButton::clicked, this, [this]() {
+        replyMention = !replyMention;
+        updateReplyMentionButton();
+    });
+
     replyCancelButton = new QToolButton(replyBar);
     replyCancelButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::X, Core::Theme::Token::PlaceholderText));
     replyCancelButton->setIconSize(QSize(14, 14));
@@ -206,9 +216,11 @@ void MessageInput::dropEvent(QDropEvent *event)
 }
 
 void MessageInput::setReplyTarget(Core::Snowflake messageId, const QString &authorName,
-                                  const QString &contentSnippet)
+                                  const QString &contentSnippet, bool mentionAuthor)
 {
     replyMessageId = messageId;
+    replyMention = mentionAuthor;
+    updateReplyMentionButton();
     QString snippet = contentSnippet;
     snippet.replace('\n', ' ');
     if (snippet.length() > 100)
@@ -228,6 +240,14 @@ void MessageInput::clearReplyTarget()
     replyMessageId = Core::Snowflake::Invalid;
     replyBar->setVisible(false);
     adjustHeight();
+}
+
+void MessageInput::updateReplyMentionButton()
+{
+    replyMentionButton->setText(replyMention ? tr("@ ON") : tr("@ OFF"));
+    replyMentionButton->setStyleSheet(
+            replyMention ? QStringLiteral("QToolButton { border: none; color: #5865f2; font-weight: bold; font-size: 12px; }")
+                         : QStringLiteral("QToolButton { border: none; color: #b5bac1; font-weight: bold; font-size: 12px; }"));
 }
 
 void MessageInput::setSendBlocked(bool blocked)

@@ -29,6 +29,15 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/MessageListPopup.hpp
     src/UI/Qord/MessageListPopup.cpp
     src/UI/Qord/MainWindowQord.cpp
+    src/UI/Qord/EmojiPicker.hpp
+    src/UI/Qord/EmojiPicker.cpp
+    src/UI/Qord/FriendsPage.hpp
+    src/UI/Qord/FriendsPage.cpp
+    src/UI/Qord/AddServerDialog.hpp
+    src/UI/Qord/AddServerDialog.cpp
+    src/UI/Qord/DesktopNotifier.hpp
+    src/UI/Qord/DesktopNotifier.cpp
+    src/Qord/EmojiPickerData.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
 

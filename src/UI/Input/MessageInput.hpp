@@ -71,6 +71,8 @@ signals:
     void editLastMessageRequested();
     // Qord: the user typed into the box (MainWindow throttles the typing indicator)
     void userTyping();
+    // Qord: the emoji button in the message box was clicked
+    void emojiButtonClicked(QWidget *anchor);
 
 private:
     ChatTextEdit *textEdit;

@@ -60,6 +60,7 @@
 #include "Input/PluginChatButtons.hpp"
 #include "Qord/UserPanel.hpp"
 #include "Qord/MessageListPopup.hpp"
+#include "Qord/FriendsPage.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #include "VoiceStatusBar.hpp"
@@ -351,6 +352,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     // voice channels cannot hold threads
     setThreadBrowserTarget(isDm || isVoice ? Snowflake::Invalid : (isThread ? threadParentId : channelId));
     showChannelTopic(instance, channelId);
+    hideFriendsPage();
     channelToolbar->setVisible(true);
     channelNameLabel->setText((isDm ? QStringLiteral("@ ") : (isThread ? QString() : QStringLiteral("# "))) + name);
     membersButton->setVisible(guildId.isValid());
@@ -814,6 +816,7 @@ void MainWindow::setupPermanentConnections(Core::ClientInstance *instance)
 
     if (instancesSignalsConnected.contains(instance->accountId()))
         return;
+    connectQordInstance(instance);
     instancesSignalsConnected.insert(instance->accountId());
 
     connect(instance, &Core::ClientInstance::guildCreated, this,
@@ -1263,6 +1266,9 @@ void MainWindow::setupUi()
     rightLayout->addWidget(tabBar, 0);
     rightLayout->addWidget(channelToolbar, 0);
     rightLayout->addWidget(centerSplitter, 1);
+    friendsPage = new FriendsPage(session->getImageManager(), rightSideWidget);
+    friendsPage->hide();
+    rightLayout->addWidget(friendsPage, 1);
 
     memberListView = new MemberListView(central);
     memberListView->setModel(memberListModel);
@@ -1307,6 +1313,23 @@ void MainWindow::setupUi()
         menuBar()->setVisible(!menuBar()->isVisible());
         QSettings().setValue("ui/showMenuBar", menuBar()->isVisible());
     });
+
+    addServerButton = new QToolButton(this);
+    addServerButton->setObjectName("AddServerButton");
+    addServerButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Plus, Core::Theme::Token::StatusOnline));
+    addServerButton->setIconSize(QSize(24, 24));
+    addServerButton->setFixedSize(48, 48);
+    addServerButton->setCursor(Qt::PointingHandCursor);
+    addServerButton->setToolTip(tr("Add a Server"));
+    addServerButton->hide();
+
+    friendsButton = new QPushButton(tr("Friends"), this);
+    friendsButton->setObjectName("FriendsButton");
+    friendsButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Users, Core::Theme::Token::MutedText));
+    friendsButton->setIconSize(QSize(22, 22));
+    friendsButton->setCursor(Qt::PointingHandCursor);
+    friendsButton->setCheckable(true);
+    connect(friendsButton, &QPushButton::clicked, this, &MainWindow::showFriendsPage);
 
     leftSideWidget = buildLeftSide();
 
@@ -1531,11 +1554,7 @@ void MainWindow::setupUi()
                 messageInput->setReplyTarget(messageId, tr("Unknown"), QString(), mentionAuthor(Snowflake::Invalid));
             });
 
-    connect(chatView, &ChatView::addReactionRequested, this,
-            [this](Snowflake channelId, Snowflake messageId) {
-                qCInfo(LogCore) << "Add reaction requested for message" << messageId
-                                << "- UI not yet implemented";
-            });
+    // Qord: the emoji picker handles Add Reaction (MainWindowQord.cpp)
 
     connect(chatView, &ChatView::toggleReactionClicked, this,
             [this](Snowflake channelId, Snowflake messageId, const QString &emoji, bool currentlyReacted, bool isBurst) {
@@ -1695,7 +1714,17 @@ QWidget *MainWindow::buildLeftSide()
         h->setSpacing(0);
 
         serverRail->show();
-        h->addWidget(serverRail, 0);
+        // Qord: "Add a Server" under the server list, like Discord
+        auto *railColumn = new QWidget(container);
+        railColumn->setObjectName("ServerRailColumn");
+        railColumn->setAttribute(Qt::WA_StyledBackground, true);
+        auto *railLayout = new QVBoxLayout(railColumn);
+        railLayout->setContentsMargins(0, 0, 0, 8);
+        railLayout->setSpacing(4);
+        railLayout->addWidget(serverRail, 1);
+        railLayout->addWidget(addServerButton, 0, Qt::AlignHCenter);
+        addServerButton->show();
+        h->addWidget(railColumn, 0);
 
         auto *secondary = new QWidget(container);
         secondary->setObjectName("ChannelSidebar");
@@ -1705,6 +1734,8 @@ QWidget *MainWindow::buildLeftSide()
         v->setSpacing(0);
         v->addWidget(guildHeaderLabel, 0);
         guildHeaderLabel->setVisible(!guildHeaderLabel->text().isEmpty());
+        v->addWidget(friendsButton, 0);
+        friendsButton->setVisible(railSelectedIsHome);
         channelTree->show();
         v->addWidget(channelTree, 1);
 #ifndef ACHERON_NO_VOICE
@@ -1712,11 +1743,14 @@ QWidget *MainWindow::buildLeftSide()
             v->addWidget(voiceStatusBar, 0);
 #endif
         v->addWidget(userPanel, 0);
+        userPanel->show();
         h->addWidget(secondary, 1);
     } else {
         auto *v = new QVBoxLayout(container);
         v->setContentsMargins(0, 0, 0, 0);
         v->setSpacing(0);
+        v->addWidget(friendsButton, 0);
+        friendsButton->show();
         channelTree->show();
         v->addWidget(channelTree, 1);
 #ifndef ACHERON_NO_VOICE
@@ -1724,6 +1758,7 @@ QWidget *MainWindow::buildLeftSide()
             v->addWidget(voiceStatusBar, 0);
 #endif
         v->addWidget(userPanel, 0);
+        userPanel->show();
     }
 
     container->setMinimumWidth(200);
@@ -1756,6 +1791,11 @@ void MainWindow::setChannelListMode(ChannelListMode mode)
     serverRail->hide();
     guildHeaderLabel->setParent(this);
     guildHeaderLabel->hide();
+    // Qord widgets live in the left side too; keep them across the rebuild
+    for (QWidget *w : std::initializer_list<QWidget *> { userPanel, friendsButton, addServerButton }) {
+        w->setParent(this);
+        w->hide();
+    }
 #ifndef ACHERON_NO_VOICE
     if (voiceStatusBar) {
         voiceStatusBar->setParent(this);
@@ -1816,6 +1856,10 @@ void MainWindow::onRailGuildSelected(Snowflake accountId, Snowflake guildId)
     QString guildName = src.data(Qt::DisplayRole).toString();
     guildHeaderLabel->setText(guildName);
     guildHeaderLabel->setVisible(!guildName.isEmpty());
+    if (channelListMode == ChannelListMode::Classic) {
+        friendsButton->hide();
+        hideFriendsPage();
+    }
     railHasSelection = true;
     railSelectedIsHome = false;
     railSelectedAccountId = accountId;
@@ -1841,6 +1885,7 @@ void MainWindow::onRailAccountHomeSelected(Snowflake accountId)
     serverRailModel->setSelected(ServerRailModel::Kind::AccountHome, accountId, accountId);
     guildHeaderLabel->setText(tr("Direct Messages"));
     guildHeaderLabel->show();
+    friendsButton->show();
     railHasSelection = true;
     railSelectedIsHome = true;
     railSelectedAccountId = accountId;

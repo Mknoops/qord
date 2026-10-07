@@ -963,6 +963,9 @@ void ChatView::triggerMessageAction(MessageActionBar::Action action, Core::Snowf
     case MessageActionBar::Action::Delete:
         emit deleteMessageRequested(chatModel->getActiveChannelId(), messageId);
         break;
+    case MessageActionBar::Action::AddReaction:
+        emit addReactionRequested(chatModel->getActiveChannelId(), messageId);
+        break;
     }
 }
 

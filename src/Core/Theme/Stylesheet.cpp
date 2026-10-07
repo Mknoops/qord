@@ -68,6 +68,39 @@ static QString buildQordStyleSheet()
                           "#MessageListPopupList::item:hover { background-color: %6; }"
                           "#MessageListPopupList::item:selected { background-color: %6; color: %5; }")
                    .arg(hex(sidebar), hex(rail), hex(muted), hex(chat), hex(text), hex(hover));
+    qss += QStringLiteral("#FriendsButton { background: transparent; color: %1; border: none; border-radius: 4px;"
+                          "  text-align: left; padding: 8px 10px; margin: 8px 8px 4px 8px; font-weight: 500; }"
+                          "#FriendsButton:hover { background-color: %2; color: %3; }"
+                          "#FriendsButton:checked { background-color: %4; color: %5; }"
+                          "#FriendsPage { background-color: %6; }"
+                          "#FriendsHeader { border-bottom: 1px solid rgba(0, 0, 0, 0.35); }"
+                          "#FriendsTab { background: transparent; color: %1; border: none; border-radius: 4px;"
+                          "  padding: 2px 8px; font-weight: 500; }"
+                          "#FriendsTab:hover { background-color: %2; color: %3; }"
+                          "#FriendsTab:checked { background-color: %4; color: %5; }"
+                          "#AddFriendTab { background-color: #248046; color: #ffffff; }"
+                          "#AddFriendTab:checked { background: transparent; color: #2dc770; }"
+                          "#FriendsCount { color: %1; font-weight: 600; }"
+                          "#FriendsList { background: transparent; border: none; }"
+                          "#FriendRow { border-top: 1px solid %7; }"
+                          "#FriendAction { background-color: %8; border: none; border-radius: 18px; }"
+                          "#AddFriendBox { background-color: %8; border: 1px solid %8; border-radius: 8px; }"
+                          "#AddFriendField { background: transparent; border: none; color: %3; }"
+                          "#PrimaryButton { background-color: %9; color: #ffffff; border: none; border-radius: 3px;"
+                          "  padding: 6px 14px; font-weight: 500; }"
+                          "#PrimaryButton:disabled { background-color: rgba(88, 101, 242, 0.5); color: rgba(255, 255, 255, 0.6); }")
+                   .arg(hex(muted), hex(hover), hex(text), hex(selected), hex(header), hex(chat), hex(divider), hex(rail),
+                        hex(accent));
+    qss += QStringLiteral("#ServerRailColumn { background-color: %1; }"
+                          "#AddServerButton { background-color: %2; border: none; border-radius: 24px; }"
+                          "#AddServerButton:hover { background-color: #23a55a; border-radius: 16px; }")
+                   .arg(hex(rail), hex(chat));
+    qss += QStringLiteral("#EmojiPicker { background-color: %1; border: 1px solid %2; border-radius: 8px; }"
+                          "#EmojiPickerSearch { background-color: %2; color: %3; border: none; border-radius: 4px;"
+                          "  padding: 6px 8px; }"
+                          "#EmojiPickerGrid { background: transparent; border: none; }"
+                          "#EmojiPickerPreview { color: %4; padding-left: 4px; }")
+                   .arg(hex(sidebar), hex(rail), hex(text), hex(muted));
     qss += QStringLiteral("QMenu { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px;"
                           "  padding: 6px; }"
                           "QMenu::item { padding: 6px 24px 6px 10px; border-radius: 2px; }"

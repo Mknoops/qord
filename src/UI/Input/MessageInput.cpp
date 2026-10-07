@@ -185,6 +185,17 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     connect(attachmentPanel, &AttachmentPreviewPanel::attachmentsChanged, this, &MessageInput::adjustHeight);
 
     inputLayout->addWidget(textEdit);
+
+    auto *emojiButton = new QToolButton(inputContainer);
+    emojiButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Smile, Core::Theme::Token::MutedText));
+    emojiButton->setIconSize(QSize(22, 22));
+    emojiButton->setFixedSize(30, 44);
+    emojiButton->setAutoRaise(true);
+    emojiButton->setCursor(Qt::PointingHandCursor);
+    emojiButton->setToolTip(tr("Select emoji"));
+    emojiButton->setStyleSheet("QToolButton { border: none; background: transparent; }");
+    connect(emojiButton, &QToolButton::clicked, this, [this, emojiButton]() { emit emojiButtonClicked(emojiButton); });
+    inputLayout->addWidget(emojiButton, 0, Qt::AlignTop);
     outerLayout->addWidget(inputContainer);
 
     setAcceptDrops(true);

@@ -26,6 +26,8 @@ public:
 
     [[nodiscard]] bool isFriend(Snowflake userId) const;
     [[nodiscard]] bool isBlockedOrIgnored(Snowflake userId) const;
+    // Qord: every relationship, for the Friends page
+    [[nodiscard]] QList<Discord::Relationship> all() const { return store.values(); }
 
 public slots:
     void onRelationshipAdded(const Discord::Relationship &rel);

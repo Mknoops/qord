@@ -12,10 +12,20 @@
 #include "UI/Chat/ChatModel.hpp"
 #include "UI/ChannelList/ChannelTreeView.hpp"
 #include "UI/ChannelList/ServerRailView.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
+#include "Core/MessageManager.hpp"
+#include "UI/Chat/ChatView.hpp"
+#include "UI/Qord/EmojiPicker.hpp"
+#include "UI/Qord/FriendsPage.hpp"
+#include "UI/Qord/AddServerDialog.hpp"
+#include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
 #include "UI/Qord/UserPanel.hpp"
 
 #include <QDateTime>
+#include <QJsonObject>
+#include <QMenu>
+#include "Core/ReadStateManager.hpp"
 #include <QPointer>
 #include <QSettings>
 
@@ -54,6 +64,68 @@ void MainWindow::setupQordFeatures()
             userPanel->setInstance(session->client(ready.user->id));
     });
 
+    // Emoji picker: the message box button and Add Reaction
+    emojiPicker = new EmojiPicker(session->getImageManager(), this);
+    connect(messageInput, &MessageInput::emojiButtonClicked, this, [this](QWidget *anchor) {
+        if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+            return;
+        disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
+        connect(emojiPicker, &EmojiPicker::emojiPicked, this, [this](const Core::EmojiMatch &match) {
+            messageInput->insertText(match.isCustom() ? match.insertText : match.surrogates);
+            messageInput->setFocus();
+        });
+        emojiPicker->open(currentInstance, chatModel->getActiveChannelId(), false, anchor);
+    });
+    connect(chatView, &ChatView::addReactionRequested, this, [this](Snowflake channelId, Snowflake messageId) {
+        if (!currentInstance)
+            return;
+        disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
+        connect(emojiPicker, &EmojiPicker::emojiPicked, this, [this, channelId, messageId](const Core::EmojiMatch &match) {
+            if (currentInstance)
+                currentInstance->messages()->addReaction(channelId, messageId, EmojiPicker::reactionKey(match), false);
+        });
+        emojiPicker->open(currentInstance, channelId, true, chatView);
+        emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker
+    });
+
+    // Desktop notifications for DMs and mentions
+    notifier = new DesktopNotifier(this);
+    connect(notifier, &DesktopNotifier::openRequested, this,
+            [this](Snowflake, Snowflake channelId, Snowflake messageId) { jumpToMessageLink(channelId, messageId); });
+
+    // Add a Server
+    connect(addServerButton, &QToolButton::clicked, this, [this]() {
+        Core::ClientInstance *instance = session->client(railSelectedAccountId);
+        if (!instance)
+            instance = currentInstance;
+        if (!instance)
+            return;
+        (new AddServerDialog(instance, this))->open();
+    });
+
+    // Mute / notification settings on server and channel menus
+    serverRail->setMenuExtender([this](QMenu *menu, Snowflake accountId, Snowflake guildId) {
+        addNotificationMenu(menu, session->client(accountId), guildId, Snowflake::Invalid);
+    });
+    channelTree->setMenuExtender([this](QMenu *menu, Snowflake accountId, Snowflake guildId, Snowflake channelId) {
+        addNotificationMenu(menu, session->client(accountId), guildId, channelId);
+    });
+
+    // Friends page: open a DM from it
+    connect(friendsPage, &FriendsPage::openDmRequested, this, [this](Snowflake userId) {
+        Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+        if (!instance)
+            return;
+        const QPointer<MainWindow> guard(this);
+        const Snowflake accountId = instance->accountId();
+        instance->openDmChannel(userId, [guard, accountId](const Core::Result<Snowflake> &result) {
+            if (!guard || !result.success())
+                return;
+            guard->hideFriendsPage();
+            guard->selectChannelInTree(accountId, *result.value);
+        });
+    });
+
     // Sending a message ends the typing state, like the official client
     connect(messageInput, &MessageInput::sendMessage, this, [this]() { lastTypingSentMs = 0; });
 }
@@ -73,6 +145,107 @@ void MainWindow::applyQordSurfaces()
     setSurface(channelTree, theme.color(Token::SidebarBg));
     setSurface(memberListView, theme.color(Token::SidebarBg));
     setSurface(userPanel, theme.color(Token::SidebarBg).darker(115));
+}
+
+void MainWindow::connectQordInstance(Core::ClientInstance *instance)
+{
+    const QPointer<Core::ClientInstance> guard(instance);
+    connect(instance, &Core::ClientInstance::notifiableMessage, this,
+            [this, guard](const Discord::Message &message, bool mentionsMe) {
+                if (guard && notifier)
+                    notifier->consider(guard, message, mentionsMe, chatModel->getActiveChannelId());
+            });
+}
+
+void MainWindow::addNotificationMenu(QMenu *menu, Core::ClientInstance *instance, Snowflake guildId,
+                                     Snowflake channelId)
+{
+    if (!instance)
+        return;
+    if (channelId.isValid()) {
+        const auto channel = instance->getChannel(channelId);
+        guildId = channel && channel->guildId.hasValue() ? channel->guildId.get() : Snowflake::Invalid;
+    }
+    const QPointer<Core::ClientInstance> guard(instance);
+    const auto patch = [guard, guildId](const QJsonObject &body) {
+        if (guard)
+            guard->discord()->updateGuildNotificationSettings(guildId, body, [](const Core::Result<void> &) {});
+    };
+
+    const bool isChannel = channelId.isValid();
+    const bool muted = isChannel ? instance->readState()->isChannelMuted(channelId)
+                                 : instance->readState()->isGuildMuted(guildId);
+    const QString what = isChannel ? (guildId.isValid() ? tr("Channel") : tr("Conversation")) : tr("Server");
+    QAction *mute = menu->addAction(muted ? tr("Unmute %1").arg(what) : tr("Mute %1").arg(what));
+    connect(mute, &QAction::triggered, this, [patch, channelId, isChannel, muted]() {
+        QJsonObject state{ { "muted", !muted }, { "mute_config", QJsonValue::Null } };
+        if (isChannel)
+            patch(QJsonObject{ { "channel_overrides", QJsonObject{ { QString::number(quint64(channelId)), state } } } });
+        else
+            patch(state);
+    });
+
+    if (!guildId.isValid())
+        return; // DMs only mute
+    QMenu *levels = menu->addMenu(tr("Notification Settings"));
+    int current = -1;
+    if (const auto settings = instance->readState()->guildSettings(guildId)) {
+        if (isChannel && settings->channelOverrides.hasValue()) {
+            for (const auto &o : settings->channelOverrides.get()) {
+                if (o.channelId.hasValue() && o.channelId.get() == channelId && o.messageNotifications.hasValue())
+                    current = int(o.messageNotifications.get());
+            }
+        } else if (!isChannel && settings->messageNotifications.hasValue()) {
+            current = int(settings->messageNotifications.get());
+        }
+    }
+    const QList<QPair<int, QString>> options = {
+        { isChannel ? 3 : -2, isChannel ? tr("Use Server Default") : QString() },
+        { 0, tr("All Messages") },
+        { 1, tr("Only @mentions") },
+        { 2, tr("Nothing") },
+    };
+    for (const auto &[level, label] : options) {
+        if (label.isEmpty())
+            continue;
+        QAction *a = levels->addAction(label);
+        a->setCheckable(true);
+        a->setChecked(level == current || (level == 3 && current == -1 && isChannel));
+        connect(a, &QAction::triggered, this, [patch, channelId, isChannel, level]() {
+            if (isChannel)
+                patch(QJsonObject{ { "channel_overrides",
+                                     QJsonObject{ { QString::number(quint64(channelId)),
+                                                    QJsonObject{ { "message_notifications", level } } } } } });
+            else
+                patch(QJsonObject{ { "message_notifications", level } });
+        });
+    }
+}
+
+void MainWindow::showFriendsPage()
+{
+    Core::ClientInstance *instance = session->client(railSelectedAccountId);
+    if (!instance)
+        instance = currentInstance;
+    friendsPage->setInstance(instance);
+    if (!friendsPage->isVisible())
+        tabBar->setProperty("qordWasVisible", tabBar->isVisible());
+    tabBar->hide();
+    channelToolbar->hide();
+    centerSplitter->hide();
+    setMemberListVisible(false);
+    friendsPage->show();
+    friendsButton->setChecked(true);
+}
+
+void MainWindow::hideFriendsPage()
+{
+    if (!friendsPage || !friendsPage->isVisible())
+        return;
+    friendsPage->hide();
+    friendsButton->setChecked(false);
+    tabBar->setVisible(tabBar->property("qordWasVisible").toBool());
+    centerSplitter->show();
 }
 
 MessageListPopup *MainWindow::ensureMessagePopup()

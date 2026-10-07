@@ -136,8 +136,8 @@ UserPanel::UserPanel(Core::ImageManager *images, QWidget *parent) : QWidget(pare
         settingsButton->setIcon(Icons::icon(Icons::Name::Settings, Token::MutedText));
         refreshButtons();
     });
-    connect(images, &Core::ImageManager::imageFetched, this, [this](const QUrl &, const QSize &, const QPixmap &) {
-        if (avatarLabel->pixmap(Qt::ReturnByValue).isNull())
+    connect(images, &Core::ImageManager::imageFetched, this, [this](const QUrl &url, const QSize &, const QPixmap &) {
+        if (url == avatarUrl)
             refreshAvatar();
     });
 
@@ -215,8 +215,8 @@ void UserPanel::refreshAvatar()
     if (!instance)
         return;
     const Core::AccountInfo &info = instance->accountInfo();
-    const QUrl url = Discord::Cdn::userAvatar(info.id, info.avatar, 64);
-    const QPixmap pm = images->get(url, QSize(AvatarSize, AvatarSize), info.id);
+    avatarUrl = Discord::Cdn::userAvatar(info.id, info.avatar, 64);
+    const QPixmap pm = images->get(avatarUrl, QSize(AvatarSize, AvatarSize), info.id);
     if (!pm.isNull())
         avatarLabel->setPixmap(circular(pm, AvatarSize, devicePixelRatioF()));
 }

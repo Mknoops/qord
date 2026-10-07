@@ -22,6 +22,7 @@ MessageActionBar::MessageActionBar(QWidget *parent) : QFrame(parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
+    addActionButton(Action::AddReaction, Icons::Name::Smile, Token::ButtonText);
     copyIdButton = addActionButton(Action::CopyId, Icons::Name::IdCard, Token::ButtonText);
     copyLinkButton = addActionButton(Action::CopyLink, Icons::Name::Link, Token::ButtonText);
     addActionButton(Action::Reply, Icons::Name::Reply, Token::ButtonText);
@@ -48,6 +49,8 @@ QString MessageActionBar::label(Action action)
         return tr("Reply");
     case Action::Delete:
         return tr("Delete Message");
+    case Action::AddReaction:
+        return tr("Add Reaction");
     }
     return {};
 }

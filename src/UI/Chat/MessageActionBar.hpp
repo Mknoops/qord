@@ -18,6 +18,7 @@ public:
         CopyLink,
         Reply,
         Delete,
+        AddReaction, // Qord: Discord's react button on the hover bar
     };
     Q_ENUM(Action)
 

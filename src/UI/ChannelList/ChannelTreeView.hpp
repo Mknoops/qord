@@ -1,6 +1,10 @@
 #pragma once
 
 #include <QTreeView>
+
+#include <functional>
+
+class QMenu;
 #include <QHash>
 
 #include "Core/Snowflake.hpp"
@@ -38,6 +42,18 @@ signals:
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
+
+public:
+    // Qord: lets the window add items to a server's or channel's menu.
+    // channelId is invalid for a server row.
+    using MenuExtender = std::function<void(QMenu *menu, Core::Snowflake accountId, Core::Snowflake guildId,
+                                            Core::Snowflake channelId)>;
+    void setMenuExtender(MenuExtender extender) { menuExtender = std::move(extender); }
+
+private:
+    MenuExtender menuExtender;
+
+protected:
 
 private:
     void mousePressEvent(QMouseEvent *event) override;

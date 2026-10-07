@@ -69,6 +69,7 @@ private:
     QString customText;
     QString customEmoji;
     QString chosenStatus; // empty until the user picks one this session
+    QUrl avatarUrl;
 };
 
 } // namespace UI

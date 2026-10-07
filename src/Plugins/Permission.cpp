@@ -30,6 +30,14 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Add buttons and menu items") },
     { Permission::WriteClipboard, "write_clipboard",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Copy text to your clipboard") },
+    { Permission::LogMessages, "log_messages",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Keep deleted and edited messages visible") },
+    { Permission::HideMessages, "hide_messages",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Hide messages from the chat") },
+    { Permission::ReadRelationships, "read_relationships",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See who you have blocked or ignored") },
+    { Permission::OpenLinks, "open_links",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Open links in your browser") },
 };
 
 struct HookInfo
@@ -47,6 +55,9 @@ const HookInfo hookTable[] = {
     { Hook::TransformIncomingContent, "transformIncomingContent", Permission::ModifyDisplayedMessages },
     { Hook::ChatBarButtons, "chatBarButtons", Permission::AddUiElements },
     { Hook::UserContextMenu, "userContextMenu", Permission::AddUiElements },
+    { Hook::MessageContextMenu, "messageContextMenu", Permission::AddUiElements },
+    { Hook::MessageHistory, "messageHistory", Permission::LogMessages },
+    { Hook::MessageFilter, "messageFilter", Permission::HideMessages },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

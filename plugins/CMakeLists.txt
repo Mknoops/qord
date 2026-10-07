@@ -71,6 +71,12 @@ qord_add_plugin(ingtoninator chat SOURCES Ingtoninator.hpp Ingtoninator.cpp)
 qord_add_plugin(copyuserurls utility SOURCES CopyUserUrls.hpp CopyUserUrls.cpp)
 qord_add_plugin(copyusermention chat SOURCES CopyUserMention.hpp CopyUserMention.cpp)
 
+# --- Batch 3 ---------------------------------------------------------------
+qord_add_plugin(messagelogger chat SOURCES MessageLogger.hpp MessageLogger.cpp)
+qord_add_plugin(noblockedmessages chat SOURCES NoBlockedMessages.hpp NoBlockedMessages.cpp)
+qord_add_plugin(viewraw developer SOURCES ViewRaw.hpp ViewRaw.cpp)
+qord_add_plugin(reverseimagesearch media SOURCES ReverseImageSearch.hpp ReverseImageSearch.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

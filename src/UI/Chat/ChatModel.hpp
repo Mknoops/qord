@@ -267,6 +267,11 @@ public:
     [[nodiscard]] int rowForMessage(Snowflake messageId) const;
     [[nodiscard]] Snowflake getActiveChannelId() const;
     [[nodiscard]] Snowflake getActiveGuildId() const;
+    // Qord: the message behind a row (for plugins), or null
+    [[nodiscard]] const Discord::Message *messageAt(int row) const
+    {
+        return row >= 0 && row < messages.size() ? &messages[row] : nullptr;
+    }
     [[nodiscard]] bool isSpoilerRevealed(Snowflake attachmentId) const;
 
     [[nodiscard]] bool isAtLatest() const { return atLatest; }

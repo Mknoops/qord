@@ -2,11 +2,23 @@
 
 #include "Core/ClientInstance.hpp"
 #include "Core/Logging.hpp"
+#include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
+#include "Core/RelationshipManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
 
+#include <QApplication>
 #include <QClipboard>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFontDatabase>
+#include <QLabel>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QVBoxLayout>
 #include <QDir>
 #include <QGuiApplication>
 #include <QElapsedTimer>
@@ -100,13 +112,85 @@ void QtClipboardService::setText(const QString &text)
     QGuiApplication::clipboard()->setText(text);
 }
 
+static std::optional<Acheron::Discord::Relationship> relationshipOf(Acheron::Core::Session *session, Id accountId,
+                                                                    Id userId)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->relationships())
+        return std::nullopt;
+    return instance->relationships()->getRelationship(Acheron::Core::Snowflake(userId));
+}
+
+bool SessionRelationshipDirectory::isBlocked(Id accountId, Id userId) const
+{
+    const auto rel = relationshipOf(session, accountId, userId);
+    return rel && rel->type.hasValue() && rel->type.get() == Acheron::Discord::RelationshipType::BLOCKED;
+}
+
+bool SessionRelationshipDirectory::isIgnored(Id accountId, Id userId) const
+{
+    const auto rel = relationshipOf(session, accountId, userId);
+    return rel && rel->userIgnored.hasValue() && rel->userIgnored.get();
+}
+
+void QtUiService::showTextDialog(const QString &title, const QList<TextSection> &sections)
+{
+    auto *dialog = new QDialog(QApplication::activeWindow());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(title);
+    dialog->resize(640, 520);
+    auto *layout = new QVBoxLayout(dialog);
+    for (const auto &section : sections) {
+        auto *header = new QHBoxLayout;
+        auto *label = new QLabel(QStringLiteral("<b>%1</b>").arg(section.title.toHtmlEscaped()), dialog);
+        auto *copy = new QPushButton(QObject::tr("Copy"), dialog);
+        header->addWidget(label, 1);
+        header->addWidget(copy);
+        layout->addLayout(header);
+        auto *text = new QPlainTextEdit(section.text, dialog);
+        text->setReadOnly(true);
+        if (section.monospace)
+            text->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+        layout->addWidget(text, 1);
+        const QString value = section.text;
+        QObject::connect(copy, &QPushButton::clicked, dialog, [value] { QGuiApplication::clipboard()->setText(value); });
+    }
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::close);
+    layout->addWidget(buttons);
+    dialog->show();
+}
+
+void QtUiService::openUrl(const QUrl &url)
+{
+    QDesktopServices::openUrl(url);
+}
+
+void SessionMessageService::refreshMessage(Id accountId, Id channelId, Id messageId)
+{
+    if (auto *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->messages()->refreshMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+}
+
+void SessionMessageService::removeMessage(Id accountId, Id channelId, Id messageId)
+{
+    if (auto *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->messages()->removeKeptMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+}
+
+void SessionMessageService::refreshFilters()
+{
+    if (host)
+        host->requestMessageFilterRefresh();
+}
+
 static QString pluginDataDirectory()
 {
     return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(QStringLiteral("plugins"));
 }
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
-    : members(session)
+    : members(session), relationships(session), messages(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -118,8 +202,12 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.network = &network;
     services.members = &members;
     services.clipboard = &clipboard;
+    services.relationships = &relationships;
+    services.ui = &ui;
+    services.messages = &messages;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
+    messages.host = pluginHost.get();
     pluginHost->load();
     PluginHost::setInstance(pluginHost.get());
 

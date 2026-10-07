@@ -19,6 +19,7 @@
 #include "UI/ImageViewer.hpp"
 #include "UI/Input/TextEdgeNavigation.hpp"
 
+#include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
 
 namespace Acheron {
@@ -193,6 +194,45 @@ void ChatView::setModel(QAbstractItemModel *model)
             &ChatView::onRowsAboutToBeInserted);
     connect(model, &QAbstractItemModel::rowsInserted, this, &ChatView::onRowsInserted);
     connect(model, &QAbstractItemModel::dataChanged, this, &ChatView::onDataChanged);
+
+    // Qord: plugins can hide messages (NoBlockedMessages)
+    connect(model, &QAbstractItemModel::modelReset, this, [this] { applyMessageFilters(); });
+    connect(model, &QAbstractItemModel::rowsInserted, this,
+            [this](const QModelIndex &, int start, int end) { applyMessageFilters(start, end); });
+    connect(model, &QAbstractItemModel::dataChanged, this,
+            [this](const QModelIndex &tl, const QModelIndex &br) { applyMessageFilters(tl.row(), br.row()); });
+    if (auto *plugins = Qord::Plugins::PluginHost::instance())
+        connect(plugins, &Qord::Plugins::PluginHost::messageFiltersChanged, this, [this] { applyMessageFilters(); });
+}
+
+std::optional<Qord::Plugins::MessageContext> ChatView::pluginContext(int row, bool withJson) const
+{
+    auto *chatModel = qobject_cast<ChatModel *>(model());
+    const Discord::Message *msg = chatModel ? chatModel->messageAt(row) : nullptr;
+    if (!msg)
+        return std::nullopt;
+    return Qord::Plugins::toMessageContext(*msg, quint64(chatModel->getAccountId()),
+                                           quint64(chatModel->getActiveGuildId()), 0, withJson);
+}
+
+void ChatView::applyMessageFilters(int first, int last)
+{
+    if (!model())
+        return;
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    const bool active = plugins && plugins->hasHook(Qord::Plugins::Hook::MessageFilter);
+    const int rows = model()->rowCount();
+    if (last < 0 || last >= rows)
+        last = rows - 1;
+    for (int row = std::max(first, 0); row <= last; ++row) {
+        bool hide = false;
+        if (active) {
+            if (auto ctx = pluginContext(row))
+                hide = plugins->dispatchShouldHideMessage(*ctx);
+        }
+        if (isRowHidden(row) != hide)
+            setRowHidden(row, hide);
+    }
 }
 
 void ChatView::resizeEvent(QResizeEvent *event)
@@ -1089,9 +1129,14 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
 
     menu.addSeparator();
 
-    addMessageAction(menu, MessageActionBar::Action::Reply, messageId);
+    // Qord: a message kept after deletion can't be replied to, edited or deleted
+    const Discord::Message *menuMessage = chatModel->messageAt(index.row());
+    const bool keptDeleted = menuMessage && menuMessage->qordDeleted;
 
-    if (isOwnMessage && !index.data(ChatModel::IsSystemMessageRole).toBool() &&
+    if (!keptDeleted)
+        addMessageAction(menu, MessageActionBar::Action::Reply, messageId);
+
+    if (!keptDeleted && isOwnMessage && !index.data(ChatModel::IsSystemMessageRole).toBool() &&
         !index.data(ChatModel::IsForwardedRole).toBool()) {
         QAction *editAction = menu.addAction(tr("Edit Message"));
         connect(editAction, &QAction::triggered, this, [this, index]() {
@@ -1099,22 +1144,24 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
         });
     }
 
-    if (canDeleteMessage(index))
+    if (!keptDeleted && canDeleteMessage(index))
         addMessageAction(menu, MessageActionBar::Action::Delete, messageId);
 
     menu.addSeparator();
 
-    if (canPinMessages) {
+    if (!keptDeleted && canPinMessages) {
         QAction *pinAction = menu.addAction(tr("Pin Message"));
         connect(pinAction, &QAction::triggered, this, [this, channelId, messageId]() {
             emit pinMessageRequested(channelId, messageId);
         });
     }
 
-    QAction *reactAction = menu.addAction(tr("Add Reaction"));
-    connect(reactAction, &QAction::triggered, this, [this, channelId, messageId]() {
-        emit addReactionRequested(channelId, messageId);
-    });
+    if (!keptDeleted) {
+        QAction *reactAction = menu.addAction(tr("Add Reaction"));
+        connect(reactAction, &QAction::triggered, this, [this, channelId, messageId]() {
+            emit addReactionRequested(channelId, messageId);
+        });
+    }
 
     bool isPending = index.data(ChatModel::IsPendingRole).toBool();
     bool hasAttachments = !index.data(ChatModel::AttachmentsRole).isNull();
@@ -1124,6 +1171,34 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
         connect(cancelAction, &QAction::triggered, this, [this, channelId, messageId]() {
             emit cancelUploadRequested(channelId, messageId);
         });
+    }
+
+    // Qord: plugin items (MessageLogger, ViewRaw, ReverseImageSearch, ...)
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageContextMenu)) {
+        if (auto ctx = pluginContext(index.row(), true)) {
+            if (hit.isImage())
+                ctx->imageUrl = hit.imageUrl.toString();
+            const auto items = plugins->dispatchMessageContextMenuItems(*ctx);
+            if (!items.isEmpty())
+                menu.addSeparator();
+            std::function<void(QMenu *, const QString &, const Qord::Plugins::MenuItem &)> addItem =
+                    [&](QMenu *target, const QString &pluginId, const Qord::Plugins::MenuItem &item) {
+                        if (!item.children.isEmpty()) {
+                            QMenu *sub = target->addMenu(item.label);
+                            for (const auto &child : item.children)
+                                addItem(sub, pluginId, child);
+                            return;
+                        }
+                        QAction *action = target->addAction(item.label);
+                        connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, context = *ctx]() {
+                            if (auto *host = Qord::Plugins::PluginHost::instance())
+                                host->dispatchMessageContextMenuAction(pluginId, itemId, context);
+                        });
+                    };
+            for (const auto &entry : items)
+                addItem(&menu, entry.pluginId, entry.item);
+        }
     }
 
     menu.addSeparator();
@@ -1323,6 +1398,9 @@ void ChatView::editLastOwnMessage()
         if (index.data(ChatModel::IsSystemMessageRole).toBool())
             continue;
         if (index.data(ChatModel::IsForwardedRole).toBool())
+            continue;
+        // Qord: skip messages a plugin hid or kept after deletion
+        if (isRowHidden(row) || (chatModel->messageAt(row) && chatModel->messageAt(row)->qordDeleted))
             continue;
         startInlineEdit(index);
         return;

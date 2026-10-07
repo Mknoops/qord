@@ -6,6 +6,7 @@
 #include "Plugins/PluginHost.hpp"
 
 #include <QHash>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -85,6 +86,50 @@ public:
     int writes = 0;
 };
 
+class FakeRelationships : public RelationshipDirectory
+{
+public:
+    bool isBlocked(Id accountId, Id userId) const override
+    {
+        Q_UNUSED(accountId);
+        return blocked.contains(userId);
+    }
+    bool isIgnored(Id accountId, Id userId) const override
+    {
+        Q_UNUSED(accountId);
+        return ignored.contains(userId);
+    }
+    QSet<Id> blocked;
+    QSet<Id> ignored;
+};
+
+class FakeUi : public UiService
+{
+public:
+    void showTextDialog(const QString &title, const QList<TextSection> &sections) override
+    {
+        dialogTitle = title;
+        dialogSections = sections;
+        ++dialogs;
+    }
+    void openUrl(const QUrl &url) override { opened.append(url); }
+    QString dialogTitle;
+    QList<TextSection> dialogSections;
+    int dialogs = 0;
+    QList<QUrl> opened;
+};
+
+class FakeMessages : public MessageService
+{
+public:
+    void refreshMessage(Id, Id, Id messageId) override { refreshed.append(messageId); }
+    void removeMessage(Id, Id, Id messageId) override { removed.append(messageId); }
+    void refreshFilters() override { ++filterRefreshes; }
+    QList<Id> refreshed;
+    QList<Id> removed;
+    int filterRefreshes = 0;
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -98,6 +143,9 @@ struct SinglePluginHost
         services.network = &network;
         services.members = &members;
         services.clipboard = &clipboard;
+        services.relationships = &relationships;
+        services.ui = &ui;
+        services.messages = &messages;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -121,6 +169,9 @@ struct SinglePluginHost
     FakeNetwork network;
     FakeMembers members;
     FakeClipboard clipboard;
+    FakeRelationships relationships;
+    FakeUi ui;
+    FakeMessages messages;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

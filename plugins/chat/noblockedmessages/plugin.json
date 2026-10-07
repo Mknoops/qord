@@ -1,0 +1,78 @@
+{
+  "id": "noblockedmessages",
+  "equicordName": "NoBlockedMessages",
+  "equicordPath": "src/plugins/noBlockedMessages",
+  "name": "NoBlockedMessages",
+  "description": "Hide all blocked/ignored messages from chat completely.",
+  "categories": [
+    "chat",
+    "accessibility"
+  ],
+  "tags": [
+    "Accessibility",
+    "Chat"
+  ],
+  "authors": [
+    "rushii",
+    "Samu",
+    "jamesbt365",
+    "Elvyra",
+    "Etorix"
+  ],
+  "permissions": [
+    "hide_messages",
+    "read_relationships"
+  ],
+  "hooks": [
+    "messageFilter"
+  ],
+  "settings": [
+    {
+      "key": "alsoHideIgnoredUsers",
+      "type": "bool",
+      "default": true,
+      "label": "Also hide ignored users",
+      "description": "Also hide messages from ignored users."
+    },
+    {
+      "key": "disableNotifications",
+      "type": "bool",
+      "default": false,
+      "label": "Disable notifications",
+      "description": "Hide new message notifications for blocked users. Always true if \"Default Hide Users\" is enabled below and the user triggering the notification is not exempted in \"Override Users\"."
+    },
+    {
+      "key": "allowAutoModMessages",
+      "type": "bool",
+      "default": true,
+      "label": "Allow AutoMod messages",
+      "description": "Allow messages sent by AutoMod to bypass filtering."
+    },
+    {
+      "key": "hideBlockedUserReplies",
+      "type": "bool",
+      "default": false,
+      "label": "Hide replies to blocked users",
+      "description": "Hide replies to blocked users."
+    },
+    {
+      "key": "defaultHideUsers",
+      "type": "bool",
+      "default": true,
+      "label": "Default hide users",
+      "description": "If enabled, messages from blocked users will be completely hidden and any messages from user IDs in the override list will be collapsed (default Discord behavior) instead. If disabled, messages from blocked users will be collapsed and any messages from user IDs in the override list will be completely hidden instead."
+    },
+    {
+      "key": "overrideUsers",
+      "type": "string",
+      "default": "",
+      "label": "Override users",
+      "description": "Comma separated list of user IDs which will be hidden or collapsed instead of the default behavior selected above."
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Qord shows blocked users' messages in full instead of collapsing them, so \"collapsed\" means shown as usual. Hidden messages also stop marking the channel unread. Slash-command interactions run by blocked users are not detected (Qord does not keep interaction metadata); bot replies to their prefix commands are."
+}

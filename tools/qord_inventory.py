@@ -62,6 +62,10 @@ PERMISSIONS = {
     "network",
     "add_ui_elements",
     "write_clipboard",
+    "log_messages",
+    "hide_messages",
+    "read_relationships",
+    "open_links",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -76,6 +80,9 @@ HOOK_DISPATCH = {
     "transformIncomingContent": "dispatchTransformIncomingContent(",
     "chatBarButtons": "dispatchChatBarButtons(",
     "userContextMenu": "dispatchUserContextMenuItems(",
+    "messageContextMenu": "dispatchMessageContextMenuItems(",
+    "messageHistory": "dispatchMessageDeleted(",
+    "messageFilter": "dispatchShouldHideMessage(",
 }
 
 MANIFEST_REQUIRED = {

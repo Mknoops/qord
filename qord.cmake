@@ -13,6 +13,8 @@ add_subdirectory(plugins)
 target_sources(${PROJECT_NAME} PRIVATE
     src/Plugins/Client/ClientPlugins.hpp
     src/Plugins/Client/ClientPlugins.cpp
+    src/Plugins/Client/MessageContexts.hpp
+    src/Plugins/Client/MessageContexts.cpp
     src/UI/Settings/PluginsPage.hpp
     src/UI/Settings/PluginsPage.cpp
     src/UI/Input/PluginChatButtons.hpp

@@ -93,6 +93,54 @@ ClipboardService *PluginContext::clipboard() const
     return services.clipboard;
 }
 
+const RelationshipDirectory *PluginContext::relationships() const
+{
+    if (!granted.testFlag(Permission::ReadRelationships))
+        return nullptr;
+    return services.relationships;
+}
+
+namespace {
+// Dialogs pass through; openUrl only with open_links, and only http(s)
+class ScopedUi : public UiService
+{
+public:
+    ScopedUi(UiService *inner, bool canOpen)
+        : inner(inner), canOpen(canOpen)
+    {
+    }
+    void showTextDialog(const QString &title, const QList<TextSection> &sections) override
+    {
+        inner->showTextDialog(title, sections);
+    }
+    void openUrl(const QUrl &url) override
+    {
+        if (canOpen && (url.scheme() == QLatin1String("https") || url.scheme() == QLatin1String("http")))
+            inner->openUrl(url);
+    }
+
+private:
+    UiService *inner;
+    bool canOpen;
+};
+} // namespace
+
+UiService *PluginContext::ui()
+{
+    if (!granted.testFlag(Permission::AddUiElements) || !services.ui)
+        return nullptr;
+    if (!scopedUi)
+        scopedUi = std::make_unique<ScopedUi>(services.ui, granted.testFlag(Permission::OpenLinks));
+    return scopedUi.get();
+}
+
+MessageService *PluginContext::messages() const
+{
+    if (!granted.testFlag(Permission::LogMessages) && !granted.testFlag(Permission::HideMessages))
+        return nullptr;
+    return services.messages;
+}
+
 QString PluginContext::dataDirectory() const
 {
     QDir().mkpath(dataDir);

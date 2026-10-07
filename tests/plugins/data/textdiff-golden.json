@@ -1,0 +1,298 @@
+[
+ {
+  "old": "hello",
+  "new": "hello world",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "hello"
+   },
+   {
+    "type": "added",
+    "text": " world"
+   }
+  ]
+ },
+ {
+  "old": "world",
+  "new": "hello world",
+  "parts": [
+   {
+    "type": "added",
+    "text": "hello "
+   },
+   {
+    "type": "unchanged",
+    "text": "world"
+   }
+  ]
+ },
+ {
+  "old": "hello world",
+  "new": "hello",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "hello"
+   },
+   {
+    "type": "removed",
+    "text": " world"
+   }
+  ]
+ },
+ {
+  "old": "hello world",
+  "new": "world",
+  "parts": [
+   {
+    "type": "removed",
+    "text": "hello "
+   },
+   {
+    "type": "unchanged",
+    "text": "world"
+   }
+  ]
+ },
+ {
+  "old": "the quick brown fox",
+  "new": "the slow brown dog",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "the "
+   },
+   {
+    "type": "added",
+    "text": "slow"
+   },
+   {
+    "type": "removed",
+    "text": "quick"
+   },
+   {
+    "type": "unchanged",
+    "text": " brown "
+   },
+   {
+    "type": "added",
+    "text": "d"
+   },
+   {
+    "type": "removed",
+    "text": "f"
+   },
+   {
+    "type": "unchanged",
+    "text": "o"
+   },
+   {
+    "type": "added",
+    "text": "g"
+   },
+   {
+    "type": "removed",
+    "text": "x"
+   }
+  ]
+ },
+ {
+  "old": "abc",
+  "new": "xyz",
+  "parts": [
+   {
+    "type": "added",
+    "text": "xyz"
+   },
+   {
+    "type": "removed",
+    "text": "abc"
+   }
+  ]
+ },
+ {
+  "old": "",
+  "new": "new",
+  "parts": [
+   {
+    "type": "added",
+    "text": "new"
+   }
+  ]
+ },
+ {
+  "old": "old",
+  "new": "",
+  "parts": [
+   {
+    "type": "removed",
+    "text": "old"
+   }
+  ]
+ },
+ {
+  "old": "same",
+  "new": "same",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "same"
+   }
+  ]
+ },
+ {
+  "old": "hi <@123> there",
+  "new": "hi <@456> there",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "hi "
+   },
+   {
+    "type": "added",
+    "text": "<@456>"
+   },
+   {
+    "type": "removed",
+    "text": "<@123>"
+   },
+   {
+    "type": "unchanged",
+    "text": " there"
+   }
+  ]
+ },
+ {
+  "old": "emoji <a:wave:111> ok",
+  "new": "emoji <a:wave:222> ok",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "emoji "
+   },
+   {
+    "type": "added",
+    "text": "<a:wave:222>"
+   },
+   {
+    "type": "removed",
+    "text": "<a:wave:111>"
+   },
+   {
+    "type": "unchanged",
+    "text": " ok"
+   }
+  ]
+ },
+ {
+  "old": "static <:smile:111> ok",
+  "new": "static <:smile:222> ok",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "static <:smile:"
+   },
+   {
+    "type": "added",
+    "text": "222"
+   },
+   {
+    "type": "removed",
+    "text": "111"
+   },
+   {
+    "type": "unchanged",
+    "text": "> ok"
+   }
+  ]
+ },
+ {
+  "old": "ping <#999>",
+  "new": "pong <#999>",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "p"
+   },
+   {
+    "type": "added",
+    "text": "o"
+   },
+   {
+    "type": "removed",
+    "text": "i"
+   },
+   {
+    "type": "unchanged",
+    "text": "ng <#999>"
+   }
+  ]
+ },
+ {
+  "old": "a😀b",
+  "new": "a😃b",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "a"
+   },
+   {
+    "type": "added",
+    "text": "😃"
+   },
+   {
+    "type": "removed",
+    "text": "😀"
+   },
+   {
+    "type": "unchanged",
+    "text": "b"
+   }
+  ]
+ },
+ {
+  "old": "line one\nline two",
+  "new": "line one\nline 2",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "line one\nline "
+   },
+   {
+    "type": "added",
+    "text": "2"
+   },
+   {
+    "type": "removed",
+    "text": "two"
+   }
+  ]
+ },
+ {
+  "old": "teh typo",
+  "new": "the typo",
+  "parts": [
+   {
+    "type": "unchanged",
+    "text": "t"
+   },
+   {
+    "type": "added",
+    "text": "h"
+   },
+   {
+    "type": "unchanged",
+    "text": "e"
+   },
+   {
+    "type": "removed",
+    "text": "h"
+   },
+   {
+    "type": "unchanged",
+    "text": " typo"
+   }
+  ]
+ }
+]

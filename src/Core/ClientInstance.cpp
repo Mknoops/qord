@@ -1255,6 +1255,8 @@ void ClientInstance::onMessageCreated(const Discord::Message &msg)
 
     bool isMention = !fromSelf && isMessageMentioningMe(msg);
     readStateManager->handleMessageCreated(channelId, messageId, fromSelf, isMention);
+    if (!fromSelf)
+        emit notifiableMessage(msg, isMention);
 
     emit channelLastMessageUpdated(channelId, messageId);
 }

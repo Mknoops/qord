@@ -50,6 +50,9 @@ and why, so it can be revisited deliberately.
 34. **Typing indicators change SilentTyping's status.** The base client now sends typing like Discord, so SilentTyping (decision 29) is no longer a no-op and can be ported as a real plugin.
 35. **Markdown completed to Discord's rules** (`src/Core/Markdown/QordRules.cpp`): fenced code blocks, block quotes (`>` and `>>>`), headings, `-#` subtext, list items, `||spoilers||` (click to reveal), `<t:…>` timestamps in all seven styles, role mentions in the role's colour, `@everyone`/`@here`, and slash-command mentions. Rules follow Discord's patterns, including only matching block syntax at the start of a line. This closes the render-side gap behind Unindent (decision 17) and the timestamp surface DontRoundMyTimestamps needed (decision 24).
 
+36. **More core Discord features.** An emoji picker (frequently used from the synced frecency data, each server's usable emoji with the current server first, all Unicode emoji, search) for the message box and Add Reaction, which Acheron left unimplemented; a react button on the hover bar; a Friends page on Home (Online/All/Pending/Blocked, Add Friend, accept/ignore/cancel, remove, unblock, message); "Add a Server" (create, or join with an invite link or code); mute and notification-level menus on servers, channels and DMs; desktop notifications for DMs and mentions (tray toast plus taskbar flash) that skip Do Not Disturb, muted servers/channels, messages plugins silence, and the channel you're looking at. The notification setting is `notifications/desktop` (on by default).
+37. **Menu extension points.** Server and channel right-click menus take an extender callback from the window. Mute and notification items use it, and it is the surface plugin channel items (e.g. MessageLogger's "Clear Message Log") will use.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

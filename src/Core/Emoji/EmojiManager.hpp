@@ -46,6 +46,14 @@ public:
     void trackMessageEmojis(const QString &content);
     void trackReaction(const QString &reactionEmoji);
 
+    // Qord: what the emoji picker shows (src/Qord/EmojiPickerData.cpp)
+    struct PickerSection
+    {
+        QString title;
+        QList<EmojiMatch> emojis;
+    };
+    [[nodiscard]] QList<PickerSection> pickerSections(Snowflake channelId, bool forReaction);
+
     // write back to settings-proto/2
     void savePendingUsage();
 

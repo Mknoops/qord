@@ -389,22 +389,51 @@ def presence(key: str, gid: str | None = None) -> dict:
     return p
 
 
+def gateway_guild(gid: str) -> dict:
+    props = GUILDS[gid]
+    chans = []
+    for c in GUILD_CHANNELS[gid]:
+        c = dict(c)
+        if c["type"] in (0, 5):
+            c["last_message_id"] = last_message_id(c["id"])
+        chans.append(c)
+    return {
+        "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": [], "stickers": [],
+        "threads": [], "members": [guild_member(gid, "self")], "member_count": len(MEMBERS[gid]),
+        "joined_at": iso(NOW - 900 * HOUR), "lazy": True, "large": False, "premium_subscription_count":
+        props["premium_subscription_count"], "data_mode": "full", "version": 1,
+        "guild_scheduled_events": [], "stage_instances": [], "activity_instances": [],
+    }
+
+
+def make_guild(name: str, owner: str) -> str:
+    gid = snowflake()
+    GUILDS[gid] = {"id": gid, "name": name, "icon": None, "owner_id": owner, "description": None, "features": [],
+                   "premium_tier": 0, "premium_subscription_count": 0, "verification_level": 0,
+                   "default_message_notifications": 0, "explicit_content_filter": 0, "mfa_level": 0,
+                   "nsfw_level": 0, "preferred_locale": "en-US", "banner": None, "splash": None,
+                   "afk_channel_id": None, "afk_timeout": 300, "max_members": 500000, "vanity_url_code": None}
+    text_cat, voice_cat, general, voice = snowflake(), snowflake(), snowflake(), snowflake()
+    GUILD_CHANNELS[gid] = [
+        channel(text_cat, gid, 4, "Text Channels", 0),
+        channel(general, gid, 0, "general", 0, text_cat),
+        channel(voice_cat, gid, 4, "Voice Channels", 1),
+        channel(voice, gid, 2, "General", 0, voice_cat, bitrate=64000, user_limit=0),
+    ]
+    GUILDS[gid]["system_channel_id"] = general
+    ROLES[gid] = [role(gid, "@everyone", 0, 0, EVERYONE_PERMS)]
+    MEMBERS[gid] = {"self": []}
+    MESSAGES[general] = []
+    MESSAGES[voice] = []
+    return gid
+
+
+INVITES = {"qord": "Invited Server"}
+GUILD_SETTINGS: dict = {}
+
+
 def ready_payload() -> dict:
-    guilds = []
-    for gid, props in GUILDS.items():
-        chans = []
-        for c in GUILD_CHANNELS[gid]:
-            c = dict(c)
-            if c["type"] in (0, 5):
-                c["last_message_id"] = last_message_id(c["id"])
-            chans.append(c)
-        guilds.append({
-            "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": [], "stickers": [],
-            "threads": [], "members": [guild_member(gid, "self")], "member_count": len(MEMBERS[gid]),
-            "joined_at": iso(NOW - 900 * HOUR), "lazy": True, "large": False, "premium_subscription_count":
-            props["premium_subscription_count"], "data_mode": "full", "version": 1,
-            "guild_scheduled_events": [], "stage_instances": [], "activity_instances": [],
-        })
+    guilds = [gateway_guild(gid) for gid in GUILDS]
     private = []
     for c in PRIVATE_CHANNELS:
         c = dict(c)
@@ -432,7 +461,7 @@ def ready_payload() -> dict:
         "private_channels": private,
         "relationships": RELATIONSHIPS,
         "read_state": {"version": 1, "partial": False, "entries": read_entries},
-        "user_guild_settings": {"version": 1, "partial": False, "entries": []},
+        "user_guild_settings": {"version": 1, "partial": False, "entries": list(GUILD_SETTINGS.values())},
         "user_settings_proto": "",
         "notes": {},
         "session_id": "mock-session",
@@ -763,6 +792,23 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
                 for c in chans:
                     if c["id"] == cid:
                         return 200, c, "json"
+    if parts == ["guilds"] and method == "POST":
+        gid = make_guild(j.get("name") or "New Server", SELF_ID)
+        log(f"rest: created guild {gid} {GUILDS[gid]['name']!r}")
+        await broadcast("GUILD_CREATE", gateway_guild(gid))
+        return 201, dict(GUILDS[gid], roles=ROLES[gid]), "json"
+    if parts[:1] == ["invites"] and len(parts) == 2:
+        code = urllib.request.unquote(parts[1])
+        if code not in INVITES:
+            return 404, {"message": "Unknown Invite", "code": 10006}, "json"
+        if method == "GET":
+            return 200, {"code": code, "guild": {"id": "0", "name": INVITES[code]}, "approximate_member_count": 3},  "json"
+        gid = make_guild(INVITES[code], U["ava"])
+        for key in ("ava", "ben"):
+            MEMBERS[gid][key] = []
+        log(f"rest: joined guild {gid} via invite {code}")
+        await broadcast("GUILD_CREATE", gateway_guild(gid))
+        return 200, {"code": code, "guild": {"id": gid, "name": INVITES[code]}, "new_member": True}, "json"
     if parts[:1] == ["guilds"] and len(parts) >= 3 and parts[2] == "messages" and parts[3:4] == ["search"]:
         return search(query, guild_id=parts[1])
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["channels"] and method == "POST":
@@ -777,8 +823,29 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         full = dict(ch, recipients=[u for u in USERS.values() if u["id"] in recips])
         await broadcast("CHANNEL_CREATE", full)
         return 200, full, "json"
+    if parts[:3] == ["users", "@me", "guilds"] and len(parts) == 5 and parts[4] == "settings" and method == "PATCH":
+        gid = None if parts[3] in ("@me", "%40me") else parts[3]
+        settings = GUILD_SETTINGS.setdefault(gid, {"guild_id": gid, "muted": False, "message_notifications": 1,
+                                                   "channel_overrides": [], "suppress_everyone": False,
+                                                   "suppress_roles": False, "mobile_push": True, "flags": 0,
+                                                   "hide_muted_channels": False, "mute_config": None, "version": 1})
+        for key, value in j.items():
+            if key == "channel_overrides":
+                for cid, override in value.items():
+                    existing = next((o for o in settings["channel_overrides"] if o["channel_id"] == cid), None)
+                    if existing is None:
+                        existing = {"channel_id": cid, "muted": False, "message_notifications": 3, "mute_config": None,
+                                    "collapsed": False}
+                        settings["channel_overrides"].append(existing)
+                    existing.update(override)
+            else:
+                settings[key] = value
+        settings["version"] += 1
+        log(f"rest: guild settings {gid} <- {j}")
+        await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
+        return 200, settings, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
-        return 204, None, "json"
+        return await relationships(method, parts[3] if len(parts) > 3 else None, j)
     if parts[:1] == ["users"] and len(parts) >= 3 and parts[2] == "profile":
         return 200, profile(parts[1]), "json"
     if parts[:2] == ["users", "@me"] and method == "GET" and len(parts) == 2:
@@ -801,6 +868,38 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
     if method == "GET":
         return 200, [], "json"
     return 204, None, "json"
+
+
+async def relationships(method: str, user_id: str | None, j: dict) -> tuple[int, Any, str]:
+    def find(uid):
+        return next((r for r in RELATIONSHIPS if r["id"] == uid), None)
+
+    if method == "POST" and user_id is None:
+        key = next((k for k, u in USERS.items() if u["username"] == j.get("username")), None)
+        if key is None:
+            return 400, {"message": "Unknown User", "code": 80004}, "json"
+        rel = {"id": USERS[key]["id"], "type": 4, "nickname": None, "user_id": USERS[key]["id"], "user": USERS[key]}
+        RELATIONSHIPS.append(rel)
+        log(f"rest: friend request to {key}")
+        await broadcast("RELATIONSHIP_ADD", rel)
+        return 204, None, "json"
+    rel = find(user_id)
+    if method == "PUT":
+        new_type = int(j.get("type", 1))
+        user_obj = next((u for u in USERS.values() if u["id"] == user_id), None)
+        if rel:
+            RELATIONSHIPS.remove(rel)
+        rel = {"id": user_id, "type": new_type, "nickname": None, "user_id": user_id, "user": user_obj}
+        RELATIONSHIPS.append(rel)
+        log(f"rest: relationship {user_id} -> type {new_type}")
+        await broadcast("RELATIONSHIP_ADD", rel)
+        return 204, None, "json"
+    if method == "DELETE" and rel:
+        RELATIONSHIPS.remove(rel)
+        log(f"rest: relationship {user_id} removed")
+        await broadcast("RELATIONSHIP_REMOVE", {"id": user_id, "type": rel["type"]})
+        return 204, None, "json"
+    return 404, {"message": "Unknown Relationship"}, "json"
 
 
 def search(query: dict, guild_id: str | None = None, channel_id: str | None = None) -> tuple[int, Any, str]:
@@ -913,7 +1012,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 status, obj, _ = await handle_rest(method, url.path, query, body, headers)
                 data = b"" if obj is None else json.dumps(obj).encode()
                 ctype = "application/json"
-            reason = {200: "OK", 204: "No Content", 404: "Not Found", 400: "Bad Request"}.get(status, "OK")
+            reason = {200: "OK", 201: "Created", 204: "No Content", 404: "Not Found", 400: "Bad Request"}.get(status, "OK")
             head = (f"HTTP/1.1 {status} {reason}\r\nContent-Type: {ctype}\r\n"
                     f"Content-Length: {len(data)}\r\nConnection: keep-alive\r\n\r\n")
             writer.write(head.encode() + data)

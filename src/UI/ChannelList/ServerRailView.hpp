@@ -2,6 +2,10 @@
 
 #include <QListView>
 
+#include <functional>
+
+class QMenu;
+
 #include "Core/Snowflake.hpp"
 #include "UI/GuildSettings/GuildSettingsSection.hpp"
 
@@ -31,6 +35,16 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+
+public:
+    // Qord: lets the window add items (mute, notifications, plugins) to a server's menu
+    using MenuExtender = std::function<void(QMenu *menu, Core::Snowflake accountId, Core::Snowflake guildId)>;
+    void setMenuExtender(MenuExtender extender) { menuExtender = std::move(extender); }
+
+private:
+    MenuExtender menuExtender;
+
+protected:
 
 private:
     GuildSettingsAccess::SectionsProvider guildSettingsProvider;

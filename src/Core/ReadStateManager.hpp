@@ -49,6 +49,14 @@ public:
     int getMentionCount(Snowflake channelId) const;
     bool isChannelMuted(Snowflake channelId) const;
     bool isGuildMuted(Snowflake guildId) const;
+    // Qord: the stored per-server notification settings (for the mute menus)
+    [[nodiscard]] std::optional<Discord::UserGuildSettings> guildSettings(Snowflake guildId) const
+    {
+        auto it = guildSettingsMap.constFind(guildId);
+        if (it == guildSettingsMap.constEnd())
+            return std::nullopt;
+        return it.value();
+    }
     [[nodiscard]] bool isSuppressEveryone(Snowflake guildId) const;
     [[nodiscard]] bool isSuppressRoles(Snowflake guildId) const;
 

@@ -105,6 +105,9 @@ void ServerRailView::contextMenuEvent(QContextMenuEvent *event)
             emit guildSettingsRequested(accountId, id, section);
         });
 
+        if (menuExtender)
+            menuExtender(&menu, accountId, id);
+
         menu.addSeparator();
         QAction *leaveAction = menu.addAction(tr("Leave"));
         leaveAction->setEnabled(ownerId != accountId);

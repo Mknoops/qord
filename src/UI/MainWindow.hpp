@@ -266,6 +266,16 @@ private:
     void openMentionsInbox();
     QString channelLabel(Core::Snowflake channelId) const;
     MessageListPopup *ensureMessagePopup();
+    class EmojiPicker *emojiPicker = nullptr;
+    class FriendsPage *friendsPage = nullptr;
+    QPushButton *friendsButton = nullptr;
+    void showFriendsPage();
+    void hideFriendsPage();
+    void connectQordInstance(Core::ClientInstance *instance);
+    void addNotificationMenu(QMenu *menu, Core::ClientInstance *instance, Core::Snowflake guildId,
+                             Core::Snowflake channelId);
+    class DesktopNotifier *notifier = nullptr;
+    QToolButton *addServerButton = nullptr;
     UserPanel *userPanel = nullptr;
     QLabel *channelNameLabel = nullptr;
     QToolButton *pinsButton = nullptr;

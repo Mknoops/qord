@@ -237,6 +237,19 @@ void ChannelTreeView::contextMenuEvent(QContextMenuEvent *event)
         connect(leaveAction, &QAction::triggered, this, [this, accountId, guildId]() { emit leaveGuildRequested(accountId, guildId); });
     }
 
+    if (menuExtender && nodeType != ChannelNode::Type::Folder) {
+        const Core::Snowflake acct = findAccountIdForIndex(sourceIndex);
+        const Core::Snowflake nodeId(sourceIndex.data(ChannelTreeModel::IdRole).toULongLong());
+        if (nodeType == ChannelNode::Type::Server) {
+            menuExtender(&menu, acct, nodeId, Core::Snowflake::Invalid);
+            menu.addSeparator();
+        } else if (isChannel || nodeType == ChannelNode::Type::Category || nodeType == ChannelNode::Type::Thread
+                   || nodeType == ChannelNode::Type::Forum) {
+            menuExtender(&menu, acct, Core::Snowflake::Invalid, nodeId);
+            menu.addSeparator();
+        }
+    }
+
     QAction *markReadAction = menu.addAction(tr("Mark As Read"));
     markReadAction->setEnabled(isUnread || mentionCount > 0);
 

@@ -1,0 +1,18 @@
+{
+  "id": "normalizemessagelinks",
+  "equicordName": "NormalizeMessageLinks",
+  "equicordPath": "src/equicordplugins/normalizeMessageLinks",
+  "name": "NormalizeMessageLinks",
+  "description": "Strip canary/ptb from message links",
+  "categories": ["chat"],
+  "tags": ["Chat"],
+  "authors": ["bb010g"],
+  "permissions": ["modify_message_links"],
+  "hooks": ["transformCopiedMessageLink"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Qord's Copy Message Link already builds discord.com links (it has no canary/ptb build to inherit a host from), so in practice this plugin confirms that behavior; it rewrites any canary./ptb. host that reaches the copy path."
+}

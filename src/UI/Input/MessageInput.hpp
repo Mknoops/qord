@@ -42,9 +42,11 @@ public:
     void setPlaceholder(const QString &name);
 
     void setReplyTarget(Core::Snowflake messageId, const QString &authorName,
-                        const QString &contentSnippet);
+                        const QString &contentSnippet, bool mentionAuthor = true);
     void clearReplyTarget();
     [[nodiscard]] Core::Snowflake replyTargetMessageId() const { return replyMessageId; }
+    // Whether the reply pings its author (the "@ ON/OFF" toggle)
+    [[nodiscard]] bool replyMentionEnabled() const { return replyMention; }
 
     void setSendBlocked(bool blocked);
     [[nodiscard]] bool isSendBlocked() const { return sendBlocked; }
@@ -69,14 +71,17 @@ private:
     ChatTextEdit *textEdit;
     QWidget *replyBar;
     QLabel *replyLabel;
+    QToolButton *replyMentionButton;
     QToolButton *replyCancelButton;
     AttachmentPreviewPanel *attachmentPanel;
     EmojiAutocomplete *autocomplete;
 
     Core::Snowflake replyMessageId;
+    bool replyMention = true;
     bool sendBlocked = false;
 
     void adjustHeight();
+    void updateReplyMentionButton();
 };
 
 } // namespace UI

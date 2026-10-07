@@ -14,6 +14,8 @@
 #include "Logging.hpp"
 #include "UserManager.hpp"
 
+#include "Plugins/PluginHost.hpp"
+
 namespace Acheron {
 namespace Core {
 
@@ -85,7 +87,24 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
     auto authorName = [&] {
         return userManager->getAuthorDisplayName(msg.author.get(), client->getGuildIdForChannel(msg.channelId));
     };
-    msg.parsedContentCached = inlineHtml(resolveSystemMessageContent(msg, authorName), msg.channelId);
+    QString content = resolveSystemMessageContent(msg, authorName);
+    // Plugins may change how received messages look to this user (never the
+    // stored message); synthesized system texts are left alone
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::TransformIncomingContent) && msg.content.hasValue() &&
+        content == msg.content.get()) {
+        Qord::Plugins::IncomingMessage in;
+        in.accountId = quint64(client->getMe().id.get());
+        in.channelId = quint64(msg.channelId.get());
+        in.guildId = quint64(client->getGuildIdForChannel(msg.channelId));
+        in.messageId = quint64(msg.id.get());
+        in.authorId = msg.author.hasValue() ? quint64(msg.author.get().id.get()) : 0;
+        in.isOwn = in.authorId && in.authorId == in.accountId;
+        in.content = content;
+        plugins->dispatchTransformIncomingContent(in);
+        content = in.content;
+    }
+    msg.parsedContentCached = inlineHtml(content, msg.channelId);
 
     if (msg.type.hasValue() && msg.type.get() == Discord::MessageType::THREAD_STARTER_MESSAGE &&
         msg.referencedMessage && msg.referencedMessage->content.hasValue() &&
@@ -424,10 +443,27 @@ void MessageManager::addReaction(Snowflake channelId, Snowflake messageId, const
     client->addReaction(channelId, messageId, emoji, isBurst);
 }
 
-void MessageManager::sendMessage(Snowflake channelId, const QString &content,
+void MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
                                  Snowflake replyToMessageId,
-                                 const QList<PendingAttachment> &attachments)
+                                 const QList<PendingAttachment> &attachments,
+                                 bool mentionRepliedUser)
 {
+    QString content = originalContent;
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
+        Qord::Plugins::OutgoingMessage out;
+        out.accountId = quint64(client->getMe().id.get());
+        out.channelId = quint64(channelId);
+        out.guildId = quint64(client->getGuildIdForChannel(channelId));
+        out.replyToMessageId = quint64(replyToMessageId);
+        out.content = content;
+        plugins->dispatchBeforeSend(out);
+        content = out.content;
+        // Nothing left to send (e.g. a rule replaced everything)
+        if (content.trimmed().isEmpty() && attachments.isEmpty())
+            return;
+    }
+
     if (emojiManager)
         emojiManager->trackMessageEmojis(content);
 
@@ -501,7 +537,7 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &content,
         }
     }
 
-    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing);
+    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser);
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)

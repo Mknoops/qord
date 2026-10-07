@@ -19,6 +19,8 @@
 #include "UI/ImageViewer.hpp"
 #include "UI/Input/TextEdgeNavigation.hpp"
 
+#include "Plugins/PluginHost.hpp"
+
 namespace Acheron {
 namespace UI {
 
@@ -1230,7 +1232,11 @@ void ChatView::copyMessageLink(Core::Snowflake messageId)
         return;
 
     Discord::ChannelLink link{ chatModel->getActiveGuildId(), chatModel->getActiveChannelId(), messageId };
-    QGuiApplication::clipboard()->setText(link.toUrl());
+    QString url = link.toUrl();
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::TransformCopiedMessageLink))
+        url = plugins->dispatchTransformCopiedMessageLink(url);
+    QGuiApplication::clipboard()->setText(url);
 }
 
 void ChatView::copyImage(const QUrl &proxyUrl, const QPixmap &preview)

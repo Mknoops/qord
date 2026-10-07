@@ -1,0 +1,5 @@
+{
+  "$comment": "Hand-maintained overrides only. Statuses Implemented/Tested/Complete are derived by tools/check_equicord_plugins.py and may not be set here. See docs/plugin-status.md.",
+  "version": 1,
+  "plugins": {}
+}

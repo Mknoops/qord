@@ -6,3 +6,10 @@ CMakeUserPresets.json
 *.aps
 .planning/
 /build
+
+# Qord local
+/deps/
+/ref/
+
+/build-*/
+aqtinstall.log

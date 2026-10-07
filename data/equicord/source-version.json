@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/Equicord/Equibored",
+  "commit": "2cc6c3e3e48d87f7cd1acdbce82225e0cace8f33",
+  "commitDate": "2026-10-05T17:00:02Z",
+  "equicordRepository": "https://github.com/Equicord/Equicord",
+  "equicordCommit": "33bc116426c64deefed72f690524aeabb260ba27",
+  "file": "plugins.json",
+  "sha256": "3f5daf26fce8cf9cdf7f208521c89ea7c72520918d3bd19003e50f941e4785f9",
+  "importedAt": "2026-10-07"
+}

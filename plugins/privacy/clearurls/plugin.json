@@ -1,0 +1,18 @@
+{
+  "id": "clearurls",
+  "equicordName": "ClearURLs",
+  "equicordPath": "src/plugins/clearURLs",
+  "name": "ClearURLs",
+  "description": "Automatically removes tracking elements from URLs you send",
+  "categories": ["privacy", "utility"],
+  "tags": ["Privacy", "Utility"],
+  "authors": ["adryd", "thororen"],
+  "permissions": ["modify_outgoing_messages", "network"],
+  "hooks": ["onBeforeSend", "onBeforeEdit"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Rules come from ClearURLs' data.min.json, downloaded at most weekly and cached; works offline from the cache. URL serialization follows WHATWG rules for the parts the plugin touches (host, default port, dot segments, percent-encoding); exotic hosts such as numeric IPv4 shorthands are not normalized."
+}

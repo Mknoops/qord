@@ -1,0 +1,49 @@
+{
+  "id": "noreplymention",
+  "equicordName": "NoReplyMention",
+  "equicordPath": "src/plugins/noReplyMention",
+  "name": "NoReplyMention",
+  "description": "Disables reply pings by default",
+  "categories": ["chat", "notifications"],
+  "tags": ["Chat", "Notifications"],
+  "authors": ["DustyAngel47", "rae", "pylix", "outfoxxed"],
+  "permissions": ["reply_mentions", "read_guild_members"],
+  "hooks": ["shouldMentionOnReply"],
+  "settings": [
+    {
+      "key": "userList",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Users",
+      "description": "List of user ids to allow or exempt pings for (separated by commas or spaces)"
+    },
+    {
+      "key": "roleList",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Roles",
+      "description": "List of role ids to allow or exempt pings for (separated by commas or spaces)"
+    },
+    {
+      "key": "shouldPingListed",
+      "type": "bool",
+      "default": true,
+      "label": "Only ping the listed users / roles",
+      "description": "Behaviour: when off, the listed users / roles are the ones not pinged"
+    },
+    {
+      "key": "inverseShiftReply",
+      "type": "bool",
+      "default": false,
+      "label": "Invert shift replying",
+      "description": "Invert Discord's shift replying behaviour (enable to make shift reply mention user)"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Lists default to empty (upstream ships placeholder ids). Ids are matched exactly; upstream does a substring test on the raw text. Role lookups use the client's member cache; an uncached member counts as having no roles, as upstream."
+}

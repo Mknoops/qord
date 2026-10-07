@@ -395,7 +395,10 @@ jobs:
         run: cmake --build build --parallel $(nproc)
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --output-junit ctest-results.xml
+
+      - name: Qord plugin status (with test results)
+        run: python3 tools/check_equicord_plugins.py -v --test-results build/ctest-results.xml
 
   build-appimage:
     # ubuntu-22.04, not -latest: the AppImage bundles Qt but not glibc, so the

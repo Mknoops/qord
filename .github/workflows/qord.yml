@@ -1,0 +1,35 @@
+name: Qord inventory
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Tooling tests
+        run: python -m unittest discover -s tools/tests -v
+
+      - name: Inventory check
+        run: python tools/check_equicord_plugins.py -v --check-docs
+
+      - name: Inventory check (strict, release branches)
+        if: startsWith(github.ref, 'refs/heads/release/')
+        run: python tools/check_equicord_plugins.py --strict
+
+      - name: No JavaScript runtime or web engine in the build
+        run: |
+          # Node is allowed only for dev-time golden generation under tests/plugins/data
+          if grep -RniE 'WebEngine|QtWebView|WebView2|electron|chromium|libnode|v8::|quickjs|duktape' \
+               --include=CMakeLists.txt --include='*.cmake' --include=vcpkg.json \
+               --include='*.cpp' --include='*.hpp' --include='*.h' \
+               src plugins tests CMakeLists.txt qord.cmake vcpkg.json; then
+            echo "Forbidden runtime dependency found"; exit 1
+          fi

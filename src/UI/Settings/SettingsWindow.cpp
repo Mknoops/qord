@@ -2,6 +2,7 @@
 
 #include "AppearancePage.hpp"
 #include "GeneralPage.hpp"
+#include "PluginsPage.hpp"
 
 #ifdef ACHERON_HAVE_MINIAUDIO
 #include "AudioPage.hpp"
@@ -14,7 +15,7 @@ SettingsWindow::SettingsWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
 {
     setWindowTitle(tr("Settings"));
-    resize(550, 400);
+    resize(760, 540);
 
     setupUi();
 }
@@ -48,6 +49,8 @@ void SettingsWindow::setupUi()
 #ifdef ACHERON_HAVE_MINIAUDIO
     addPage(tr("Audio"), new AudioPage(this));
 #endif
+
+    addPage(tr("Plugins"), new PluginsPage(this));
 
     categoryList->setCurrentRow(0);
 

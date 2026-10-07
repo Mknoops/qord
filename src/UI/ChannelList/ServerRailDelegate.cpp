@@ -10,7 +10,7 @@ namespace UI {
 
 namespace {
 
-constexpr int IconSize = 38;
+constexpr int IconSize = 48;
 constexpr int FolderGroupAlpha = 64;
 
 QString initialsFor(const QString &name)
@@ -22,18 +22,6 @@ QString initialsFor(const QString &name)
     if (out.isEmpty())
         out = name.left(1);
     return out.toUpper();
-}
-
-QColor monogramColor(const QString &name, const QPalette &palette)
-{
-    int h, s, v;
-    palette.color(QPalette::Highlight).getHsv(&h, &s, &v);
-    if (h < 0)
-        h = 0;
-    const uint hash = qHash(name);
-    h = (h + static_cast<int>(hash % 90) - 45 + 360) % 360;
-    v = qBound(70, v + static_cast<int>((hash / 90) % 70) - 25, 200);
-    return QColor::fromHsv(h, qMax(60, s), v);
 }
 
 void drawRoundedPixmap(QPainter *painter, const QRect &rect, const QPixmap &pixmap, qreal radius)
@@ -92,11 +80,15 @@ void drawFolderGlyph(QPainter *painter, const QRect &iconRect, const QColor &col
     painter->restore();
 }
 
-void drawLeftIndicator(QPainter *painter, const QStyleOptionViewItem &option, int iconSize, bool selected, bool unread)
+void drawLeftIndicator(QPainter *painter, const QStyleOptionViewItem &option, int iconSize, bool selected, bool unread,
+                       bool hovered)
 {
+    // Discord: full-height pill when selected, 20px on hover, 8px dot when unread
     int pillH = 0;
     if (selected)
-        pillH = iconSize;
+        pillH = iconSize - 8;
+    else if (hovered)
+        pillH = 20;
     else if (unread)
         pillH = 8;
     if (pillH == 0)
@@ -128,11 +120,11 @@ void drawMentionBadge(QPainter *painter, const QStyleOptionViewItem &option, con
     painter->setBrush(option.palette.base().color());
     painter->drawRoundedRect(badge.adjusted(-2, -2, 2, 2), (badgeH + 4) / 2.0, (badgeH + 4) / 2.0);
 
-    painter->setBrush(option.palette.highlight().color());
+    painter->setBrush(QColor(242, 63, 67)); // Discord's mention red
     painter->drawRoundedRect(badge, badgeH / 2.0, badgeH / 2.0);
 
     painter->setFont(font);
-    painter->setPen(option.palette.highlightedText().color());
+    painter->setPen(Qt::white);
     painter->drawText(badge, Qt::AlignCenter, text);
 }
 
@@ -195,9 +187,11 @@ void ServerRailDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
     const int y = option.rect.top() + (option.rect.height() - iconSize) / 2;
     const QRect iconRect(x, y, iconSize, iconSize);
 
-    qreal radius = (kind == ServerRailModel::Kind::AccountHome) ? iconSize / 2.0 : 16.0;
-    if (selected && kind != ServerRailModel::Kind::AccountHome)
-        radius = iconSize * 0.30;
+    // Circles that turn into rounded squares when hovered or selected, like Discord
+    const bool hovered = option.state & QStyle::State_MouseOver;
+    qreal radius = iconSize / 2.0;
+    if (selected || hovered)
+        radius = iconSize * 0.33;
 
     const bool isFolder = kind == ServerRailModel::Kind::Folder;
     if (isFolder || inFolderGroup) {
@@ -218,7 +212,7 @@ void ServerRailDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
         fillGroupBackground(painter, bg, groupColor, isGroupTop, isGroupBottom, 16.0);
     }
 
-    drawLeftIndicator(painter, option, iconSize, selected, unread);
+    drawLeftIndicator(painter, option, iconSize, selected, unread, hovered);
 
     if (isFolder) {
         const QVariant colorVar = index.data(ServerRailModel::FolderColorRole);
@@ -251,9 +245,9 @@ void ServerRailDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
         if (!icon.isNull())
             drawRoundedPixmap(painter, iconRect, icon, radius);
         else {
-            QColor bg = monogramColor(name, option.palette);
-            if (!selected)
-                bg.setAlpha(110);
+            // Discord: grey tile, blurple when selected or hovered
+            QColor bg = (selected || hovered) ? option.palette.highlight().color()
+                                              : option.palette.alternateBase().color().lighter(125);
             drawMonogram(painter, iconRect, initialsFor(name), bg, radius);
         }
     }

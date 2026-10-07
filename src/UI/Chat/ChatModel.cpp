@@ -321,7 +321,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     case UsernameRole:
         return resolveAuthorName(msg.author.get());
     case AvatarRole: {
-        const QSize desiredSize(32, 32);
+        const QSize desiredSize(40, 40); // Qord: matches ChatLayout::avatarSize()
 
         if (!avatarUrlResolver)
             return imageManager->placeholder(desiredSize);
@@ -434,6 +434,9 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                                  tr("View Thread"));
         }
 
+        if (revealedSpoilerMessages.contains(msg.id.get()))
+            html.replace(QLatin1String(Core::Markdown::SpoilerHiddenStyle), QLatin1String(Core::Markdown::SpoilerShownStyle));
+
         if (msg.isForwarded()) {
             QString mutedColor = Core::Theme::Manager::instance()
                                          .color(Core::Theme::Token::PlaceholderText)
@@ -515,6 +518,18 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         }
 
         return QVariant::fromValue(result);
+    }
+    case MentionsMeRole: {
+        const Discord::Message &visible = msg.contentMessage();
+        if (visible.mentionEveryone.hasValue() && visible.mentionEveryone.get())
+            return true;
+        if (!visible.mentions.hasValue())
+            return false;
+        for (const auto &user : visible.mentions.get()) {
+            if (user.id.get() == currentAccountId)
+                return true;
+        }
+        return false;
     }
     case StickersRole: {
         const Discord::Message &visible = msg.contentMessage();
@@ -1380,6 +1395,21 @@ void ChatModel::invalidateLayout()
 {
     invalidateDocCache();
     sizeCache.clear();
+}
+
+void ChatModel::revealSpoilers(Snowflake messageId)
+{
+    if (revealedSpoilerMessages.contains(messageId))
+        return;
+    revealedSpoilerMessages.insert(messageId);
+    invalidateDocCacheForMessage(messageId);
+    for (int row = 0; row < rowCount(); ++row) {
+        const QModelIndex idx = index(row, 0);
+        if (Snowflake(idx.data(MessageIdRole).toULongLong()) == messageId) {
+            emit dataChanged(idx, idx);
+            break;
+        }
+    }
 }
 
 void ChatModel::invalidateDocCacheForMessage(Snowflake messageId)

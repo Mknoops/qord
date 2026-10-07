@@ -226,6 +226,11 @@ QString MessageManager::profileBioHtml(const QString &bio) const
     return parser->toHtml(parser->parse(bio, state));
 }
 
+void MessageManager::setRoleResolver(Markdown::RoleResolverFn resolver)
+{
+    parser->setRoleResolver(std::move(resolver));
+}
+
 void MessageManager::setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver)
 {
     parser->setChannelLinkResolver(std::move(resolver));

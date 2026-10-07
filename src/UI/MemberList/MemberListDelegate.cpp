@@ -5,16 +5,18 @@
 
 #include "Core/MemberListManager.hpp"
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
 #include "UI/StatusIndicator.hpp"
 
-constexpr static int GroupHeight = 22;
-constexpr static int MemberHeight = 28;
-constexpr static int MemberHeightWithActivity = 38;
-constexpr static int AvatarSize = 20;
-constexpr static int AvatarRadius = 4;
+// Qord: Discord's member list metrics (32px round avatars, 42px rows)
+constexpr static int GroupHeight = 36;
+constexpr static int MemberHeight = 42;
+constexpr static int MemberHeightWithActivity = 46;
+constexpr static int AvatarSize = 32;
+constexpr static int AvatarRadius = AvatarSize / 2;
 constexpr static int HorizontalPadding = 8;
-constexpr static int AvatarTextSpacing = 8;
-constexpr static int StatusDotSize = 7;
+constexpr static int AvatarTextSpacing = 12;
+constexpr static int StatusDotSize = 10;
 constexpr static int ActivityIconSize = 12;
 constexpr static int ActivityIconSpacing = 4;
 
@@ -92,12 +94,12 @@ void MemberListDelegate::paintGroup(QPainter *painter, const QStyleOptionViewIte
     QString text = groupName.toUpper() + QString::fromUtf8(" \u2014 ") + QString::number(groupCount);
 
     QFont font = option.font;
-    font.setPixelSize(10);
+    font.setPixelSize(12);
     font.setWeight(QFont::DemiBold);
     font.setLetterSpacing(QFont::AbsoluteSpacing, 0.3);
     painter->setFont(font);
 
-    painter->setPen(option.palette.color(QPalette::Disabled, QPalette::Text));
+    painter->setPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
 
     QRect textRect = option.rect.adjusted(HorizontalPadding, 0, -HorizontalPadding, 0);
     textRect.setTop(textRect.top() + 6);
@@ -109,11 +111,13 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
 {
     QColor rowColor = option.palette.color(QPalette::Window);
     if (option.state & QStyle::State_MouseOver) {
-        QColor hoverColor = option.palette.highlight().color();
-        hoverColor.setAlpha(30);
-        painter->fillRect(option.rect.adjusted(HorizontalPadding / 2, 1,
-                                               -HorizontalPadding / 2, -1),
-                          hoverColor);
+        const QColor hoverColor = Core::Theme::Manager::instance().color(Core::Theme::Token::HoverBg);
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(hoverColor);
+        painter->drawRoundedRect(option.rect.adjusted(HorizontalPadding / 2, 1, -HorizontalPadding / 2, -1), 4, 4);
+        painter->restore();
         rowColor = blendOver(rowColor, hoverColor);
     }
 
@@ -129,6 +133,8 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
         QPainterPath clipPath;
         clipPath.addRoundedRect(avatarRect, AvatarRadius, AvatarRadius);
         painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setRenderHint(QPainter::SmoothPixmapTransform);
         painter->setClipPath(clipPath);
         painter->drawPixmap(avatarRect, avatar.scaled(AvatarSize, AvatarSize,
                                                       Qt::KeepAspectRatioByExpanding,
@@ -153,7 +159,7 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
     QColor roleColor = index.data(MemberListModel::RoleColorRole).value<QColor>();
 
     QFont font = option.font;
-    font.setPixelSize(12);
+    font.setPixelSize(14);
     font.setWeight(QFont::Medium);
     painter->setFont(font);
 
@@ -190,11 +196,10 @@ void MemberListDelegate::paintActivityLine(QPainter *painter, const QStyleOption
                                            const QRect &lineRect) const
 {
     QFont font = option.font;
-    font.setPixelSize(10);
+    font.setPixelSize(12);
     painter->setFont(font);
 
-    QColor color = option.palette.color(QPalette::Text);
-    color.setAlpha(160);
+    QColor color = Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText);
     painter->setPen(color);
 
     int x = lineRect.left();

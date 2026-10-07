@@ -58,6 +58,8 @@
 #include "Core/Theme/Manager.hpp"
 #include "Plugins/PluginHost.hpp"
 #include "Input/PluginChatButtons.hpp"
+#include "Qord/UserPanel.hpp"
+#include "Qord/MessageListPopup.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #include "VoiceStatusBar.hpp"
@@ -144,7 +146,8 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     typingTracker = new TypingTracker(this);
     memberListModel = new MemberListModel(session->getImageManager(), this);
 
-    channelListMode = (QSettings().value("ui/channelListMode").toString() == "classic")
+    // Qord: Discord's server-rail layout is the default
+    channelListMode = (QSettings().value("ui/channelListMode", "classic").toString() == "classic")
                               ? ChannelListMode::Classic
                               : ChannelListMode::Tree;
 
@@ -217,6 +220,10 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     }
 
     restoreWindowState();
+
+    setupQordFeatures();
+    if (!QSettings().contains("layout/geometry"))
+        resize(1280, 800);
 }
 
 MainWindow::~MainWindow()
@@ -344,6 +351,9 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     // voice channels cannot hold threads
     setThreadBrowserTarget(isDm || isVoice ? Snowflake::Invalid : (isThread ? threadParentId : channelId));
     showChannelTopic(instance, channelId);
+    channelToolbar->setVisible(true);
+    channelNameLabel->setText((isDm ? QStringLiteral("@ ") : (isThread ? QString() : QStringLiteral("# "))) + name);
+    membersButton->setVisible(guildId.isValid());
 
     if (isDm) {
         messageInput->setEnabled(true);
@@ -456,6 +466,7 @@ void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
     }
 
     currentInstance = newInstance;
+    userPanel->setInstance(currentInstance);
     auto *msgs = currentInstance->messages();
 
     memberListModel->setAccount(currentInstance->accountId());
@@ -645,6 +656,8 @@ void MainWindow::syncPaneToggleActions()
         QSignalBlocker blocker(memberListToggle);
         memberListToggle->setChecked(!memberListHidden);
     }
+    if (membersButton)
+        membersButton->setChecked(!memberListHidden);
 }
 
 TabEntry MainWindow::makeTabEntry(ChannelNode *node, ChannelNode *accountNode) const
@@ -1018,6 +1031,7 @@ void MainWindow::setupUi()
     auto *layout = new QHBoxLayout(central);
 
     channelTree = new ChannelTreeView(this);
+    channelTree->setObjectName("ChannelTree");
 
 #ifndef ACHERON_NO_VOICE
     voiceStatusBar = new VoiceStatusBar(this);
@@ -1040,6 +1054,7 @@ void MainWindow::setupUi()
 #endif
 
     serverRail = new ServerRailView(this);
+    serverRail->setObjectName("ServerRail");
     serverRail->setModel(serverRailModel);
     serverRail->setItemDelegate(new ServerRailDelegate(serverRail));
     serverRail->setFixedWidth(ServerRailDelegate::RailWidth);
@@ -1061,7 +1076,9 @@ void MainWindow::setupUi()
     connect(serverRail, &ServerRailView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
 
     guildHeaderLabel = new QLabel(this);
-    guildHeaderLabel->setContentsMargins(12, 8, 12, 8);
+    guildHeaderLabel->setObjectName("GuildHeader");
+    guildHeaderLabel->setFixedHeight(48);
+    guildHeaderLabel->setContentsMargins(16, 0, 16, 0);
     {
         QFont headerFont = guildHeaderLabel->font();
         headerFont.setBold(true);
@@ -1070,6 +1087,7 @@ void MainWindow::setupUi()
     guildHeaderLabel->hide();
 
     auto *rightSideWidget = new QWidget(central);
+    rightSideWidget->setObjectName("ChatArea");
     auto *rightLayout = new QVBoxLayout(rightSideWidget);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
@@ -1091,14 +1109,54 @@ void MainWindow::setupUi()
     channelToolbar->setObjectName("channelToolbar");
     channelToolbar->setAttribute(Qt::WA_StyledBackground, true);
     auto *channelToolbarLayout = new QHBoxLayout(channelToolbar);
-    channelToolbarLayout->setContentsMargins(8, 3, 8, 3);
-    channelToolbarLayout->setSpacing(4);
+    channelToolbarLayout->setContentsMargins(16, 0, 12, 0);
+    channelToolbarLayout->setSpacing(8);
+    channelToolbar->setFixedHeight(48);
+    // Qord: "# channel | topic" on the left, Discord's header buttons on the right
+    channelNameLabel = new QLabel(channelToolbar);
+    channelNameLabel->setObjectName("ChannelHeaderName");
+    channelToolbarLayout->addWidget(channelNameLabel, 0);
+    auto *headerDivider = new QFrame(channelToolbar);
+    headerDivider->setObjectName("ChannelHeaderDivider");
+    headerDivider->setFixedSize(1, 24);
+    channelToolbarLayout->addWidget(headerDivider, 0);
     channelTopicLine = new ChannelTopicLine(session->getImageManager(), channelToolbar);
     connect(channelTopicLine, &ChannelTopicLine::clicked, this, &MainWindow::openChannelTopicPopup);
     channelToolbarLayout->addWidget(channelTopicLine, 1);
     channelToolbarLayout->addWidget(threadBrowserButton, 0);
+    const auto headerButton = [this](const char *icon, const QString &tip) {
+        auto *b = new QToolButton(channelToolbar);
+        b->setIcon(Core::Theme::Icons::icon(icon, Core::Theme::Token::MutedText));
+        b->setIconSize(QSize(20, 20));
+        b->setAutoRaise(true);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setToolTip(tip);
+        return b;
+    };
+    pinsButton = headerButton(Core::Theme::Icons::Name::Pin, tr("Pinned Messages"));
+    connect(pinsButton, &QToolButton::clicked, this, &MainWindow::openPinnedMessages);
+    channelToolbarLayout->addWidget(pinsButton, 0);
+    membersButton = headerButton(Core::Theme::Icons::Name::Users, tr("Show Member List"));
+    membersButton->setCheckable(true);
+    connect(membersButton, &QToolButton::clicked, this, [this](bool checked) { setMemberListHidden(!checked); });
+    channelToolbarLayout->addWidget(membersButton, 0);
+    searchField = new QLineEdit(channelToolbar);
+    searchField->setObjectName("ChannelSearch");
+    searchField->setPlaceholderText(tr("Search"));
+    searchField->setFixedWidth(160);
+    searchField->setClearButtonEnabled(true);
+    searchField->addAction(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Search, Core::Theme::Token::MutedText),
+                           QLineEdit::TrailingPosition);
+    connect(searchField, &QLineEdit::returnPressed, this, [this]() {
+        if (!searchField->text().trimmed().isEmpty())
+            openMessageSearch(searchField->text().trimmed());
+    });
+    channelToolbarLayout->addWidget(searchField, 0);
+    inboxButton = headerButton(Core::Theme::Icons::Name::Inbox, tr("Inbox"));
+    connect(inboxButton, &QToolButton::clicked, this, &MainWindow::openMentionsInbox);
+    channelToolbarLayout->addWidget(inboxButton, 0);
     channelToolbar->setStyleSheet(
-            "#channelToolbar { border-bottom: 1px solid rgba(128, 128, 128, 0.25); }");
+            "#channelToolbar { border-bottom: 1px solid rgba(0, 0, 0, 0.35); }");
     channelToolbar->hide();
 
     chatView = new ChatView(rightSideWidget);
@@ -1241,6 +1299,14 @@ void MainWindow::setupUi()
                 showUserContextMenu(currentInstance, userId, guildId,
                                     memberListView->viewport()->mapToGlobal(pos));
             });
+
+    userPanel = new UserPanel(session->getImageManager(), this);
+    connect(userPanel, &UserPanel::settingsRequested, this, &MainWindow::openSettingsWindow);
+    connect(userPanel, &UserPanel::accountsRequested, this, &MainWindow::openAccountsWindow);
+    connect(userPanel, &UserPanel::menuBarToggleRequested, this, [this]() {
+        menuBar()->setVisible(!menuBar()->isVisible());
+        QSettings().setValue("ui/showMenuBar", menuBar()->isVisible());
+    });
 
     leftSideWidget = buildLeftSide();
 
@@ -1582,7 +1648,7 @@ void MainWindow::setupUi()
 
                 if (isDM) {
                     qCInfo(LogVoice) << "Joining DM call" << node->name << node->id;
-                    instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, false, false);
+                    instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, userPanel->selfMute(), userPanel->selfDeaf());
                 } else {
                     ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
                     if (!guildNode)
@@ -1590,7 +1656,7 @@ void MainWindow::setupUi()
 
                     qCInfo(LogVoice) << "Joining voice channel" << node->name << node->id
                                      << "in guild" << guildNode->id;
-                    instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, false, false);
+                    instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, userPanel->selfMute(), userPanel->selfDeaf());
                 }
             });
 
@@ -1632,6 +1698,8 @@ QWidget *MainWindow::buildLeftSide()
         h->addWidget(serverRail, 0);
 
         auto *secondary = new QWidget(container);
+        secondary->setObjectName("ChannelSidebar");
+        secondary->setAttribute(Qt::WA_StyledBackground, true);
         auto *v = new QVBoxLayout(secondary);
         v->setContentsMargins(0, 0, 0, 0);
         v->setSpacing(0);
@@ -1643,6 +1711,7 @@ QWidget *MainWindow::buildLeftSide()
         if (voiceStatusBar)
             v->addWidget(voiceStatusBar, 0);
 #endif
+        v->addWidget(userPanel, 0);
         h->addWidget(secondary, 1);
     } else {
         auto *v = new QVBoxLayout(container);
@@ -1654,6 +1723,7 @@ QWidget *MainWindow::buildLeftSide()
         if (voiceStatusBar)
             v->addWidget(voiceStatusBar, 0);
 #endif
+        v->addWidget(userPanel, 0);
     }
 
     container->setMinimumWidth(200);
@@ -2438,6 +2508,15 @@ void MainWindow::setupMenu()
     memberListToggle->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_U));
     connect(memberListToggle, &QAction::toggled, this, [this](bool checked) { setMemberListHidden(!checked); });
 
+    // Qord: Discord has no menu bar; the user panel can bring it back
+    menuBar->setVisible(QSettings().value("ui/showMenuBar", false).toBool());
+    for (QAction *a : { channelListToggle, memberListToggle })
+        addAction(a); // keep the shortcuts working while the menu bar is hidden
+    auto *settingsShortcut = new QAction(this);
+    settingsShortcut->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    connect(settingsShortcut, &QAction::triggered, this, &MainWindow::openSettingsWindow);
+    addAction(settingsShortcut);
+
     // DEBUG: Ctrl+Shift+R to force a Gateway reconnect
     auto *debugReconnect = new QAction(this);
     debugReconnect->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
@@ -2780,7 +2859,8 @@ void MainWindow::openChannelTopicPopup()
 void MainWindow::setThreadBrowserTarget(Core::Snowflake channelId)
 {
     threadBrowserChannelId = channelId;
-    channelToolbar->setVisible(channelId.isValid());
+    // Qord: the header always shows for a channel; only the Threads button depends on this
+    threadBrowserButton->setVisible(channelId.isValid());
 }
 
 void MainWindow::openThreadBrowser()

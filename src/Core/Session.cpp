@@ -7,6 +7,7 @@
 #include "ImageManager.hpp"
 #include "Logging.hpp"
 #include "TokenStore.hpp"
+#include "Qord/DevMock.hpp"
 
 namespace Acheron {
 namespace Core {
@@ -60,6 +61,13 @@ void Session::connectAccount(Snowflake accountId)
     AccountInfo acc = repo.getAccount(accountId);
     if (acc.id == 0) {
         qCWarning(LogCore) << "Account not found:" << accountId;
+        return;
+    }
+
+    if (Qord::DevMock::enabled()) {
+        // Local mock server only: no keychain, no discord.com build-number fetch
+        acc.token = Qord::DevMock::token();
+        startInstance(acc);
         return;
     }
 

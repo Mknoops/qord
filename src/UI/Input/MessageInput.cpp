@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QMimeData>
 #include <QToolButton>
+#include <QFileDialog>
 
 #include <algorithm>
 
@@ -85,7 +86,7 @@ void ChatTextEdit::insertFromMimeData(const QMimeData *source)
 MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 {
     auto *outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(4, 0, 4, 0);
+    outerLayout->setContentsMargins(16, 0, 16, 0);
     outerLayout->setSpacing(0);
 
     // Reply bar
@@ -127,9 +128,27 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     // Text edit
     auto *inputContainer = new QWidget(this);
+    // Qord: Discord's rounded message box with an attach button on the left
+    inputContainer->setObjectName("MessageInputBox");
+    inputContainer->setAttribute(Qt::WA_StyledBackground, true);
     inputLayout = new QHBoxLayout(inputContainer);
-    inputLayout->setContentsMargins(0, 0, 0, 0);
-    inputLayout->setSpacing(0);
+    inputLayout->setContentsMargins(10, 0, 8, 0);
+    inputLayout->setSpacing(4);
+
+    auto *attachButton = new QToolButton(inputContainer);
+    attachButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::CirclePlus, Core::Theme::Token::MutedText));
+    attachButton->setIconSize(QSize(22, 22));
+    attachButton->setFixedSize(28, 44); // centred on a single-line box, stays at the top as it grows
+    attachButton->setAutoRaise(true);
+    attachButton->setCursor(Qt::PointingHandCursor);
+    attachButton->setToolTip(tr("Upload a File"));
+    attachButton->setStyleSheet("QToolButton { border: none; background: transparent; }");
+    connect(attachButton, &QToolButton::clicked, this, [this]() {
+        const QList<QUrl> files = QFileDialog::getOpenFileUrls(this, tr("Upload a File"));
+        if (!files.isEmpty())
+            queueAttachments(files);
+    });
+    inputLayout->addWidget(attachButton, 0, Qt::AlignTop);
 
     textEdit = new ChatTextEdit(inputContainer);
     setFocusProxy(textEdit);
@@ -154,6 +173,10 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     connect(textEdit->document(), &QTextDocument::contentsChanged, this,
             &MessageInput::adjustHeight);
+    connect(textEdit, &QTextEdit::textChanged, this, [this]() {
+        if (!textEdit->document()->isEmpty())
+            emit userTyping();
+    });
 
     autocomplete = new EmojiAutocomplete(textEdit, this);
 

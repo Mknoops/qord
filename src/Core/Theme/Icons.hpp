@@ -63,6 +63,19 @@ inline constexpr auto UserPlus = "user-plus";
 inline constexpr auto VolumeOff = "volume-x";
 inline constexpr auto VolumeOn = "volume-2";
 inline constexpr auto X = "x";
+inline constexpr auto Settings = "settings"; // Qord
+inline constexpr auto Headphones = "headphones"; // Qord
+inline constexpr auto HeadphoneOff = "headphone-off"; // Qord
+inline constexpr auto MicOff = "mic-off"; // Qord
+inline constexpr auto Users = "users"; // Qord
+inline constexpr auto Search = "search"; // Qord
+inline constexpr auto Plus = "plus"; // Qord
+inline constexpr auto Smile = "smile"; // Qord
+inline constexpr auto Inbox = "inbox"; // Qord
+inline constexpr auto CirclePlus = "circle-plus"; // Qord
+inline constexpr auto Sticker = "sticker"; // Qord
+inline constexpr auto Gift = "gift"; // Qord
+inline constexpr auto UserRoundPlus = "user-round-plus"; // Qord
 } // namespace Name
 
 QPixmap pixmap(const QString &name, int px, const QColor &color, qreal dpr = 1.0);

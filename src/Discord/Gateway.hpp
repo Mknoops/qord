@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QJsonArray>
 #include <QObject>
 #include <QString>
 
@@ -48,6 +49,8 @@ public:
     void requestForumUnreads(Core::Snowflake guildId, Core::Snowflake forumId,
                              const QList<QPair<Core::Snowflake, Core::Snowflake>> &threads);
     void sendVoiceStateUpdate(Core::Snowflake guildId, Core::Snowflake channelId, bool selfMute, bool selfDeaf);
+    // Qord: op 3, with an optional custom-status activity
+    void sendPresenceUpdate(const QString &status, const QJsonArray &activities);
 
     // for the qos heartbeat
     void setActiveState(bool focused, bool rtcConnected);

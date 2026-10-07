@@ -238,6 +238,7 @@ public:
         IsForwardedRole,
         ForwardOriginRole,
         StickersRole,
+        MentionsMeRole, // Qord: Discord highlights messages that mention you
     };
 
     void setAccount(Snowflake accountId);
@@ -282,6 +283,8 @@ public:
     void cacheDocument(const DocCacheKey &key, QTextDocument *doc) const;
     void invalidateDocCache();
     void invalidateDocCacheForMessage(Snowflake messageId);
+    // Qord: clicking a ||spoiler|| reveals every spoiler in that message
+    void revealSpoilers(Snowflake messageId);
     void invalidateLayout();
 
 signals:
@@ -328,6 +331,7 @@ private:
     Snowflake currentChannelId = Snowflake::Invalid;
     Snowflake currentGuildId = Snowflake::Invalid;
     Snowflake currentAccountId;
+    QSet<Snowflake> revealedSpoilerMessages;
     bool atLatest = true;
 
     AvatarUrlResolver avatarUrlResolver;

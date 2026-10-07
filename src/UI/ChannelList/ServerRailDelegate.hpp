@@ -9,8 +9,8 @@ class ServerRailDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 public:
-    static constexpr int RailWidth = 58;
-    static constexpr int ItemHeight = 46;
+    static constexpr int RailWidth = 72;
+    static constexpr int ItemHeight = 56;
 
     explicit ServerRailDelegate(QObject *parent = nullptr);
 

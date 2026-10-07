@@ -131,6 +131,19 @@ QHash<Token, QColor> generate(const QColor &seed, Scheme scheme, bool dark)
     m.insert(Token::ChatError, hsl(2.0, 0.70, dark ? 0.62 : 0.50));
     m.insert(Token::EmbedDefault, m.value(Token::Highlight));
 
+    // Qord surfaces follow the generated palette
+    m.insert(Token::RailBg, dark ? m.value(Token::WindowBg).darker(125) : m.value(Token::AlternateBaseBg).darker(108));
+    m.insert(Token::SidebarBg, m.value(Token::WindowBg));
+    m.insert(Token::InputBg, m.value(Token::ButtonBg));
+    m.insert(Token::HoverBg, dark ? m.value(Token::BaseBg).lighter(112) : m.value(Token::BaseBg).darker(104));
+    m.insert(Token::SelectedBg, dark ? m.value(Token::BaseBg).lighter(130) : m.value(Token::BaseBg).darker(112));
+    m.insert(Token::MutedText, m.value(Token::PlaceholderText));
+    m.insert(Token::HeaderText, m.value(Token::WindowText));
+    QColor mentioned = hsl(42.0, 0.86, 0.57);
+    m.insert(Token::MentionedMessageBar, mentioned);
+    mentioned.setAlpha(20);
+    m.insert(Token::MentionedMessageBg, mentioned);
+
     return m;
 }
 

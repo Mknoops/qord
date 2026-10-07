@@ -46,6 +46,8 @@ class SlowModeIndicator;
 class ConnectionBanner;
 class ChannelTopicLine;
 class GuildSettingsWindow;
+class UserPanel;
+class MessageListPopup;
 #ifndef ACHERON_NO_VOICE
 class VoiceStatusBar;
 #endif
@@ -255,6 +257,24 @@ private:
     bool savedRailIsHome = true;
     Core::Snowflake savedRailAccountId;
     Core::Snowflake savedRailGuildId;
+
+    // --- Qord: Discord-style chrome and core features (MainWindowQord.cpp) ---
+    void setupQordFeatures();
+    void applyQordSurfaces();
+    void openPinnedMessages();
+    void openMessageSearch(const QString &query);
+    void openMentionsInbox();
+    QString channelLabel(Core::Snowflake channelId) const;
+    MessageListPopup *ensureMessagePopup();
+    UserPanel *userPanel = nullptr;
+    QLabel *channelNameLabel = nullptr;
+    QToolButton *pinsButton = nullptr;
+    QToolButton *membersButton = nullptr;
+    QToolButton *inboxButton = nullptr;
+    QLineEdit *searchField = nullptr;
+    MessageListPopup *messagePopup = nullptr;
+    qint64 lastTypingSentMs = 0;
+    Core::Snowflake lastTypingChannel;
 };
 
 } // namespace UI

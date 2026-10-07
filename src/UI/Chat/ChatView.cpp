@@ -3,6 +3,9 @@
 #include <QMenu>
 #include <QTextDocument>
 #include <QTextCursor>
+#include <QCursor>
+
+#include "Core/Markdown/Parser.hpp"
 #include <QToolTip>
 
 #include <algorithm>
@@ -390,6 +393,14 @@ void ChatView::openLink(const QString &url)
 {
     if (url.isEmpty())
         return;
+
+    if (url.startsWith(QLatin1String(Core::Markdown::SpoilerHref))) {
+        // Qord: reveal spoilers in the message under the cursor
+        const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
+        if (auto *chat = qobject_cast<ChatModel *>(model()); chat && idx.isValid())
+            chat->revealSpoilers(Core::Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()));
+        return;
+    }
 
     const QLatin1String channelMention("acheron://channel/");
     if (url.startsWith(channelMention)) {

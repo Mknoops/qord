@@ -110,7 +110,10 @@ QList<AstNode> Parser::parse(QString source, ParseState state)
 
 QString Parser::toHtml(const QList<AstNode> &nodes, bool jumboEmoji)
 {
-    return toHtmlInternal(nodes, jumboEmoji);
+    QString html = toHtmlInternal(nodes, jumboEmoji);
+    // Qord: code blocks and quotes are tables, which already start a new line
+    html.replace(QLatin1String("<br><table"), QLatin1String("<table"));
+    return html;
 }
 
 bool Parser::isEmojiOnly(const QList<AstNode> &nodes, int maxEmojis)
@@ -155,6 +158,11 @@ QString Parser::toHtmlInternal(const QList<AstNode> &nodes, bool jumboEmoji)
 
             result += QString("<span class=\"mention\">@%1</span>")
                               .arg(displayName.toHtmlEscaped());
+            continue;
+        }
+
+        if (node.type == "roleMention") {
+            result += roleMentionHtml(node);
             continue;
         }
 
@@ -659,6 +667,8 @@ void Parser::setupDefaultRules()
         return node.content.toHtmlEscaped();
     };
     rules.append(text);
+
+    setupQordRules();
 }
 
 void Parser::sortRules()

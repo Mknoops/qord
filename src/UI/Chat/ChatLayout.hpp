@@ -24,7 +24,7 @@ constexpr int blockTopPadding() noexcept
 }
 constexpr int avatarSize() noexcept
 {
-    return 32;
+    return 40; // Qord: Discord's message avatar size
 }
 constexpr int separatorHeight() noexcept
 {

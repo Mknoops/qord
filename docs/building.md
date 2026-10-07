@@ -36,6 +36,28 @@ Run the client with Qt and ffmpeg on `PATH`:
 pwsh -c '$env:PATH="C:\Qt\6.10.2\msvc2022_64\bin;$PWD\deps\ffmpeg\bin;$env:PATH"; .\build\acheron.exe'
 ```
 
+## Trying the UI without a Discord account
+
+`tools/mock_discord.py` is a local stand-in for Discord's gateway, API and CDN with sample servers, channels and messages. `tools/run-mock.ps1` starts it and launches the client in mock mode, which uses a separate `Qord-Mock` profile and talks only to `127.0.0.1`:
+
+```bash
+pwsh -File tools/run-mock.ps1 -Reset
+```
+
+While it runs, you can play the other users:
+
+```bash
+python tools/mock_discord.py say --channel general --user ava "hello"
+```
+
+```bash
+python tools/mock_discord.py edit --channel general "changed text"
+```
+
+```bash
+python tools/mock_discord.py delete --channel general
+```
+
 ## Inventory and status checks
 
 ```bash

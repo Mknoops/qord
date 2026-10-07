@@ -112,6 +112,12 @@ private:
     EmojiManager *emojiManager = nullptr;
     std::unique_ptr<Markdown::Parser> parser;
 
+public:
+    // Qord: resolves <@&role> mentions to the role's name and colour
+    void setRoleResolver(Markdown::RoleResolverFn resolver);
+
+private:
+
     QCache<Snowflake, Discord::Message> messageCache;
     std::function<Snowflake(Snowflake)> channelParentResolver;
     QHash<Snowflake, MessageSegments> segments;

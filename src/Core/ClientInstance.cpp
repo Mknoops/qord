@@ -72,6 +72,17 @@ ClientInstance::ClientInstance(const AccountInfo &info,
     messageManager->setChannelLinkResolver([this](const Markdown::ChannelLinkRef &ref) {
         return channelLinkParts(ref);
     });
+    messageManager->setRoleResolver([this](Snowflake roleId, Snowflake sourceChannelId) {
+        Markdown::RoleMention mention;
+        auto channel = getChannel(sourceChannelId);
+        if (!channel || !channel->guildId.hasValue())
+            return mention;
+        if (auto role = roleRepo.getRole(channel->guildId.get(), roleId)) {
+            mention.name = role->name.get();
+            mention.color = role->getColor();
+        }
+        return mention;
+    });
 
     permissionManager = new PermissionManager(info.id, this);
     readStateManager = new ReadStateManager(info.id, permissionManager, this);

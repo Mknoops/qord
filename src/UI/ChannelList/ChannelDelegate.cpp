@@ -5,6 +5,7 @@
 #include "ChannelFilterProxyModel.hpp"
 
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
 #include "UI/StatusIndicator.hpp"
 
 namespace Acheron {
@@ -371,11 +372,11 @@ static void drawMentionBadge(QPainter *painter, const QStyleOptionViewItem &opti
                     option.rect.top() + (option.rect.height() - badgeHeight) / 2,
                     badgeWidth, badgeHeight);
 
-    painter->setBrush(option.palette.highlight().color());
+    painter->setBrush(QColor(242, 63, 67)); // Qord: Discord's mention red
     painter->setPen(Qt::NoPen);
     painter->drawRoundedRect(badgeRect, badgeHeight / 2.0, badgeHeight / 2.0);
 
-    painter->setPen(option.palette.highlightedText().color());
+    painter->setPen(Qt::white);
     painter->drawText(badgeRect, Qt::AlignCenter, text);
 }
 
@@ -420,7 +421,7 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         int avatarY = contentOpt.rect.top() + (contentOpt.rect.height() - avatarSize) / 2;
         QRect avatarRect(avatarX, avatarY, avatarSize, avatarSize);
 
-        constexpr qreal avatarRadius = 3.0;
+        constexpr qreal avatarRadius = avatarSize / 2.0; // Qord: round
         QPixmap avatar = qvariant_cast<QPixmap>(index.data(Qt::DecorationRole));
         if (!avatar.isNull()) {
             painter->save();
@@ -513,8 +514,17 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
                                iconSize, iconSize);
 
         QPixmap icon = qvariant_cast<QPixmap>(index.data(Qt::DecorationRole));
-        if (!icon.isNull())
+        if (!icon.isNull()) {
+            // Qord: round icons and avatars, like Discord
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            QPainterPath clip;
+            clip.addEllipse(QRectF(iconRect));
+            painter->setClipPath(clip);
             painter->drawPixmap(iconRect, icon);
+            painter->restore();
+        }
 
         if (node->type == ChannelNode::Type::DMChannel && node->dmRecipientId.isValid()) {
             constexpr int statusDotSize = 8;
@@ -528,17 +538,47 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     // determine text color
     QColor textColor = option.palette.text().color();
     bool isSelected = index.data(ChannelFilterProxyModel::SelectedRole).toBool();
+    const auto &theme = Core::Theme::Manager::instance();
+    const bool rowIsChannel = node->opensChat() || node->type == ChannelNode::Type::VoiceChannel;
+    if (rowIsChannel && (isSelected || (option.state & QStyle::State_MouseOver))) {
+        // Qord: Discord's rounded hover/selected highlight
+        painter->save();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(theme.color(isSelected ? Core::Theme::Token::SelectedBg : Core::Theme::Token::HoverBg));
+        painter->drawRoundedRect(QRectF(contentOpt.rect.adjusted(-4, 1, -6, -1)), 4, 4);
+        painter->restore();
+    }
     if (node->opensChat()) {
+        textColor = theme.color(Core::Theme::Token::MutedText);
         if (node->isMuted)
             textColor = option.palette.text().color().darker(150);
         else if (isSelected || node->isUnread)
-            textColor = option.palette.brightText().color();
+            textColor = theme.color(Core::Theme::Token::HeaderText);
+        else if (option.state & QStyle::State_MouseOver)
+            textColor = option.palette.text().color();
+        if (node->isUnread && !node->isMuted && !isSelected) {
+            QFont f = painter->font();
+            f.setWeight(QFont::DemiBold);
+            painter->setFont(f);
+        }
     } else if (node->type == ChannelNode::Type::Server) {
         if (node->isUnread && !node->isMuted)
             textColor = option.palette.brightText().color();
     } else if (node->type == ChannelNode::Type::Category) {
+        textColor = theme.color(Core::Theme::Token::MutedText);
         if (node->isMuted)
-            textColor = option.palette.text().color().darker(150);
+            textColor = textColor.darker(130);
+        // Qord: Discord's small uppercase category headers
+        QFont f = painter->font();
+        f.setPixelSize(12);
+        f.setWeight(QFont::DemiBold);
+        f.setCapitalization(QFont::AllUppercase);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 0.2);
+        painter->setFont(f);
+    } else if (node->type == ChannelNode::Type::VoiceChannel) {
+        textColor = theme.color(Core::Theme::Token::MutedText);
+        if (option.state & QStyle::State_MouseOver)
+            textColor = option.palette.text().color();
     }
 
     if (node->type == ChannelNode::Type::Channel) {

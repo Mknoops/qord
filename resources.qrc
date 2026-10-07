@@ -52,5 +52,18 @@
         <file>resources/icons/lucide/volume-2.svg</file>
         <file>resources/icons/lucide/volume-x.svg</file>
         <file>resources/icons/lucide/x.svg</file>
+        <file>resources/icons/lucide/settings.svg</file>
+        <file>resources/icons/lucide/headphones.svg</file>
+        <file>resources/icons/lucide/headphone-off.svg</file>
+        <file>resources/icons/lucide/mic-off.svg</file>
+        <file>resources/icons/lucide/users.svg</file>
+        <file>resources/icons/lucide/search.svg</file>
+        <file>resources/icons/lucide/plus.svg</file>
+        <file>resources/icons/lucide/smile.svg</file>
+        <file>resources/icons/lucide/inbox.svg</file>
+        <file>resources/icons/lucide/circle-plus.svg</file>
+        <file>resources/icons/lucide/sticker.svg</file>
+        <file>resources/icons/lucide/gift.svg</file>
+        <file>resources/icons/lucide/user-round-plus.svg</file>
     </qresource>
 </RCC>

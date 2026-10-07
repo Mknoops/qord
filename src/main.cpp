@@ -5,6 +5,7 @@
 #include "Core/Logging.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "Plugins/Client/ClientPlugins.hpp"
+#include "Qord/DevMock.hpp"
 
 #include <curl/curl.h>
 
@@ -73,7 +74,8 @@ int main(int argc, char *argv[])
 #endif
 
     QApplication::setOrganizationName("ouwou");
-    QApplication::setApplicationName("Acheron");
+    // Qord mock mode keeps its own profile so it never touches real accounts
+    QApplication::setApplicationName(Qord::DevMock::enabled() ? "Qord-Mock" : "Acheron");
     applyFontEngineSetting();
 
     App app(argc, argv);
@@ -114,6 +116,11 @@ int main(int argc, char *argv[])
         QMessageBox::critical(nullptr, "Fatal error",
                               "Could not initialize the database. Acheron will now close.");
         return -1;
+    }
+
+    if (Qord::DevMock::enabled()) {
+        qCInfo(LogCore) << "Qord mock mode:" << Qord::DevMock::baseUrl().toString();
+        Qord::DevMock::installAccount();
     }
 
     int exitCode = 0;

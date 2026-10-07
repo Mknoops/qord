@@ -44,6 +44,16 @@ enum class Token {
     StatusDnd,
     StatusOffline,
     StatusStreaming,
+    // Qord: Discord-style surfaces
+    RailBg,
+    SidebarBg,
+    InputBg,
+    HoverBg,
+    SelectedBg,
+    MutedText,
+    HeaderText,
+    MentionedMessageBg,
+    MentionedMessageBar,
 };
 
 struct TokenDescriptor

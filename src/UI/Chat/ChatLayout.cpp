@@ -42,12 +42,24 @@ QString richTextStyleSheet()
         code += QStringLiteral(" font-size: %1pt;").arg(codeFont.pointSizeF());
     code += QStringLiteral(" }");
 
+    // Qord: code blocks, quotes, timestamps and subtext like Discord
+    const QString qord = QStringLiteral("table.codeblock { background-color: %1; border-color: %2; border-width: 1px;"
+                                        " border-style: solid; margin-top: 4px; margin-bottom: 4px; } "
+                                        "td.blockquote-bar { background-color: %3; } "
+                                        "table.blockquote { margin-top: 2px; margin-bottom: 2px; } "
+                                        ".timestamp { background-color: rgba(255, 255, 255, 0.06); } "
+                                        ".subtext { color: %4; } ")
+                                 .arg(Manager::instance().color(Token::SidebarBg).name(),
+                                      Manager::instance().color(Token::RailBg).name(),
+                                      Manager::instance().color(Token::Divider).lighter(125).name(),
+                                      Manager::instance().color(Token::MutedText).name());
+
     return QStringLiteral("a { color: %1; } "
                           ".mention { color: %2; background-color: %3; text-decoration: none; } ")
                    .arg(link.name(QColor::HexRgb))
                    .arg(mentionText.name(QColor::HexRgb))
                    .arg(mentionBgRgba) +
-           code;
+           code + qord;
 }
 
 static QString editedMarkerText()

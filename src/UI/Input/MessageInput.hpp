@@ -69,6 +69,8 @@ protected:
 signals:
     void sendMessage(const QString &text, const QList<Core::PendingAttachment> &attachments);
     void editLastMessageRequested();
+    // Qord: the user typed into the box (MainWindow throttles the typing indicator)
+    void userTyping();
 
 private:
     ChatTextEdit *textEdit;

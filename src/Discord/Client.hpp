@@ -247,6 +247,27 @@ public:
     };
     void fetchAuditLog(Snowflake guildId, const AuditLogQuery &query, ResultCallback<AuditLog> callback);
 
+    // --- Qord additions: core Discord features Acheron lacked (src/Qord/ClientExtras.cpp) ---
+    using JsonCallback = std::function<void(const Core::Result<QJsonDocument> &)>;
+    // POST /channels/{id}/typing (callers throttle; Discord expects one per ~8s)
+    void sendTyping(Snowflake channelId);
+    // status: online/idle/dnd/invisible. Sent over the gateway and saved to settings.
+    void setStatus(const QString &status, const QString &customText, const QString &customEmoji);
+    void fetchPinnedMessages(Snowflake channelId, MessagesCallback callback);
+    // Guild-wide when guildId is valid, else within channelId (DMs)
+    void searchMessages(Snowflake guildId, Snowflake channelId, const QUrlQuery &query, JsonCallback callback);
+    void fetchRecentMentions(int limit, bool everyone, MessagesCallback callback);
+    void sendFriendRequest(const QString &username, ActionCallback callback);
+    // type 1 = friend (accepts an incoming request), 2 = block
+    void putRelationship(Snowflake userId, int type, ActionCallback callback);
+    void removeRelationship(Snowflake userId, ActionCallback callback);
+    void resolveInvite(const QString &code, JsonCallback callback);
+    void joinGuildByInvite(const QString &code, JsonCallback callback);
+    void createGuild(const QString &name, JsonCallback callback);
+    void createGuildChannel(Snowflake guildId, const QString &name, int type, Snowflake parentId, JsonCallback callback);
+    // PATCH /users/@me/guilds/{id}/settings (muted, message_notifications, channel_overrides)
+    void updateGuildNotificationSettings(Snowflake guildId, const QJsonObject &patch, ActionCallback callback);
+
 signals:
     void stateChanged(Core::ConnectionState state);
     void ready(const Ready &data);

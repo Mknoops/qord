@@ -364,6 +364,13 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     QRect messageRect = option.rect;
     if (layout.hasSeparator)
         messageRect.setTop(layout.separatorRect.bottom() + 1);
+    if (index.data(ChatModel::MentionsMeRole).toBool()) {
+        // Qord: Discord's gold highlight and bar on messages that mention you
+        const auto &theme = Core::Theme::Manager::instance();
+        painter->fillRect(messageRect, theme.color(Core::Theme::Token::MentionedMessageBg));
+        painter->fillRect(QRect(messageRect.left(), messageRect.top(), 2, messageRect.height()),
+                          theme.color(Core::Theme::Token::MentionedMessageBar));
+    }
     drawHoverHighlight(painter, option, chatView, index.row(), messageRect);
     drawHighlightFlash(painter, option, chatView, index.row(), option.rect);
 
@@ -485,8 +492,17 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         drawSystemMessageIcon(painter, option, ctx.messageType, layout.systemIconRect);
 
     if (layout.showHeader) {
-        if (!avatar.isNull())
+        if (!avatar.isNull()) {
+            // Qord: round avatars, like Discord
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            QPainterPath clip;
+            clip.addEllipse(QRectF(layout.avatarRect));
+            painter->setClipPath(clip);
             painter->drawPixmap(layout.avatarRect, avatar);
+            painter->restore();
+        }
 
         QFont headerFont = option.font;
         headerFont.setBold(true);

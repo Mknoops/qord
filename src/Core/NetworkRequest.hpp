@@ -4,12 +4,14 @@
 #include <QOperatingSystemVersion>
 #include <QUrl>
 
+#include "Qord/DevMock.hpp"
+
 namespace Acheron {
 namespace Core {
 
 inline QNetworkRequest networkRequest(const QUrl &url)
 {
-    QNetworkRequest request(url);
+    QNetworkRequest request(Qord::DevMock::rewrite(url));
 #ifdef Q_OS_WIN
     static const bool schannelLacksAlpn = QOperatingSystemVersion::current() < QOperatingSystemVersion::Windows8_1;
     if (schannelLacksAlpn)

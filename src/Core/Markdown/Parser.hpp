@@ -1,5 +1,8 @@
 #pragma once
 
+#include <QColor>
+#include <QDateTime>
+#include <QLocale>
 #include <QRegularExpression>
 #include <QSet>
 #include <QVariantMap>
@@ -72,6 +75,21 @@ struct ChannelLinkPart
 
 using ChannelLinkResolverFn = std::function<QList<ChannelLinkPart>(const ChannelLinkRef &)>;
 
+// Qord: role mentions, spoilers and timestamps (QordRules.cpp)
+struct RoleMention
+{
+    QString name;
+    QColor color;
+};
+using RoleResolverFn = std::function<RoleMention(Snowflake roleId, Snowflake sourceChannelId)>;
+
+// Spoilers render as a link the chat view intercepts; revealing swaps the style
+inline constexpr const char *SpoilerHref = "qord-spoiler:";
+inline constexpr const char *SpoilerHiddenStyle = "background-color: #1e1f22; color: #1e1f22; text-decoration: none;";
+inline constexpr const char *SpoilerShownStyle = "background-color: #3c3d43; color: #dbdee1; text-decoration: none;";
+
+QString formatDiscordTimestamp(qint64 unixSeconds, QChar style, const QDateTime &now, const QLocale &locale);
+
 class Parser
 {
 public:
@@ -83,11 +101,14 @@ public:
     void setUserResolver(UserResolverFn resolver);
     void setChannelResolver(ChannelResolverFn resolver);
     void setChannelLinkResolver(ChannelLinkResolverFn resolver);
+    void setRoleResolver(RoleResolverFn resolver);
 
     static bool isEmojiOnly(const QList<AstNode> &nodes, int maxEmojis = 30);
 
 private:
     void setupDefaultRules();
+    void setupQordRules();
+    QString roleMentionHtml(const AstNode &node) const;
     void sortRules();
 
     QString toHtmlInternal(const QList<AstNode> &nodes, bool jumboEmoji);
@@ -98,6 +119,7 @@ private:
     UserResolverFn userResolver;
     ChannelResolverFn channelResolver;
     ChannelLinkResolverFn channelLinkResolver;
+    RoleResolverFn roleResolver;
 };
 
 } // namespace Markdown

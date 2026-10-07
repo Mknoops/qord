@@ -52,11 +52,50 @@ public:
     virtual void setText(const QString &text) = 0;
 };
 
+class RelationshipDirectory
+{
+public:
+    virtual ~RelationshipDirectory() = default;
+    [[nodiscard]] virtual bool isBlocked(Id accountId, Id userId) const = 0;
+    [[nodiscard]] virtual bool isIgnored(Id accountId, Id userId) const = 0;
+};
+
+class UiService
+{
+public:
+    struct TextSection
+    {
+        QString title;
+        QString text;
+        bool monospace = false;
+    };
+    virtual ~UiService() = default;
+    // A read-only dialog with copyable sections.
+    virtual void showTextDialog(const QString &title, const QList<TextSection> &sections) = 0;
+    // Needs the open_links permission (PluginContext enforces it).
+    virtual void openUrl(const QUrl &url) = 0;
+};
+
+class MessageService
+{
+public:
+    virtual ~MessageService() = default;
+    // Re-render a message (e.g. after its annotation changed).
+    virtual void refreshMessage(Id accountId, Id channelId, Id messageId) = 0;
+    // Drop a message that a plugin kept after deletion.
+    virtual void removeMessage(Id accountId, Id channelId, Id messageId) = 0;
+    // Re-evaluate message filters for everything on screen.
+    virtual void refreshFilters() = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
     MemberDirectory *members = nullptr;
     ClipboardService *clipboard = nullptr;
+    RelationshipDirectory *relationships = nullptr;
+    UiService *ui = nullptr;
+    MessageService *messages = nullptr;
 };
 
 } // namespace Plugins

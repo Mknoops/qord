@@ -1,4 +1,7 @@
 #include "ClientInstance.hpp"
+
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Plugins/PluginHost.hpp"
 #include "ReadStateManager.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -54,6 +57,12 @@ ClientInstance::ClientInstance(const AccountInfo &info,
 
     userManager = new UserManager(info.id, this);
     messageManager = new MessageManager(info.id, client, userManager, this);
+    messageManager->setChannelParentResolver([this](Snowflake channelId) -> Snowflake {
+        auto channel = getChannel(channelId);
+        if (!channel || !channel->parentId.hasValue())
+            return Snowflake::Invalid;
+        return channel->parentId.get();
+    });
     messageManager->setChannelResolver([this](Snowflake channelId) -> QString {
         auto ch = channelRepo.getChannel(channelId);
         if (ch && ch->name.hasValue())
@@ -1217,6 +1226,22 @@ void ClientInstance::onMessageCreated(const Discord::Message &msg)
         readStateManager->registerChannelGuild(channelId, msg.guildId.get());
 
     bool fromSelf = msg.author.hasValue() && msg.author->id.get() == account.id;
+
+    // Qord: messages hidden or silenced by a plugin (NoBlockedMessages) do
+    // not mark the channel unread
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageFilter)) {
+        Snowflake parent = Snowflake::Invalid;
+        if (auto channel = getChannel(channelId); channel && channel->parentId.hasValue())
+            parent = channel->parentId.get();
+        const Snowflake guildId = msg.guildId.hasValue() ? msg.guildId.get() : Snowflake::Invalid;
+        if (plugins->dispatchShouldSilenceMessage(
+                    Qord::Plugins::toMessageContext(msg, quint64(account.id), quint64(guildId), quint64(parent)))) {
+            emit channelLastMessageUpdated(channelId, messageId);
+            return;
+        }
+    }
+
     bool isMention = !fromSelf && isMessageMentioningMe(msg);
     readStateManager->handleMessageCreated(channelId, messageId, fromSelf, isMention);
 

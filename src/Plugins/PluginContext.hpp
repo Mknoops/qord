@@ -38,6 +38,14 @@ public:
     [[nodiscard]] const MemberDirectory *members() const;
     // Null without the write_clipboard permission.
     [[nodiscard]] ClipboardService *clipboard() const;
+    // Null without the read_relationships permission.
+    [[nodiscard]] const RelationshipDirectory *relationships() const;
+    // Dialogs need add_ui_elements; openUrl() additionally needs open_links
+    // (it does nothing without it). Null without add_ui_elements.
+    [[nodiscard]] UiService *ui();
+    // Null unless the plugin may change how messages are shown
+    // (log_messages or hide_messages).
+    [[nodiscard]] MessageService *messages() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -60,6 +68,7 @@ private:
     Services services;
     QString dataDir;
     std::unique_ptr<ScopedNetwork> scopedNetwork;
+    std::unique_ptr<UiService> scopedUi;
 };
 
 } // namespace Plugins

@@ -28,6 +28,7 @@ endfunction()
 
 qord_add_host_test(core)
 qord_add_host_test(jscompat)
+qord_add_host_test(textdiff)
 
 qord_add_plugin_test(clearurls)
 qord_add_plugin_test(textreplace)
@@ -42,3 +43,8 @@ qord_add_plugin_test(silentmessagetoggle)
 qord_add_plugin_test(ingtoninator)
 qord_add_plugin_test(copyuserurls)
 qord_add_plugin_test(copyusermention)
+
+qord_add_plugin_test(messagelogger)
+qord_add_plugin_test(noblockedmessages)
+qord_add_plugin_test(viewraw)
+qord_add_plugin_test(reverseimagesearch)

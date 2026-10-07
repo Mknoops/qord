@@ -1,0 +1,21 @@
+{
+  "id": "reverseimagesearch",
+  "equicordName": "ReverseImageSearch",
+  "equicordPath": "src/plugins/reverseImageSearch",
+  "name": "ReverseImageSearch",
+  "description": "Adds ImageSearch to image context menus",
+  "categories": ["media", "utility"],
+  "tags": ["Media", "Utility"],
+  "authors": ["Ven", "Nuckyz"],
+  "permissions": ["add_ui_elements", "open_links"],
+  "hooks": ["messageContextMenu"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Right-click an image in chat, then Search Image. The image link is sent to the chosen search engine when you pick it. Engine favicons are not shown (that would contact DuckDuckGo every time the menu opens).",
+  "gaps": [
+    "The image viewer's own context menu (upstream's image-context) needs a plugin surface in Qord's image viewer"
+  ]
+}

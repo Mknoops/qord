@@ -1,0 +1,22 @@
+{
+  "id": "viewraw",
+  "equicordName": "ViewRaw",
+  "equicordPath": "src/plugins/viewRaw",
+  "name": "ViewRaw",
+  "description": "Copy and view the raw content/data of any message, channel or guild",
+  "categories": ["developer", "chat"],
+  "tags": ["Chat", "Developers"],
+  "authors": ["KingFish", "Ven", "rad", "ImLvna"],
+  "permissions": ["add_ui_elements", "write_clipboard"],
+  "hooks": ["messageContextMenu"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "\"Message Data\" is the message as Qord stores it (sorted keys; no private author fields), which can differ slightly from Discord's payload. The entries are in the message context menu.",
+  "gaps": [
+    "Upstream's hover-bar button (and its left/right click setting) needs plugin buttons in the message action bar",
+    "View Raw for users, channels, servers, roles and profiles needs those context menus to expose their data"
+  ]
+}

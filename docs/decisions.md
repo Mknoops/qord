@@ -33,6 +33,14 @@ and why, so it can be revisited deliberately.
 23. **Behavior fixes kept deliberately small and noted per plugin**: TalkInReverse reverses by grapheme (upstream breaks emoji); WriteUpperCase ignores empty blocked words (upstream's empty setting blocks everything); SilentMessageToggle's "persist between restarts" restores the saved state (upstream starts every channel switched on); PolishWording leaves a hand-typed `__CODE_BLOCK_n__` alone (upstream writes "undefined"). PolishWording's sentence splitter, which upstream wrote so it can never split after a period, is ported unchanged because that is the behavior users get.
 24. **DontRoundMyTimestamps deferred.** Acheron does not render Discord's `<t:…:R>` timestamps, so there is nothing to round yet. It needs a timestamp-markdown surface first.
 
+## 2026-10-07: batch 3 (most-used plugins)
+
+25. **Message surfaces.** `messageContextMenu` (plugin items, including submenus, in the message right-click menu; the context carries the right-clicked image URL and the message as JSON), `messageHistory` (keep a deleted message, see edits, annotate a message for rendering) and `messageFilter` (hide a message; or keep it visible but silent). New permissions: `log_messages`, `hide_messages`, `read_relationships`, `open_links`. New services: relationships (blocked/ignored), UI (read-only text dialog, open an http(s) link), messages (re-render, remove a kept message, re-filter).
+26. **Annotations are data, rendering is the client.** Plugins return a `MessageAnnotation` (deleted + style, edit history, diffs); the client renders it with its own Markdown renderer. Plugins stay UI-free and the look stays consistent. The diff algorithm (`TextDiff`) is shared in the host library.
+27. **Kept deleted messages are temporary.** The client still records the deletion in its database, so a kept message disappears after a restart or when MessageLogger is disabled, matching upstream ("temporarily logs"). Kept messages lose reply/edit/delete/pin/react actions.
+28. **Hidden messages are hidden rows**, not removed from the model, so history paging anchors keep working; hidden and silenced messages do not mark the channel unread.
+29. **SilentTyping deferred.** Acheron never sends typing indicators, so the plugin's effect is already the default. Porting it needs the base client to send typing first (a behavior change worth deciding separately).
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

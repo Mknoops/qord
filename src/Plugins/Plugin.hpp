@@ -59,6 +59,53 @@ public:
         Q_UNUSED(chat);
     }
 
+    // Hook::MessageContextMenu. `message.imageUrl` is set when the menu was
+    // opened on an image.
+    virtual QList<MenuItem> messageContextMenuItems(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return {};
+    }
+    virtual void onMessageContextMenuAction(const QString &id, const MessageContext &message)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(message);
+    }
+
+    // Hook::MessageHistory. Return true to keep a deleted message on screen
+    // (marked deleted) instead of removing it.
+    virtual bool keepDeletedMessage(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return false;
+    }
+    // A message's content was edited; `before` is the cached version.
+    virtual void onMessageEdited(const MessageContext &before, const MessageContext &after)
+    {
+        Q_UNUSED(before);
+        Q_UNUSED(after);
+    }
+    virtual std::optional<MessageAnnotation> annotateMessage(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return std::nullopt;
+    }
+
+    // Hook::MessageFilter. Return true to hide the message from the chat
+    // (it also stops counting as unread).
+    virtual bool shouldHideMessage(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return false;
+    }
+    // Hook::MessageFilter: keep the message visible but do not count it as
+    // unread or notify about it.
+    virtual bool shouldSilenceMessage(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return false;
+    }
+
     // Hook::UserContextMenu
     virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
     {

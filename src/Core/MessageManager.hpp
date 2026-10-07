@@ -16,6 +16,8 @@
 #include "Discord/Client.hpp"
 #include "Markdown/Parser.hpp"
 
+#include "Plugins/Types.hpp"
+
 namespace Acheron {
 namespace Core {
 
@@ -42,6 +44,12 @@ public:
     ~MessageManager() override;
 
     void setChannelResolver(std::function<QString(Snowflake)> resolver);
+    // Qord: parent (category or thread parent) of a channel, for plugins
+    void setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver);
+    // Qord: re-render a cached message (a plugin's view of it changed)
+    void refreshMessage(Snowflake channelId, Snowflake messageId);
+    // Qord: drop a message a plugin kept on screen after it was deleted
+    void removeKeptMessage(Snowflake channelId, Snowflake messageId);
     void setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver);
     void setEmojiManager(EmojiManager *manager);
 
@@ -92,6 +100,9 @@ private:
     void emitReactionUpdate(Discord::Message &msg);
     void cacheGatewayMembers(const Discord::Message &msg);
     void parseMessageContent(Discord::Message &msg);
+    [[nodiscard]] Qord::Plugins::MessageContext pluginContext(const Discord::Message &msg, bool withJson = false) const;
+    [[nodiscard]] QString annotatedHtml(const Qord::Plugins::MessageAnnotation &annotation, const QString &content,
+                                        Snowflake channelId) const;
     QString inlineHtml(const QString &content, Snowflake channelId) const;
 
     Storage::MessageRepository repo;
@@ -102,6 +113,7 @@ private:
     std::unique_ptr<Markdown::Parser> parser;
 
     QCache<Snowflake, Discord::Message> messageCache;
+    std::function<Snowflake(Snowflake)> channelParentResolver;
     QHash<Snowflake, MessageSegments> segments;
     QSet<Snowflake> fetchedChannels;
     QHash<Snowflake, Snowflake> channelStartId; // nothing exists before this message

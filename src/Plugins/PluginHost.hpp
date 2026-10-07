@@ -75,6 +75,10 @@ public:
     [[nodiscard]] bool hasHook(Hook hook) const { return !tables[hookIndex(hook)].empty(); }
     [[nodiscard]] QStringList pluginsForHook(Hook hook) const;
 
+    // Ask the client to re-evaluate message filters (e.g. a plugin's
+    // settings or the user's relationships changed).
+    void requestMessageFilterRefresh() { emit messageFiltersChanged(); }
+
     void dispatchBeforeSend(OutgoingMessage &message);
     void dispatchBeforeEdit(OutgoingMessage &message);
     // First plugin with an opinion wins; otherwise Discord's default of
@@ -97,6 +101,18 @@ public:
         MenuItem item;
     };
     [[nodiscard]] QList<PluginMenuItem> dispatchUserContextMenuItems(const UserContext &user);
+    [[nodiscard]] QList<PluginMenuItem> dispatchMessageContextMenuItems(const MessageContext &message);
+    void dispatchMessageContextMenuAction(const QString &pluginId, const QString &itemId, const MessageContext &message);
+
+    // True if any plugin keeps the deleted message on screen.
+    [[nodiscard]] bool dispatchMessageDeleted(const MessageContext &message);
+    void dispatchMessageEdited(const MessageContext &before, const MessageContext &after);
+    // First plugin with an annotation wins.
+    [[nodiscard]] std::optional<MessageAnnotation> dispatchAnnotateMessage(const MessageContext &message);
+
+    [[nodiscard]] bool dispatchShouldHideMessage(const MessageContext &message);
+    // Hidden messages are always silent.
+    [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
 signals:
@@ -107,6 +123,8 @@ signals:
     // Chat bar buttons need to be re-queried (a plugin was toggled, or one
     // asked for a refresh).
     void chatBarChanged();
+    // Message filters or annotations changed: re-render what is on screen.
+    void messageFiltersChanged();
 
 private:
     struct Entry

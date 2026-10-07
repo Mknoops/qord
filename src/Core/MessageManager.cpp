@@ -14,6 +14,7 @@
 #include "Logging.hpp"
 #include "UserManager.hpp"
 
+#include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
 
 namespace Acheron {
@@ -106,6 +107,12 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
     }
     msg.parsedContentCached = inlineHtml(content, msg.channelId);
 
+    // Plugins may annotate a message (MessageLogger: deleted, edit history)
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageHistory)) {
+        if (auto annotation = plugins->dispatchAnnotateMessage(pluginContext(msg)))
+            msg.parsedContentCached = annotatedHtml(*annotation, content, msg.channelId);
+    }
+
     if (msg.type.hasValue() && msg.type.get() == Discord::MessageType::THREAD_STARTER_MESSAGE &&
         msg.referencedMessage && msg.referencedMessage->content.hasValue() &&
         msg.referencedMessage->parsedContentCached.isEmpty())
@@ -115,6 +122,77 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
     if (msg.snapshotMessage && msg.snapshotMessage->content.hasValue() &&
         msg.snapshotMessage->parsedContentCached.isEmpty())
         msg.snapshotMessage->parsedContentCached = inlineHtml(msg.snapshotMessage->content.get(), msg.channelId);
+}
+
+Qord::Plugins::MessageContext MessageManager::pluginContext(const Discord::Message &msg, bool withJson) const
+{
+    const Snowflake channelId = msg.channelId.get();
+    const Snowflake parent = channelParentResolver ? channelParentResolver(channelId) : Snowflake::Invalid;
+    return Qord::Plugins::toMessageContext(msg, quint64(client->getMe().id.get()),
+                                           quint64(client->getGuildIdForChannel(channelId)), quint64(parent), withJson);
+}
+
+QString MessageManager::annotatedHtml(const Qord::Plugins::MessageAnnotation &annotation, const QString &content,
+                                      Snowflake channelId) const
+{
+    using Kind = Qord::Plugins::DiffPart::Kind;
+    auto diffHtml = [&](const QList<Qord::Plugins::DiffPart> &parts) {
+        QString out;
+        for (const auto &part : parts) {
+            const QString html = inlineHtml(part.text, channelId);
+            if (part.kind == Kind::Added)
+                out += QStringLiteral("<span style=\"background-color: rgba(35, 165, 90, 0.25);\">") + html + QStringLiteral("</span>");
+            else if (part.kind == Kind::Removed)
+                out += QStringLiteral("<span style=\"background-color: rgba(242, 63, 67, 0.25); text-decoration: line-through;\">") + html +
+                       QStringLiteral("</span>");
+            else
+                out += html;
+        }
+        return out;
+    };
+
+    QString html;
+    for (const auto &edit : annotation.history) {
+        html += QStringLiteral("<div style=\"color: #80848e;\">");
+        html += edit.diff.isEmpty() ? inlineHtml(edit.content, channelId) : diffHtml(edit.diff);
+        html += QStringLiteral(" <span style=\"font-size: small;\">(edited)</span></div>");
+    }
+    html += annotation.separatedDiffs && !annotation.currentDiff.isEmpty() ? diffHtml(annotation.currentDiff)
+                                                                          : inlineHtml(content, channelId);
+    if (annotation.deleted) {
+        if (annotation.deletedStyle == Qord::Plugins::MessageAnnotation::DeletedStyle::Overlay)
+            html = QStringLiteral("<div style=\"background-color: rgba(240, 71, 71, 0.15);\">") + html + QStringLiteral("</div>");
+        else
+            html = QStringLiteral("<div style=\"color: #f23f43;\">") + html + QStringLiteral("</div>");
+    }
+    return html;
+}
+
+void MessageManager::setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver)
+{
+    channelParentResolver = std::move(resolver);
+}
+
+void MessageManager::refreshMessage(Snowflake channelId, Snowflake messageId)
+{
+    Discord::Message msg;
+    if (auto *cached = messageCache.object(messageId))
+        msg = *cached;
+    else if (auto existing = repo.getMessage(messageId))
+        msg = *existing;
+    else
+        return;
+    parseMessageContent(msg);
+    messageCache.insert(messageId, new Discord::Message(msg));
+    emit messagesReceived({ true, Discord::Client::MessageLoadType::Created, channelId, { msg } });
+}
+
+void MessageManager::removeKeptMessage(Snowflake channelId, Snowflake messageId)
+{
+    messageCache.remove(messageId);
+    if (segments.contains(channelId))
+        segments[channelId].remove(messageId);
+    emit messageDeleted(channelId, messageId);
 }
 
 static const QSet<QString> OfficialTopicExcludedRules = { QStringLiteral("inlineCode"), QStringLiteral("br") };
@@ -395,7 +473,12 @@ void MessageManager::onMessageUpdated(const Discord::Message &message)
     }
 
     if (haveBaseline) {
+        const Discord::Message before = merged;
         merged.applyUpdate(message);
+        // Plugins see the edit before the new version is rendered
+        auto *plugins = Qord::Plugins::PluginHost::instance();
+        if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageHistory))
+            plugins->dispatchMessageEdited(pluginContext(before), pluginContext(merged));
     } else {
         if (!message.presentKeys.contains(QStringLiteral("content"))) {
             return;
@@ -418,6 +501,27 @@ void MessageManager::onMessageDeleted(const Discord::MessageDelete &event)
 {
     Snowflake channelId = event.channelId.get();
     Snowflake messageId = event.id.get();
+
+    // Plugins may keep the message on screen, marked deleted
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageHistory)) {
+        std::optional<Discord::Message> existing;
+        if (auto *cached = messageCache.object(messageId))
+            existing = *cached;
+        else if (auto stored = repo.getMessage(messageId))
+            existing = *stored;
+        if (existing && existing->qordDeleted)
+            return;
+        if (existing && plugins->dispatchMessageDeleted(pluginContext(*existing))) {
+            existing->qordDeleted = true;
+            // Still recorded as deleted, so it is gone after a restart
+            repo.markMessageDeleted(messageId);
+            parseMessageContent(*existing);
+            messageCache.insert(messageId, new Discord::Message(*existing));
+            emit messagesReceived({ true, Discord::Client::MessageLoadType::Created, channelId, { *existing } });
+            return;
+        }
+    }
 
     messageCache.remove(messageId);
 

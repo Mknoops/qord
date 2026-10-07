@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 357 |
+| Not Started | 353 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 12 |
+| Tested | 16 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -195,7 +195,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | MessageLatency | `src/plugins/messageLatency` |  | Not Started |  |
 | MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` |  | Not Started |  |
 | MessageLinkTooltip | `src/equicordplugins/messageLinkTooltip` |  | Not Started |  |
-| MessageLogger | `src/plugins/messageLogger` |  | Not Started |  |
+| MessageLogger | `src/plugins/messageLogger` | `plugins/chat/messagelogger` | Tested | Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu ("View Edit History") instead of by clicking "(edited)". wired; not yet verified in the running client. gaps: Collapsing deleted messages into a "N deleted messages" group (collapseDeleted) needs message grouping UI Qord does not have yet; Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs; The channel context menu entry "Clear Message Log" needs a channel context menu surface. |
 | MessageLoggerEnhanced | `src/equicordplugins/messageLoggerEnhanced` |  | Not Started |  |
 | MessageNotifier | `src/equicordplugins/messageNotifier` |  | Not Started |  |
 | MessagePeek | `src/equicordplugins/messagePeek` |  | Not Started |  |
@@ -213,7 +213,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | NeverPausePreviews | `src/equicordplugins/neverPausePreviews` |  | Not Started |  |
 | NewGuildSettings | `src/plugins/newGuildSettings` |  | Not Started |  |
 | NewPluginsManager | `src/equicordplugins/newPluginsManager` |  | Not Started |  |
-| NoBlockedMessages | `src/plugins/noBlockedMessages` |  | Not Started |  |
+| NoBlockedMessages | `src/plugins/noBlockedMessages` | `plugins/chat/noblockedmessages` | Tested | Qord shows blocked users' messages in full instead of collapsing them, so "collapsed" means shown as usual. Hidden messages also stop marking the channel unread. Slash-command interactions run by blocked users are not detected (Qord does not keep interaction metadata); bot replies to their prefix commands are. wired; not yet verified in the running client. |
 | NoDevtoolsWarning | `src/plugins/noDevtoolsWarning` |  | Not Started |  |
 | NoF1 | `src/plugins/noF1` |  | Not Started |  |
 | NoMaskedUrlPaste | `src/plugins/noMaskedUrlPaste` |  | Not Started |  |
@@ -271,7 +271,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReplyPingControl | `src/equicordplugins/replyPingControl` |  | Not Started |  |
 | ReplyTimestamp | `src/plugins/replyTimestamp` |  | Not Started |  |
 | RevealAllSpoilers | `src/plugins/revealAllSpoilers` |  | Not Started |  |
-| ReverseImageSearch | `src/plugins/reverseImageSearch` |  | Not Started |  |
+| ReverseImageSearch | `src/plugins/reverseImageSearch` | `plugins/media/reverseimagesearch` | Tested | Right-click an image in chat, then Search Image. The image link is sent to the chosen search engine when you pick it. Engine favicons are not shown (that would contact DuckDuckGo every time the menu opens). wired; not yet verified in the running client. gaps: The image viewer's own context menu (upstream's image-context) needs a plugin surface in Qord's image viewer. |
 | ReviewDB | `src/plugins/reviewDB` |  | Not Started |  |
 | RichMagnetLinks | `src/equicordplugins/richMagnetLinks` |  | Not Started |  |
 | RichPresence | `src/equicordplugins/richPresence` |  | Not Started |  |
@@ -359,7 +359,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | VcNarrator | `src/plugins/vcNarrator` |  | Not Started |  |
 | VCPanelSettings | `src/equicordplugins/vcPanelSettings` |  | Not Started |  |
 | ViewIcons | `src/plugins/viewIcons` |  | Not Started |  |
-| ViewRaw | `src/plugins/viewRaw` |  | Not Started |  |
+| ViewRaw | `src/plugins/viewRaw` | `plugins/developer/viewraw` | Tested | "Message Data" is the message as Qord stores it (sorted keys; no private author fields), which can differ slightly from Discord's payload. The entries are in the message context menu. wired; not yet verified in the running client. gaps: Upstream's hover-bar button (and its left/right click setting) needs plugin buttons in the message action bar; View Raw for users, channels, servers, roles and profiles needs those context menus to expose their data. |
 | VoiceButtons | `src/equicordplugins/voiceButtons` |  | Not Started |  |
 | VoiceChannelLog | `src/equicordplugins/voiceChannelLog` |  | Not Started |  |
 | VoiceChatDoubleClick | `src/plugins/vcDoubleClick` |  | Not Started |  |

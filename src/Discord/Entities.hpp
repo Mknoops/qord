@@ -1261,6 +1261,9 @@ struct Message : Core::JsonUtils::JsonObject
     // sent
     bool isPendingOutbound = false;
 
+    // Qord: deleted on Discord but kept on screen by a plugin (MessageLogger)
+    bool qordDeleted = false;
+
     // track for MESSAGE_UPDATE
     QSet<QString> presentKeys;
 

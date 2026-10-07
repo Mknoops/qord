@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Plugins/Types.hpp"
+
+#include <optional>
 #include <QtWidgets>
 #include <QClipboard>
 #include <QGuiApplication>
@@ -149,6 +152,10 @@ private slots:
     void onActionBarMoreRequested(const QPoint &buttonTopLeft);
 
 private:
+    // Qord: plugin message filters (hidden rows) and context
+    void applyMessageFilters(int first = 0, int last = -1);
+    [[nodiscard]] std::optional<Qord::Plugins::MessageContext> pluginContext(int row, bool withJson = false) const;
+
     void copySelectedText();
     void copyMessageContent(const QModelIndex &index);
     static void copyMessageId(Core::Snowflake messageId);

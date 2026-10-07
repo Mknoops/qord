@@ -64,6 +64,43 @@ public:
     void setText(const QString &text) override;
 };
 
+class SessionRelationshipDirectory : public RelationshipDirectory
+{
+public:
+    explicit SessionRelationshipDirectory(Acheron::Core::Session *session)
+        : session(session)
+    {
+    }
+    bool isBlocked(Id accountId, Id userId) const override;
+    bool isIgnored(Id accountId, Id userId) const override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
+class QtUiService : public UiService
+{
+public:
+    void showTextDialog(const QString &title, const QList<TextSection> &sections) override;
+    void openUrl(const QUrl &url) override;
+};
+
+class SessionMessageService : public MessageService
+{
+public:
+    explicit SessionMessageService(Acheron::Core::Session *session)
+        : session(session)
+    {
+    }
+    void refreshMessage(Id accountId, Id channelId, Id messageId) override;
+    void removeMessage(Id accountId, Id channelId, Id messageId) override;
+    void refreshFilters() override;
+    PluginHost *host = nullptr;
+
+private:
+    Acheron::Core::Session *session;
+};
+
 // Owns the plugin host for the lifetime of the session and publishes it as
 // PluginHost::instance() for client call sites.
 class ClientPlugins
@@ -83,6 +120,9 @@ private:
     QtNetworkService network;
     SessionMemberDirectory members;
     QtClipboardService clipboard;
+    SessionRelationshipDirectory relationships;
+    QtUiService ui;
+    SessionMessageService messages;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

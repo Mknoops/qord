@@ -174,6 +174,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit displayTransformsChanged();
     if (hooks.testFlag(Hook::ChatBarButtons))
         emit chatBarChanged();
+    if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
+        emit messageFiltersChanged();
 }
 
 bool PluginHost::start(Entry &entry, QString *error)
@@ -509,6 +511,86 @@ QList<PluginHost::PluginMenuItem> PluginHost::dispatchUserContextMenuItems(const
         });
     }
     return out;
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchMessageContextMenuItems(const MessageContext &message)
+{
+    QList<PluginMenuItem> out;
+    const auto &table = tables[hookIndex(Hook::MessageContextMenu)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::MessageContextMenu)][i];
+        guarded(id, "messageContextMenuItems", [&] {
+            for (const auto &item : table[i]->messageContextMenuItems(message))
+                out.append({ id, item });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchMessageContextMenuAction(const QString &pluginId, const QString &itemId,
+                                                  const MessageContext &message)
+{
+    if (Plugin *plugin = tablePlugin(Hook::MessageContextMenu, pluginId))
+        guarded(pluginId, "onMessageContextMenuAction", [&] { plugin->onMessageContextMenuAction(itemId, message); });
+}
+
+bool PluginHost::dispatchMessageDeleted(const MessageContext &message)
+{
+    bool keep = false;
+    const auto &table = tables[hookIndex(Hook::MessageHistory)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::MessageHistory)][i], "keepDeletedMessage",
+                [&] { keep = table[i]->keepDeletedMessage(message) || keep; });
+    return keep;
+}
+
+void PluginHost::dispatchMessageEdited(const MessageContext &before, const MessageContext &after)
+{
+    const auto &table = tables[hookIndex(Hook::MessageHistory)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::MessageHistory)][i], "onMessageEdited",
+                [&] { table[i]->onMessageEdited(before, after); });
+}
+
+std::optional<MessageAnnotation> PluginHost::dispatchAnnotateMessage(const MessageContext &message)
+{
+    const auto &table = tables[hookIndex(Hook::MessageHistory)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<MessageAnnotation> annotation;
+        guarded(tableIds[hookIndex(Hook::MessageHistory)][i], "annotateMessage",
+                [&] { annotation = table[i]->annotateMessage(message); });
+        if (annotation)
+            return annotation;
+    }
+    return std::nullopt;
+}
+
+bool PluginHost::dispatchShouldHideMessage(const MessageContext &message)
+{
+    const auto &table = tables[hookIndex(Hook::MessageFilter)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        bool hide = false;
+        guarded(tableIds[hookIndex(Hook::MessageFilter)][i], "shouldHideMessage",
+                [&] { hide = table[i]->shouldHideMessage(message); });
+        if (hide)
+            return true;
+    }
+    return false;
+}
+
+bool PluginHost::dispatchShouldSilenceMessage(const MessageContext &message)
+{
+    if (dispatchShouldHideMessage(message))
+        return true;
+    const auto &table = tables[hookIndex(Hook::MessageFilter)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        bool silence = false;
+        guarded(tableIds[hookIndex(Hook::MessageFilter)][i], "shouldSilenceMessage",
+                [&] { silence = table[i]->shouldSilenceMessage(message); });
+        if (silence)
+            return true;
+    }
+    return false;
 }
 
 void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user)

@@ -20,6 +20,8 @@ enum class Permission : quint32 {
     ReplyMentions = 1u << 3, // shouldMentionOnReply
     ReadGuildMembers = 1u << 4, // PluginContext::members()
     Network = 1u << 5, // PluginContext::network()
+    AddUiElements = 1u << 6, // chatBarButtons, userContextMenu
+    WriteClipboard = 1u << 7, // PluginContext::clipboard()
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -38,11 +40,13 @@ enum class Hook : quint32 {
     ShouldMentionOnReply = 1u << 2,
     TransformCopiedMessageLink = 1u << 3,
     TransformIncomingContent = 1u << 4,
+    ChatBarButtons = 1u << 5,
+    UserContextMenu = 1u << 6,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 5;
+constexpr int HookCount = 7;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

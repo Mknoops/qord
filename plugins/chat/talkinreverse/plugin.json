@@ -1,0 +1,18 @@
+{
+  "id": "talkinreverse",
+  "equicordName": "TalkInReverse",
+  "equicordPath": "src/equicordplugins/talkInReverse",
+  "name": "TalkInReverse",
+  "description": "Reverses the message content before sending it.",
+  "categories": ["chat"],
+  "tags": ["Chat", "Fun"],
+  "authors": ["Tolgchu"],
+  "permissions": ["modify_outgoing_messages", "add_ui_elements"],
+  "hooks": ["onBeforeSend", "chatBarButtons"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Reverses by user-perceived characters, so emoji survive; upstream reverses UTF-16 code units, which breaks emoji and other characters outside the Basic Multilingual Plane."
+}

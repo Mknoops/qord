@@ -78,6 +78,33 @@ private slots:
         QCOMPARE(Js::replaceAllLiteral("", "x", "-"), QString());
     }
 
+    void split()
+    {
+        auto run = [](const QString &s, const QString &pattern) {
+            QStringList out;
+            for (const auto &part : Js::split(s, *Js::compile(pattern, QString())))
+                out.append(part ? *part : QStringLiteral("<undefined>"));
+            return out;
+        };
+        // Expected values from String.prototype.split in V8
+        QCOMPARE(run("a1b2c3", "\\d"), (QStringList { "a", "b", "c", "" }));
+        QCOMPARE(run("a1b", "(\\d)"), (QStringList { "a", "1", "b" }));
+        QCOMPARE(run("ab", "(x)?"), (QStringList { "a", "<undefined>", "b" }));
+        QCOMPARE(run("", "x"), QStringList { "" });
+        QCOMPARE(run("", "(?:)"), QStringList());
+        QCOMPARE(run("abc", "(?:)"), (QStringList { "a", "b", "c" }));
+        QCOMPARE(run("a, b,c", ",\\s?"), (QStringList { "a", "b", "c" }));
+    }
+
+    void replaceWithCallbackAndTest()
+    {
+        const auto re = *Js::compile("\\d+", "g");
+        QCOMPARE(Js::replace("a1b22", re, [](const QRegularExpressionMatch &m) { return "<" + m.captured() + ">"; }),
+                 QStringLiteral("a<1>b<22>"));
+        QVERIFY(Js::test("x9", re));
+        QVERIFY(!Js::test("xy", re));
+    }
+
     void trim()
     {
         QCOMPARE(Js::trim(QStringLiteral(" \t\n a b  　﻿")), QStringLiteral("a b"));

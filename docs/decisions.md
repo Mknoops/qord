@@ -23,6 +23,16 @@ and why, so it can be revisited deliberately.
 16. **NormalizeMessageLinks** is ported and wired, but Qord's Copy Message Link already produces `discord.com` links (there is no canary/ptb build to inherit a host from), so it has no visible effect today. Kept for parity and for any future host choice.
 17. **Unindent's display half is a gap.** Upstream also unindents code blocks when rendering. Acheron's Markdown parser renders ``` blocks through the inline-code rule and has no code-block node to hook. This is recorded as a manifest `gap`, so Unindent cannot reach Complete until Qord has a fenced code-block renderer. That renderer is shared infrastructure many plugins will need.
 
+## 2026-10-07: batch 2
+
+18. **Two shared UI surfaces.** *Chat bar buttons* (`chatBarButtons` hook): plugins return buttons (id, tooltip, SVG icon, active) for the current channel; clicks go back to the plugin; a plugin calls `PluginContext::refreshChatBar()` when its buttons change. They sit to the right of the message box (`UI/Input/PluginChatButtons`) and are re-queried on channel switches. *User context menu items* (`userContextMenu` hook) are appended after "Copy User ID". Both need the new `add_ui_elements` permission; copying needs `write_clipboard` (`PluginContext::clipboard()`).
+19. **`@silent` in the base client.** Discord's web client turns a leading `@silent ` into the `SUPPRESS_NOTIFICATIONS` flag and strips it; Acheron sent it as text. Qord's send path now does the same after plugins run, which SilentMessageToggle relies on.
+20. **Hidden settings** (`"hidden": true`) hold plugin state that should persist but has no editor (SilentMessageToggle's last state).
+21. **Randomness is injectable.** Plugins that use `Math.random()` (Ingtoninator, PolishWording) take a random source so tests replay upstream's exact draws.
+22. **JS helpers** gained `split` (ES `@@split` semantics, captures spliced in), `test`, and `replace` with a callback.
+23. **Behavior fixes kept deliberately small and noted per plugin**: TalkInReverse reverses by grapheme (upstream breaks emoji); WriteUpperCase ignores empty blocked words (upstream's empty setting blocks everything); SilentMessageToggle's "persist between restarts" restores the saved state (upstream starts every channel switched on); PolishWording leaves a hand-typed `__CODE_BLOCK_n__` alone (upstream writes "undefined"). PolishWording's sentence splitter, which upstream wrote so it can never split after a period, is ported unchanged because that is the behavior users get.
+24. **DontRoundMyTimestamps deferred.** Acheron does not render Discord's `<t:…:R>` timestamps, so there is nothing to round yet. It needs a timestamp-markdown surface first.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

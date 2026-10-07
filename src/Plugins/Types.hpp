@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QFlags>
 #include <QList>
 #include <QString>
@@ -46,6 +47,39 @@ struct ReplyContext
     Id messageId = 0;
     Id authorId = 0;
     bool shiftHeld = false;
+};
+
+// The conversation the message input currently belongs to.
+struct ChatContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    Id guildId = 0;
+};
+
+// A user that a context menu was opened for.
+struct UserContext
+{
+    Id accountId = 0;
+    Id guildId = 0; // 0 outside servers
+    Id channelId = 0; // 0 when not opened from a channel
+    Id userId = 0;
+};
+
+// A button a plugin shows next to the message input. `svg` is an SVG
+// document; "currentColor" is drawn in the theme's icon color.
+struct ChatBarButton
+{
+    QString id;
+    QString tooltip;
+    QByteArray svg;
+    bool active = false;
+};
+
+struct MenuItem
+{
+    QString id;
+    QString label;
 };
 
 } // namespace Plugins

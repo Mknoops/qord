@@ -80,6 +80,7 @@ bool parseSetting(const QJsonValue &value, SettingSpec &spec, QString &error)
     if (obj.contains(QLatin1String("max")))
         spec.maximum = qint64(obj.value(QLatin1String("max")).toDouble());
     spec.multiline = obj.value(QLatin1String("multiline")).toBool();
+    spec.hidden = obj.value(QLatin1String("hidden")).toBool();
 
     if (!obj.contains(QLatin1String("default"))) {
         error = QStringLiteral("setting %1 has no default").arg(spec.key);

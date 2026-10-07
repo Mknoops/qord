@@ -62,6 +62,15 @@ qord_add_plugin(unindent chat SOURCES Unindent.hpp Unindent.cpp)
 qord_add_plugin(normalizemessagelinks chat SOURCES NormalizeMessageLinks.hpp NormalizeMessageLinks.cpp)
 qord_add_plugin(noreplymention chat SOURCES NoReplyMention.hpp NoReplyMention.cpp)
 
+# --- Batch 2 ---------------------------------------------------------------
+qord_add_plugin(writeuppercase chat SOURCES WriteUpperCase.hpp WriteUpperCase.cpp)
+qord_add_plugin(polishwording chat SOURCES PolishWording.hpp PolishWording.cpp)
+qord_add_plugin(talkinreverse chat SOURCES TalkInReverse.hpp TalkInReverse.cpp)
+qord_add_plugin(silentmessagetoggle chat SOURCES SilentMessageToggle.hpp SilentMessageToggle.cpp)
+qord_add_plugin(ingtoninator chat SOURCES Ingtoninator.hpp Ingtoninator.cpp)
+qord_add_plugin(copyuserurls utility SOURCES CopyUserUrls.hpp CopyUserUrls.cpp)
+qord_add_plugin(copyusermention chat SOURCES CopyUserMention.hpp CopyUserMention.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

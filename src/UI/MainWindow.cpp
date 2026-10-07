@@ -57,6 +57,7 @@
 #include "Core/Session.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "Input/PluginChatButtons.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #include "VoiceStatusBar.hpp"
@@ -407,6 +408,7 @@ void MainWindow::switchChatChannel(Core::Snowflake channelId, Core::Snowflake gu
     chatModel->setActiveChannel(channelId, guildId);
     typingTracker->setActiveChannel(channelId);
     messageInput->clearReplyTarget();
+    pluginChatButtons->rebuild();
 }
 
 // Session destroys a ClientInstance as soon as it reports Disconnected, so every
@@ -1102,6 +1104,14 @@ void MainWindow::setupUi()
     chatView = new ChatView(rightSideWidget);
     chatView->setFont(Core::Theme::Manager::instance().font(Core::Theme::FontRole::Message));
     messageInput = new MessageInput(rightSideWidget);
+    pluginChatButtons = new PluginChatButtons([this] {
+        Qord::Plugins::ChatContext chat;
+        chat.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
+        chat.channelId = quint64(chatModel->getActiveChannelId());
+        chat.guildId = quint64(chatModel->getActiveGuildId());
+        return chat;
+    }, messageInput);
+    messageInput->addTrailingWidget(pluginChatButtons);
     messageInput->emojiAutocomplete()->setProvider([this](const QString &query) -> QList<Core::EmojiMatch> {
         if (!currentInstance)
             return {};
@@ -2691,6 +2701,22 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
     connect(copyIdAction, &QAction::triggered, this, [userId]() {
         QGuiApplication::clipboard()->setText(QString::number(quint64(userId)));
     });
+
+    if (auto *plugins = Qord::Plugins::PluginHost::instance();
+        plugins && plugins->hasHook(Qord::Plugins::Hook::UserContextMenu)) {
+        Qord::Plugins::UserContext user;
+        user.accountId = instance ? quint64(instance->accountId()) : 0;
+        user.guildId = quint64(guildId);
+        user.channelId = quint64(chatModel->getActiveChannelId());
+        user.userId = quint64(userId);
+        for (const auto &entry : plugins->dispatchUserContextMenuItems(user)) {
+            QAction *action = menu.addAction(entry.item.label);
+            connect(action, &QAction::triggered, this, [pluginId = entry.pluginId, itemId = entry.item.id, user]() {
+                if (auto *host = Qord::Plugins::PluginHost::instance())
+                    host->dispatchUserContextMenuAction(pluginId, itemId, user);
+            });
+        }
+    }
 
     menu.exec(globalPos);
 }

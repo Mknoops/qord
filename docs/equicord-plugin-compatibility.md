@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 364 |
+| Not Started | 357 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 5 |
+| Tested | 12 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -83,8 +83,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | CopyProfileColors | `src/equicordplugins/copyProfileColors` |  | Not Started |  |
 | CopyStatusUrls | `src/equicordplugins/copyStatusUrls` |  | Not Started |  |
 | CopyStickerLinks | `src/plugins/copyStickerLinks` |  | Not Started |  |
-| CopyUserMention | `src/equicordplugins/copyUserMention` |  | Not Started |  |
-| CopyUserURLs | `src/plugins/copyUserURLs` |  | Not Started |  |
+| CopyUserMention | `src/equicordplugins/copyUserMention` | `plugins/chat/copyusermention` | Tested | The item is added to Qord's user context menu (chat, member list, DM list). wired; not yet verified in the running client. |
+| CopyUserURLs | `src/plugins/copyUserURLs` | `plugins/utility/copyuserurls` | Tested | The item is added to Qord's user context menu (chat, member list, DM list). wired; not yet verified in the running client. |
 | CrashHandler | `src/plugins/crashHandler` |  | Not Started |  |
 | CursorBuddy | `src/equicordplugins/cursorBuddy` |  | Not Started |  |
 | CustomCommands | `src/plugins/customCommands` |  | Not Started |  |
@@ -168,7 +168,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ImageLink | `src/plugins/imageLink` |  | Not Started |  |
 | ImageZoom | `src/plugins/imageZoom` |  | Not Started |  |
 | ImplicitRelationships | `src/plugins/implicitRelationships` |  | Not Started |  |
-| Ingtoninator | `src/equicordplugins/ingtoninator` |  | Not Started |  |
+| Ingtoninator | `src/equicordplugins/ingtoninator` | `plugins/chat/ingtoninator` | Tested | Showing or hiding the button takes effect immediately; upstream needs a restart. wired; not yet verified in the running client. |
 | InRole | `src/equicordplugins/inRole` |  | Not Started |  |
 | InstantScreenshare | `src/equicordplugins/instantScreenshare` |  | Not Started |  |
 | InvisibleChat | `src/equicordplugins/invisibleChat.desktop` |  | Not Started |  |
@@ -251,7 +251,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PlainFolderIcon | `src/plugins/plainFolderIcon` |  | Not Started |  |
 | PlatformIndicators | `src/plugins/platformIndicators` |  | Not Started |  |
 | PlatformSpoofer | `src/equicordplugins/platformSpoofer` |  | Not Started |  |
-| PolishWording | `src/equicordplugins/polishWording` |  | Not Started |  |
+| PolishWording | `src/equicordplugins/polishWording` | `plugins/chat/polishwording` | Tested | A __CODE_BLOCK_n__ placeholder typed by the user is left as typed; upstream replaces it with "undefined". wired; not yet verified in the running client. |
 | PreviewMessage | `src/plugins/previewMessage` |  | Not Started |  |
 | ProfileSets | `src/equicordplugins/profileSets` |  | Not Started |  |
 | Questify | `src/equicordplugins/questify` |  | Not Started |  |
@@ -304,7 +304,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | SidebarChat | `src/equicordplugins/sidebarChat` |  | Not Started |  |
 | Signature | `src/equicordplugins/signature` |  | Not Started |  |
 | SilenceUsers | `src/equicordplugins/silenceUsers` |  | Not Started |  |
-| SilentMessageToggle | `src/plugins/silentMessageToggle` |  | Not Started |  |
+| SilentMessageToggle | `src/plugins/silentMessageToggle` | `plugins/chat/silentmessagetoggle` | Tested | "Persist between channels and restarts" saves the toggle and restores it after a restart; upstream instead starts every channel with the toggle on in that mode. Qord's send path turns the @silent prefix into a silent message the way Discord's client does. wired; not yet verified in the running client. |
 | SilentTyping | `src/plugins/silentTyping` |  | Not Started |  |
 | Snowfall | `src/equicordplugins/snowfall` |  | Not Started |  |
 | SongLink | `src/equicordplugins/songLink.desktop` |  | Not Started |  |
@@ -325,7 +325,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | StreamingCodecDisabler | `src/equicordplugins/streamingCodecDisabler` |  | Not Started |  |
 | SuperReactionTweaks | `src/plugins/superReactionTweaks` |  | Not Started |  |
 | SupportHelper | `src/plugins/_core/supportHelper.tsx` |  | Not Started |  |
-| TalkInReverse | `src/equicordplugins/talkInReverse` |  | Not Started |  |
+| TalkInReverse | `src/equicordplugins/talkInReverse` | `plugins/chat/talkinreverse` | Tested | Reverses by user-perceived characters, so emoji survive; upstream reverses UTF-16 code units, which breaks emoji and other characters outside the Basic Multilingual Plane. wired; not yet verified in the running client. |
 | TenorGifSearch | `src/plugins/tenorGifSearch` |  | Not Started |  |
 | TextReplace | `src/plugins/textReplace` | `plugins/chat/textreplace` | Tested | Rules scoped to others' messages change only how messages are shown to you; messages already on screen update when the channel is re-rendered. Regex rules use JavaScript syntax, translated to PCRE2 (\uXXXX, [^], end-of-input $). wired; not yet verified in the running client. |
 | ThemeAttributes | `src/plugins/themeAttributes` |  | Not Started |  |
@@ -384,7 +384,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | WhoReacted | `src/plugins/whoReacted` |  | Not Started |  |
 | WhosWatching | `src/equicordplugins/whosWatching` |  | Not Started |  |
 | WigglyText | `src/equicordplugins/wigglyText` |  | Not Started |  |
-| WriteUpperCase | `src/equicordplugins/writeUpperCase` |  | Not Started |  |
+| WriteUpperCase | `src/equicordplugins/writeUpperCase` | `plugins/chat/writeuppercase` | Tested | An empty blocked-words list capitalizes everything; upstream treats it as one empty word that blocks every sentence. wired; not yet verified in the running client. |
 | XSOverlay | `src/plugins/xsOverlay` |  | Not Started |  |
 | YoutubeAdblock | `src/plugins/youtubeAdblock.desktop` |  | Not Started |  |
 | ZipPreview | `src/equicordplugins/zipPreview` |  | Not Started |  |

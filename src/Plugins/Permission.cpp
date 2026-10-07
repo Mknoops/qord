@@ -26,6 +26,10 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Read server members' roles") },
     { Permission::Network, "network",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Download data from the internet") },
+    { Permission::AddUiElements, "add_ui_elements",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Add buttons and menu items") },
+    { Permission::WriteClipboard, "write_clipboard",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Copy text to your clipboard") },
 };
 
 struct HookInfo
@@ -41,6 +45,8 @@ const HookInfo hookTable[] = {
     { Hook::ShouldMentionOnReply, "shouldMentionOnReply", Permission::ReplyMentions },
     { Hook::TransformCopiedMessageLink, "transformCopiedMessageLink", Permission::ModifyMessageLinks },
     { Hook::TransformIncomingContent, "transformIncomingContent", Permission::ModifyDisplayedMessages },
+    { Hook::ChatBarButtons, "chatBarButtons", Permission::AddUiElements },
+    { Hook::UserContextMenu, "userContextMenu", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

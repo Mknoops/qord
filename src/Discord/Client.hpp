@@ -118,7 +118,7 @@ public:
     void sendMessage(Snowflake channelId, const QString &content, const QString &nonce,
                      Snowflake replyToMessageId = Snowflake::Invalid,
                      const QList<Core::PendingAttachment> &attachments = {},
-                     bool mentionRepliedUser = true);
+                     bool mentionRepliedUser = true, int flags = 0);
     bool cancelMessageSend(const QString &nonce);
     void editMessage(Snowflake channelId, Snowflake messageId, const QString &content);
     void deleteMessage(Snowflake channelId, Snowflake messageId);

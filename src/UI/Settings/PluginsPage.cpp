@@ -20,6 +20,7 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <climits>
 
 using namespace Qord::Plugins;
@@ -238,7 +239,9 @@ void PluginsPage::showDetails(const QString &id)
         layout->addWidget(box);
     }
 
-    if (!m.settings.isEmpty()) {
+    const bool hasVisibleSettings =
+            std::any_of(m.settings.begin(), m.settings.end(), [](const SettingSpec &s) { return !s.hidden; });
+    if (hasVisibleSettings) {
         auto *box = new QGroupBox(tr("Settings"), page);
         auto *boxLayout = new QVBoxLayout(box);
         boxLayout->addWidget(buildSettingsEditor(id, box));
@@ -259,6 +262,8 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
 
     bool customDone = false;
     for (const SettingSpec &spec : settings->schema()) {
+        if (spec.hidden)
+            continue;
         const QString key = spec.key;
         auto addHelp = [&] {
             if (!spec.description.isEmpty())

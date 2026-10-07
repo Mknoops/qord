@@ -1,0 +1,33 @@
+{
+  "id": "ingtoninator",
+  "equicordName": "Ingtoninator",
+  "equicordPath": "src/equicordplugins/ingtoninator",
+  "name": "Ingtoninator",
+  "description": "Suffixes 'ington' to a random word in your message",
+  "categories": ["chat"],
+  "tags": ["Fun"],
+  "authors": ["zyqunix", "BioTomateDE"],
+  "permissions": ["modify_outgoing_messages", "add_ui_elements"],
+  "hooks": ["onBeforeSend", "chatBarButtons"],
+  "settings": [
+    {
+      "key": "showIcon",
+      "type": "bool",
+      "default": true,
+      "label": "Show button",
+      "description": "Show a button to toggle the Ingtoninator plugin"
+    },
+    {
+      "key": "isEnabled",
+      "type": "bool",
+      "default": true,
+      "label": "Enabled",
+      "description": "Enable or disable the Ingtoninator"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Showing or hiding the button takes effect immediately; upstream needs a restart."
+}

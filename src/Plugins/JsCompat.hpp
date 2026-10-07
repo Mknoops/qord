@@ -1,8 +1,10 @@
 #pragma once
 
+#include <QList>
 #include <QRegularExpression>
 #include <QString>
 
+#include <functional>
 #include <optional>
 
 namespace Qord {
@@ -36,6 +38,17 @@ std::optional<RegExp> compile(const QString &pattern, const QString &flags, QStr
 // String.prototype.replace(regexp, replacement) including $&, $1..$99,
 // $<name>, $`, $' and $$ in the replacement.
 QString replace(const QString &subject, const RegExp &re, const QString &replacement);
+
+// String.prototype.replace(regexp, function): the callback gets each match.
+QString replace(const QString &subject, const RegExp &re,
+                const std::function<QString(const QRegularExpressionMatch &)> &replacer);
+
+// String.prototype.split(regexp): pieces between matches, with each match's
+// capture groups spliced in (nullopt for groups that did not participate).
+QList<std::optional<QString>> split(const QString &subject, const RegExp &re);
+
+// RegExp.prototype.test: is there a match anywhere?
+bool test(const QString &subject, const RegExp &re);
 
 // String.prototype.replaceAll(searchString, replacement): literal search,
 // replacement still expands $&, $`, $' and $$.

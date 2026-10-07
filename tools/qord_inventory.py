@@ -60,6 +60,8 @@ PERMISSIONS = {
     "reply_mentions",
     "read_guild_members",
     "network",
+    "add_ui_elements",
+    "write_clipboard",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -72,6 +74,8 @@ HOOK_DISPATCH = {
     "shouldMentionOnReply": "dispatchShouldMentionOnReply(",
     "transformCopiedMessageLink": "dispatchTransformCopiedMessageLink(",
     "transformIncomingContent": "dispatchTransformIncomingContent(",
+    "chatBarButtons": "dispatchChatBarButtons(",
+    "userContextMenu": "dispatchUserContextMenuItems(",
 }
 
 MANIFEST_REQUIRED = {

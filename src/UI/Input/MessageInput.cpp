@@ -127,7 +127,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     // Text edit
     auto *inputContainer = new QWidget(this);
-    auto *inputLayout = new QHBoxLayout(inputContainer);
+    inputLayout = new QHBoxLayout(inputContainer);
     inputLayout->setContentsMargins(0, 0, 0, 0);
     inputLayout->setSpacing(0);
 
@@ -253,6 +253,11 @@ void MessageInput::updateReplyMentionButton()
 void MessageInput::setSendBlocked(bool blocked)
 {
     sendBlocked = blocked;
+}
+
+void MessageInput::addTrailingWidget(QWidget *widget)
+{
+    inputLayout->addWidget(widget, 0, Qt::AlignBottom);
 }
 
 void MessageInput::insertText(const QString &text)

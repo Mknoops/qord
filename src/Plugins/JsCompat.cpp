@@ -231,6 +231,69 @@ QString replace(const QString &subject, const RegExp &re, const QString &replace
     return out;
 }
 
+QString replace(const QString &subject, const RegExp &re,
+                const std::function<QString(const QRegularExpressionMatch &)> &replacer)
+{
+    QString out;
+    qsizetype last = 0;
+    qsizetype offset = 0;
+    while (offset <= subject.size()) {
+        QRegularExpressionMatch m = re.regex.match(subject, offset, QRegularExpression::NormalMatch,
+                                                   re.sticky ? StickyMatch : QRegularExpression::NoMatchOption);
+        if (!m.hasMatch())
+            break;
+        out += subject.mid(last, m.capturedStart() - last);
+        out += replacer(m);
+        last = m.capturedEnd();
+        if (!re.global)
+            break;
+        offset = m.capturedLength() == 0 ? last + 1 : last;
+    }
+    out += subject.mid(last);
+    return out;
+}
+
+QList<std::optional<QString>> split(const QString &subject, const RegExp &re)
+{
+    // ES2024 22.2.6.14 RegExp.prototype[@@split], matching stickily at each q
+    QList<std::optional<QString>> out;
+    const qsizetype size = subject.size();
+    auto matchAt = [&](qsizetype q) {
+        return re.regex.match(subject, q, QRegularExpression::NormalMatch, StickyMatch);
+    };
+    if (size == 0) {
+        if (!matchAt(0).hasMatch())
+            out.append(subject);
+        return out;
+    }
+    qsizetype p = 0;
+    qsizetype q = 0;
+    while (q < size) {
+        const QRegularExpressionMatch m = matchAt(q);
+        if (!m.hasMatch()) {
+            ++q;
+            continue;
+        }
+        const qsizetype e = std::min<qsizetype>(m.capturedEnd(), size);
+        if (e == p) {
+            ++q;
+            continue;
+        }
+        out.append(subject.mid(p, q - p));
+        for (int g = 1; g <= re.regex.captureCount(); ++g)
+            out.append(m.capturedStart(g) < 0 ? std::nullopt : std::optional<QString>(m.captured(g)));
+        p = e;
+        q = p;
+    }
+    out.append(subject.mid(p));
+    return out;
+}
+
+bool test(const QString &subject, const RegExp &re)
+{
+    return re.regex.match(subject).hasMatch();
+}
+
 QString replaceAllLiteral(const QString &subject, const QString &search, const QString &replacement)
 {
     QString out;

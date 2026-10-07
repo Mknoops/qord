@@ -1,0 +1,31 @@
+{
+  "id": "copyuserurls",
+  "equicordName": "CopyUserURLs",
+  "equicordPath": "src/plugins/copyUserURLs",
+  "name": "CopyUserURLs",
+  "description": "Adds a 'Copy User URL' option to the user context menu.",
+  "categories": [
+    "utility",
+    "chat"
+  ],
+  "tags": [
+    "Utility",
+    "Friends"
+  ],
+  "authors": [
+    "castdrian"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "write_clipboard"
+  ],
+  "hooks": [
+    "userContextMenu"
+  ],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The item is added to Qord's user context menu (chat, member list, DM list)."
+}

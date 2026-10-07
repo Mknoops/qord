@@ -7,6 +7,9 @@
 #include <QSet>
 #include <QString>
 
+#include <functional>
+#include <memory>
+
 namespace Qord {
 namespace Plugins {
 
@@ -33,6 +36,16 @@ public:
     [[nodiscard]] NetworkService *network();
     // Null without the read_guild_members permission.
     [[nodiscard]] const MemberDirectory *members() const;
+    // Null without the write_clipboard permission.
+    [[nodiscard]] ClipboardService *clipboard() const;
+
+    // Asks the client to re-query this plugin's chat bar buttons.
+    void refreshChatBar() const
+    {
+        if (onChatBarChanged)
+            onChatBarChanged();
+    }
+    std::function<void()> onChatBarChanged; // set by the host
 
     // Private writable directory for caches (created on demand).
     [[nodiscard]] QString dataDirectory() const;

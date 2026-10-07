@@ -1,0 +1,45 @@
+{
+  "id": "silentmessagetoggle",
+  "equicordName": "SilentMessageToggle",
+  "equicordPath": "src/plugins/silentMessageToggle",
+  "name": "SilentMessageToggle",
+  "description": "Adds a button to the chat bar to toggle sending a silent message.",
+  "categories": ["chat", "utility"],
+  "tags": ["Chat", "Utility"],
+  "authors": ["Nuckyz", "CatNoir", "Z1xus"],
+  "permissions": ["modify_outgoing_messages", "add_ui_elements"],
+  "hooks": ["onBeforeSend", "chatBarButtons"],
+  "settings": [
+    {
+      "key": "persistState",
+      "type": "choice",
+      "default": "none",
+      "label": "Persist state",
+      "description": "How to persist the silent message toggle state",
+      "choices": [
+        { "value": "none", "label": "Don't persist (reset on channel change)" },
+        { "value": "channels", "label": "Persist between channels" },
+        { "value": "restarts", "label": "Persist between channels and restarts" }
+      ]
+    },
+    {
+      "key": "autoDisable",
+      "type": "bool",
+      "default": true,
+      "label": "Auto-disable",
+      "description": "Automatically disable the silent message toggle again after sending one"
+    },
+    {
+      "key": "lastState",
+      "type": "bool",
+      "default": false,
+      "hidden": true,
+      "label": "Last state"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "\"Persist between channels and restarts\" saves the toggle and restores it after a restart; upstream instead starts every channel with the toggle on in that mode. Qord's send path turns the @silent prefix into a silent message the way Discord's client does."
+}

@@ -8,6 +8,7 @@
 #include "Core/Snowflake.hpp"
 #include "EmojiAutocompletePopup.hpp"
 
+class QHBoxLayout;
 class QToolButton;
 
 namespace Acheron {
@@ -52,6 +53,8 @@ public:
     [[nodiscard]] bool isSendBlocked() const { return sendBlocked; }
 
     void insertText(const QString &text);
+    // Places a widget to the right of the text box (used for plugin buttons)
+    void addTrailingWidget(QWidget *widget);
 
     void queueAttachments(const QList<QUrl> &urls);
     void setMaxUploadSize(qint64 bytes);
@@ -69,6 +72,7 @@ signals:
 
 private:
     ChatTextEdit *textEdit;
+    QHBoxLayout *inputLayout;
     QWidget *replyBar;
     QLabel *replyLabel;
     QToolButton *replyMentionButton;

@@ -464,6 +464,14 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
             return;
     }
 
+    // Like Discord's client: a leading "@silent " sends without notifying
+    int flags = 0;
+    static const QString SilentPrefix = QStringLiteral("@silent ");
+    if (content.startsWith(SilentPrefix)) {
+        content = content.mid(SilentPrefix.size());
+        flags |= int(Discord::MessageFlag::SUPPRESS_NOTIFICATIONS);
+    }
+
     if (emojiManager)
         emojiManager->trackMessageEmojis(content);
 
@@ -479,7 +487,7 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
     preview.content = content;
     preview.timestamp = QDateTime::currentDateTimeUtc();
     preview.author = client->getMe();
-    preview.flags = Discord::MessageFlags(0);
+    preview.flags = Discord::MessageFlags(flags);
     preview.isPendingOutbound = true;
 
     if (!outgoing.isEmpty()) {
@@ -537,7 +545,7 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
         }
     }
 
-    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser);
+    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)

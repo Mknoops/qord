@@ -86,6 +86,13 @@ const MemberDirectory *PluginContext::members() const
     return services.members;
 }
 
+ClipboardService *PluginContext::clipboard() const
+{
+    if (!granted.testFlag(Permission::WriteClipboard))
+        return nullptr;
+    return services.clipboard;
+}
+
 QString PluginContext::dataDirectory() const
 {
     QDir().mkpath(dataDir);

@@ -1,0 +1,57 @@
+[
+ {
+  "input": "hello world. how are you? fine!",
+  "blocked": "http, https, ok",
+  "expected": "Hello world. How are you? Fine!"
+ },
+ {
+  "input": "ok so. ok then",
+  "blocked": "http, https, ok",
+  "expected": "ok so. ok then"
+ },
+ {
+  "input": "see https://x.com. nice",
+  "blocked": "http, https, ok",
+  "expected": "See https://x.com. Nice"
+ },
+ {
+  "input": "he said \"hi.\" then left",
+  "blocked": "http, https, ok",
+  "expected": "He said \"hi.\" Then left"
+ },
+ {
+  "input": "(wow!) amazing.  really\n\nyes",
+  "blocked": "http, https, ok",
+  "expected": "(wow!) Amazing.  Really\n\nyes"
+ },
+ {
+  "input": "ßtraße is long. éclair",
+  "blocked": "http, https, ok",
+  "expected": "SStraße is long. Éclair"
+ },
+ {
+  "input": "a...b... c",
+  "blocked": "http, https, ok",
+  "expected": "A...b... C"
+ },
+ {
+  "input": "",
+  "blocked": "http, https, ok",
+  "expected": ""
+ },
+ {
+  "input": "   leading space. x",
+  "blocked": "http, https, ok",
+  "expected": "   leading space. X"
+ },
+ {
+  "input": "ends with dot. ",
+  "blocked": "http, https, ok",
+  "expected": "Ends with dot. "
+ },
+ {
+  "input": "Okay fine. okay",
+  "blocked": "ok",
+  "expected": "Okay fine. okay"
+ }
+]

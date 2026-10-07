@@ -1,0 +1,256 @@
+[
+ {
+  "input": "dont do that, im busy and youre late",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "don't do that, i'm busy and you're late"
+ },
+ {
+  "input": "Dont SHOUT. CANT stop",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "Don't SHOUT. CAN'T stop"
+ },
+ {
+  "input": "i think i'm fine. what about you? i is a letter",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "I think I'm fine. what about you? I is a letter"
+ },
+ {
+  "input": "e.g. this stays. Mr. Smith arrived. U.S. is big. ok",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "E.g. this stays. Mr. Smith arrived. U.S. is big. ok"
+ },
+ {
+  "input": "first line\nsecond line\n\nthird",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0.5
+  ],
+  "expected": "First line.\nSecond line.\n\nThird."
+ },
+ {
+  "input": "no period here please",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0.99
+  ],
+  "expected": "No period here please."
+ },
+ {
+  "input": "no period here please",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 50
+  },
+  "random": [
+   0.75
+  ],
+  "expected": "No period here please"
+ },
+ {
+  "input": "visit https://example.com\nor www.x.org",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0
+  ],
+  "expected": "Visit https://example.com\nOr www.x.org"
+ },
+ {
+  "input": "keep `dont` and ```\ncant\n``` but fix dont",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "keep `dont` and ```\ncant\n``` but fix don't"
+ },
+ {
+  "input": "I can't and you won't. they'd go",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": true,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "I cannot and you will not. they would go"
+ },
+ {
+  "input": "CANT WONT",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": true,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "CANNOT WILL NOT"
+ },
+ {
+  "input": "lol so. bruh moment. ok",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "lol, bruh",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0
+  ],
+  "expected": "lol so. bruh moment. ok."
+ },
+ {
+  "input": "quick",
+  "options": {
+   "quickDisable": true,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0
+  ],
+  "expected": "quick"
+ },
+ {
+  "input": "ill be there. hes here",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "i'll be there. he's here"
+ },
+ {
+  "input": "trailing spaces   \nnext   ",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0
+  ],
+  "expected": "Trailing spaces.\nNext."
+ },
+ {
+  "input": "",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": true,
+   "expandContractions": false,
+   "fixCapitalization": true,
+   "fixPunctuation": true,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [
+   0
+  ],
+  "expected": ""
+ },
+ {
+  "input": "__CODE_BLOCK_0__ typed by hand",
+  "options": {
+   "quickDisable": false,
+   "blockedWords": "",
+   "fixApostrophes": false,
+   "expandContractions": false,
+   "fixCapitalization": false,
+   "fixPunctuation": false,
+   "fixPunctuationFrequency": 100
+  },
+  "random": [],
+  "expected": "undefined typed by hand"
+ }
+]

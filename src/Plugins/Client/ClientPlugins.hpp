@@ -58,6 +58,12 @@ private:
     Acheron::Core::Session *session;
 };
 
+class QtClipboardService : public ClipboardService
+{
+public:
+    void setText(const QString &text) override;
+};
+
 // Owns the plugin host for the lifetime of the session and publishes it as
 // PluginHost::instance() for client call sites.
 class ClientPlugins
@@ -76,6 +82,7 @@ public:
 private:
     QtNetworkService network;
     SessionMemberDirectory members;
+    QtClipboardService clipboard;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

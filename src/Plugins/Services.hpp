@@ -45,10 +45,18 @@ public:
     [[nodiscard]] virtual std::optional<QList<Id>> memberRoles(Id accountId, Id guildId, Id userId) const = 0;
 };
 
+class ClipboardService
+{
+public:
+    virtual ~ClipboardService() = default;
+    virtual void setText(const QString &text) = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
     MemberDirectory *members = nullptr;
+    ClipboardService *clipboard = nullptr;
 };
 
 } // namespace Plugins

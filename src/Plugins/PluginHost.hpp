@@ -83,11 +83,30 @@ public:
     [[nodiscard]] QString dispatchTransformCopiedMessageLink(const QString &url);
     void dispatchTransformIncomingContent(IncomingMessage &message);
 
+    struct PluginButton
+    {
+        QString pluginId;
+        ChatBarButton button;
+    };
+    [[nodiscard]] QList<PluginButton> dispatchChatBarButtons(const ChatContext &chat);
+    void dispatchChatBarButtonClicked(const QString &pluginId, const QString &buttonId, const ChatContext &chat);
+
+    struct PluginMenuItem
+    {
+        QString pluginId;
+        MenuItem item;
+    };
+    [[nodiscard]] QList<PluginMenuItem> dispatchUserContextMenuItems(const UserContext &user);
+    void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
+
 signals:
     void pluginStateChanged(const QString &id);
     // Something that affects how received messages are rendered changed
     // (a display plugin was toggled or reconfigured).
     void displayTransformsChanged();
+    // Chat bar buttons need to be re-queried (a plugin was toggled, or one
+    // asked for a refresh).
+    void chatBarChanged();
 
 private:
     struct Entry
@@ -108,6 +127,8 @@ private:
     void loadState();
     void saveState() const;
     void onSettingChanged(Entry &entry, const QString &key);
+    Plugin *tablePlugin(Hook hook, const QString &id) const;
+    void notifyHooksChanged(Hooks hooks);
 
     std::map<QString, Entry> entries; // sorted by id: dispatch order is deterministic
     Storage *storage;

@@ -26,6 +26,7 @@ struct TypingStart;
 }
 namespace UI {
 class ChatView;
+class PluginChatButtons;
 class ChatModel;
 class ForumBrowser;
 class ForumPostModel;
@@ -199,6 +200,7 @@ private:
     };
     std::optional<PendingLinkJump> pendingLinkJump;
     MessageInput *messageInput;
+    PluginChatButtons *pluginChatButtons = nullptr;
     TypingIndicator *typingIndicator;
     SlowModeIndicator *slowModeIndicator;
     ConnectionBanner *connectionBanner;

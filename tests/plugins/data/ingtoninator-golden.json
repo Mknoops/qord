@@ -1,0 +1,88 @@
+[
+ {
+  "input": "hello world",
+  "random": [
+   0
+  ],
+  "expected": "hello worldington"
+ },
+ {
+  "input": "hello world",
+  "random": [
+   0.99
+  ],
+  "expected": "hello worldington"
+ },
+ {
+  "input": "WASHING machine",
+  "random": [
+   0
+  ],
+  "expected": "WASHINGTON machine"
+ },
+ {
+  "input": "I am here",
+  "random": [
+   0,
+   0
+  ],
+  "expected": "I amington here"
+ },
+ {
+  "input": "see https://example.com now",
+  "random": [
+   0.4
+  ],
+  "expected": "see https://example.com nowington"
+ },
+ {
+  "input": "café time",
+  "random": [
+   0
+  ],
+  "expected": "caféington time"
+ },
+ {
+  "input": "only vowels a e",
+  "random": [
+   0,
+   0
+  ],
+  "expected": "only vowelsington a e"
+ },
+ {
+  "input": "Testing testINGTO",
+  "random": [
+   0.7
+  ],
+  "expected": "Testington testINGTO"
+ },
+ {
+  "input": "   ",
+  "random": [
+   0
+  ],
+  "expected": "   "
+ },
+ {
+  "input": "",
+  "random": [
+   0
+  ],
+  "expected": ""
+ },
+ {
+  "input": "日本語 text",
+  "random": [
+   0
+  ],
+  "expected": "日本語INGTON text"
+ },
+ {
+  "input": "Kevin",
+  "random": [
+   0
+  ],
+  "expected": "Kevington"
+ }
+]

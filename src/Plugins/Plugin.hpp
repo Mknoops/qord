@@ -44,6 +44,32 @@ public:
 
     // Hook::TransformIncomingContent
     virtual void transformIncomingContent(IncomingMessage &message) { Q_UNUSED(message); }
+
+    // Hook::ChatBarButtons. Called whenever the input is (re)built, including
+    // after switching channels; call PluginContext::refreshChatBar() when the
+    // buttons change.
+    virtual QList<ChatBarButton> chatBarButtons(const ChatContext &chat)
+    {
+        Q_UNUSED(chat);
+        return {};
+    }
+    virtual void onChatBarButtonClicked(const QString &id, const ChatContext &chat)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(chat);
+    }
+
+    // Hook::UserContextMenu
+    virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+    virtual void onUserContextMenuAction(const QString &id, const UserContext &user)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(user);
+    }
 };
 
 } // namespace Plugins

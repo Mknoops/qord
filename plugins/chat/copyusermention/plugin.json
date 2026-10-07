@@ -1,0 +1,32 @@
+{
+  "id": "copyusermention",
+  "equicordName": "CopyUserMention",
+  "equicordPath": "src/equicordplugins/copyUserMention",
+  "name": "CopyUserMention",
+  "description": "Adds a button to copy user's mention on the user context menu, works best with ValidUser.",
+  "categories": [
+    "chat",
+    "utility"
+  ],
+  "tags": [
+    "Chat",
+    "Utility"
+  ],
+  "authors": [
+    "Cortex",
+    "castdrian"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "write_clipboard"
+  ],
+  "hooks": [
+    "userContextMenu"
+  ],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The item is added to Qord's user context menu (chat, member list, DM list)."
+}

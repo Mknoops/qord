@@ -43,6 +43,7 @@ struct SettingSpec
     std::optional<qint64> minimum; // Int only
     std::optional<qint64> maximum; // Int only
     bool multiline = false; // String only
+    bool hidden = false; // internal state; no editor is generated
 
     // Returns an error message, or an empty string if `value` is acceptable.
     [[nodiscard]] QString validate(const QJsonValue &value) const;

@@ -6,7 +6,9 @@
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
 
+#include <QClipboard>
 #include <QDir>
+#include <QGuiApplication>
 #include <QElapsedTimer>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -93,6 +95,11 @@ std::optional<QList<Id>> SessionMemberDirectory::memberRoles(Id accountId, Id gu
     return out;
 }
 
+void QtClipboardService::setText(const QString &text)
+{
+    QGuiApplication::clipboard()->setText(text);
+}
+
 static QString pluginDataDirectory()
 {
     return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(QStringLiteral("plugins"));
@@ -110,6 +117,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     Services services;
     services.network = &network;
     services.members = &members;
+    services.clipboard = &clipboard;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     pluginHost->load();

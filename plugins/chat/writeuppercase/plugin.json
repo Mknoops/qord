@@ -1,0 +1,26 @@
+{
+  "id": "writeuppercase",
+  "equicordName": "WriteUpperCase",
+  "equicordPath": "src/equicordplugins/writeUpperCase",
+  "name": "WriteUpperCase",
+  "description": "Changes the first Letter of each Sentence in Message Inputs to Uppercase",
+  "categories": ["chat", "appearance"],
+  "tags": ["Appearance", "Customisation", "Chat"],
+  "authors": ["Samwich", "KrystalSkull"],
+  "permissions": ["modify_outgoing_messages"],
+  "hooks": ["onBeforeSend"],
+  "settings": [
+    {
+      "key": "blockedWords",
+      "type": "string",
+      "default": "http, https, ok",
+      "label": "Blocked words",
+      "description": "Strings not to capitilise (seperate with a comma)"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "An empty blocked-words list capitalizes everything; upstream treats it as one empty word that blocks every sentence."
+}

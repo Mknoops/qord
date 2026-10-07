@@ -15,6 +15,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Plugins/Client/ClientPlugins.cpp
     src/UI/Settings/PluginsPage.hpp
     src/UI/Settings/PluginsPage.cpp
+    src/UI/Input/PluginChatButtons.hpp
+    src/UI/Input/PluginChatButtons.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
 

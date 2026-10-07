@@ -164,8 +164,16 @@ void PluginHost::onSettingChanged(Entry &entry, const QString &key)
 {
     if (entry.plugin)
         guarded(entry.info.manifest.id, "onSettingChanged", [&] { entry.plugin->onSettingChanged(key); });
-    if (entry.info.running && entry.info.manifest.hooks.testFlag(Hook::TransformIncomingContent))
+    if (entry.info.running)
+        notifyHooksChanged(entry.info.manifest.hooks);
+}
+
+void PluginHost::notifyHooksChanged(Hooks hooks)
+{
+    if (hooks.testFlag(Hook::TransformIncomingContent))
         emit displayTransformsChanged();
+    if (hooks.testFlag(Hook::ChatBarButtons))
+        emit chatBarChanged();
 }
 
 bool PluginHost::start(Entry &entry, QString *error)
@@ -195,6 +203,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     PluginSettings *s = settings(m.id);
     entry.context = std::make_unique<PluginContext>(m.id, s, entry.info.granted & m.permissions, services,
                                                     QDir(dataDir).filePath(m.id));
+    entry.context->onChatBarChanged = [this] { emit chatBarChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -238,7 +247,7 @@ bool PluginHost::setEnabled(const QString &id, bool enable, QString *error)
     if (e->info.enabled == enable && e->info.running == enable)
         return true;
 
-    bool displayChanged = false;
+    Hooks changedHooks;
     if (enable) {
         // Dependencies first, with cycle detection
         QStringList order, visiting;
@@ -288,7 +297,7 @@ bool PluginHost::setEnabled(const QString &id, bool enable, QString *error)
         for (const auto &pid : order) {
             Entry *pe = find(pid);
             pe->info.enabled = true;
-            displayChanged |= pe->info.manifest.hooks.testFlag(Hook::TransformIncomingContent);
+            changedHooks |= pe->info.manifest.hooks;
         }
     } else {
         // Dependents first
@@ -299,7 +308,8 @@ bool PluginHost::setEnabled(const QString &id, bool enable, QString *error)
                     toDisable.append(pid);
         for (auto it = toDisable.crbegin(); it != toDisable.crend(); ++it) {
             Entry *pe = find(*it);
-            displayChanged |= pe->info.running && pe->info.manifest.hooks.testFlag(Hook::TransformIncomingContent);
+            if (pe->info.running)
+                changedHooks |= pe->info.manifest.hooks;
             stop(*pe);
             pe->info.enabled = false;
         }
@@ -308,8 +318,7 @@ bool PluginHost::setEnabled(const QString &id, bool enable, QString *error)
     rebuildTables();
     saveState();
     emit pluginStateChanged(id);
-    if (displayChanged)
-        emit displayTransformsChanged();
+    notifyHooksChanged(changedHooks);
     return true;
 }
 
@@ -331,8 +340,7 @@ void PluginHost::setGranted(const QString &id, Permissions permissions)
     rebuildTables();
     saveState();
     emit pluginStateChanged(id);
-    if (e->info.manifest.hooks.testFlag(Hook::TransformIncomingContent))
-        emit displayTransformsChanged();
+    notifyHooksChanged(e->info.manifest.hooks);
 }
 
 Permissions PluginHost::granted(const QString &id) const
@@ -457,6 +465,56 @@ void PluginHost::dispatchTransformIncomingContent(IncomingMessage &message)
     for (size_t i = 0; i < table.size(); ++i)
         guarded(tableIds[hookIndex(Hook::TransformIncomingContent)][i], "transformIncomingContent",
                 [&] { table[i]->transformIncomingContent(message); });
+}
+
+Plugin *PluginHost::tablePlugin(Hook hook, const QString &id) const
+{
+    const auto &ids = tableIds[hookIndex(hook)];
+    for (size_t i = 0; i < ids.size(); ++i)
+        if (ids[i] == id)
+            return tables[hookIndex(hook)][i];
+    return nullptr;
+}
+
+QList<PluginHost::PluginButton> PluginHost::dispatchChatBarButtons(const ChatContext &chat)
+{
+    QList<PluginButton> out;
+    const auto &table = tables[hookIndex(Hook::ChatBarButtons)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::ChatBarButtons)][i];
+        guarded(id, "chatBarButtons", [&] {
+            for (const auto &button : table[i]->chatBarButtons(chat))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchChatBarButtonClicked(const QString &pluginId, const QString &buttonId, const ChatContext &chat)
+{
+    // Only plugins currently allowed to show buttons receive clicks
+    if (Plugin *plugin = tablePlugin(Hook::ChatBarButtons, pluginId))
+        guarded(pluginId, "onChatBarButtonClicked", [&] { plugin->onChatBarButtonClicked(buttonId, chat); });
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchUserContextMenuItems(const UserContext &user)
+{
+    QList<PluginMenuItem> out;
+    const auto &table = tables[hookIndex(Hook::UserContextMenu)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::UserContextMenu)][i];
+        guarded(id, "userContextMenuItems", [&] {
+            for (const auto &item : table[i]->userContextMenuItems(user))
+                out.append({ id, item });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user)
+{
+    if (Plugin *plugin = tablePlugin(Hook::UserContextMenu, pluginId))
+        guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
 }
 
 } // namespace Plugins

@@ -77,6 +77,14 @@ public:
     mutable int lookups = 0;
 };
 
+class FakeClipboard : public ClipboardService
+{
+public:
+    void setText(const QString &t) override { text = t; ++writes; }
+    QString text;
+    int writes = 0;
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -89,6 +97,7 @@ struct SinglePluginHost
         Services services;
         services.network = &network;
         services.members = &members;
+        services.clipboard = &clipboard;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -111,6 +120,7 @@ struct SinglePluginHost
     MemoryStorage storage;
     FakeNetwork network;
     FakeMembers members;
+    FakeClipboard clipboard;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

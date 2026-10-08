@@ -189,6 +189,20 @@ void PluginsPage::onItemChanged(QListWidgetItem *item)
     }
 }
 
+void PluginsPage::selectPlugin(const QString &id)
+{
+    search->clear();
+    category->setCurrentIndex(0);
+    applyFilter();
+    for (int i = 0; i < list->count(); ++i) {
+        if (list->item(i)->data(IdRole).toString() == id) {
+            list->setCurrentRow(i);
+            list->scrollToItem(list->item(i));
+            return;
+        }
+    }
+}
+
 void PluginsPage::showDetails(const QString &id)
 {
     shownId = id;

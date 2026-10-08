@@ -92,6 +92,25 @@ QString unindentMessage(const QString &content)
     return out;
 }
 
+QString unindentRendered(const QString &content)
+{
+    // Discord's codeBlock rule (see src/Core/Markdown/QordRules.cpp)
+    static const QRegularExpression block(QStringLiteral(R"(```(?:([a-z0-9_+\-.#]+?)\n)?\n*([^\n][\s\S]*?)\n*```)"),
+                                          QRegularExpression::CaseInsensitiveOption);
+    QString out;
+    qsizetype last = 0;
+    auto it = block.globalMatch(content);
+    while (it.hasNext()) {
+        const auto m = it.next();
+        out += content.mid(last, m.capturedStart() - last);
+        last = m.capturedEnd();
+        // Always write the language line so the first code line can't become one
+        out += QStringLiteral("```") + m.captured(1) + u'\n' + unindent(m.captured(2)) + QStringLiteral("```");
+    }
+    out += content.mid(last);
+    return out;
+}
+
 } // namespace Unindent
 
 QByteArray qord_manifest_unindent();

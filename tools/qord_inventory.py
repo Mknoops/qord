@@ -66,6 +66,10 @@ PERMISSIONS = {
     "hide_messages",
     "read_relationships",
     "open_links",
+    "control_typing",
+    "trust_links",
+    "control_notifications",
+    "edit_messages",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -83,6 +87,11 @@ HOOK_DISPATCH = {
     "messageContextMenu": "dispatchMessageContextMenuItems(",
     "messageHistory": "dispatchMessageDeleted(",
     "messageFilter": "dispatchShouldHideMessage(",
+    "typing": "dispatchShouldSendTyping(",
+    "linkWarnings": "dispatchShouldConfirmLink(",
+    "notifications": "dispatchShouldNotify(",
+    "authorNames": "dispatchAuthorDisplayName(",
+    "channelContextMenu": "dispatchChannelContextMenuItems(",
 }
 
 MANIFEST_REQUIRED = {

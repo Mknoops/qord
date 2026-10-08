@@ -106,6 +106,52 @@ public:
         return false;
     }
 
+    // Hook::Typing. nullopt = no opinion; any `false` wins.
+    virtual std::optional<bool> shouldSendTyping(const TypingContext &typing)
+    {
+        Q_UNUSED(typing);
+        return std::nullopt;
+    }
+    // Hook::Typing: whether to show who else is typing above the input.
+    virtual std::optional<bool> shouldShowTypers(const ChatContext &chat)
+    {
+        Q_UNUSED(chat);
+        return std::nullopt;
+    }
+
+    // Hook::LinkWarnings: false skips the "Are you sure?" before opening a link.
+    virtual std::optional<bool> shouldConfirmLink(const QString &url)
+    {
+        Q_UNUSED(url);
+        return std::nullopt;
+    }
+
+    // Hook::Notifications: false suppresses the desktop notification.
+    virtual std::optional<bool> shouldNotify(const NotificationContext &notification)
+    {
+        Q_UNUSED(notification);
+        return std::nullopt;
+    }
+
+    // Hook::AuthorNames: the name to show instead of the client's choice.
+    virtual std::optional<QString> authorDisplayName(const AuthorContext &author)
+    {
+        Q_UNUSED(author);
+        return std::nullopt;
+    }
+
+    // Hook::ChannelContextMenu: items for a server's or channel's menu.
+    virtual QList<MenuItem> channelContextMenuItems(const ChannelContext &channel)
+    {
+        Q_UNUSED(channel);
+        return {};
+    }
+    virtual void onChannelContextMenuAction(const QString &id, const ChannelContext &channel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(channel);
+    }
+
     // Hook::UserContextMenu
     virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
     {

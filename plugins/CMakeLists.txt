@@ -77,6 +77,15 @@ qord_add_plugin(noblockedmessages chat SOURCES NoBlockedMessages.hpp NoBlockedMe
 qord_add_plugin(viewraw developer SOURCES ViewRaw.hpp ViewRaw.cpp)
 qord_add_plugin(reverseimagesearch media SOURCES ReverseImageSearch.hpp ReverseImageSearch.cpp)
 
+# Batch 4
+qord_add_plugin(silenttyping privacy SOURCES SilentTyping.hpp SilentTyping.cpp)
+qord_add_plugin(alwaystrust utility SOURCES AlwaysTrust.cpp)
+qord_add_plugin(onepingperdm chat SOURCES OnePingPerDM.hpp OnePingPerDM.cpp)
+qord_add_plugin(unsuppressembeds chat SOURCES UnsuppressEmbeds.cpp)
+qord_add_plugin(sendtimestamps chat SOURCES SendTimestamps.hpp SendTimestamps.cpp)
+qord_add_plugin(showmeyourname chat SOURCES ShowMeYourName.hpp ShowMeYourName.cpp)
+qord_add_plugin(dontroundmytimestamps appearance SOURCES DontRoundMyTimestamps.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

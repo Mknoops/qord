@@ -53,6 +53,13 @@ MessageContext toMessageContext(const Message &msg, Id accountId, Id guildId, Id
     if (msg.editedTimestamp.hasValue())
         c.editedTimestamp = msg.editedTimestamp.get();
     c.deleted = msg.qordDeleted;
+    c.hasEmbeds = msg.embeds.hasValue() && !msg.embeds->isEmpty();
+    c.mentionEveryone = msg.mentionEveryone.hasValue() && msg.mentionEveryone.get();
+    if (msg.mentions.hasValue()) {
+        for (const auto &user : msg.mentions.get())
+            if (quint64(user.id.get()) == accountId)
+                c.mentionsMe = true;
+    }
     if (withJson)
         c.rawJson = messageToJson(msg);
     return c;

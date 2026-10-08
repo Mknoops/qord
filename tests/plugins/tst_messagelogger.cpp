@@ -190,6 +190,39 @@ private slots:
         QCOMPARE(h.messages.removed.size(), 1); // edited (not deleted) messages are re-rendered, not removed
     }
 
+    void clearChannelLog()
+    {
+        SinglePluginHost h(qord_register_messagelogger);
+        QVERIFY(h.enableWithAllPermissions());
+        ChannelContext channel;
+        channel.accountId = 1;
+        channel.guildId = 1000;
+        channel.channelId = 100;
+        QVERIFY(h.host->dispatchChannelContextMenuItems(channel).isEmpty()); // nothing logged
+        QVERIFY(h.host->dispatchMessageDeleted(msg(1, "gone")));
+        MessageContext v1 = msg(2, "a");
+        h.host->dispatchMessageEdited(v1, edited(v1, "b"));
+        MessageContext other = msg(3, "elsewhere");
+        other.channelId = 101;
+        QVERIFY(h.host->dispatchMessageDeleted(other));
+
+        const auto items = h.host->dispatchChannelContextMenuItems(channel);
+        QCOMPARE(items.size(), 1);
+        QCOMPARE(items[0].item.label, QStringLiteral("Clear Message Log"));
+        // Not on the server's own menu
+        ChannelContext server = channel;
+        server.channelId = 0;
+        QVERIFY(h.host->dispatchChannelContextMenuItems(server).isEmpty());
+
+        h.host->dispatchChannelContextMenuAction(h.id, items[0].item.id, channel);
+        QCOMPARE(h.messages.removed, QList<Id> { 1 });
+        QVERIFY(h.messages.refreshed.contains(2));
+        QVERIFY(!h.host->dispatchAnnotateMessage(msg(1, "gone")));
+        QVERIFY(!h.host->dispatchAnnotateMessage(edited(v1, "b")));
+        QVERIFY(h.host->dispatchAnnotateMessage(other)); // other channel untouched
+        QVERIFY(h.host->dispatchChannelContextMenuItems(channel).isEmpty());
+    }
+
     void disablingDropsKeptMessages()
     {
         SinglePluginHost h(qord_register_messagelogger);

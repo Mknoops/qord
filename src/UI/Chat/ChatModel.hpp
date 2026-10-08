@@ -249,6 +249,8 @@ public:
 
     using DisplayNameResolver = std::function<QString(const Discord::User &author, Snowflake guildId)>;
     void setDisplayNameResolver(DisplayNameResolver resolver);
+    // Qord: names shown in reply previews (plugins may treat them differently)
+    void setReplyNameResolver(DisplayNameResolver resolver) { replyNameResolver = std::move(resolver); }
 
     using RoleColorResolver = std::function<QColor(Snowflake userId, Snowflake guildId)>;
     void setRoleColorResolver(RoleColorResolver resolver);
@@ -332,6 +334,7 @@ private:
     Snowflake currentGuildId = Snowflake::Invalid;
     Snowflake currentAccountId;
     QSet<Snowflake> revealedSpoilerMessages;
+    DisplayNameResolver replyNameResolver;
     bool atLatest = true;
 
     AvatarUrlResolver avatarUrlResolver;

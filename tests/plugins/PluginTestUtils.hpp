@@ -113,6 +113,22 @@ public:
         ++dialogs;
     }
     void openUrl(const QUrl &url) override { opened.append(url); }
+    void insertIntoMessageBox(const QString &text) override { inserted.append(text); }
+    void pickTimestamp(std::function<void(const QString &)> done) override { pendingPick = std::move(done); }
+    void openPluginSettings(const QString &pluginId) override { settingsOpened.append(pluginId); }
+    void promptText(const QString &title, const QString &, const QString &initial, int,
+                    std::function<void(const QString &)> done) override
+    {
+        promptTitle = title;
+        promptInitial = initial;
+        pendingPrompt = std::move(done);
+    }
+    QString promptTitle;
+    QString promptInitial;
+    std::function<void(const QString &)> pendingPrompt;
+    QStringList settingsOpened;
+    QStringList inserted;
+    std::function<void(const QString &)> pendingPick;
     QString dialogTitle;
     QList<TextSection> dialogSections;
     int dialogs = 0;
@@ -128,6 +144,29 @@ public:
     QList<Id> refreshed;
     QList<Id> removed;
     int filterRefreshes = 0;
+};
+
+class FakeMessageActions : public MessageActionService
+{
+public:
+    void setMessageFlags(Id, Id channelId, Id messageId, quint64 flags) override
+    {
+        calls.append({ channelId, messageId, flags });
+    }
+    struct Call
+    {
+        Id channelId;
+        Id messageId;
+        quint64 flags;
+    };
+    QList<Call> calls;
+};
+
+class FakeDisplayOptions : public DisplayOptionsService
+{
+public:
+    void setRelativeTimeRoundsDown(bool floor) override { roundsDown = floor; }
+    bool roundsDown = false;
 };
 
 using RegisterFn = void (*)(Registry &);
@@ -146,6 +185,8 @@ struct SinglePluginHost
         services.relationships = &relationships;
         services.ui = &ui;
         services.messages = &messages;
+        services.messageActions = &messageActions;
+        services.displayOptions = &displayOptions;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -172,6 +213,8 @@ struct SinglePluginHost
     FakeRelationships relationships;
     FakeUi ui;
     FakeMessages messages;
+    FakeMessageActions messageActions;
+    FakeDisplayOptions displayOptions;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

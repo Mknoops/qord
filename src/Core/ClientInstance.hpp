@@ -124,7 +124,7 @@ signals:
     void guildSettingsChanged(Snowflake guildId);
     void channelLastMessageUpdated(Snowflake channelId, Snowflake messageId);
     // Qord: a new message from someone else that plugins did not silence (desktop notifications)
-    void notifiableMessage(const Discord::Message &message, bool mentionsMe);
+    void notifiableMessage(const Discord::Message &message, bool mentionsMe, bool wasUnread);
     void voiceStateChanged(Snowflake channelId, Snowflake guildId);
     void authenticationFailed(const AccountInfo &info);
 

@@ -10,6 +10,8 @@ class SettingsWindow : public QWidget
     Q_OBJECT
 public:
     explicit SettingsWindow(QWidget *parent = nullptr);
+    // Qord: open the Plugins page at a plugin
+    void showPlugin(const QString &pluginId);
 
 signals:
     void channelListModeChanged(bool classic);
@@ -24,6 +26,7 @@ private:
 
     QListWidget *categoryList;
     QStackedWidget *pages;
+    class PluginsPage *pluginsPage = nullptr;
 };
 
 } // namespace UI

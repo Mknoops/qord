@@ -83,6 +83,34 @@ class QtUiService : public UiService
 public:
     void showTextDialog(const QString &title, const QList<TextSection> &sections) override;
     void openUrl(const QUrl &url) override;
+    void insertIntoMessageBox(const QString &text) override;
+    void pickTimestamp(std::function<void(const QString &)> done) override;
+    // Set by the main window, which owns the message box
+    static std::function<void(const QString &)> &messageBoxInserter();
+    void openPluginSettings(const QString &pluginId) override;
+    void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
+                    std::function<void(const QString &)> done) override;
+    static std::function<void(const QString &)> &pluginSettingsOpener();
+};
+
+class QtDisplayOptions : public DisplayOptionsService
+{
+public:
+    void setRelativeTimeRoundsDown(bool floor) override;
+    PluginHost *host = nullptr;
+};
+
+class SessionMessageActions : public MessageActionService
+{
+public:
+    explicit SessionMessageActions(Acheron::Core::Session *session)
+        : session(session)
+    {
+    }
+    void setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags) override;
+
+private:
+    Acheron::Core::Session *session;
 };
 
 class SessionMessageService : public MessageService
@@ -123,6 +151,8 @@ private:
     SessionRelationshipDirectory relationships;
     QtUiService ui;
     SessionMessageService messages;
+    SessionMessageActions messageActions;
+    QtDisplayOptions displayOptions;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

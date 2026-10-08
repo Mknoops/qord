@@ -6,7 +6,40 @@
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QSvgRenderer>
+#include <QMouseEvent>
 #include <QToolButton>
+
+#include <functional>
+
+namespace {
+class ClickButton : public QToolButton
+{
+public:
+    using QToolButton::QToolButton;
+    std::function<void(Qord::Plugins::ChatContext::Click)> onClick;
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        const bool inside = rect().contains(event->pos());
+        if (inside && onClick) {
+            if (event->button() == Qt::MiddleButton) {
+                onClick(Qord::Plugins::ChatContext::Click::Middle);
+                return;
+            }
+            if (event->button() == Qt::RightButton) {
+                onClick(Qord::Plugins::ChatContext::Click::Right);
+                return;
+            }
+        }
+        const bool wasDown = isDown();
+        QToolButton::mouseReleaseEvent(event);
+        if (inside && wasDown && event->button() == Qt::LeftButton && onClick)
+            onClick(Qord::Plugins::ChatContext::Click::Left);
+    }
+    void contextMenuEvent(QContextMenuEvent *event) override { event->accept(); }
+};
+} // namespace
 
 namespace Acheron {
 namespace UI {
@@ -72,7 +105,7 @@ void PluginChatButtons::rebuild()
     const QColor active = Core::Theme::Manager::instance().color(Core::Theme::Token::ButtonText);
     const auto buttons = host->dispatchChatBarButtons(chat);
     for (const auto &pb : buttons) {
-        auto *button = new QToolButton(this);
+        auto *button = new ClickButton(this);
         button->setAutoRaise(true);
         button->setCursor(Qt::PointingHandCursor);
         button->setIconSize(QSize(20, 20));
@@ -81,10 +114,13 @@ void PluginChatButtons::rebuild()
         button->setAccessibleName(pb.button.tooltip);
         const QString pluginId = pb.pluginId;
         const QString buttonId = pb.button.id;
-        connect(button, &QToolButton::clicked, this, [this, pluginId, buttonId] {
+        // Left, middle and right clicks all reach the plugin (SilentTyping maps each to an action)
+        button->onClick = [this, pluginId, buttonId](Qord::Plugins::ChatContext::Click click) {
+            Qord::Plugins::ChatContext chat = contextProvider();
+            chat.click = click;
             if (auto *h = Qord::Plugins::PluginHost::instance())
-                h->dispatchChatBarButtonClicked(pluginId, buttonId, contextProvider());
-        });
+                h->dispatchChatBarButtonClicked(pluginId, buttonId, chat);
+        };
         layout->addWidget(button);
     }
     setVisible(!buttons.isEmpty());

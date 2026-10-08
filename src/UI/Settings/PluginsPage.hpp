@@ -25,6 +25,8 @@ class PluginsPage : public QWidget
     Q_OBJECT
 public:
     explicit PluginsPage(QWidget *parent = nullptr);
+    // Selects a plugin (clears the filters so it is visible)
+    void selectPlugin(const QString &id);
 
 private:
     void populate();

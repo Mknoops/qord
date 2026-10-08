@@ -20,6 +20,12 @@ SettingsWindow::SettingsWindow(QWidget *parent)
     setupUi();
 }
 
+void SettingsWindow::showPlugin(const QString &pluginId)
+{
+    categoryList->setCurrentRow(pages->indexOf(pluginsPage));
+    pluginsPage->selectPlugin(pluginId);
+}
+
 void SettingsWindow::setupUi()
 {
     auto *mainLayout = new QHBoxLayout(this);
@@ -50,7 +56,8 @@ void SettingsWindow::setupUi()
     addPage(tr("Audio"), new AudioPage(this));
 #endif
 
-    addPage(tr("Plugins"), new PluginsPage(this));
+    pluginsPage = new PluginsPage(this);
+    addPage(tr("Plugins"), pluginsPage);
 
     categoryList->setCurrentRow(0);
 

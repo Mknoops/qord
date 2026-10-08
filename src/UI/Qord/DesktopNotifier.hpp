@@ -32,7 +32,7 @@ public:
 
     // Called for every new message from someone else that plugins did not silence
     void consider(Core::ClientInstance *instance, const Discord::Message &message, bool mentionsMe,
-                  Core::Snowflake viewedChannelId);
+                  bool wasUnread, Core::Snowflake viewedChannelId);
 
 signals:
     void openRequested(Core::Snowflake accountId, Core::Snowflake channelId, Core::Snowflake messageId);

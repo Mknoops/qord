@@ -3,6 +3,10 @@
 
 #include "Core/Markdown/Parser.hpp"
 
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTest>
 
 using namespace Acheron::Core::Markdown;
@@ -95,6 +99,23 @@ private slots:
         QVERIFY(html.endsWith("</span>!"));
         // Out of range stays visible as text
         QVERIFY(render("<t:99999999999999999>").contains("&lt;t:"));
+    }
+
+    void relativeTimesMatchMoment()
+    {
+        QFile f(QStringLiteral(QORD_MARKDOWN_TEST_DIR "/moment-relative-golden.json"));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QJsonArray cases = QJsonDocument::fromJson(f.readAll()).array();
+        QVERIFY(cases.size() > 100);
+        const QLocale us(QLocale::English, QLocale::UnitedStates);
+        for (const QJsonValue &v : cases) {
+            const QJsonObject c = v.toObject();
+            setRelativeTimeRoundsDown(c.value("floor").toBool());
+            const qint64 delta = qint64(c.value("deltaMs").toDouble());
+            const QDateTime now = QDateTime::fromMSecsSinceEpoch(1700000000000LL - delta);
+            QCOMPARE(formatDiscordTimestamp(1700000000, QChar('R'), now, us), c.value("text").toString());
+        }
+        setRelativeTimeRoundsDown(false);
     }
 
     void mentions()

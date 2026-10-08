@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 353 |
+| Not Started | 346 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 16 |
+| Tested | 23 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -26,7 +26,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | AlwaysAnimate | `src/plugins/alwaysAnimate` |  | Not Started |  |
 | AlwaysExpandProfiles | `src/equicordplugins/alwaysExpandProfiles` |  | Not Started |  |
 | AlwaysExpandRoles | `src/plugins/alwaysExpandRoles` |  | Not Started |  |
-| AlwaysTrust | `src/plugins/alwaysTrust` |  | Not Started |  |
+| AlwaysTrust | `src/plugins/alwaysTrust` | `plugins/utility/alwaystrust` | Tested | Qord asks before opening any link from a message (Discord asks only for untrusted domains); "Untrusted domain popup" skips that question. Qord has no "Potentially Dangerous Download" popup, so the "file" setting has nothing to remove. wired; not yet verified in the running client. gaps: "No delete safety" and "Confirm modal": Qord's Delete Server dialog has no plugin surface yet, so it still asks for the server name. |
 | Animalese | `src/equicordplugins/animalese` |  | Not Started |  |
 | AnonymiseFileNames | `src/plugins/anonymiseFileNames` |  | Not Started |  |
 | AtSomeone | `src/equicordplugins/atSomeone` |  | Not Started |  |
@@ -104,7 +104,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | DisableCameras | `src/equicordplugins/disableCameras` |  | Not Started |  |
 | DisableDeepLinks | `src/plugins/noDeepLinks.web` |  | Not Started |  |
 | DiscordDevBanner | `src/equicordplugins/discordDevBanner` |  | Not Started |  |
-| DontRoundMyTimestamps | `src/plugins/dontRoundMyTimestamps` |  | Not Started |  |
+| DontRoundMyTimestamps | `src/plugins/dontRoundMyTimestamps` | `plugins/appearance/dontroundmytimestamps` | Tested | Qord renders relative timestamps (<t:…:R>) with moment.js's rules, like Discord; this plugin switches its rounding to round down, as upstream does with moment.relativeTimeRounding(Math.floor). wired; not yet verified in the running client. |
 | DownloadAllAttachments | `src/equicordplugins/downloadAllAttachments` |  | Not Started |  |
 | DragFavoriteEmotes | `src/equicordplugins/dragFavoriteEmotes` |  | Not Started |  |
 | Dragify | `src/equicordplugins/dragify` |  | Not Started |  |
@@ -195,7 +195,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | MessageLatency | `src/plugins/messageLatency` |  | Not Started |  |
 | MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` |  | Not Started |  |
 | MessageLinkTooltip | `src/equicordplugins/messageLinkTooltip` |  | Not Started |  |
-| MessageLogger | `src/plugins/messageLogger` | `plugins/chat/messagelogger` | Tested | Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu ("View Edit History") instead of by clicking "(edited)". wired; not yet verified in the running client. gaps: Collapsing deleted messages into a "N deleted messages" group (collapseDeleted) needs message grouping UI Qord does not have yet; Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs; The channel context menu entry "Clear Message Log" needs a channel context menu surface. |
+| MessageLogger | `src/plugins/messageLogger` | `plugins/chat/messagelogger` | Tested | Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu ("View Edit History") instead of by clicking "(edited)". wired; not yet verified in the running client. gaps: Collapsing deleted messages into a "N deleted messages" group (collapseDeleted) needs message grouping UI Qord does not have yet; Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs. |
 | MessageLoggerEnhanced | `src/equicordplugins/messageLoggerEnhanced` |  | Not Started |  |
 | MessageNotifier | `src/equicordplugins/messageNotifier` |  | Not Started |  |
 | MessagePeek | `src/equicordplugins/messagePeek` |  | Not Started |  |
@@ -235,7 +235,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | NoTrack | `src/plugins/_core/noTrack.ts` |  | Not Started |  |
 | NoTypingAnimation | `src/plugins/noTypingAnimation` |  | Not Started |  |
 | NoUnblockToJump | `src/plugins/noUnblockToJump` |  | Not Started |  |
-| OnePingPerDM | `src/plugins/onePingPerDM` |  | Not Started |  |
+| OnePingPerDM | `src/plugins/onePingPerDM` | `plugins/chat/onepingperdm` | Tested | Qord's notification for a DM is a desktop toast and a taskbar flash (it has no sound yet), so this plugin limits those to the first unread message in each DM. wired; not yet verified in the running client. gaps: "Always play sound": Qord has no notification sounds yet. |
 | OpenInApp | `src/plugins/openInApp` |  | Not Started |  |
 | OrbolayBridge | `src/equicordplugins/orbolayBridge` |  | Not Started |  |
 | OverrideForumDefaults | `src/plugins/overrideForumDefaults` |  | Not Started |  |
@@ -284,7 +284,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | SecretRingToneEnabler | `src/plugins/secretRingTone` |  | Not Started |  |
 | SedEnhanced | `src/equicordplugins/sedEnhanced` |  | Not Started |  |
 | SekaiStickers | `src/equicordplugins/sekaiStickers` |  | Not Started |  |
-| SendTimestamps | `src/plugins/sendTimestamps` |  | Not Started |  |
+| SendTimestamps | `src/plugins/sendTimestamps` | `plugins/chat/sendtimestamps` | Tested | Type a time in backticks, like `17:59` or `3:51 PM`, and it is sent as a timestamp everyone sees in their own time zone (the next occurrence of that time). The calendar button opens the timestamp picker. Upstream's picker also lists the newer "s"/"S" formats; Qord's picker offers the seven formats its renderer shows. wired; not yet verified in the running client. |
 | ServerInfo | `src/plugins/serverInfo` |  | Not Started |  |
 | ServerListIndicators | `src/plugins/serverListIndicators` |  | Not Started |  |
 | ServerSearch | `src/equicordplugins/serverSearch` |  | Not Started |  |
@@ -296,7 +296,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ShowHiddenChannels | `src/plugins/showHiddenChannels` |  | Not Started |  |
 | ShowHiddenThings | `src/plugins/showHiddenThings` |  | Not Started |  |
 | ShowMessageEmbeds | `src/equicordplugins/showMessageEmbeds` |  | Not Started |  |
-| ShowMeYourName | `src/plugins/showMeYourName` |  | Not Started |  |
+| ShowMeYourName | `src/plugins/showMeYourName` | `plugins/chat/showmeyourname` | Tested | Qord has no Streamer Mode, so upstream's truncateAllNamesWithStreamerMode has nothing to do. Custom nicknames are kept in the plugin's settings instead of upstream's DataStore. wired; not yet verified in the running client. gaps: Names in mentions, the typing indicator, the member list, DMs and friends lists, autocomplete, profiles, voice channels and reaction tooltips: Qord has no name surface there yet (upstream settings mentions, typingIndicator, memberList, searchAutocomplete, profilePopout, voiceChannels, reactions).; Per-name colours and Nitro display-name styles (upstream's colour, font, effect, gradient and style* settings): Qord draws the whole name in the author's role colour.; hideDefaultAtSign: Qord's reply previews show names without an @. |
 | ShowResourceChannels | `src/equicordplugins/showResourceChannels` |  | Not Started |  |
 | ShowRolesInChat | `src/equicordplugins/showRolesInChat` |  | Not Started |  |
 | ShowSongName | `src/equicordplugins/showSongName` |  | Not Started |  |
@@ -305,7 +305,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Signature | `src/equicordplugins/signature` |  | Not Started |  |
 | SilenceUsers | `src/equicordplugins/silenceUsers` |  | Not Started |  |
 | SilentMessageToggle | `src/plugins/silentMessageToggle` | `plugins/chat/silentmessagetoggle` | Tested | "Persist between channels and restarts" saves the toggle and restores it after a restart; upstream instead starts every channel with the toggle on in that mode. Qord's send path turns the @silent prefix into a silent message the way Discord's client does. wired; not yet verified in the running client. |
-| SilentTyping | `src/plugins/silentTyping` |  | Not Started |  |
+| SilentTyping | `src/plugins/silentTyping` | `plugins/privacy/silenttyping` | Tested | Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out. wired; not yet verified in the running client. gaps: The /silent-typing command: Qord has no slash commands yet.; The "Silent Typing" submenu in the message box's right-click menu: the message box has no plugin menu surface yet.; "Hide members list typing indicators" has nothing to hide: Qord's member list does not show who is typing. |
 | Snowfall | `src/equicordplugins/snowfall` |  | Not Started |  |
 | SongLink | `src/equicordplugins/songLink.desktop` |  | Not Started |  |
 | SongSpotlight | `src/equicordplugins/songSpotlight.desktop` |  | Not Started |  |
@@ -341,13 +341,13 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | TriviaAI | `src/equicordplugins/triviaAI` |  | Not Started |  |
 | TypingIndicator | `src/plugins/typingIndicator` |  | Not Started |  |
 | TypingTweaks | `src/plugins/typingTweaks` |  | Not Started |  |
-| Unindent | `src/plugins/unindent` | `plugins/chat/unindent` | Tested | Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). wired; not yet verified in the running client. gaps: Upstream also unindents code blocks when rendering received messages; Qord's Markdown renderer has no fenced code block node yet to hook into. |
+| Unindent | `src/plugins/unindent` | `plugins/chat/unindent` | Tested | Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). Received messages are unindented when shown, like upstream's renderer patch; the stored message is unchanged. wired; not yet verified in the running client. |
 | UnitConverter | `src/equicordplugins/unitConverter` |  | Not Started |  |
 | UniversalMention | `src/equicordplugins/universalMention` |  | Not Started |  |
 | UnlimitedAccounts | `src/equicordplugins/unlimitedAccounts` |  | Not Started |  |
 | UnlockedAvatarZoom | `src/plugins/unlockedAvatarZoom` |  | Not Started |  |
 | UnreadCountBadge | `src/equicordplugins/unreadBadgeCount` |  | Not Started |  |
-| UnsuppressEmbeds | `src/plugins/unsuppressEmbeds` |  | Not Started |  |
+| UnsuppressEmbeds | `src/plugins/unsuppressEmbeds` | `plugins/chat/unsuppressembeds` | Tested | Discord decides whether you may change another user's message (Manage Messages); Qord shows the item like upstream and lets the request fail otherwise. wired; not yet verified in the running client. gaps: Embeds inside forwarded messages do not count yet: Qord's message context does not include forwarded snapshots. |
 | UrlHighlighter | `src/equicordplugins/urlHighlighter` |  | Not Started |  |
 | UserMessagesPronouns | `src/plugins/userMessagesPronouns` |  | Not Started |  |
 | UserPFP | `src/equicordplugins/userpfp` |  | Not Started |  |

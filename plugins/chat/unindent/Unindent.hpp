@@ -21,14 +21,25 @@ QString unindent(QString text);
 // and single-line blocks are untouched.
 QString unindentMessage(const QString &content);
 
+// Display side (upstream patches the code block renderer): unindents the
+// body of every fenced code block as Discord's parser reads it.
+QString unindentRendered(const QString &content);
+
 } // namespace Unindent
 
 class UnindentPlugin : public Plugin
 {
 public:
-    [[nodiscard]] Hooks hooks() const override { return Hook::BeforeSend | Hook::BeforeEdit; }
+    [[nodiscard]] Hooks hooks() const override
+    {
+        return Hook::BeforeSend | Hook::BeforeEdit | Hook::TransformIncomingContent;
+    }
     void onBeforeSend(OutgoingMessage &message) override { message.content = Unindent::unindentMessage(message.content); }
     void onBeforeEdit(OutgoingMessage &message) override { message.content = Unindent::unindentMessage(message.content); }
+    void transformIncomingContent(IncomingMessage &message) override
+    {
+        message.content = Unindent::unindentRendered(message.content);
+    }
 };
 
 } // namespace Plugins

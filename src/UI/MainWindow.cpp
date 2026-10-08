@@ -117,7 +117,7 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     chatModel->setDisplayNameResolver([this](const Discord::User &author, Snowflake guildId) -> QString {
         if (!currentInstance)
             return QString();
-        return currentInstance->users()->getAuthorDisplayName(author, guildId);
+        return qordAuthorName(author, guildId); // plugins may rename (ShowMeYourName)
     });
 
     chatModel->setRoleColorResolver(
@@ -160,8 +160,7 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     typingIndicator->setRoleColorResolver(
             [this](Snowflake userId, Snowflake guildId) { return resolveRoleColor(userId, guildId); });
 
-    connect(typingTracker, &TypingTracker::typersChanged, this,
-            [this]() { typingIndicator->setTypers(typingTracker->getActiveTypers()); });
+    connect(typingTracker, &TypingTracker::typersChanged, this, &MainWindow::refreshTypers);
 
     connect(channelTreeModel, &ChannelTreeModel::totalMentionCountChanged, this,
             &MainWindow::onTotalMentionCountChanged);

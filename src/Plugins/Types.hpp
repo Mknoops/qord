@@ -56,6 +56,47 @@ struct ChatContext
     Id accountId = 0;
     Id channelId = 0;
     Id guildId = 0;
+    // For chat bar clicks: which mouse button (Discord plugins act differently
+    // on left, middle and right clicks)
+    enum class Click { Left, Middle, Right };
+    Click click = Click::Left;
+};
+
+// About to tell Discord the user is typing.
+struct TypingContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    Id guildId = 0; // 0 in DMs
+    Id connectedVoiceChannelId = 0; // the voice channel the user is in, if any
+    QDateTime lastOwnMessageAt; // the user's last message in this channel, if loaded
+};
+
+// A message author's name about to be shown in the chat.
+struct AuthorContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0;
+    Id userId = 0;
+    QString username;
+    QString globalName; // display name, may be empty
+    QString nick; // server nickname, may be empty
+    QString friendNickname; // your friend nickname for them, may be empty
+    bool isBot = false;
+    QString discriminator; // "0" for migrated users
+    enum class Place { Message, Reply };
+    Place place = Place::Message;
+};
+
+// A server or channel that a context menu was opened for.
+struct ChannelContext
+{
+    Id accountId = 0;
+    Id guildId = 0; // 0 for DMs
+    Id channelId = 0; // 0 when the menu is for the server itself
+    QString name;
+    int type = -1; // Discord channel type, -1 for a server
 };
 
 // A user that a context menu was opened for.
@@ -105,6 +146,19 @@ struct MessageContext
     bool deleted = false; // kept on screen by a plugin after deletion
     QString imageUrl; // for context menus: the image under the cursor
     QString rawJson; // what the client knows about the message, as JSON
+    bool hasEmbeds = false;
+    bool canEmbedLinks = true; // the user may embed links in this channel
+    bool isDm = false; // a 1:1 DM
+    bool isGroupDm = false;
+    bool mentionsMe = false; // the current user is in the message's user mentions
+    bool mentionEveryone = false;
+};
+
+// A message the client is about to show a desktop notification for.
+struct NotificationContext
+{
+    MessageContext message;
+    bool isOldestUnread = false; // first unread message in its channel
 };
 
 // One part of a text diff (see TextDiff.hpp).

@@ -7,9 +7,14 @@
 #include "Core/RelationshipManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
+#include "Core/Markdown/Parser.hpp"
 
 #include <QApplication>
 #include <QClipboard>
+#include <QComboBox>
+#include <QDateTimeEdit>
+#include <QLineEdit>
+#include <QLocale>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -166,6 +171,132 @@ void QtUiService::openUrl(const QUrl &url)
     QDesktopServices::openUrl(url);
 }
 
+std::function<void(const QString &)> &QtUiService::messageBoxInserter()
+{
+    static std::function<void(const QString &)> inserter;
+    return inserter;
+}
+
+std::function<void(const QString &)> &QtUiService::pluginSettingsOpener()
+{
+    static std::function<void(const QString &)> opener;
+    return opener;
+}
+
+void QtUiService::openPluginSettings(const QString &pluginId)
+{
+    if (pluginSettingsOpener())
+        pluginSettingsOpener()(pluginId);
+}
+
+void QtUiService::promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
+                             std::function<void(const QString &)> done)
+{
+    auto *dialog = new QDialog(QApplication::activeWindow());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(title);
+    dialog->setMinimumWidth(380);
+    auto *layout = new QVBoxLayout(dialog);
+    auto *caption = new QLabel(label, dialog);
+    caption->setWordWrap(true);
+    layout->addWidget(caption);
+    auto *field = new QLineEdit(initial, dialog);
+    if (maxLength > 0)
+        field->setMaxLength(maxLength);
+    layout->addWidget(field);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, dialog);
+    layout->addWidget(buttons);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, dialog, [dialog, field, done]() {
+        done(field->text());
+        dialog->accept();
+    });
+    dialog->open();
+    field->setFocus();
+}
+
+void QtUiService::insertIntoMessageBox(const QString &text)
+{
+    if (messageBoxInserter())
+        messageBoxInserter()(text);
+}
+
+void QtUiService::pickTimestamp(std::function<void(const QString &)> done)
+{
+    // Discord's timestamp picker: when, which format, and a live preview
+    auto *dialog = new QDialog(QApplication::activeWindow());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(QObject::tr("Timestamp Picker"));
+    auto *layout = new QVBoxLayout(dialog);
+    auto *when = new QDateTimeEdit(QDateTime::currentDateTime(), dialog);
+    when->setCalendarPopup(true);
+    when->setDisplayFormat(QLocale().dateTimeFormat(QLocale::ShortFormat));
+    layout->addWidget(when);
+    layout->addWidget(new QLabel(QObject::tr("<b>Timestamp Format</b>"), dialog));
+    auto *format = new QComboBox(dialog);
+    layout->addWidget(format);
+    layout->addWidget(new QLabel(QObject::tr("<b>Preview</b>"), dialog));
+    auto *preview = new QLabel(dialog);
+    preview->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    layout->addWidget(preview);
+    auto *buttons = new QDialogButtonBox(dialog);
+    QPushButton *insert = buttons->addButton(QObject::tr("Insert"), QDialogButtonBox::AcceptRole);
+    buttons->addButton(QDialogButtonBox::Cancel);
+    layout->addWidget(buttons);
+
+    // Upstream also offers "s" and "S"; Qord's renderer knows Discord's seven styles
+    static const char *const styles[] = { "", "t", "T", "d", "D", "f", "F", "R" };
+    const auto markup = [when, format]() {
+        const qint64 secs = when->dateTime().toSecsSinceEpoch();
+        const QString style = format->currentData().toString();
+        return style.isEmpty() ? QStringLiteral("<t:%1>").arg(secs) : QStringLiteral("<t:%1:%2>").arg(secs).arg(style);
+    };
+    const auto refresh = [when, format, preview, markup]() {
+        const qint64 secs = when->dateTime().toSecsSinceEpoch();
+        const int current = format->currentIndex();
+        format->blockSignals(true);
+        format->clear();
+        for (const char *style : styles) {
+            const QChar c = *style ? QChar::fromLatin1(*style) : QChar('f');
+            format->addItem(QStringLiteral("%1  —  %2")
+                                    .arg(*style ? QString::fromLatin1(style) : QObject::tr("default"),
+                                         Acheron::Core::Markdown::formatDiscordTimestamp(secs, c, QDateTime::currentDateTime(), QLocale())),
+                            QString::fromLatin1(style));
+        }
+        format->setCurrentIndex(qMax(0, current));
+        format->blockSignals(false);
+        const QString style = format->currentData().toString();
+        preview->setText(QStringLiteral("%1  (%2)").arg(
+                Acheron::Core::Markdown::formatDiscordTimestamp(secs, style.isEmpty() ? QChar('f') : style.at(0),
+                                                                QDateTime::currentDateTime(), QLocale()),
+                markup()));
+    };
+    refresh();
+    QObject::connect(when, &QDateTimeEdit::dateTimeChanged, dialog, refresh);
+    QObject::connect(format, qOverload<int>(&QComboBox::currentIndexChanged), dialog, refresh);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+    QObject::connect(insert, &QPushButton::clicked, dialog, [dialog, markup, done]() {
+        done(markup());
+        dialog->accept();
+    });
+    dialog->open();
+}
+
+void QtDisplayOptions::setRelativeTimeRoundsDown(bool floor)
+{
+    Acheron::Core::Markdown::setRelativeTimeRoundsDown(floor);
+    // Re-render what is on screen (signals are public; the window listens)
+    if (host)
+        emit host->displayTransformsChanged();
+}
+
+void SessionMessageActions::setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags)
+{
+    if (auto *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->discord()->setMessageFlags(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId),
+                                             flags);
+}
+
 void SessionMessageService::refreshMessage(Id accountId, Id channelId, Id messageId)
 {
     if (auto *instance = session->client(Acheron::Core::Snowflake(accountId)))
@@ -190,7 +321,7 @@ static QString pluginDataDirectory()
 }
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
-    : members(session), relationships(session), messages(session)
+    : members(session), relationships(session), messages(session), messageActions(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -205,9 +336,12 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.relationships = &relationships;
     services.ui = &ui;
     services.messages = &messages;
+    services.messageActions = &messageActions;
+    services.displayOptions = &displayOptions;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();
+    displayOptions.host = pluginHost.get();
     pluginHost->load();
     PluginHost::setInstance(pluginHost.get());
 

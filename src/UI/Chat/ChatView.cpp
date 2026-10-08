@@ -419,6 +419,12 @@ void ChatView::openLink(const QString &url)
         return;
     }
 
+    // Qord: plugins (AlwaysTrust) may skip the warning
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && !host->dispatchShouldConfirmLink(url)) {
+        QDesktopServices::openUrl(QUrl(url));
+        return;
+    }
+
     auto *confirm = new ConfirmPopup(tr("External Link"), QString(tr("Are you sure you want to open <b>%1</b>?")).arg(url), tr("Open Link"), this);
     confirm->setAttribute(Qt::WA_DeleteOnClose);
     connect(confirm, &QDialog::accepted, this, [url]() { QDesktopServices::openUrl(QUrl(url)); });

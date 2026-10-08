@@ -62,7 +62,23 @@ private slots:
         m.content = "```\n\ty\n```";
         h.host->dispatchBeforeEdit(m);
         QCOMPARE(m.content, QStringLiteral("```\ny\n```"));
-        QVERIFY(!h.host->hasHook(Hook::TransformIncomingContent));
+    }
+
+    void displaySide()
+    {
+        // Upstream unindents the code block's content when rendering it
+        QCOMPARE(Unindent::unindentRendered("a\n```cpp\n    int x;\n      y;\n```\nb"),
+                 QStringLiteral("a\n```cpp\nint x;\n  y;```\nb"));
+        // No language: the first code line must not turn into one
+        QCOMPARE(Unindent::unindentRendered("```\n  foo\n    bar```"), QStringLiteral("```\nfoo\n  bar```"));
+        QCOMPARE(Unindent::unindentRendered("plain `code` text"), QStringLiteral("plain `code` text"));
+
+        SinglePluginHost h(qord_register_unindent);
+        QVERIFY(h.enableWithAllPermissions());
+        IncomingMessage in;
+        in.content = "```\n    x\n```";
+        h.host->dispatchTransformIncomingContent(in);
+        QCOMPARE(in.content, QStringLiteral("```\nx```"));
     }
 
     void benchmarkPlainMessage()

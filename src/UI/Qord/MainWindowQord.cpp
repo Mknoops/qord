@@ -17,6 +17,13 @@
 #include "UI/Chat/ChatView.hpp"
 #include "UI/Qord/EmojiPicker.hpp"
 #include "UI/Qord/FriendsPage.hpp"
+#include "UI/Settings/SettingsWindow.hpp"
+#include "Core/RelationshipManager.hpp"
+#include "Core/UserManager.hpp"
+#include "Plugins/Client/ClientPlugins.hpp"
+#include "Plugins/PluginHost.hpp"
+#include "UI/TypingIndicator.hpp"
+#include "Core/TypingTracker.hpp"
 #include "UI/Qord/AddServerDialog.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
@@ -56,6 +63,23 @@ void MainWindow::setupQordFeatures()
             return;
         lastTypingChannel = channelId;
         lastTypingSentMs = now;
+        // Plugins (SilentTyping) may keep the typing indicator to ourselves
+        if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::Typing)) {
+            Qord::Plugins::TypingContext typing;
+            typing.accountId = quint64(currentInstance->accountId());
+            typing.channelId = quint64(channelId);
+            typing.guildId = quint64(chatModel->getActiveGuildId());
+            typing.connectedVoiceChannelId = quint64(currentInstance->voiceChannelId());
+            for (int row = chatModel->rowCount() - 1; row >= 0; --row) {
+                const QModelIndex idx = chatModel->index(row, 0);
+                if (Snowflake(idx.data(ChatModel::UserIdRole).toULongLong()) == currentInstance->accountId()) {
+                    typing.lastOwnMessageAt = idx.data(ChatModel::TimestampRole).toDateTime();
+                    break;
+                }
+            }
+            if (!host->dispatchShouldSendTyping(typing))
+                return;
+        }
         currentInstance->discord()->sendTyping(channelId);
     });
     // The user panel follows the first connected account until a channel is opened
@@ -106,9 +130,11 @@ void MainWindow::setupQordFeatures()
     // Mute / notification settings on server and channel menus
     serverRail->setMenuExtender([this](QMenu *menu, Snowflake accountId, Snowflake guildId) {
         addNotificationMenu(menu, session->client(accountId), guildId, Snowflake::Invalid);
+        addPluginChannelItems(menu, accountId, guildId, Snowflake::Invalid);
     });
     channelTree->setMenuExtender([this](QMenu *menu, Snowflake accountId, Snowflake guildId, Snowflake channelId) {
         addNotificationMenu(menu, session->client(accountId), guildId, channelId);
+        addPluginChannelItems(menu, accountId, guildId, channelId);
     });
 
     // Friends page: open a DM from it
@@ -125,6 +151,45 @@ void MainWindow::setupQordFeatures()
             guard->selectChannelInTree(accountId, *result.value);
         });
     });
+
+    chatModel->setReplyNameResolver([this](const Discord::User &author, Snowflake guildId) {
+        return currentInstance ? qordAuthorName(author, guildId, true) : QString();
+    });
+
+    // Plugins: message box insertion, re-render on presentation changes
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::pluginSettingsOpener() = nullptr;
+        Qord::Plugins::QtUiService::messageBoxInserter() = nullptr;
+    });
+    Qord::Plugins::QtUiService::pluginSettingsOpener() = [this](const QString &pluginId) {
+        openSettingsWindow();
+        if (settingsWindow)
+            settingsWindow->showPlugin(pluginId);
+    };
+    Qord::Plugins::QtUiService::messageBoxInserter() = [this](const QString &text) {
+        messageInput->insertText(text);
+        messageInput->setFocus();
+    };
+    if (auto *host = Qord::Plugins::PluginHost::instance()) {
+        // Display plugins changed (TextReplace, Unindent, DontRoundMyTimestamps):
+        // re-render the messages on screen from their stored content
+        connect(host, &Qord::Plugins::PluginHost::displayTransformsChanged, this, [this]() {
+            if (!currentInstance)
+                return;
+            const Snowflake channelId = chatModel->getActiveChannelId();
+            QList<Snowflake> ids;
+            for (int row = 0; row < chatModel->rowCount(); ++row)
+                ids.append(Snowflake(chatModel->index(row, 0).data(ChatModel::MessageIdRole).toULongLong()));
+            for (Snowflake id : ids)
+                currentInstance->messages()->refreshMessage(channelId, id);
+        });
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() {
+            chatModel->invalidateDocCache();
+            chatModel->invalidateLayout();
+            chatView->viewport()->update();
+            refreshTypers();
+        });
+    }
 
     // Sending a message ends the typing state, like the official client
     connect(messageInput, &MessageInput::sendMessage, this, [this]() { lastTypingSentMs = 0; });
@@ -151,9 +216,9 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
 {
     const QPointer<Core::ClientInstance> guard(instance);
     connect(instance, &Core::ClientInstance::notifiableMessage, this,
-            [this, guard](const Discord::Message &message, bool mentionsMe) {
+            [this, guard](const Discord::Message &message, bool mentionsMe, bool wasUnread) {
                 if (guard && notifier)
-                    notifier->consider(guard, message, mentionsMe, chatModel->getActiveChannelId());
+                    notifier->consider(guard, message, mentionsMe, wasUnread, chatModel->getActiveChannelId());
             });
 }
 
@@ -220,6 +285,85 @@ void MainWindow::addNotificationMenu(QMenu *menu, Core::ClientInstance *instance
                 patch(QJsonObject{ { "message_notifications", level } });
         });
     }
+}
+
+void MainWindow::refreshTypers()
+{
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::Typing)) {
+        Qord::Plugins::ChatContext chat;
+        chat.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
+        chat.channelId = quint64(chatModel->getActiveChannelId());
+        chat.guildId = quint64(chatModel->getActiveGuildId());
+        if (!host->dispatchShouldShowTypers(chat)) {
+            typingIndicator->setTypers({});
+            return;
+        }
+    }
+    typingIndicator->setTypers(typingTracker->getActiveTypers());
+}
+
+QString MainWindow::qordAuthorName(const Discord::User &author, Snowflake guildId, bool reply)
+{
+    const QString fallback = currentInstance->users()->getAuthorDisplayName(author, guildId);
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !host->hasHook(Qord::Plugins::Hook::AuthorNames))
+        return fallback;
+    Qord::Plugins::AuthorContext ctx;
+    ctx.accountId = quint64(currentInstance->accountId());
+    ctx.guildId = quint64(guildId);
+    ctx.channelId = quint64(chatModel->getActiveChannelId());
+    ctx.userId = quint64(author.id.get());
+    ctx.username = author.username.get();
+    ctx.globalName = author.globalName.hasValue() ? author.globalName.get() : QString();
+    if (guildId.isValid())
+        ctx.nick = currentInstance->users()->getNickname(author.id.get(), guildId);
+    ctx.friendNickname = currentInstance->relationships()->getNickname(author.id.get());
+    ctx.isBot = author.bot.hasValue() && author.bot.get();
+    ctx.discriminator = author.discriminator.hasValue() ? author.discriminator.get() : QStringLiteral("0");
+    ctx.place = reply ? Qord::Plugins::AuthorContext::Place::Reply : Qord::Plugins::AuthorContext::Place::Message;
+    return host->dispatchAuthorDisplayName(ctx).value_or(fallback);
+}
+
+void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowflake guildId, Snowflake channelId)
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    Core::ClientInstance *instance = session->client(accountId);
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::ChannelContextMenu))
+        return;
+    Qord::Plugins::ChannelContext ctx;
+    ctx.accountId = quint64(accountId);
+    ctx.channelId = quint64(channelId);
+    if (channelId.isValid()) {
+        if (const auto channel = instance->getChannel(channelId)) {
+            ctx.guildId = channel->guildId.hasValue() ? quint64(channel->guildId.get()) : 0;
+            ctx.name = channel->name.hasValue() ? channel->name.get() : QString();
+            ctx.type = channel->type.hasValue() ? int(channel->type.get()) : -1;
+        }
+    } else {
+        ctx.guildId = quint64(guildId);
+        if (const auto guild = instance->getGuild(guildId))
+            ctx.name = guild->name.get();
+    }
+    const auto items = host->dispatchChannelContextMenuItems(ctx);
+    if (items.isEmpty())
+        return;
+    menu->addSeparator();
+    std::function<void(QMenu *, const QString &, const Qord::Plugins::MenuItem &)> addItem =
+            [&](QMenu *target, const QString &pluginId, const Qord::Plugins::MenuItem &item) {
+                if (!item.children.isEmpty()) {
+                    QMenu *sub = target->addMenu(item.label);
+                    for (const auto &child : item.children)
+                        addItem(sub, pluginId, child);
+                    return;
+                }
+                QAction *action = target->addAction(item.label);
+                connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, ctx]() {
+                    if (auto *h = Qord::Plugins::PluginHost::instance())
+                        h->dispatchChannelContextMenuAction(pluginId, itemId, ctx);
+                });
+            };
+    for (const auto &entry : items)
+        addItem(menu, entry.pluginId, entry.item);
 }
 
 void MainWindow::showFriendsPage()

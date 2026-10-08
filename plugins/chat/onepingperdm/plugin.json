@@ -1,0 +1,37 @@
+{
+  "id": "onepingperdm",
+  "equicordName": "OnePingPerDM",
+  "equicordPath": "src/plugins/onePingPerDM",
+  "name": "OnePingPerDM",
+  "description": "If unread messages are sent by a user in DMs multiple times, you'll only receive one audio ping. Read the messages to reset the limit",
+  "categories": ["chat"],
+  "tags": ["Notifications", "Customisation"],
+  "authors": ["ProffDea"],
+  "permissions": ["control_notifications"],
+  "hooks": ["notifications"],
+  "settings": [
+    { "key": "channelToAffect", "type": "choice", "default": "both_dms", "label": "Channel to affect",
+      "description": "Select the type of DM for the plugin to affect",
+      "choices": [
+        { "value": "both_dms", "label": "Both" },
+        { "value": "user_dm", "label": "User DMs" },
+        { "value": "group_dm", "label": "Group DMs" }
+      ] },
+    { "key": "allowMentions", "type": "bool", "default": false, "label": "Allow mentions",
+      "description": "Receive audio pings for @mentions" },
+    { "key": "allowEveryone", "type": "bool", "default": false, "label": "Allow @everyone",
+      "description": "Receive audio pings for @everyone and @here in group DMs" },
+    { "key": "ignoreUsers", "type": "string", "default": "", "label": "Ignore users",
+      "description": "User IDs (comma + space) whose pings should NEVER be throttled" },
+    { "key": "alwaysPlaySound", "type": "bool", "default": false, "label": "Always play sound",
+      "description": "Play the message notification sound even when its disabled" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "\"Always play sound\": Qord has no notification sounds yet."
+  ],
+  "notes": "Qord's notification for a DM is a desktop toast and a taskbar flash (it has no sound yet), so this plugin limits those to the first unread message in each DM."
+}

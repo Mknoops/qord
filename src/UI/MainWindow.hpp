@@ -272,6 +272,9 @@ private:
     void showFriendsPage();
     void hideFriendsPage();
     void connectQordInstance(Core::ClientInstance *instance);
+    void refreshTypers();
+    QString qordAuthorName(const Discord::User &author, Core::Snowflake guildId, bool reply = false);
+    void addPluginChannelItems(QMenu *menu, Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake channelId);
     void addNotificationMenu(QMenu *menu, Core::ClientInstance *instance, Core::Snowflake guildId,
                              Core::Snowflake channelId);
     class DesktopNotifier *notifier = nullptr;

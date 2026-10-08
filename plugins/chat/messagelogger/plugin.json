@@ -4,37 +4,130 @@
   "equicordPath": "src/plugins/messageLogger",
   "name": "MessageLogger",
   "description": "Temporarily logs deleted and edited messages.",
-  "categories": ["chat", "utility"],
-  "tags": ["Chat", "Utility"],
-  "authors": ["rushii", "Ven", "AutumnVN", "Nickyux", "Kyuuhachi", "sadan", "justjxke"],
-  "permissions": ["log_messages", "add_ui_elements"],
-  "hooks": ["messageHistory", "messageContextMenu"],
+  "categories": [
+    "chat",
+    "utility"
+  ],
+  "tags": [
+    "Chat",
+    "Utility"
+  ],
+  "authors": [
+    "rushii",
+    "Ven",
+    "AutumnVN",
+    "Nickyux",
+    "Kyuuhachi",
+    "sadan",
+    "justjxke"
+  ],
+  "permissions": [
+    "log_messages",
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "messageHistory",
+    "messageContextMenu",
+    "channelContextMenu"
+  ],
   "settings": [
-    { "key": "deleteStyle", "type": "choice", "default": "text", "label": "Deleted style",
+    {
+      "key": "deleteStyle",
+      "type": "choice",
+      "default": "text",
+      "label": "Deleted style",
       "description": "The style of deleted messages",
-      "choices": [ { "value": "text", "label": "Red text" }, { "value": "overlay", "label": "Red overlay" } ] },
-    { "key": "logDeletes", "type": "bool", "default": true, "label": "Log deletes",
-      "description": "Whether to log deleted messages" },
-    { "key": "logEdits", "type": "bool", "default": true, "label": "Log edits",
-      "description": "Whether to log edited messages" },
-    { "key": "inlineEdits", "type": "bool", "default": true, "label": "Inline edits",
-      "description": "Whether to display edit history as part of message content" },
-    { "key": "ignoreBots", "type": "bool", "default": true, "label": "Ignore bots",
-      "description": "Whether to ignore messages by bots" },
-    { "key": "ignoreSelf", "type": "bool", "default": false, "label": "Ignore yourself",
-      "description": "Whether to ignore messages by yourself" },
-    { "key": "ignoreSelfEdits", "type": "bool", "default": false, "label": "Ignore your edits",
-      "description": "Whether to ignore edits by yourself" },
-    { "key": "ignoreUsers", "type": "string", "default": "", "multiline": true, "label": "Ignored users",
-      "description": "Comma-separated list of user IDs to ignore" },
-    { "key": "ignoreChannels", "type": "string", "default": "", "multiline": true, "label": "Ignored channels",
-      "description": "Comma-separated list of channel IDs to ignore" },
-    { "key": "ignoreGuilds", "type": "string", "default": "", "multiline": true, "label": "Ignored servers",
-      "description": "Comma-separated list of guild IDs to ignore" },
-    { "key": "showEditDiffs", "type": "bool", "default": false, "label": "Show edit diffs",
-      "description": "Show visual differences between edited message versions" },
-    { "key": "separatedDiffs", "type": "bool", "default": false, "label": "Separated diffs",
-      "description": "Separate addition and removals in diffs for a more readable differential" }
+      "choices": [
+        {
+          "value": "text",
+          "label": "Red text"
+        },
+        {
+          "value": "overlay",
+          "label": "Red overlay"
+        }
+      ]
+    },
+    {
+      "key": "logDeletes",
+      "type": "bool",
+      "default": true,
+      "label": "Log deletes",
+      "description": "Whether to log deleted messages"
+    },
+    {
+      "key": "logEdits",
+      "type": "bool",
+      "default": true,
+      "label": "Log edits",
+      "description": "Whether to log edited messages"
+    },
+    {
+      "key": "inlineEdits",
+      "type": "bool",
+      "default": true,
+      "label": "Inline edits",
+      "description": "Whether to display edit history as part of message content"
+    },
+    {
+      "key": "ignoreBots",
+      "type": "bool",
+      "default": true,
+      "label": "Ignore bots",
+      "description": "Whether to ignore messages by bots"
+    },
+    {
+      "key": "ignoreSelf",
+      "type": "bool",
+      "default": false,
+      "label": "Ignore yourself",
+      "description": "Whether to ignore messages by yourself"
+    },
+    {
+      "key": "ignoreSelfEdits",
+      "type": "bool",
+      "default": false,
+      "label": "Ignore your edits",
+      "description": "Whether to ignore edits by yourself"
+    },
+    {
+      "key": "ignoreUsers",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Ignored users",
+      "description": "Comma-separated list of user IDs to ignore"
+    },
+    {
+      "key": "ignoreChannels",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Ignored channels",
+      "description": "Comma-separated list of channel IDs to ignore"
+    },
+    {
+      "key": "ignoreGuilds",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Ignored servers",
+      "description": "Comma-separated list of guild IDs to ignore"
+    },
+    {
+      "key": "showEditDiffs",
+      "type": "bool",
+      "default": false,
+      "label": "Show edit diffs",
+      "description": "Show visual differences between edited message versions"
+    },
+    {
+      "key": "separatedDiffs",
+      "type": "bool",
+      "default": false,
+      "label": "Separated diffs",
+      "description": "Separate addition and removals in diffs for a more readable differential"
+    }
   ],
   "enabledByDefault": false,
   "target": "",
@@ -43,7 +136,6 @@
   "notes": "Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu (\"View Edit History\") instead of by clicking \"(edited)\".",
   "gaps": [
     "Collapsing deleted messages into a \"N deleted messages\" group (collapseDeleted) needs message grouping UI Qord does not have yet",
-    "Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs",
-    "The channel context menu entry \"Clear Message Log\" needs a channel context menu surface"
+    "Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs"
   ]
 }

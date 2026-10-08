@@ -89,6 +89,8 @@ inline constexpr const char *SpoilerHiddenStyle = "background-color: #1e1f22; co
 inline constexpr const char *SpoilerShownStyle = "background-color: #3c3d43; color: #dbdee1; text-decoration: none;";
 
 QString formatDiscordTimestamp(qint64 unixSeconds, QChar style, const QDateTime &now, const QLocale &locale);
+// moment.js relativeTimeRounding: Math.round (default) or Math.floor
+void setRelativeTimeRoundsDown(bool floor);
 
 class Parser
 {

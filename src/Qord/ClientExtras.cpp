@@ -228,5 +228,16 @@ void Client::updateGuildNotificationSettings(Snowflake guildId, const QJsonObjec
                       [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }
 
+void Client::setMessageFlags(Snowflake channelId, Snowflake messageId, quint64 flags)
+{
+    QJsonObject body;
+    body["flags"] = static_cast<qint64>(flags);
+    httpClient->patch("/channels/" + QString::number(channelId) + "/messages/" + QString::number(messageId), body,
+                      [](const HttpResponse &response) {
+                          if (!response.success)
+                              qCWarning(LogDiscord) << "Failed to change message flags:" << response.statusCode;
+                      });
+}
+
 } // namespace Discord
 } // namespace Acheron

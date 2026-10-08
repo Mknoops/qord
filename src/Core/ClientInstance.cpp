@@ -1254,9 +1254,10 @@ void ClientInstance::onMessageCreated(const Discord::Message &msg)
     }
 
     bool isMention = !fromSelf && isMessageMentioningMe(msg);
+    const bool wasUnread = readStateManager->hasUnreadOrMentions(channelId);
     readStateManager->handleMessageCreated(channelId, messageId, fromSelf, isMention);
     if (!fromSelf)
-        emit notifiableMessage(msg, isMention);
+        emit notifiableMessage(msg, isMention, wasUnread);
 
     emit channelLastMessageUpdated(channelId, messageId);
 }

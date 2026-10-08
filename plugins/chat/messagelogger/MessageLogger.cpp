@@ -269,6 +269,42 @@ void MessageLoggerPlugin::onMessageContextMenuAction(const QString &id, const Me
         messages->refreshMessage(m.accountId, m.channelId, m.messageId);
 }
 
+QList<MenuItem> MessageLoggerPlugin::channelContextMenuItems(const ChannelContext &channel)
+{
+    if (!channel.channelId)
+        return {};
+    for (auto it = where.cbegin(); it != where.cend(); ++it)
+        if (it.value().second == channel.channelId && records.contains(it.key()))
+            return { { QStringLiteral("vc-ml-clear-channel"), QStringLiteral("Clear Message Log"), {} } };
+    return {};
+}
+
+void MessageLoggerPlugin::onChannelContextMenuAction(const QString &id, const ChannelContext &channel)
+{
+    if (id != QLatin1String("vc-ml-clear-channel") || !channel.channelId)
+        return;
+    MessageService *messages = context->messages();
+    QList<Id> cleared;
+    for (auto it = where.cbegin(); it != where.cend(); ++it)
+        if (it.value().second == channel.channelId)
+            cleared.append(it.key());
+    for (Id messageId : cleared) {
+        const auto [accountId, channelId] = where.take(messageId);
+        const auto rec = records.find(messageId);
+        if (rec == records.end())
+            continue;
+        const bool deleted = rec->deleted;
+        records.erase(rec);
+        // Like upstream's clearMessageHistory: deleted ones leave, edited ones lose their history
+        if (messages) {
+            if (deleted)
+                messages->removeMessage(accountId, channelId, messageId);
+            else
+                messages->refreshMessage(accountId, channelId, messageId);
+        }
+    }
+}
+
 QByteArray qord_manifest_messagelogger();
 
 void qord_register_messagelogger(Registry &registry)

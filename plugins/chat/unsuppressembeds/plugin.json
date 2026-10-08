@@ -1,0 +1,21 @@
+{
+  "id": "unsuppressembeds",
+  "equicordName": "UnsuppressEmbeds",
+  "equicordPath": "src/plugins/unsuppressEmbeds",
+  "name": "UnsuppressEmbeds",
+  "description": "Allows you to unsuppress embeds in messages",
+  "categories": ["chat", "utility"],
+  "tags": ["Chat", "Utility"],
+  "authors": ["rad", "HypedDomi"],
+  "permissions": ["add_ui_elements", "edit_messages"],
+  "hooks": ["messageContextMenu"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Embeds inside forwarded messages do not count yet: Qord's message context does not include forwarded snapshots."
+  ],
+  "notes": "Discord decides whether you may change another user's message (Manage Messages); Qord shows the item like upstream and lets the request fail otherwise."
+}

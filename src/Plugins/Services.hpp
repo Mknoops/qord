@@ -74,6 +74,42 @@ public:
     virtual void showTextDialog(const QString &title, const QList<TextSection> &sections) = 0;
     // Needs the open_links permission (PluginContext enforces it).
     virtual void openUrl(const QUrl &url) = 0;
+    // Inserts text at the cursor in the message box.
+    virtual void insertIntoMessageBox(const QString &text) { Q_UNUSED(text); }
+    // Discord's timestamp picker: date, time and format, with a preview.
+    // The callback gets the formatted <t:...> markup; it is not called if
+    // the user cancels.
+    virtual void pickTimestamp(std::function<void(const QString &markup)> done) { Q_UNUSED(done); }
+    // Opens the Plugins settings page at this plugin.
+    virtual void openPluginSettings(const QString &pluginId) { Q_UNUSED(pluginId); }
+    // A small dialog asking for one line of text. `done` gets the text when
+    // the user saves; it is not called if they cancel.
+    virtual void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
+                            std::function<void(const QString &text)> done)
+    {
+        Q_UNUSED(title);
+        Q_UNUSED(label);
+        Q_UNUSED(initial);
+        Q_UNUSED(maxLength);
+        Q_UNUSED(done);
+    }
+};
+
+// How the client renders things that are not message content.
+class DisplayOptionsService
+{
+public:
+    virtual ~DisplayOptionsService() = default;
+    // Relative timestamps (<t:...:R>) round down instead of to nearest
+    virtual void setRelativeTimeRoundsDown(bool floor) = 0;
+};
+
+class MessageActionService
+{
+public:
+    virtual ~MessageActionService() = default;
+    // PATCH a message's flags (e.g. SUPPRESS_EMBEDS). Discord checks permissions.
+    virtual void setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags) = 0;
 };
 
 class MessageService
@@ -96,6 +132,8 @@ struct Services
     RelationshipDirectory *relationships = nullptr;
     UiService *ui = nullptr;
     MessageService *messages = nullptr;
+    MessageActionService *messageActions = nullptr;
+    DisplayOptionsService *displayOptions = nullptr;
 };
 
 } // namespace Plugins

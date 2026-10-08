@@ -1,0 +1,622 @@
+[
+ {
+  "floor": false,
+  "deltaMs": 0,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 0,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 10000,
+  "text": "in a few seconds"
+ },
+ {
+  "floor": false,
+  "deltaMs": -10000,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 44000,
+  "text": "in a few seconds"
+ },
+ {
+  "floor": false,
+  "deltaMs": -44000,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 44600,
+  "text": "in a minute"
+ },
+ {
+  "floor": false,
+  "deltaMs": -44600,
+  "text": "a minute ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 45000,
+  "text": "in a minute"
+ },
+ {
+  "floor": false,
+  "deltaMs": -45000,
+  "text": "a minute ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 89000,
+  "text": "in a minute"
+ },
+ {
+  "floor": false,
+  "deltaMs": -89000,
+  "text": "a minute ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 90000,
+  "text": "in 2 minutes"
+ },
+ {
+  "floor": false,
+  "deltaMs": -90000,
+  "text": "2 minutes ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 144000,
+  "text": "in 2 minutes"
+ },
+ {
+  "floor": false,
+  "deltaMs": -144000,
+  "text": "2 minutes ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 1800000,
+  "text": "in 30 minutes"
+ },
+ {
+  "floor": false,
+  "deltaMs": -1800000,
+  "text": "30 minutes ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 2640000,
+  "text": "in 44 minutes"
+ },
+ {
+  "floor": false,
+  "deltaMs": -2640000,
+  "text": "44 minutes ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 2676000,
+  "text": "in an hour"
+ },
+ {
+  "floor": false,
+  "deltaMs": -2676000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 2700000,
+  "text": "in an hour"
+ },
+ {
+  "floor": false,
+  "deltaMs": -2700000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 5340000,
+  "text": "in an hour"
+ },
+ {
+  "floor": false,
+  "deltaMs": -5340000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 5400000,
+  "text": "in 2 hours"
+ },
+ {
+  "floor": false,
+  "deltaMs": -5400000,
+  "text": "2 hours ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 18000000,
+  "text": "in 5 hours"
+ },
+ {
+  "floor": false,
+  "deltaMs": -18000000,
+  "text": "5 hours ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 77040000,
+  "text": "in 21 hours"
+ },
+ {
+  "floor": false,
+  "deltaMs": -77040000,
+  "text": "21 hours ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 77760000,
+  "text": "in a day"
+ },
+ {
+  "floor": false,
+  "deltaMs": -77760000,
+  "text": "a day ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 108000000,
+  "text": "in a day"
+ },
+ {
+  "floor": false,
+  "deltaMs": -108000000,
+  "text": "a day ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 129600000,
+  "text": "in 2 days"
+ },
+ {
+  "floor": false,
+  "deltaMs": -129600000,
+  "text": "2 days ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 216000000,
+  "text": "in 3 days"
+ },
+ {
+  "floor": false,
+  "deltaMs": -216000000,
+  "text": "3 days ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 2194560000,
+  "text": "in 25 days"
+ },
+ {
+  "floor": false,
+  "deltaMs": -2194560000,
+  "text": "25 days ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 2211840000,
+  "text": "in a month"
+ },
+ {
+  "floor": false,
+  "deltaMs": -2211840000,
+  "text": "a month ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 3456000000,
+  "text": "in a month"
+ },
+ {
+  "floor": false,
+  "deltaMs": -3456000000,
+  "text": "a month ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 3888000000,
+  "text": "in a month"
+ },
+ {
+  "floor": false,
+  "deltaMs": -3888000000,
+  "text": "a month ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 8640000000,
+  "text": "in 3 months"
+ },
+ {
+  "floor": false,
+  "deltaMs": -8640000000,
+  "text": "3 months ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 27561600000,
+  "text": "in 10 months"
+ },
+ {
+  "floor": false,
+  "deltaMs": -27561600000,
+  "text": "10 months ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 28512000000,
+  "text": "in a year"
+ },
+ {
+  "floor": false,
+  "deltaMs": -28512000000,
+  "text": "a year ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 34560000000,
+  "text": "in a year"
+ },
+ {
+  "floor": false,
+  "deltaMs": -34560000000,
+  "text": "a year ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 47174400000,
+  "text": "in a year"
+ },
+ {
+  "floor": false,
+  "deltaMs": -47174400000,
+  "text": "a year ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 47347200000,
+  "text": "in a year"
+ },
+ {
+  "floor": false,
+  "deltaMs": -47347200000,
+  "text": "2 years ago"
+ },
+ {
+  "floor": false,
+  "deltaMs": 239837760000,
+  "text": "in 8 years"
+ },
+ {
+  "floor": false,
+  "deltaMs": -239837760000,
+  "text": "8 years ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 0,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 0,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 10000,
+  "text": "in a few seconds"
+ },
+ {
+  "floor": true,
+  "deltaMs": -10000,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 44000,
+  "text": "in a few seconds"
+ },
+ {
+  "floor": true,
+  "deltaMs": -44000,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 44600,
+  "text": "in a few seconds"
+ },
+ {
+  "floor": true,
+  "deltaMs": -44600,
+  "text": "a few seconds ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 45000,
+  "text": "in a minute"
+ },
+ {
+  "floor": true,
+  "deltaMs": -45000,
+  "text": "a minute ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 89000,
+  "text": "in a minute"
+ },
+ {
+  "floor": true,
+  "deltaMs": -89000,
+  "text": "a minute ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 90000,
+  "text": "in a minute"
+ },
+ {
+  "floor": true,
+  "deltaMs": -90000,
+  "text": "a minute ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 144000,
+  "text": "in 2 minutes"
+ },
+ {
+  "floor": true,
+  "deltaMs": -144000,
+  "text": "2 minutes ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 1800000,
+  "text": "in 30 minutes"
+ },
+ {
+  "floor": true,
+  "deltaMs": -1800000,
+  "text": "30 minutes ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 2640000,
+  "text": "in 44 minutes"
+ },
+ {
+  "floor": true,
+  "deltaMs": -2640000,
+  "text": "44 minutes ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 2676000,
+  "text": "in 44 minutes"
+ },
+ {
+  "floor": true,
+  "deltaMs": -2676000,
+  "text": "44 minutes ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 2700000,
+  "text": "in an hour"
+ },
+ {
+  "floor": true,
+  "deltaMs": -2700000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 5340000,
+  "text": "in an hour"
+ },
+ {
+  "floor": true,
+  "deltaMs": -5340000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 5400000,
+  "text": "in an hour"
+ },
+ {
+  "floor": true,
+  "deltaMs": -5400000,
+  "text": "an hour ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 18000000,
+  "text": "in 5 hours"
+ },
+ {
+  "floor": true,
+  "deltaMs": -18000000,
+  "text": "5 hours ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 77040000,
+  "text": "in 21 hours"
+ },
+ {
+  "floor": true,
+  "deltaMs": -77040000,
+  "text": "21 hours ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 77760000,
+  "text": "in 21 hours"
+ },
+ {
+  "floor": true,
+  "deltaMs": -77760000,
+  "text": "21 hours ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 108000000,
+  "text": "in a day"
+ },
+ {
+  "floor": true,
+  "deltaMs": -108000000,
+  "text": "a day ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 129600000,
+  "text": "in a day"
+ },
+ {
+  "floor": true,
+  "deltaMs": -129600000,
+  "text": "a day ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 216000000,
+  "text": "in 2 days"
+ },
+ {
+  "floor": true,
+  "deltaMs": -216000000,
+  "text": "2 days ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 2194560000,
+  "text": "in 25 days"
+ },
+ {
+  "floor": true,
+  "deltaMs": -2194560000,
+  "text": "25 days ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 2211840000,
+  "text": "in 25 days"
+ },
+ {
+  "floor": true,
+  "deltaMs": -2211840000,
+  "text": "25 days ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 3456000000,
+  "text": "in a month"
+ },
+ {
+  "floor": true,
+  "deltaMs": -3456000000,
+  "text": "a month ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 3888000000,
+  "text": "in a month"
+ },
+ {
+  "floor": true,
+  "deltaMs": -3888000000,
+  "text": "a month ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 8640000000,
+  "text": "in 3 months"
+ },
+ {
+  "floor": true,
+  "deltaMs": -8640000000,
+  "text": "3 months ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 27561600000,
+  "text": "in 10 months"
+ },
+ {
+  "floor": true,
+  "deltaMs": -27561600000,
+  "text": "10 months ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 28512000000,
+  "text": "in 10 months"
+ },
+ {
+  "floor": true,
+  "deltaMs": -28512000000,
+  "text": "10 months ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 34560000000,
+  "text": "in a year"
+ },
+ {
+  "floor": true,
+  "deltaMs": -34560000000,
+  "text": "a year ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 47174400000,
+  "text": "in a year"
+ },
+ {
+  "floor": true,
+  "deltaMs": -47174400000,
+  "text": "a year ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 47347200000,
+  "text": "in a year"
+ },
+ {
+  "floor": true,
+  "deltaMs": -47347200000,
+  "text": "a year ago"
+ },
+ {
+  "floor": true,
+  "deltaMs": 239837760000,
+  "text": "in 7 years"
+ },
+ {
+  "floor": true,
+  "deltaMs": -239837760000,
+  "text": "7 years ago"
+ }
+]

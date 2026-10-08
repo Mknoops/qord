@@ -26,6 +26,10 @@ enum class Permission : quint32 {
     HideMessages = 1u << 9, // messageFilter
     ReadRelationships = 1u << 10, // PluginContext::relationships()
     OpenLinks = 1u << 11, // PluginContext::ui()->openUrl()
+    ControlTyping = 1u << 12, // typing
+    TrustLinks = 1u << 13, // linkWarnings
+    ControlNotifications = 1u << 14, // notifications
+    EditMessages = 1u << 15, // PluginContext::messageActions()
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -49,11 +53,16 @@ enum class Hook : quint32 {
     MessageContextMenu = 1u << 7,
     MessageHistory = 1u << 8,
     MessageFilter = 1u << 9,
+    Typing = 1u << 10,
+    LinkWarnings = 1u << 11,
+    Notifications = 1u << 12,
+    AuthorNames = 1u << 13,
+    ChannelContextMenu = 1u << 14,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 10;
+constexpr int HookCount = 15;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

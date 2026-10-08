@@ -53,6 +53,14 @@ and why, so it can be revisited deliberately.
 36. **More core Discord features.** An emoji picker (frequently used from the synced frecency data, each server's usable emoji with the current server first, all Unicode emoji, search) for the message box and Add Reaction, which Acheron left unimplemented; a react button on the hover bar; a Friends page on Home (Online/All/Pending/Blocked, Add Friend, accept/ignore/cancel, remove, unblock, message); "Add a Server" (create, or join with an invite link or code); mute and notification-level menus on servers, channels and DMs; desktop notifications for DMs and mentions (tray toast plus taskbar flash) that skip Do Not Disturb, muted servers/channels, messages plugins silence, and the channel you're looking at. The notification setting is `notifications/desktop` (on by default).
 37. **Menu extension points.** Server and channel right-click menus take an extender callback from the window. Mute and notification items use it, and it is the surface plugin channel items (e.g. MessageLogger's "Clear Message Log") will use.
 
+## 2026-10-08: batch 4
+
+38. **Five new hooks.** `typing` (whether to send your typing indicator, whether to show others typing; permission `control_typing`), `linkWarnings` (skip the confirmation before opening a link; `trust_links`), `notifications` (hold back a desktop notification; `control_notifications`), `authorNames` (the name shown for a message author or reply author; `modify_displayed_messages`) and `channelContextMenu` (items on server and channel menus; `add_ui_elements`). For yes/no hooks any plugin saying no wins. Chat bar buttons now report left, middle or right clicks.
+39. **New services.** UI: insert text into the message box, a timestamp picker, a one-line text prompt, open a plugin's settings page. Message actions (`edit_messages`): change a message's flags on Discord. Display options (`modify_displayed_messages`): relative-timestamp rounding. Callbacks from dialogs are dropped if the plugin has stopped.
+40. **Display plugins re-render what is on screen.** When a plugin that transforms received content (TextReplace, Unindent) or display options (DontRoundMyTimestamps) is toggled or reconfigured, the visible messages are re-parsed from their stored content. Decision 10's "on re-render only" no longer applies.
+41. **Relative timestamps follow moment.js.** `<t:…:R>` uses moment's thresholds, calendar-month durations and rounding, checked against moment.js 2.30.1 on 124 distances (tests/qord). DontRoundMyTimestamps switches rounding to floor, as upstream does.
+42. **Closed gaps.** MessageLogger now offers "Clear Message Log" on channels (decision 25's pending surface). Unindent now unindents received code blocks when shown, completing decision 17.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

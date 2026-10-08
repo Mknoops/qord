@@ -267,6 +267,8 @@ public:
     void createGuildChannel(Snowflake guildId, const QString &name, int type, Snowflake parentId, JsonCallback callback);
     // PATCH /users/@me/guilds/{id}/settings (muted, message_notifications, channel_overrides)
     void updateGuildNotificationSettings(Snowflake guildId, const QJsonObject &patch, ActionCallback callback);
+    // PATCH a message's flags (SUPPRESS_EMBEDS); the result arrives as MESSAGE_UPDATE
+    void setMessageFlags(Snowflake channelId, Snowflake messageId, quint64 flags);
 
 signals:
     void stateChanged(Core::ConnectionState state);

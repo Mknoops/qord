@@ -1,0 +1,30 @@
+{
+  "id": "alwaystrust",
+  "equicordName": "AlwaysTrust",
+  "equicordPath": "src/plugins/alwaysTrust",
+  "name": "AlwaysTrust",
+  "description": "Removes the annoying untrusted domain and suspicious file popup",
+  "categories": ["utility"],
+  "tags": ["Utility"],
+  "authors": ["zt", "trey"],
+  "permissions": ["trust_links"],
+  "hooks": ["linkWarnings"],
+  "settings": [
+    { "key": "domain", "type": "bool", "default": true, "label": "Untrusted domain popup",
+      "description": "Remove the untrusted domain popup when opening links" },
+    { "key": "file", "type": "bool", "default": true, "label": "Dangerous download popup",
+      "description": "Remove the 'Potentially Dangerous Download' popup when opening links" },
+    { "key": "noDeleteSafety", "type": "bool", "default": true, "label": "No delete safety",
+      "description": "Removes the enter server name requirement when deleting a server" },
+    { "key": "confirmModal", "type": "bool", "default": true, "label": "Confirm modal",
+      "description": "Should a \"are you sure you want to delete\" modal be shown?" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "\"No delete safety\" and \"Confirm modal\": Qord's Delete Server dialog has no plugin surface yet, so it still asks for the server name."
+  ],
+  "notes": "Qord asks before opening any link from a message (Discord asks only for untrusted domains); \"Untrusted domain popup\" skips that question. Qord has no \"Potentially Dangerous Download\" popup, so the \"file\" setting has nothing to remove."
+}

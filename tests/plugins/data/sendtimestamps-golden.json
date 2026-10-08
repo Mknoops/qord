@@ -1,0 +1,130 @@
+[
+ {
+  "input": "12:00",
+  "secondsAfterMidnight": 43200
+ },
+ {
+  "input": "3:51",
+  "secondsAfterMidnight": 13860
+ },
+ {
+  "input": "17:59",
+  "secondsAfterMidnight": 64740
+ },
+ {
+  "input": "24:00",
+  "secondsAfterMidnight": 86400
+ },
+ {
+  "input": "12:00 AM",
+  "secondsAfterMidnight": 0
+ },
+ {
+  "input": "0:13PM",
+  "secondsAfterMidnight": 43980
+ },
+ {
+  "input": "12:00 PM",
+  "secondsAfterMidnight": 43200
+ },
+ {
+  "input": "13:00 PM",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "00:00",
+  "secondsAfterMidnight": 0
+ },
+ {
+  "input": "24:30",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "25:00",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "9:60",
+  "secondsAfterMidnight": 32400
+ },
+ {
+  "input": "99:99",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "1:00am",
+  "secondsAfterMidnight": 3600
+ },
+ {
+  "input": "11:59 pm",
+  "secondsAfterMidnight": 86340
+ },
+ {
+  "input": "0:00 AM",
+  "secondsAfterMidnight": 0
+ },
+ {
+  "input": "12:30AM",
+  "secondsAfterMidnight": 1800
+ },
+ {
+  "input": "7:05 PM",
+  "secondsAfterMidnight": 68700
+ },
+ {
+  "input": "23:59",
+  "secondsAfterMidnight": 86340
+ },
+ {
+  "input": "00:59 AM",
+  "secondsAfterMidnight": 3540
+ },
+ {
+  "input": "9:61",
+  "secondsAfterMidnight": 32400
+ },
+ {
+  "input": "10:75",
+  "secondsAfterMidnight": 36000
+ },
+ {
+  "input": "24:01",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "24:00 AM",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "12:60 PM",
+  "secondsAfterMidnight": 43200
+ },
+ {
+  "input": "0:60",
+  "secondsAfterMidnight": 0
+ },
+ {
+  "input": "9:60 PM",
+  "secondsAfterMidnight": 75600
+ },
+ {
+  "input": "13:00 AM",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "0:13AM",
+  "secondsAfterMidnight": 780
+ },
+ {
+  "input": "24:00 PM",
+  "secondsAfterMidnight": null
+ },
+ {
+  "input": "23:60",
+  "secondsAfterMidnight": 82800
+ },
+ {
+  "input": "01:05",
+  "secondsAfterMidnight": 3900
+ }
+]

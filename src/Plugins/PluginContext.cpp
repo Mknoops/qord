@@ -106,8 +106,29 @@ class ScopedUi : public UiService
 {
 public:
     ScopedUi(UiService *inner, bool canOpen)
-        : inner(inner), canOpen(canOpen)
+        : inner(inner), canOpen(canOpen), alive(std::make_shared<bool>(true))
     {
+    }
+    ~ScopedUi() override { *alive = false; }
+    void insertIntoMessageBox(const QString &text) override { inner->insertIntoMessageBox(text); }
+    void openPluginSettings(const QString &pluginId) override { inner->openPluginSettings(pluginId); }
+    void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
+                    std::function<void(const QString &)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->promptText(title, label, initial, maxLength, [weak, done = std::move(done)](const QString &text) {
+            if (auto a = weak.lock(); a && *a)
+                done(text);
+        });
+    }
+    // The answer may come after the plugin stopped; drop it then
+    void pickTimestamp(std::function<void(const QString &)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->pickTimestamp([weak, done = std::move(done)](const QString &markup) {
+            if (auto a = weak.lock(); a && *a)
+                done(markup);
+        });
     }
     void showTextDialog(const QString &title, const QList<TextSection> &sections) override
     {
@@ -122,6 +143,7 @@ public:
 private:
     UiService *inner;
     bool canOpen;
+    std::shared_ptr<bool> alive;
 };
 } // namespace
 
@@ -132,6 +154,20 @@ UiService *PluginContext::ui()
     if (!scopedUi)
         scopedUi = std::make_unique<ScopedUi>(services.ui, granted.testFlag(Permission::OpenLinks));
     return scopedUi.get();
+}
+
+DisplayOptionsService *PluginContext::displayOptions() const
+{
+    if (!granted.testFlag(Permission::ModifyDisplayedMessages))
+        return nullptr;
+    return services.displayOptions;
+}
+
+MessageActionService *PluginContext::messageActions() const
+{
+    if (!granted.testFlag(Permission::EditMessages))
+        return nullptr;
+    return services.messageActions;
 }
 
 MessageService *PluginContext::messages() const

@@ -1,0 +1,18 @@
+{
+  "id": "dontroundmytimestamps",
+  "equicordName": "DontRoundMyTimestamps",
+  "equicordPath": "src/plugins/dontRoundMyTimestamps",
+  "name": "DontRoundMyTimestamps",
+  "description": "Always rounds relative timestamps down, so 7.6y becomes 7y instead of 8y",
+  "categories": ["appearance", "utility"],
+  "tags": ["Appearance", "Utility"],
+  "authors": ["Lexi"],
+  "permissions": ["modify_displayed_messages"],
+  "hooks": [],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Qord renders relative timestamps (<t:…:R>) with moment.js's rules, like Discord; this plugin switches its rounding to round down, as upstream does with moment.relativeTimeRounding(Math.floor)."
+}

@@ -903,7 +903,9 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             reply.contentSnippet = tr("Click to see sticker");
 
         reply.authorColor = resolveAuthorColor(ref->author.get());
-        reply.authorName = resolveAuthorName(ref->author.get());
+        reply.authorName = replyNameResolver ? replyNameResolver(ref->author.get(), currentGuildId) : QString();
+        if (reply.authorName.isEmpty())
+            reply.authorName = resolveAuthorName(ref->author.get());
 
         return QVariant::fromValue(reply);
     }

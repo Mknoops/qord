@@ -115,6 +115,18 @@ public:
     [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
+    // Any plugin saying no wins (default: send / show).
+    [[nodiscard]] bool dispatchShouldSendTyping(const TypingContext &typing);
+    [[nodiscard]] bool dispatchShouldShowTypers(const ChatContext &chat);
+    // Any plugin saying no skips the warning (default: confirm).
+    [[nodiscard]] bool dispatchShouldConfirmLink(const QString &url);
+    // Any plugin saying no suppresses the notification (default: notify).
+    [[nodiscard]] bool dispatchShouldNotify(const NotificationContext &notification);
+    // First plugin with a name wins.
+    [[nodiscard]] std::optional<QString> dispatchAuthorDisplayName(const AuthorContext &author);
+    [[nodiscard]] QList<PluginMenuItem> dispatchChannelContextMenuItems(const ChannelContext &channel);
+    void dispatchChannelContextMenuAction(const QString &pluginId, const QString &itemId, const ChannelContext &channel);
+
 signals:
     void pluginStateChanged(const QString &id);
     // Something that affects how received messages are rendered changed
@@ -125,6 +137,8 @@ signals:
     void chatBarChanged();
     // Message filters or annotations changed: re-render what is on screen.
     void messageFiltersChanged();
+    // How author names or typing are shown changed: re-render.
+    void presentationChanged();
 
 private:
     struct Entry

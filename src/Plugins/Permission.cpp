@@ -38,6 +38,14 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See who you have blocked or ignored") },
     { Permission::OpenLinks, "open_links",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Open links in your browser") },
+    { Permission::ControlTyping, "control_typing",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Decide when others see you typing, and whether you see them typing") },
+    { Permission::TrustLinks, "trust_links",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Skip the warning before opening links") },
+    { Permission::ControlNotifications, "control_notifications",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Decide which messages notify you") },
+    { Permission::EditMessages, "edit_messages",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Change message settings on Discord (such as hiding embeds)") },
 };
 
 struct HookInfo
@@ -58,6 +66,11 @@ const HookInfo hookTable[] = {
     { Hook::MessageContextMenu, "messageContextMenu", Permission::AddUiElements },
     { Hook::MessageHistory, "messageHistory", Permission::LogMessages },
     { Hook::MessageFilter, "messageFilter", Permission::HideMessages },
+    { Hook::Typing, "typing", Permission::ControlTyping },
+    { Hook::LinkWarnings, "linkWarnings", Permission::TrustLinks },
+    { Hook::Notifications, "notifications", Permission::ControlNotifications },
+    { Hook::AuthorNames, "authorNames", Permission::ModifyDisplayedMessages },
+    { Hook::ChannelContextMenu, "channelContextMenu", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

@@ -4,18 +4,30 @@
   "equicordPath": "src/plugins/unindent",
   "name": "Unindent",
   "description": "Trims leading indentation from codeblocks",
-  "categories": ["chat", "utility"],
-  "tags": ["Chat", "Utility"],
-  "authors": ["Ven"],
-  "permissions": ["modify_outgoing_messages"],
-  "hooks": ["onBeforeSend", "onBeforeEdit"],
+  "categories": [
+    "chat",
+    "utility"
+  ],
+  "tags": [
+    "Chat",
+    "Utility"
+  ],
+  "authors": [
+    "Ven"
+  ],
+  "permissions": [
+    "modify_outgoing_messages",
+    "modify_displayed_messages"
+  ],
+  "hooks": [
+    "onBeforeSend",
+    "onBeforeEdit",
+    "transformIncomingContent"
+  ],
   "settings": [],
   "enabledByDefault": false,
   "target": "",
   "dependencies": [],
   "commands": [],
-  "notes": "Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline).",
-  "gaps": [
-    "Upstream also unindents code blocks when rendering received messages; Qord's Markdown renderer has no fenced code block node yet to hook into"
-  ]
+  "notes": "Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). Received messages are unindented when shown, like upstream's renderer patch; the stored message is unchanged."
 }

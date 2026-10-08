@@ -176,6 +176,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit chatBarChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
+    if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing))
+        emit presentationChanged();
 }
 
 bool PluginHost::start(Entry &entry, QString *error)
@@ -591,6 +593,87 @@ bool PluginHost::dispatchShouldSilenceMessage(const MessageContext &message)
             return true;
     }
     return false;
+}
+
+bool PluginHost::dispatchShouldSendTyping(const TypingContext &typing)
+{
+    const int h = hookIndex(Hook::Typing);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<bool> answer;
+        guarded(tableIds[h][i], "shouldSendTyping", [&] { answer = tables[h][i]->shouldSendTyping(typing); });
+        if (answer && !*answer)
+            return false;
+    }
+    return true;
+}
+
+bool PluginHost::dispatchShouldShowTypers(const ChatContext &chat)
+{
+    const int h = hookIndex(Hook::Typing);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<bool> answer;
+        guarded(tableIds[h][i], "shouldShowTypers", [&] { answer = tables[h][i]->shouldShowTypers(chat); });
+        if (answer && !*answer)
+            return false;
+    }
+    return true;
+}
+
+bool PluginHost::dispatchShouldConfirmLink(const QString &url)
+{
+    const int h = hookIndex(Hook::LinkWarnings);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<bool> answer;
+        guarded(tableIds[h][i], "shouldConfirmLink", [&] { answer = tables[h][i]->shouldConfirmLink(url); });
+        if (answer && !*answer)
+            return false;
+    }
+    return true;
+}
+
+bool PluginHost::dispatchShouldNotify(const NotificationContext &notification)
+{
+    const int h = hookIndex(Hook::Notifications);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<bool> answer;
+        guarded(tableIds[h][i], "shouldNotify", [&] { answer = tables[h][i]->shouldNotify(notification); });
+        if (answer && !*answer)
+            return false;
+    }
+    return true;
+}
+
+std::optional<QString> PluginHost::dispatchAuthorDisplayName(const AuthorContext &author)
+{
+    const int h = hookIndex(Hook::AuthorNames);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<QString> name;
+        guarded(tableIds[h][i], "authorDisplayName", [&] { name = tables[h][i]->authorDisplayName(author); });
+        if (name)
+            return name;
+    }
+    return std::nullopt;
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchChannelContextMenuItems(const ChannelContext &channel)
+{
+    QList<PluginMenuItem> out;
+    const int h = hookIndex(Hook::ChannelContextMenu);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        const QString &id = tableIds[h][i];
+        guarded(id, "channelContextMenuItems", [&] {
+            for (const auto &item : tables[h][i]->channelContextMenuItems(channel))
+                out.append({ id, item });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchChannelContextMenuAction(const QString &pluginId, const QString &itemId,
+                                                  const ChannelContext &channel)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ChannelContextMenu, pluginId))
+        guarded(pluginId, "onChannelContextMenuAction", [&] { plugin->onChannelContextMenuAction(itemId, channel); });
 }
 
 void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user)

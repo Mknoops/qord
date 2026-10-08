@@ -60,7 +60,10 @@ class MessageLoggerPlugin : public Plugin
 public:
     static constexpr int MaxRecords = 5000;
 
-    [[nodiscard]] Hooks hooks() const override { return Hook::MessageHistory | Hook::MessageContextMenu; }
+    [[nodiscard]] Hooks hooks() const override
+    {
+        return Hook::MessageHistory | Hook::MessageContextMenu | Hook::ChannelContextMenu;
+    }
     void start(PluginContext &context) override;
     void stop() override;
     void onSettingChanged(const QString &key) override;
@@ -71,6 +74,9 @@ public:
 
     QList<MenuItem> messageContextMenuItems(const MessageContext &message) override;
     void onMessageContextMenuAction(const QString &id, const MessageContext &message) override;
+    // "Clear Message Log" on a channel with logged messages
+    QList<MenuItem> channelContextMenuItems(const ChannelContext &channel) override;
+    void onChannelContextMenuAction(const QString &id, const ChannelContext &channel) override;
 
     [[nodiscard]] const MessageLogger::Record *record(Id messageId) const;
 

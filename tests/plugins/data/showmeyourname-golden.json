@@ -1,0 +1,1277 @@
+[
+ {
+  "template": "{custom, friend, nick} [{display}] (@{user})",
+  "split": [
+   "{custom, friend, nick}",
+   "[{display}]",
+   "(@{user})"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "custom",
+     "friend",
+     "nick"
+    ]
+   },
+   {
+    "prefix": "[",
+    "suffix": "]",
+    "targetProcessedNames": [
+     "display"
+    ]
+   },
+   {
+    "prefix": "(@",
+    "suffix": ")",
+    "targetProcessedNames": [
+     "user"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Benny [Ben] (@benji)",
+    "noDedupe": "Benny | [Ben] | (@benji)"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ava",
+    "noDedupe": "Ava | (@ava)"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "C [Cleo] (@cleo.dev)",
+    "noDedupe": "C | [Cleo] | (@cleo.dev)"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234 | (@Qordbot#1234)"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x | [X] | (@x)"
+   }
+  ]
+ },
+ {
+  "template": "{user}",
+  "split": [
+   "{user}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "user"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "{nick, display, user}",
+  "split": [
+   "{nick, display, user}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "nick",
+     "display",
+     "user"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Benny",
+    "noDedupe": "Benny"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ava",
+    "noDedupe": "Ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "  {display}   <{user}>  ",
+  "split": [
+   "{display}",
+   "<{user}>"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "display"
+    ]
+   },
+   {
+    "prefix": "<",
+    "suffix": ">",
+    "targetProcessedNames": [
+     "user"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ben <benji>",
+    "noDedupe": "Ben | <benji>"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ava",
+    "noDedupe": "Ava | <ava>"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "Cleo <cleo.dev>",
+    "noDedupe": "Cleo | <cleo.dev>"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234 | <Qordbot#1234>"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "X",
+    "noDedupe": "X | <x>"
+   }
+  ]
+ },
+ {
+  "template": "{custom,friend} {nick}",
+  "split": [
+   "{custom,friend}",
+   "{nick}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "custom",
+     "friend"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "nick"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Benny",
+    "noDedupe": "Benny"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "C cleo.dev",
+    "noDedupe": "C | cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x | x"
+   }
+  ]
+ },
+ {
+  "template": "{custom, friend,  nick} [{display}]",
+  "split": [
+   "{custom, friend,  nick}",
+   "[{display}]"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "custom",
+     "friend",
+     "nick"
+    ]
+   },
+   {
+    "prefix": "[",
+    "suffix": "]",
+    "targetProcessedNames": [
+     "display"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Benny [Ben]",
+    "noDedupe": "Benny | [Ben]"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ava",
+    "noDedupe": "Ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "C [Cleo]",
+    "noDedupe": "C | [Cleo]"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x | [X]"
+   }
+  ]
+ },
+ {
+  "template": "[{display}] {user} {nick} {friend}",
+  "split": [
+   "[{display}]",
+   "{user}",
+   "{nick}",
+   "{friend}"
+  ],
+  "items": [
+   {
+    "prefix": "[",
+    "suffix": "]",
+    "targetProcessedNames": [
+     "display"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "user"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "nick"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "friend"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ben benji Benny",
+    "noDedupe": "Ben | benji | Benny"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Ava",
+    "noDedupe": "Ava | ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "Cleo cleo.dev Cle",
+    "noDedupe": "Cleo | cleo.dev | cleo.dev | Cle"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234 | Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "X",
+    "noDedupe": "X | x | x | X"
+   }
+  ]
+ },
+ {
+  "template": "a{user}",
+  "split": [
+   "a{user}"
+  ],
+  "items": [
+   {
+    "prefix": "a",
+    "suffix": "",
+    "targetProcessedNames": [
+     "user"
+    ]
+   }
+  ],
+  "valid": false,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "{user} {display} {nick} {friend} {custom}",
+  "split": [
+   "{user}",
+   "{display}",
+   "{nick}",
+   "{friend}",
+   "{custom}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "user"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "display"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "nick"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "friend"
+    ]
+   },
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "custom"
+    ]
+   }
+  ],
+  "valid": false,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji Ben Benny",
+    "noDedupe": "benji | Ben | Benny"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava | Ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev Cleo Cle C",
+    "noDedupe": "cleo.dev | Cleo | cleo.dev | Cle | C"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234 | Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x | X | x | X | x"
+   }
+  ]
+ },
+ {
+  "template": "{bogus}",
+  "split": [
+   "{bogus}"
+  ],
+  "items": [
+   {
+    "prefix": "{bogus}",
+    "suffix": "",
+    "targetProcessedNames": []
+   }
+  ],
+  "valid": false,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "{user}{display}",
+  "split": [
+   "{user}{display}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "userdisplay"
+    ]
+   }
+  ],
+  "valid": false,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "!!!{user}???",
+  "split": [
+   "!!!{user}???"
+  ],
+  "items": [
+   {
+    "prefix": "!!!",
+    "suffix": "???",
+    "targetProcessedNames": [
+     "user"
+    ]
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "{Display}",
+  "split": [
+   "{Display}"
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": [
+     "Display"
+    ]
+   }
+  ],
+  "valid": false,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ },
+ {
+  "template": "",
+  "split": [
+   ""
+  ],
+  "items": [
+   {
+    "prefix": "",
+    "suffix": "",
+    "targetProcessedNames": []
+   }
+  ],
+  "valid": true,
+  "composed": [
+   {
+    "names": {
+     "user": "benji",
+     "display": "Ben",
+     "nick": "Benny",
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "benji",
+    "noDedupe": "benji"
+   },
+   {
+    "names": {
+     "user": "ava",
+     "display": "Ava",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "ava",
+    "noDedupe": "ava"
+   },
+   {
+    "names": {
+     "user": "cleo.dev",
+     "display": "Cleo",
+     "nick": "cleo.dev",
+     "friend": "Cle",
+     "custom": "C"
+    },
+    "dedupe": "cleo.dev",
+    "noDedupe": "cleo.dev"
+   },
+   {
+    "names": {
+     "user": "dan",
+     "display": null,
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "dan",
+    "noDedupe": "dan"
+   },
+   {
+    "names": {
+     "user": "Qordbot#1234",
+     "display": "Qordbot#1234",
+     "nick": null,
+     "friend": null,
+     "custom": null
+    },
+    "dedupe": "Qordbot#1234",
+    "noDedupe": "Qordbot#1234"
+   },
+   {
+    "names": {
+     "user": "x",
+     "display": "X",
+     "nick": "x",
+     "friend": "X",
+     "custom": "x"
+    },
+    "dedupe": "x",
+    "noDedupe": "x"
+   }
+  ]
+ }
+]

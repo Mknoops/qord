@@ -9,6 +9,8 @@
 #include <QLocale>
 #include <QRegularExpression>
 
+#include <cmath>
+
 namespace Acheron {
 namespace Core {
 namespace Markdown {
@@ -46,35 +48,76 @@ ParseState inlineChild(ParseState state)
     return state;
 }
 
-QString unitText(qint64 n, const char *one, const char *many)
+bool relativeFloor = false; // DontRoundMyTimestamps
+
+QString tr(const char *text)
 {
-    // Spelled out so it reads right without a translation catalogue
-    return n == 1 ? QCoreApplication::translate("Markdown", one)
-                  : QCoreApplication::translate("Markdown", many).arg(n);
+    return QCoreApplication::translate("Markdown", text);
 }
 
+// Discord renders <t:...:R> with moment.js's fromNow(): its default
+// thresholds (ss 44, s 45, m 45, h 22, d 26, M 11), Math.round unless a
+// plugin switched rounding to Math.floor, and its English wording.
 QString relativeTime(const QDateTime &when, const QDateTime &now)
 {
-    const qint64 secs = now.secsTo(when);
-    const qint64 a = qAbs(secs);
+    const qint64 diffMs = now.msecsTo(when);
+    const auto round = [](double v) { return relativeFloor ? std::floor(v) : std::floor(v + 0.5); };
+
+    // moment's createDuration({from, to}): whole calendar months between the
+    // two local times (adding months clamps to the month's end, as QDate
+    // does), plus the remaining milliseconds
+    const QDateTime a = (diffMs >= 0 ? now : when).toLocalTime();
+    const QDateTime b = (diffMs >= 0 ? when : now).toLocalTime();
+    int calendarMonths = (b.date().year() - a.date().year()) * 12 + b.date().month() - a.date().month();
+    if (a.addMonths(calendarMonths) > b)
+        --calendarMonths;
+    const double restMs = double(a.addMonths(calendarMonths).msecsTo(b));
+
+    // Duration.as(): seconds..days count months as whole days, months/years
+    // count the rest in months (daysToMonths / monthsToDays)
+    const double monthDays = std::floor(calendarMonths * 146097.0 / 4800.0 + 0.5);
+    const double seconds = round(monthDays * 86400.0 + restMs / 1000.0);
+    const double minutes = round(monthDays * 1440.0 + restMs / 6e4);
+    const double hours = round(monthDays * 24.0 + restMs / 36e5);
+    const double roundedDays = round(monthDays + restMs / 864e5);
+    const double monthsExact = calendarMonths + (restMs / 864e5) * 4800.0 / 146097.0;
+    const double months = round(monthsExact);
+    const double years = round(monthsExact / 12.0);
+
     QString amount;
-    if (a < 60)
-        amount = unitText(a, "a second", "%1 seconds");
-    else if (a < 3600)
-        amount = unitText(a / 60, "a minute", "%1 minutes");
-    else if (a < 86400)
-        amount = unitText(a / 3600, "an hour", "%1 hours");
-    else if (a < 86400 * 30)
-        amount = unitText(a / 86400, "a day", "%1 days");
-    else if (a < 86400 * 365)
-        amount = unitText(a / (86400 * 30), "a month", "%1 months");
+    if (seconds <= 44)
+        amount = tr("a few seconds");
+    else if (seconds < 45)
+        amount = tr("%1 seconds").arg(seconds);
+    else if (minutes <= 1)
+        amount = tr("a minute");
+    else if (minutes < 45)
+        amount = tr("%1 minutes").arg(minutes);
+    else if (hours <= 1)
+        amount = tr("an hour");
+    else if (hours < 22)
+        amount = tr("%1 hours").arg(hours);
+    else if (roundedDays <= 1)
+        amount = tr("a day");
+    else if (roundedDays < 26)
+        amount = tr("%1 days").arg(roundedDays);
+    else if (months <= 1)
+        amount = tr("a month");
+    else if (months < 11)
+        amount = tr("%1 months").arg(months);
+    else if (years <= 1)
+        amount = tr("a year");
     else
-        amount = unitText(a / (86400 * 365), "a year", "%1 years");
-    return secs >= 0 ? QCoreApplication::translate("Markdown", "in %1").arg(amount)
-                     : QCoreApplication::translate("Markdown", "%1 ago").arg(amount);
+        amount = tr("%1 years").arg(years);
+    return diffMs > 0 ? tr("in %1").arg(amount) : tr("%1 ago").arg(amount);
 }
 
 } // namespace
+
+void setRelativeTimeRoundsDown(bool floor)
+{
+    relativeFloor = floor;
+}
 
 QString formatDiscordTimestamp(qint64 unixSeconds, QChar style, const QDateTime &now, const QLocale &locale)
 {

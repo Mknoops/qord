@@ -1,0 +1,70 @@
+{
+  "id": "silenttyping",
+  "equicordName": "SilentTyping",
+  "equicordPath": "src/plugins/silentTyping",
+  "name": "SilentTyping",
+  "description": "Hide that you are typing",
+  "categories": ["privacy", "chat"],
+  "tags": ["Chat", "Privacy"],
+  "authors": ["V", "rini", "Im_Banana", "Etorix"],
+  "permissions": ["control_typing", "add_ui_elements"],
+  "hooks": ["typing", "chatBarButtons"],
+  "settings": [
+    { "key": "enabledGlobally", "type": "bool", "default": true, "label": "Enabled globally",
+      "description": "Toggle functionality of your own typing indicator globally." },
+    { "key": "hideChatBoxTypingIndicators", "type": "bool", "default": false, "label": "Hide chat bar typing indicators",
+      "description": "Hide other users' typing indicators from above the chat bar." },
+    { "key": "hideMembersListTypingIndicators", "type": "bool", "default": false, "label": "Hide members list typing indicators",
+      "description": "Hide other users' typing indicators from the members list." },
+    { "key": "chatIcon", "type": "bool", "default": true, "label": "Chat icon",
+      "description": "Show an icon in the chat bar for modifying the plugin on the go." },
+    { "key": "chatIconLeftClickAction", "type": "choice", "default": "channel", "label": "Left click action",
+      "description": "What to do when left clicking the chat icon.",
+      "choices": [
+        { "value": "global", "label": "Toggle Typing Globally" },
+        { "value": "channel", "label": "Toggle Typing in Channel" },
+        { "value": "guild", "label": "Toggle Typing in Guild" },
+        { "value": "settings", "label": "Open Plugin Settings" }
+      ] },
+    { "key": "chatIconMiddleClickAction", "type": "choice", "default": "settings", "label": "Middle click action",
+      "description": "What to do when middle clicking the chat icon.",
+      "choices": [
+        { "value": "global", "label": "Toggle Typing Globally" },
+        { "value": "channel", "label": "Toggle Typing in Channel" },
+        { "value": "guild", "label": "Toggle Typing in Guild" },
+        { "value": "settings", "label": "Open Plugin Settings" }
+      ] },
+    { "key": "chatIconRightClickAction", "type": "choice", "default": "global", "label": "Right click action",
+      "description": "What to do when right clicking the chat icon.",
+      "choices": [
+        { "value": "global", "label": "Toggle Typing Globally" },
+        { "value": "channel", "label": "Toggle Typing in Channel" },
+        { "value": "guild", "label": "Toggle Typing in Guild" },
+        { "value": "settings", "label": "Open Plugin Settings" }
+      ] },
+    { "key": "chatContextMenu", "type": "bool", "default": true, "label": "Chat context menu",
+      "description": "Show a dropdown in the chat context menu to modify plugin settings on the go." },
+    { "key": "defaultHidden", "type": "bool", "default": true, "label": "Default hidden",
+      "description": "If enabled, the plugin will hide your typing from others in any DMs/channels/guilds not listed in \"Disabled Locations\" below. If disabled, the plugin will show your typing to others for any DMs/channels/guilds not listed in \"Enabled Locations\" below." },
+    { "key": "alwaysEnableInActiveVoiceChat", "type": "bool", "default": false, "label": "Always enable in active voice chat",
+      "description": "Always allow your typing indicator to show when typing in a voice channel you are connected to." },
+    { "key": "temporaryEnableThresholdServers", "type": "int", "default": 0, "min": 0, "max": 86400, "label": "Temporary enable threshold (servers)",
+      "description": "Temporarily allow your typing indicator to show for this many seconds after sending a message in a server channel. If the typing indicator is already visible in the channel, this setting will have no effect." },
+    { "key": "temporaryEnableThresholdDirectMessages", "type": "int", "default": 0, "min": 0, "max": 86400, "label": "Temporary enable threshold (DMs)",
+      "description": "Temporarily allow your typing indicator to show for this many seconds after sending a message in a DM or Group DM. If the typing indicator is already visible in the channel, this setting will have no effect." },
+    { "key": "enabledLocations", "type": "string", "default": "", "label": "Enabled locations",
+      "description": "Enable functionality for these IDs. Accepts a comma separated list of DM IDs, channel IDs, and guild IDs. Only used if \"Default Hidden\" is disabled." },
+    { "key": "disabledLocations", "type": "string", "default": "", "label": "Disabled locations",
+      "description": "Disable functionality for these IDs. Accepts a comma separated list of DM IDs, channel IDs, and guild IDs. Only used if \"Default Hidden\" is enabled." }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": ["silent-typing"],
+  "gaps": [
+    "The /silent-typing command: Qord has no slash commands yet.",
+    "The \"Silent Typing\" submenu in the message box's right-click menu: the message box has no plugin menu surface yet.",
+    "\"Hide members list typing indicators\" has nothing to hide: Qord's member list does not show who is typing."
+  ],
+  "notes": "Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out."
+}

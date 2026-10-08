@@ -1,0 +1,41 @@
+{
+  "id": "showmeyourname",
+  "equicordName": "ShowMeYourName",
+  "equicordPath": "src/plugins/showMeYourName",
+  "name": "ShowMeYourName",
+  "description": "Display any permutation of custom nicknames, friend nicknames, server nicknames, display names, and usernames in chat.",
+  "categories": ["chat", "appearance"],
+  "tags": ["Appearance", "Customisation"],
+  "authors": ["Etorix", "rini", "TheKodeToad", "sadan", "prism", "penguinwokrs"],
+  "permissions": ["modify_displayed_messages", "add_ui_elements"],
+  "hooks": ["authorNames", "userContextMenu"],
+  "settings": [
+    { "key": "messages", "type": "bool", "default": true, "label": "Messages",
+      "description": "Display custom name format in messages." },
+    { "key": "replies", "type": "bool", "default": true, "label": "Replies",
+      "description": "Display custom name format in replies." },
+    { "key": "discriminators", "type": "bool", "default": true, "label": "Discriminators",
+      "description": "Append discriminators to usernames for bots. Discriminators were deprecated for users, but are still used for bots. By default, a bot's username is equivalent to a user's global name, therefore multiple bots can have the same username. Appending discriminators makes them unique again." },
+    { "key": "removeDuplicates", "type": "bool", "default": true, "label": "Remove duplicates",
+      "description": "If any of the names are equivalent, remove them, leaving only the unique names." },
+    { "key": "nameSeparator", "type": "string", "default": " ", "label": "Name separator",
+      "description": "The separator to use between names. The default is a single space." },
+    { "key": "friendNameOnlyInDirectMessages", "type": "bool", "default": false, "label": "Friend names only in DMs",
+      "description": "Only display friend names when in DMs, and not in servers." },
+    { "key": "customNameOnlyInDirectMessages", "type": "bool", "default": false, "label": "Custom names only in DMs",
+      "description": "Only display custom names when in DMs, and not in servers." },
+    { "key": "includedNames", "type": "string", "default": "{custom, friend, nick} [{display}] (@{user})", "label": "Included names",
+      "description": "The order to display usernames, display names, nicknames, friend names, and custom names. Use the following placeholders: {user}, {display}, {nick}, {friend}, {custom}. You can provide multiple name options to use as fallbacks if one is unavailable by separating them with commas as such: {custom, friend, nick}. You can have up to three prefixes and three suffixes per name." },
+    { "key": "customNicknames", "type": "json", "default": {}, "hidden": true, "label": "Custom nicknames" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Names in mentions, the typing indicator, the member list, DMs and friends lists, autocomplete, profiles, voice channels and reaction tooltips: Qord has no name surface there yet (upstream settings mentions, typingIndicator, memberList, searchAutocomplete, profilePopout, voiceChannels, reactions).",
+    "Per-name colours and Nitro display-name styles (upstream's colour, font, effect, gradient and style* settings): Qord draws the whole name in the author's role colour.",
+    "hideDefaultAtSign: Qord's reply previews show names without an @."
+  ],
+  "notes": "Qord has no Streamer Mode, so upstream's truncateAllNamesWithStreamerMode has nothing to do. Custom nicknames are kept in the plugin's settings instead of upstream's DataStore."
+}

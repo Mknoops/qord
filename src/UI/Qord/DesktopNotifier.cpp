@@ -4,6 +4,8 @@
 #include "Core/Presence/PresenceManager.hpp"
 #include "Core/ReadStateManager.hpp"
 #include "Core/UserManager.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Plugins/PluginHost.hpp"
 
 #include <QApplication>
 #include <QMenu>
@@ -60,7 +62,7 @@ void DesktopNotifier::setEnabled(bool enabled)
 }
 
 void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Message &message, bool mentionsMe,
-                               Core::Snowflake viewedChannelId)
+                               bool wasUnread, Core::Snowflake viewedChannelId)
 {
     if (!instance || !enabled())
         return;
@@ -80,6 +82,20 @@ void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Me
         return;
 
     const Core::Snowflake guildId = isDm ? Core::Snowflake::Invalid : message.guildId.get();
+
+    // Plugins (OnePingPerDM) may hold the notification back
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::Notifications)) {
+        Qord::Plugins::NotificationContext ctx;
+        ctx.message = Qord::Plugins::toMessageContext(message, quint64(instance->accountId()), quint64(guildId), 0);
+        if (const auto channel = instance->getChannel(channelId); channel && channel->type.hasValue()) {
+            ctx.message.isDm = channel->type.get() == Discord::ChannelType::DM;
+            ctx.message.isGroupDm = channel->type.get() == Discord::ChannelType::GROUP_DM;
+        }
+        ctx.isOldestUnread = !wasUnread;
+        if (!host->dispatchShouldNotify(ctx))
+            return;
+    }
+
     QString title = instance->users()->getAuthorDisplayName(message.author.get(), guildId);
     if (!isDm) {
         const auto channel = instance->getChannel(channelId);

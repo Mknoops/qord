@@ -3,6 +3,13 @@
 #include "AppearancePage.hpp"
 #include "GeneralPage.hpp"
 #include "PluginsPage.hpp"
+#include "UI/Qord/DesktopNotifier.hpp"
+#include "UI/Qord/NotificationSound.hpp"
+
+#include <QCheckBox>
+#include <QLabel>
+#include <QPushButton>
+#include <QVBoxLayout>
 
 #ifdef ACHERON_HAVE_MINIAUDIO
 #include "AudioPage.hpp"
@@ -55,6 +62,36 @@ void SettingsWindow::setupUi()
 #ifdef ACHERON_HAVE_MINIAUDIO
     addPage(tr("Audio"), new AudioPage(this));
 #endif
+
+    // Qord: Discord's Notifications settings
+    {
+        auto *page = new QWidget(this);
+        auto *v = new QVBoxLayout(page);
+        auto *desktop = new QCheckBox(tr("Enable Desktop Notifications"), page);
+        desktop->setChecked(DesktopNotifier::enabled());
+        connect(desktop, &QCheckBox::toggled, page, [](bool on) { DesktopNotifier::setEnabled(on); });
+        v->addWidget(desktop);
+        auto *desktopHelp = new QLabel(tr("Show a notification for direct messages and mentions when you are not "
+                                          "looking at the conversation. Muted servers and channels, and Do Not "
+                                          "Disturb, stay quiet."),
+                                       page);
+        desktopHelp->setWordWrap(true);
+        desktopHelp->setForegroundRole(QPalette::PlaceholderText);
+        v->addWidget(desktopHelp);
+        auto *sound = new QCheckBox(tr("Message sound"), page);
+        sound->setChecked(NotificationSound::enabled());
+        connect(sound, &QCheckBox::toggled, page, [](bool on) { NotificationSound::setEnabled(on); });
+        auto *preview = new QPushButton(tr("Play"), page);
+        auto *player = new NotificationSound(page);
+        connect(preview, &QPushButton::clicked, player, &NotificationSound::play);
+        auto *soundRow = new QHBoxLayout;
+        soundRow->addWidget(sound);
+        soundRow->addWidget(preview);
+        soundRow->addStretch();
+        v->addLayout(soundRow);
+        v->addStretch();
+        addPage(tr("Notifications"), page);
+    }
 
     pluginsPage = new PluginsPage(this);
     addPage(tr("Plugins"), pluginsPage);

@@ -348,6 +348,9 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         if (msg.type == Discord::MessageType::REPLY)
             return true;
 
+        if (isFirstUnread(index.row())) // Qord: a new group starts after the NEW divider
+            return true;
+
         if (index.row() == 0)
             return true;
 
@@ -361,8 +364,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
 
         return false;
     }
+    case NewMarkerRole:
+        return isFirstUnread(index.row());
     case DateSeparatorRole: {
-        if (index.row() == 0)
+        if (index.row() == 0 || isFirstUnread(index.row()))
             return true;
 
         const auto &prevMsg = messages[index.row() - 1];
@@ -1427,6 +1432,25 @@ void ChatModel::invalidateDocCacheForMessage(Snowflake messageId)
             docCache.remove(embedFieldValueDocKey(messageId, ei, fi));
         }
     }
+}
+
+bool ChatModel::isFirstUnread(int row) const
+{
+    if (!unreadMarkerAfter.isValid() || row <= 0 || row >= messages.size())
+        return false;
+    return quint64(messages[row].id.get()) > quint64(unreadMarkerAfter) &&
+           quint64(messages[row - 1].id.get()) <= quint64(unreadMarkerAfter);
+}
+
+void ChatModel::setUnreadMarker(Snowflake lastReadId)
+{
+    if (unreadMarkerAfter == lastReadId)
+        return;
+    unreadMarkerAfter = lastReadId;
+    invalidateLayout();
+    if (!messages.isEmpty())
+        emit dataChanged(index(0, 0), index(int(messages.size()) - 1, 0),
+                         { CachedSizeRole, ShowHeaderRole, DateSeparatorRole, NewMarkerRole });
 }
 
 } // namespace UI

@@ -52,6 +52,16 @@ if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 # Runtime DLLs the tests and the app need next to the binaries
 Copy-Item "$curlDir\lib\*.dll" $build -Force
 
+# The Qt runtime next to the app, so build\acheron.exe also starts when
+# double-clicked (without Qt on PATH)
+$app = Join-Path $build "acheron.exe"
+$deploy = Join-Path $QtDir "bin\windeployqt.exe"
+if ((Test-Path $app) -and (Test-Path $deploy)) {
+    & $deploy --no-translations --no-compiler-runtime --verbose 0 $app | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Warning "windeployqt failed; start the app with tools\run-mock.ps1 or Qt on PATH" }
+    if (Test-Path "$ffmpegDir\bin") { Copy-Item "$ffmpegDir\bin\*.dll" $build -Force }
+}
+
 if (-not $NoTests) {
     $env:PATH = "$QtDir\bin;$ffmpegDir\bin;$env:PATH"
     $filter = @()

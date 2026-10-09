@@ -70,6 +70,12 @@ and why, so it can be revisited deliberately.
 47. **Mock checks for batch 5.** In the mock client (decision 30) all four plugins were enabled and observed: Read All cleared two unread servers with one bulk ack of 4 channels; the member list header showed online/total/in-voice and the server tooltip online/total; platform icons and tooltips appeared in messages, the member list and the profile, own icons came from the session list, and a mobile user who is idle got the phone-shaped dot; View Avatar, View Icon and a click on a profile avatar opened the viewer. This is not `verifiedInClient`, which needs real Discord traffic, so the four plugins stay Tested.
 48. **Qt 5 build fixed.** The batch 4 SilentTyping test did not compile on Qt 5.15 (ambiguous `QStringList` assignment); it and the new tests now build on both, and voice-dependent counting is compiled out with `ACHERON_NO_VOICE`.
 
+## 2026-10-09: batch 6 (in progress)
+
+49. **The build deploys the Qt runtime.** `tools/build-windows.ps1` runs `windeployqt` on `buildcheron.exe` (and copies the FFmpeg DLLs), so the app starts when double-clicked. Before, it only started with Qt on PATH (`run-mock.ps1`), and Windows reported the first missing DLL (Qt6Svg.dll).
+50. **The NEW divider.** Opening a channel remembers what was read at that moment (`ReadStateManager::ackIdWhenOpened`); the first message after it gets Discord's red line with a NEW tag, and starts a new message group. Sending a message removes it, like Discord. Date dividers now use Discord's style (thin line, long date in the middle) and turn red when they coincide with NEW.
+51. **Notification sound and a Notifications settings page.** New DMs and mentions that pass the notification rules (decision 36) play a short chime; it is synthesised in code (two notes), not Discord's sound file. It plays through miniaudio when the client has it and falls back to the system beep. Settings gained a Notifications page: desktop notifications and the message sound, each on by default, with a Play button.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

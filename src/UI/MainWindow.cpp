@@ -419,6 +419,9 @@ void MainWindow::switchChatChannel(Core::Snowflake channelId, Core::Snowflake gu
         pendingLinkJump.reset();
 
     chatModel->setActiveChannel(channelId, guildId);
+    // Qord: Discord's NEW divider above what arrived since you last read the channel
+    chatModel->setUnreadMarker(currentInstance ? currentInstance->readState()->ackIdWhenOpened(channelId)
+                                               : Snowflake::Invalid);
     typingTracker->setActiveChannel(channelId);
     messageInput->clearReplyTarget();
     pluginChatButtons->rebuild();

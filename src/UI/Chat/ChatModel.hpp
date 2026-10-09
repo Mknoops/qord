@@ -239,7 +239,12 @@ public:
         ForwardOriginRole,
         StickersRole,
         MentionsMeRole, // Qord: Discord highlights messages that mention you
+        NewMarkerRole, // Qord: the first unread message gets Discord's red NEW divider
     };
+
+    // Qord: messages after this id are new (the NEW divider); Invalid hides it
+    void setUnreadMarker(Snowflake lastReadId);
+    [[nodiscard]] Snowflake unreadMarker() const { return unreadMarkerAfter; }
 
     void setAccount(Snowflake accountId);
     [[nodiscard]] Snowflake getAccountId() const { return currentAccountId; }
@@ -332,6 +337,8 @@ private:
 
     Snowflake currentChannelId = Snowflake::Invalid;
     Snowflake currentGuildId = Snowflake::Invalid;
+    Snowflake unreadMarkerAfter = Snowflake::Invalid;
+    [[nodiscard]] bool isFirstUnread(int row) const;
     Snowflake currentAccountId;
     QSet<Snowflake> revealedSpoilerMessages;
     DisplayNameResolver replyNameResolver;

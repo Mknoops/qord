@@ -43,6 +43,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/PluginSurfaces.cpp
     src/UI/Qord/NotificationSound.hpp
     src/UI/Qord/NotificationSound.cpp
+    src/UI/Qord/ExpressionPicker.hpp
+    src/UI/Qord/ExpressionPicker.cpp
     src/Qord/EmojiPickerData.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)

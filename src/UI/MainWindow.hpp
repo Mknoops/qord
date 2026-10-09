@@ -267,6 +267,7 @@ private:
     QString channelLabel(Core::Snowflake channelId) const;
     MessageListPopup *ensureMessagePopup();
     class EmojiPicker *emojiPicker = nullptr;
+    class ExpressionPicker *expressionPicker = nullptr;
     class FriendsPage *friendsPage = nullptr;
     QPushButton *friendsButton = nullptr;
     void showFriendsPage();

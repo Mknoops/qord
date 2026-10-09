@@ -8,7 +8,10 @@
 #include "Core/Logging.hpp"
 #include "Proto/ProtoWriter.hpp"
 
+#include <QDateTime>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QLocale>
 
 namespace Acheron {
 namespace Discord {
@@ -237,6 +240,39 @@ void Client::setMessageFlags(Snowflake channelId, Snowflake messageId, quint64 f
                           if (!response.success)
                               qCWarning(LogDiscord) << "Failed to change message flags:" << response.statusCode;
                       });
+}
+
+void Client::fetchGifs(const QString &query, JsonCallback callback)
+{
+    QUrlQuery params;
+    params.addQueryItem("provider", QStringLiteral("tenor"));
+    params.addQueryItem("locale", QLocale().name().replace(QLatin1Char('_'), QLatin1Char('-')));
+    params.addQueryItem("media_format", QStringLiteral("mp4"));
+    QString endpoint = QStringLiteral("/gifs/trending-gifs");
+    if (!query.trimmed().isEmpty()) {
+        endpoint = QStringLiteral("/gifs/search");
+        params.addQueryItem("q", query.trimmed());
+    }
+    httpClient->get(endpoint, params, [callback](const HttpResponse &response) { callback(jsonResult(response)); });
+}
+
+void Client::sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback)
+{
+    QJsonObject payload;
+    payload["content"] = QString();
+    payload["sticker_ids"] = QJsonArray { QString::number(quint64(stickerId)) };
+    payload["nonce"] = QString::number(quint64(Core::Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch())));
+    payload["tts"] = false;
+    payload["flags"] = 0;
+    if (replyToMessageId.isValid()) {
+        QJsonObject reference;
+        reference["message_id"] = QString::number(quint64(replyToMessageId));
+        reference["channel_id"] = QString::number(quint64(channelId));
+        payload["message_reference"] = reference;
+    }
+    httpClient->post("/channels/" + QString::number(quint64(channelId)) + "/messages", payload,
+                     ContextProperties::location(QStringLiteral("chat_input")),
+                     [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }
 
 } // namespace Discord

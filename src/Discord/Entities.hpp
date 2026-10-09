@@ -1275,6 +1275,10 @@ struct Message : Core::JsonUtils::JsonObject
     //   non-null                               -> referenced message is present
     std::shared_ptr<Message> referencedMessage;
     bool referencedMessageNull = false;
+    // Qord: who ran the slash command this message answers ("used /name")
+    QString interactionName;
+    QString interactionUserName;
+    Core::Snowflake interactionUserId;
 
     std::shared_ptr<Message> snapshotMessage;
 
@@ -1333,6 +1337,17 @@ struct Message : Core::JsonUtils::JsonObject
 
         get(obj, "id", message.id);
         get(obj, "nonce", message.nonce);
+        {
+            QJsonObject interaction = obj.value(QStringLiteral("interaction_metadata")).toObject();
+            if (interaction.isEmpty())
+                interaction = obj.value(QStringLiteral("interaction")).toObject(); // older shape
+            message.interactionName = interaction.value(QStringLiteral("name")).toString();
+            const QJsonObject user = interaction.value(QStringLiteral("user")).toObject();
+            message.interactionUserName = user.value(QStringLiteral("global_name")).toString();
+            if (message.interactionUserName.isEmpty())
+                message.interactionUserName = user.value(QStringLiteral("username")).toString();
+            message.interactionUserId = Core::Snowflake(user.value(QStringLiteral("id")).toString().toULongLong());
+        }
         get(obj, "channel_id", message.channelId);
         get(obj, "author", message.author);
         get(obj, "content", message.content);

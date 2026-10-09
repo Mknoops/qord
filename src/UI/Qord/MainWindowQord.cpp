@@ -17,6 +17,9 @@
 #include "UI/Chat/ChatView.hpp"
 #include "UI/Qord/EmojiPicker.hpp"
 #include "UI/Qord/ExpressionPicker.hpp"
+#include "UI/Qord/SlashCommandPopup.hpp"
+#include <QJsonDocument>
+#include <QToolTip>
 #include "UI/Qord/FriendsPage.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -128,6 +131,9 @@ void MainWindow::setupQordFeatures()
         emojiPicker->open(currentInstance, channelId, true, chatView);
         emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker
     });
+
+    // Slash commands
+    slashPopup = new SlashCommandPopup(messageInput->editor(), messageInput, [this]() { return slashIndex(); });
 
     // GIF and sticker pickers
     expressionPicker = new ExpressionPicker(session->getImageManager(), this);
@@ -331,6 +337,79 @@ void MainWindow::applyQordSurfaces()
     setSurface(channelTree, theme.color(Token::SidebarBg));
     setSurface(memberListView, theme.color(Token::SidebarBg));
     setSurface(userPanel, theme.color(Token::SidebarBg).darker(115));
+}
+
+QString MainWindow::slashScopeKey() const
+{
+    if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+        return {};
+    const Snowflake guildId = chatModel->getActiveGuildId();
+    return guildId.isValid() ? QStringLiteral("%1:g%2").arg(quint64(currentInstance->accountId())).arg(quint64(guildId))
+                             : QStringLiteral("%1:c%2")
+                                       .arg(quint64(currentInstance->accountId()))
+                                       .arg(quint64(chatModel->getActiveChannelId()));
+}
+
+const Qord::SlashCommands::Index *MainWindow::slashIndex()
+{
+    const QString key = slashScopeKey();
+    if (key.isEmpty())
+        return nullptr;
+    auto it = slashIndexes.constFind(key);
+    if (it != slashIndexes.constEnd())
+        return &it.value();
+    if (!slashLoading.contains(key)) {
+        slashLoading.insert(key);
+        const QPointer<MainWindow> guard(this);
+        currentInstance->discord()->fetchCommandIndex(
+                chatModel->getActiveGuildId(), chatModel->getActiveChannelId(),
+                [guard, key](const Core::Result<QJsonDocument> &result) {
+                    if (!guard)
+                        return;
+                    guard->slashLoading.remove(key);
+                    guard->slashIndexes.insert(key, result.success() ? Qord::SlashCommands::parseIndex(result.value->object())
+                                                                     : Qord::SlashCommands::Index());
+                    if (guard->slashPopup && guard->slashScopeKey() == key)
+                        guard->slashPopup->refresh();
+                });
+    }
+    return nullptr;
+}
+
+bool MainWindow::trySendSlashCommand(const QString &text)
+{
+    if (!text.startsWith(QLatin1Char('/')) || !currentInstance)
+        return false;
+    const Qord::SlashCommands::Index *index = slashIndex();
+    if (!index || !Qord::SlashCommands::find(*index, text))
+        return false; // not a command here: send it as a message, like Discord
+    const Qord::SlashCommands::Built built = Qord::SlashCommands::build(*index, text);
+    if (!built.ok) {
+        // Keep what was typed and say what is wrong
+        messageInput->insertText(text);
+        QToolTip::showText(messageInput->mapToGlobal(QPoint(12, -8)), built.error, messageInput);
+        return true;
+    }
+    QJsonObject payload {
+        { QStringLiteral("type"), 2 },
+        { QStringLiteral("application_id"), built.command->applicationId },
+        { QStringLiteral("channel_id"), QString::number(quint64(chatModel->getActiveChannelId())) },
+        { QStringLiteral("session_id"), currentInstance->discord()->gatewaySessionId() },
+        { QStringLiteral("data"), built.data },
+        { QStringLiteral("nonce"), QString::number(quint64(Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch()))) },
+        { QStringLiteral("analytics_location"), QStringLiteral("slash_ui") },
+    };
+    if (chatModel->getActiveGuildId().isValid())
+        payload.insert(QStringLiteral("guild_id"), QString::number(quint64(chatModel->getActiveGuildId())));
+    const QPointer<MainWindow> guard(this);
+    currentInstance->discord()->sendInteraction(payload, [guard, text](const Core::Result<void> &result) {
+        if (!guard || result.success())
+            return;
+        guard->messageInput->insertText(text);
+        QToolTip::showText(guard->messageInput->mapToGlobal(QPoint(12, -8)),
+                           tr("The command could not be sent"), guard->messageInput);
+    });
+    return true;
 }
 
 void MainWindow::refreshPluginSurfaces()

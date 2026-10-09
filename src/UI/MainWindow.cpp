@@ -1428,6 +1428,9 @@ void MainWindow::setupUi()
             return;
         }
 
+        if (trySendSlashCommand(text)) // Qord: "/command option:value"
+            return;
+
         Snowflake replyTo = messageInput->replyTargetMessageId();
         if (!chatModel->isAtLatest())
             chatView->jumpToPresent();

@@ -45,7 +45,11 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/NotificationSound.cpp
     src/UI/Qord/ExpressionPicker.hpp
     src/UI/Qord/ExpressionPicker.cpp
+    src/UI/Qord/SlashCommandPopup.hpp
+    src/UI/Qord/SlashCommandPopup.cpp
     src/Qord/EmojiPickerData.cpp
+    src/Qord/SlashCommands.hpp
+    src/Qord/SlashCommands.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
 
@@ -69,5 +73,14 @@ if(BUILD_TESTS)
     endif()
     target_compile_definitions(TestQordMarkdown PRIVATE QORD_MARKDOWN_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/qord")
     add_test(NAME QordMarkdownTests COMMAND TestQordMarkdown)
+
+    qt_add_executable(TestSlashCommands tests/qord/tst_slash_commands.cpp src/Qord/SlashCommands.cpp)
+    target_link_libraries(TestSlashCommands PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestSlashCommands PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestSlashCommands PROPERTIES AUTOMOC ON)
+    if(MSVC)
+        target_compile_options(TestSlashCommands PRIVATE /utf-8)
+    endif()
+    add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
     add_subdirectory(tests/plugins)
 endif()

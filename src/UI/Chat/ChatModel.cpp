@@ -344,8 +344,8 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         if (isSystemMessageType(msg.type))
             return false;
 
-        // replies always show a header
-        if (msg.type == Discord::MessageType::REPLY)
+        // replies always show a header (Qord: so do slash command answers)
+        if (msg.type == Discord::MessageType::REPLY || msg.type == Discord::MessageType::CHAT_INPUT_COMMAND)
             return true;
 
         if (isFirstUnread(index.row())) // Qord: a new group starts after the NEW divider
@@ -882,6 +882,17 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     case ReplyDataRole: {
         ReplyData reply;
 
+        // Qord: "<user> used /command" above a slash command's answer, like Discord
+        if (msg.type == Discord::MessageType::CHAT_INPUT_COMMAND && !msg.interactionName.isEmpty()) {
+            reply.state = ReplyData::State::Present;
+            reply.authorId = msg.interactionUserId;
+            reply.authorName = msg.interactionUserName;
+            reply.authorColor = msg.interactionUserId.isValid() && roleColorResolver
+                                        ? roleColorResolver(msg.interactionUserId, currentGuildId)
+                                        : QColor();
+            reply.contentSnippet = tr("used /%1").arg(msg.interactionName);
+            return QVariant::fromValue(reply);
+        }
         if (msg.type != Discord::MessageType::REPLY) {
             reply.state = ReplyData::State::None;
             return QVariant::fromValue(reply);

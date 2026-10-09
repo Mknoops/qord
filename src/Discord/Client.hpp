@@ -271,6 +271,11 @@ public:
     void setMessageFlags(Snowflake channelId, Snowflake messageId, quint64 flags);
     // Discord's Tenor proxy: trending GIFs for an empty query, else a search
     void fetchGifs(const QString &query, JsonCallback callback);
+    // The slash commands usable in a server, or in a DM/group DM channel
+    void fetchCommandIndex(Snowflake guildId, Snowflake channelId, JsonCallback callback);
+    // POST /interactions (type 2 = application command); replies arrive over the gateway
+    void sendInteraction(const QJsonObject &payload, ActionCallback callback);
+    [[nodiscard]] QString gatewaySessionId() const;
     // A message with just a sticker; it arrives as MESSAGE_CREATE
     void sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback);
 

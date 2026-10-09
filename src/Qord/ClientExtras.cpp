@@ -275,5 +275,24 @@ void Client::sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake rep
                      [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }
 
+void Client::fetchCommandIndex(Snowflake guildId, Snowflake channelId, JsonCallback callback)
+{
+    const QString endpoint = guildId.isValid()
+                                     ? "/guilds/" + QString::number(quint64(guildId)) + "/application-command-index"
+                                     : "/channels/" + QString::number(quint64(channelId)) + "/application-command-index";
+    httpClient->get(endpoint, {}, [callback](const HttpResponse &response) { callback(jsonResult(response)); });
+}
+
+void Client::sendInteraction(const QJsonObject &payload, ActionCallback callback)
+{
+    httpClient->post("/interactions", payload, ContextProperties::location(QStringLiteral("slash_ui")),
+                     [callback](const HttpResponse &response) { callback(actionResult(response)); });
+}
+
+QString Client::gatewaySessionId() const
+{
+    return gateway ? gateway->currentSessionId() : QString();
+}
+
 } // namespace Discord
 } // namespace Acheron

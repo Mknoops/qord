@@ -1,0 +1,386 @@
+[
+ {
+  "ms": 0,
+  "human": false,
+  "seconds": true,
+  "expected": "00:00"
+ },
+ {
+  "ms": 0,
+  "human": false,
+  "seconds": false,
+  "expected": "00:00"
+ },
+ {
+  "ms": 0,
+  "human": true,
+  "seconds": true,
+  "expected": "0s"
+ },
+ {
+  "ms": 0,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 0m"
+ },
+ {
+  "ms": 999,
+  "human": false,
+  "seconds": true,
+  "expected": "00:00"
+ },
+ {
+  "ms": 999,
+  "human": false,
+  "seconds": false,
+  "expected": "00:00"
+ },
+ {
+  "ms": 999,
+  "human": true,
+  "seconds": true,
+  "expected": "0s"
+ },
+ {
+  "ms": 999,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 0m"
+ },
+ {
+  "ms": 1000,
+  "human": false,
+  "seconds": true,
+  "expected": "00:01"
+ },
+ {
+  "ms": 1000,
+  "human": false,
+  "seconds": false,
+  "expected": "00:00"
+ },
+ {
+  "ms": 1000,
+  "human": true,
+  "seconds": true,
+  "expected": "1s"
+ },
+ {
+  "ms": 1000,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 0m"
+ },
+ {
+  "ms": 59000,
+  "human": false,
+  "seconds": true,
+  "expected": "00:59"
+ },
+ {
+  "ms": 59000,
+  "human": false,
+  "seconds": false,
+  "expected": "00:00"
+ },
+ {
+  "ms": 59000,
+  "human": true,
+  "seconds": true,
+  "expected": "59s"
+ },
+ {
+  "ms": 59000,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 0m"
+ },
+ {
+  "ms": 60000,
+  "human": false,
+  "seconds": true,
+  "expected": "01:00"
+ },
+ {
+  "ms": 60000,
+  "human": false,
+  "seconds": false,
+  "expected": "00:01"
+ },
+ {
+  "ms": 60000,
+  "human": true,
+  "seconds": true,
+  "expected": "1m 0s"
+ },
+ {
+  "ms": 60000,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 1m"
+ },
+ {
+  "ms": 61000,
+  "human": false,
+  "seconds": true,
+  "expected": "01:01"
+ },
+ {
+  "ms": 61000,
+  "human": false,
+  "seconds": false,
+  "expected": "00:01"
+ },
+ {
+  "ms": 61000,
+  "human": true,
+  "seconds": true,
+  "expected": "1m 1s"
+ },
+ {
+  "ms": 61000,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 1m"
+ },
+ {
+  "ms": 599000,
+  "human": false,
+  "seconds": true,
+  "expected": "09:59"
+ },
+ {
+  "ms": 599000,
+  "human": false,
+  "seconds": false,
+  "expected": "00:09"
+ },
+ {
+  "ms": 599000,
+  "human": true,
+  "seconds": true,
+  "expected": "9m 59s"
+ },
+ {
+  "ms": 599000,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 9m"
+ },
+ {
+  "ms": 3599999,
+  "human": false,
+  "seconds": true,
+  "expected": "59:59"
+ },
+ {
+  "ms": 3599999,
+  "human": false,
+  "seconds": false,
+  "expected": "00:59"
+ },
+ {
+  "ms": 3599999,
+  "human": true,
+  "seconds": true,
+  "expected": "59m 59s"
+ },
+ {
+  "ms": 3599999,
+  "human": true,
+  "seconds": false,
+  "expected": "0h 59m"
+ },
+ {
+  "ms": 3600000,
+  "human": false,
+  "seconds": true,
+  "expected": "01:00:00"
+ },
+ {
+  "ms": 3600000,
+  "human": false,
+  "seconds": false,
+  "expected": "01:00"
+ },
+ {
+  "ms": 3600000,
+  "human": true,
+  "seconds": true,
+  "expected": "1h 0m 0s"
+ },
+ {
+  "ms": 3600000,
+  "human": true,
+  "seconds": false,
+  "expected": "1h 0m"
+ },
+ {
+  "ms": 3661000,
+  "human": false,
+  "seconds": true,
+  "expected": "01:01:01"
+ },
+ {
+  "ms": 3661000,
+  "human": false,
+  "seconds": false,
+  "expected": "01:01"
+ },
+ {
+  "ms": 3661000,
+  "human": true,
+  "seconds": true,
+  "expected": "1h 1m 1s"
+ },
+ {
+  "ms": 3661000,
+  "human": true,
+  "seconds": false,
+  "expected": "1h 1m"
+ },
+ {
+  "ms": 36000000,
+  "human": false,
+  "seconds": true,
+  "expected": "10:00:00"
+ },
+ {
+  "ms": 36000000,
+  "human": false,
+  "seconds": false,
+  "expected": "10:00"
+ },
+ {
+  "ms": 36000000,
+  "human": true,
+  "seconds": true,
+  "expected": "10h 0m 0s"
+ },
+ {
+  "ms": 36000000,
+  "human": true,
+  "seconds": false,
+  "expected": "10h 0m"
+ },
+ {
+  "ms": 86399000,
+  "human": false,
+  "seconds": true,
+  "expected": "23:59:59"
+ },
+ {
+  "ms": 86399000,
+  "human": false,
+  "seconds": false,
+  "expected": "23:59"
+ },
+ {
+  "ms": 86399000,
+  "human": true,
+  "seconds": true,
+  "expected": "23h 59m 59s"
+ },
+ {
+  "ms": 86399000,
+  "human": true,
+  "seconds": false,
+  "expected": "23h 59m"
+ },
+ {
+  "ms": 86400000,
+  "human": false,
+  "seconds": true,
+  "expected": "1:00:00:00"
+ },
+ {
+  "ms": 86400000,
+  "human": false,
+  "seconds": false,
+  "expected": "1:00:00"
+ },
+ {
+  "ms": 86400000,
+  "human": true,
+  "seconds": true,
+  "expected": "1d 0h 0m 0s"
+ },
+ {
+  "ms": 86400000,
+  "human": true,
+  "seconds": false,
+  "expected": "1d 0h 0m"
+ },
+ {
+  "ms": 90061000,
+  "human": false,
+  "seconds": true,
+  "expected": "1:01:01:01"
+ },
+ {
+  "ms": 90061000,
+  "human": false,
+  "seconds": false,
+  "expected": "1:01:01"
+ },
+ {
+  "ms": 90061000,
+  "human": true,
+  "seconds": true,
+  "expected": "1d 1h 1m 1s"
+ },
+ {
+  "ms": 90061000,
+  "human": true,
+  "seconds": false,
+  "expected": "1d 1h 1m"
+ },
+ {
+  "ms": 2678442000,
+  "human": false,
+  "seconds": true,
+  "expected": "31:00:00:42"
+ },
+ {
+  "ms": 2678442000,
+  "human": false,
+  "seconds": false,
+  "expected": "31:00:00"
+ },
+ {
+  "ms": 2678442000,
+  "human": true,
+  "seconds": true,
+  "expected": "31d 0h 0m 42s"
+ },
+ {
+  "ms": 2678442000,
+  "human": true,
+  "seconds": false,
+  "expected": "31d 0h 0m"
+ },
+ {
+  "ms": 867723000,
+  "human": false,
+  "seconds": true,
+  "expected": "10:01:02:03"
+ },
+ {
+  "ms": 867723000,
+  "human": false,
+  "seconds": false,
+  "expected": "10:01:02"
+ },
+ {
+  "ms": 867723000,
+  "human": true,
+  "seconds": true,
+  "expected": "10d 1h 2m 3s"
+ },
+ {
+  "ms": 867723000,
+  "human": true,
+  "seconds": false,
+  "expected": "10d 1h 2m"
+ }
+]

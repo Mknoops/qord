@@ -191,6 +191,46 @@ struct DecorationContext
     QList<SessionInfo> ownSessions; // only for the current user
 };
 
+// Someone joined, moved between or left voice channels.
+struct VoiceStateChange
+{
+    Id accountId = 0;
+    Id guildId = 0; // 0 for DM calls
+    Id userId = 0;
+    Id channelId = 0; // the channel now; 0 when they left voice
+    bool isSelf = false;
+    qint64 atMs = 0; // when the client saw it (ms since the epoch)
+};
+
+// A user listed under a voice channel.
+struct VoiceParticipantContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0;
+    Id userId = 0;
+    bool isSelf = false;
+    qint64 nowMs = 0;
+};
+
+// Extra text for a voice participant: shown after the name, or as a small
+// icon with the text as its tooltip.
+struct VoiceLabel
+{
+    QString text;
+    bool inlineText = false;
+};
+
+// The current user's voice connection (the panel above the user panel).
+struct VoiceConnectionContext
+{
+    Id accountId = 0;
+    Id userId = 0; // the current user
+    Id guildId = 0;
+    Id channelId = 0;
+    qint64 nowMs = 0;
+};
+
 // An icon drawn after a user's name. `svg` is an SVG document drawn in
 // `color` where it says "currentColor"; `size` is in pixels.
 struct NameDecoration

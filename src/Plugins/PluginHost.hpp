@@ -140,6 +140,10 @@ public:
     [[nodiscard]] QList<NameDecoration> dispatchNameDecorations(const DecorationContext &user);
     // True if a plugin handled the click.
     [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
+    void dispatchVoiceStateChanged(const VoiceStateChange &change);
+    // First plugin with a label/text wins.
+    [[nodiscard]] std::optional<VoiceLabel> dispatchVoiceParticipantLabel(const VoiceParticipantContext &participant);
+    [[nodiscard]] std::optional<QString> dispatchVoiceConnectionText(const VoiceConnectionContext &connection);
 
 signals:
     void pluginStateChanged(const QString &id);

@@ -1,0 +1,40 @@
+{
+  "id": "calltimer",
+  "equicordName": "CallTimer",
+  "equicordPath": "src/plugins/callTimer",
+  "name": "CallTimer",
+  "description": "Add call timers for all users in voice channels and in the connection status.",
+  "categories": ["utility"],
+  "tags": ["Voice", "Utility"],
+  "authors": ["Ven", "MaxHerbold", "D3SOX"],
+  "permissions": ["read_voice_states"],
+  "hooks": ["voiceStates"],
+  "settings": [
+    { "key": "format", "type": "choice", "default": "stopwatch", "label": "Format",
+      "description": "Compact or human readable format:",
+      "choices": [
+        { "value": "stopwatch", "label": "30:23:00:42" },
+        { "value": "human", "label": "30d 23h 00m 42s" }
+      ] },
+    { "key": "allCallTimers", "type": "bool", "default": false, "label": "All call timers",
+      "description": "Add call timer to all users in a server voice channel" },
+    { "key": "showWithoutHover", "type": "bool", "default": false, "label": "Show without hover",
+      "description": "Always show the timer without needing to hover" },
+    { "key": "showRoleColor", "type": "bool", "default": false, "label": "Show role color",
+      "description": "Show the user's role color (if this plugin in enabled)" },
+    { "key": "trackSelf", "type": "bool", "default": false, "label": "Track yourself",
+      "description": "Also track yourself" },
+    { "key": "showSeconds", "type": "bool", "default": false, "label": "Show seconds",
+      "description": "Show seconds in the timer" },
+    { "key": "watchLargeGuilds", "type": "bool", "default": false, "label": "Watch large guilds",
+      "description": "Track users in large guilds. This may cause lag if you're in a lot of large guilds with active voice users. Tested with up to 2000 active voice users with no issues." }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Watch large guilds: upstream subscribes to every server so voice changes in large servers are not missed; Qord does not send that subscription yet."
+  ],
+  "notes": "The connection timer is shown in the voice panel above the user panel; participant timers sit after names in the channel list (an icon with the time as tooltip, or the time itself with Show without hover). Qord's voice list does not colour names by role, so Show role color has no visible effect. As upstream, people already in voice when Qord connects are timed from that moment."
+}

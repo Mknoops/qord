@@ -11,6 +11,34 @@
 namespace Acheron {
 namespace UI {
 
+namespace {
+ChannelDelegate::VoiceLabelProvider &voiceLabelProvider()
+{
+    static ChannelDelegate::VoiceLabelProvider provider;
+    return provider;
+}
+} // namespace
+
+void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
+{
+    voiceLabelProvider() = std::move(provider);
+}
+
+bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                                const QModelIndex &index)
+{
+    if (event && index.isValid()) {
+        QModelIndex source = proxyModel ? proxyModel->mapToSource(index) : index;
+        const void *node = source.internalPointer();
+        auto it = voiceLabelTips.constFind(node);
+        if (it != voiceLabelTips.constEnd() && it->first.contains(event->pos())) {
+            QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
+            return true;
+        }
+    }
+    return QStyledItemDelegate::helpEvent(event, view, option, index);
+}
+
 ChannelDelegate::ChannelDelegate(QAbstractProxyModel *proxyModel, QObject *parent)
     : QStyledItemDelegate(parent), proxyModel(proxyModel)
 {
@@ -454,13 +482,56 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         int iconCount = (muted ? 1 : 0) + (deafened ? 1 : 0);
         int rightReserve = iconCount > 0 ? (iconCount * (statusIconSize + 4) + 4) : 4;
 
+        // Qord: plugin label (CallTimer)
+        std::optional<VoiceLabel> voiceLabel;
+        if (voiceLabelProvider()) {
+            const ChannelNode *account = node;
+            while (account && account->type != ChannelNode::Type::Account)
+                account = account->parent;
+            const ChannelNode *guild = ChannelTreeModel::findGuildNode(const_cast<ChannelNode *>(node));
+            if (account)
+                voiceLabel = voiceLabelProvider()(quint64(account->id), guild ? quint64(guild->id) : 0,
+                                                  quint64(node->parentId), quint64(node->id));
+        }
+        voiceLabelTips.remove(node);
+        QFont labelFont = painter->font();
+        labelFont.setPixelSize(11);
+        const int labelWidth = !voiceLabel ? 0
+                               : voiceLabel->inlineText ? QFontMetrics(labelFont).horizontalAdvance(voiceLabel->text) + 6
+                                                        : 16;
+
         QColor textColor = option.palette.text().color();
         QRect textRect =
-                contentOpt.rect.adjusted(participantIndent + avatarSize + 6, 0, -rightReserve, 0);
+                contentOpt.rect.adjusted(participantIndent + avatarSize + 6, 0, -rightReserve - labelWidth, 0);
         painter->setPen(textColor);
         QString elidedName = painter->fontMetrics().elidedText(
                 index.data(Qt::DisplayRole).toString(), Qt::ElideRight, textRect.width());
         painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, elidedName);
+
+        if (voiceLabel) {
+            const int labelX = textRect.left() + painter->fontMetrics().horizontalAdvance(elidedName) + 6;
+            const QColor muted = Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText);
+            if (voiceLabel->inlineText) {
+                painter->save();
+                painter->setFont(labelFont);
+                painter->setPen(muted);
+                painter->drawText(QRect(labelX, contentOpt.rect.top(), labelWidth, contentOpt.rect.height()),
+                                  Qt::AlignLeft | Qt::AlignVCenter, voiceLabel->text);
+                painter->restore();
+            } else {
+                // A small clock; the time is its tooltip
+                const QRectF clock(labelX, contentOpt.rect.center().y() - 5.5, 11, 11);
+                painter->save();
+                painter->setRenderHint(QPainter::Antialiasing);
+                painter->setPen(QPen(muted, 1.4));
+                painter->setBrush(Qt::NoBrush);
+                painter->drawEllipse(clock);
+                painter->drawLine(clock.center(), clock.center() - QPointF(0, 3.2));
+                painter->drawLine(clock.center(), clock.center() + QPointF(2.4, 0));
+                painter->restore();
+                voiceLabelTips.insert(node, { clock.toAlignedRect().adjusted(-2, -2, 2, 2), voiceLabel->text });
+            }
+        }
 
         if (muted || deafened) {
             QColor iconColor = option.palette.text().color();

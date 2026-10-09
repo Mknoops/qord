@@ -44,6 +44,8 @@ public:
     void setAccount(Core::Snowflake accountId);
     void setChannelName(const QString &name);
     void updateConnectionState();
+    // Qord: text after the channel name (CallTimer's connection timer)
+    void setExtraText(const QString &text);
 
 signals:
     void disconnectRequested();
@@ -69,6 +71,7 @@ private:
     QLabel *statusDot;
     QLabel *statusLabel;
     QLabel *channelLabel;
+    QLabel *extraLabel = nullptr;
     QPushButton *disconnectBtn;
 
     QPointer<VoiceWindow> voiceWindow;

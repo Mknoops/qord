@@ -76,6 +76,8 @@ and why, so it can be revisited deliberately.
 50. **The NEW divider.** Opening a channel remembers what was read at that moment (`ReadStateManager::ackIdWhenOpened`); the first message after it gets Discord's red line with a NEW tag, and starts a new message group. Sending a message removes it, like Discord. Date dividers now use Discord's style (thin line, long date in the middle) and turn red when they coincide with NEW.
 51. **Notification sound and a Notifications settings page.** New DMs and mentions that pass the notification rules (decision 36) play a short chime; it is synthesised in code (two notes), not Discord's sound file. It plays through miniaudio when the client has it and falls back to the system beep. Settings gained a Notifications page: desktop notifications and the message sound, each on by default, with a Play button.
 
+52. **Voice states hook.** `voiceStates` (new permission `read_voice_states`) tells plugins when someone joins, moves between or leaves voice channels (your own connection included), and lets them add text to voice participants in the channel list (after the name, or as a clock icon with a tooltip) and to the voice connection panel. Contexts carry the time, so plugins are testable without a clock; the client repaints these once a second while a plugin uses the hook. CallTimer is the first user; its duration format is checked against Equicord's `formatDurationMs` run in Node.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

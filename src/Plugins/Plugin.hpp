@@ -187,6 +187,20 @@ public:
         return false;
     }
 
+    // Hook::VoiceStates: voice joins, moves and leaves, and text for the
+    // voice participant list and the voice connection panel.
+    virtual void onVoiceStateChanged(const VoiceStateChange &change) { Q_UNUSED(change); }
+    virtual std::optional<VoiceLabel> voiceParticipantLabel(const VoiceParticipantContext &participant)
+    {
+        Q_UNUSED(participant);
+        return std::nullopt;
+    }
+    virtual std::optional<QString> voiceConnectionText(const VoiceConnectionContext &connection)
+    {
+        Q_UNUSED(connection);
+        return std::nullopt;
+    }
+
     // Hook::UserContextMenu
     virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
     {

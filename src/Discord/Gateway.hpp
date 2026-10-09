@@ -225,6 +225,12 @@ private:
     QString sessionId;
     QString resumeGatewayUrl;
 
+public:
+    // Qord: interactions (slash commands) name the gateway session
+    [[nodiscard]] QString currentSessionId() const { return sessionId; }
+
+private:
+
     std::atomic<bool> heartbeatAckReceived{ true };
     std::atomic<bool> shouldReconnect{ false };
     bool canResume = false;

@@ -309,6 +309,11 @@ void MessageInput::addTrailingWidget(QWidget *widget)
     inputLayout->addWidget(widget, 0, Qt::AlignBottom);
 }
 
+QTextEdit *MessageInput::editor() const
+{
+    return textEdit;
+}
+
 void MessageInput::insertText(const QString &text)
 {
     textEdit->insertPlainText(text);

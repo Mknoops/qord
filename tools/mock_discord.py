@@ -28,6 +28,7 @@ import base64
 import datetime as dt
 import hashlib
 import json
+import random
 import os
 import struct
 import sys
@@ -390,6 +391,21 @@ def presence(key: str, gid: str | None = None) -> dict:
         p["guild_id"] = gid
     return p
 
+
+COMMAND_INDEX = {
+    "applications": [{"id": U["bot"], "name": "Qordbot"}],
+    "application_commands": [
+        {"id": "800000000000000001", "application_id": U["bot"], "version": "1", "type": 1, "name": "ping",
+         "description": "Check that the bot is alive"},
+        {"id": "800000000000000002", "application_id": U["bot"], "version": "1", "type": 1, "name": "roll",
+         "description": "Roll a die", "options": [
+             {"type": 4, "name": "sides", "description": "How many sides", "required": False}]},
+        {"id": "800000000000000003", "application_id": U["bot"], "version": "1", "type": 1, "name": "echo",
+         "description": "Repeat some text", "options": [
+             {"type": 3, "name": "text", "description": "What to say", "required": True}]},
+    ],
+    "version": "1",
+}
 
 GUILD_STICKERS = {
     G1: [{"id": "700000000000000001", "name": "Qord Wave", "tags": "wave", "description": "Hello!",
@@ -893,6 +909,40 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         if method == "PATCH":
             log(f"rest: settings-proto/{parts[3] if len(parts) > 3 else '?'} patched ({len(body)} bytes)")
         return 200, {"settings": ""}, "json"
+    if len(parts) == 3 and parts[2] == "application-command-index" and parts[0] in ("guilds", "channels"):
+        empty = {"applications": [], "application_commands": [], "version": "0"}
+        return 200, (COMMAND_INDEX if parts[0] == "guilds" and parts[1] == G1 else empty), "json"
+    if parts == ["interactions"] and method == "POST":
+        data = j.get("data") or {}
+        cid = j.get("channel_id", "")
+        log(f"rest: interaction /{data.get('name')} options={json.dumps(data.get('options', []))} "
+            f"session={j.get('session_id')!r} app={j.get('application_id')}")
+
+        def flat(opts):
+            out = {}
+            for o in opts or []:
+                if o.get("type") in (1, 2):
+                    out["_sub"] = (out.get("_sub", "") + " " + o["name"]).strip()
+                    out.update(flat(o.get("options")))
+                else:
+                    out[o["name"]] = o.get("value")
+            return out
+        args = flat(data.get("options"))
+        name = data.get("name")
+        if name == "ping":
+            reply = "Pong! 🏓"
+        elif name == "roll":
+            reply = f"🎲 You rolled {random.randint(1, int(args.get('sides', 6) or 6))}"
+        elif name == "echo":
+            reply = str(args.get("text", ""))
+        else:
+            reply = f"/{name} {args}"
+        m = message(cid, "bot", reply, int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))
+        m["type"] = 20  # CHAT_INPUT_COMMAND
+        m["interaction_metadata"] = {"id": "1", "type": 2, "name": name, "user": USERS["self"]}
+        MESSAGES.setdefault(cid, []).append(m)
+        await broadcast("MESSAGE_CREATE", m)
+        return 204, None, "json"
     if parts[:2] == ["gifs", "trending-gifs"] or parts[:2] == ["gifs", "search"]:
         q = query.get("q", [""])[0]
         log(f"rest: gifs {parts[1]} q={q!r}")

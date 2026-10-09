@@ -53,6 +53,8 @@ public:
     [[nodiscard]] bool isSendBlocked() const { return sendBlocked; }
 
     void insertText(const QString &text);
+    // Qord: the text box (slash command menu)
+    [[nodiscard]] QTextEdit *editor() const;
     // Places a widget to the right of the text box (used for plugin buttons)
     void addTrailingWidget(QWidget *widget);
 

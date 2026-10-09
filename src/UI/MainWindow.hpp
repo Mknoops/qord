@@ -1,4 +1,6 @@
 #pragma once
+
+#include "Qord/SlashCommands.hpp"
 #include <QtWidgets>
 
 #include <functional>
@@ -268,6 +270,13 @@ private:
     MessageListPopup *ensureMessagePopup();
     class EmojiPicker *emojiPicker = nullptr;
     class ExpressionPicker *expressionPicker = nullptr;
+    // Slash commands: the command index per server/DM, loaded on first "/"
+    QHash<QString, Qord::SlashCommands::Index> slashIndexes;
+    QSet<QString> slashLoading;
+    class SlashCommandPopup *slashPopup = nullptr;
+    QString slashScopeKey() const;
+    const Qord::SlashCommands::Index *slashIndex();
+    bool trySendSlashCommand(const QString &text);
     class FriendsPage *friendsPage = nullptr;
     QPushButton *friendsButton = nullptr;
     void showFriendsPage();

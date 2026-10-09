@@ -113,6 +113,7 @@ public:
         ++dialogs;
     }
     void openUrl(const QUrl &url) override { opened.append(url); }
+    void openImage(const QUrl &url) override { images.append(url); }
     void insertIntoMessageBox(const QString &text) override { inserted.append(text); }
     void pickTimestamp(std::function<void(const QString &)> done) override { pendingPick = std::move(done); }
     void openPluginSettings(const QString &pluginId) override { settingsOpened.append(pluginId); }
@@ -133,6 +134,7 @@ public:
     QList<TextSection> dialogSections;
     int dialogs = 0;
     QList<QUrl> opened;
+    QList<QUrl> images;
 };
 
 class FakeMessages : public MessageService
@@ -166,7 +168,16 @@ class FakeDisplayOptions : public DisplayOptionsService
 {
 public:
     void setRelativeTimeRoundsDown(bool floor) override { roundsDown = floor; }
+    void setMobileIndicatorForAnyStatus(bool any) override { mobileAnyStatus = any; }
     bool roundsDown = false;
+    bool mobileAnyStatus = false;
+};
+
+class FakeReadStates : public ReadStateService
+{
+public:
+    void markAllServersRead(Id accountId) override { markedAccounts.append(accountId); }
+    QList<Id> markedAccounts;
 };
 
 using RegisterFn = void (*)(Registry &);
@@ -187,6 +198,7 @@ struct SinglePluginHost
         services.messages = &messages;
         services.messageActions = &messageActions;
         services.displayOptions = &displayOptions;
+        services.readStates = &readStates;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -215,6 +227,7 @@ struct SinglePluginHost
     FakeMessages messages;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
+    FakeReadStates readStates;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

@@ -96,8 +96,8 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         content == msg.content.get()) {
         Qord::Plugins::IncomingMessage in;
         in.accountId = quint64(client->getMe().id.get());
-        in.channelId = quint64(msg.channelId.get());
-        in.guildId = quint64(client->getGuildIdForChannel(msg.channelId));
+        in.channelId = Qord::Plugins::pluginId(msg.channelId.get());
+        in.guildId = Qord::Plugins::pluginId(client->getGuildIdForChannel(msg.channelId));
         in.messageId = quint64(msg.id.get());
         in.authorId = msg.author.hasValue() ? quint64(msg.author.get().id.get()) : 0;
         in.isOwn = in.authorId && in.authorId == in.accountId;
@@ -562,8 +562,8 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
     if (plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
         Qord::Plugins::OutgoingMessage out;
         out.accountId = quint64(client->getMe().id.get());
-        out.channelId = quint64(channelId);
-        out.guildId = quint64(client->getGuildIdForChannel(channelId));
+        out.channelId = Qord::Plugins::pluginId(channelId);
+        out.guildId = Qord::Plugins::pluginId(client->getGuildIdForChannel(channelId));
         out.replyToMessageId = quint64(replyToMessageId);
         out.content = content;
         plugins->dispatchBeforeSend(out);

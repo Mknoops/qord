@@ -37,6 +37,10 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/AddServerDialog.cpp
     src/UI/Qord/DesktopNotifier.hpp
     src/UI/Qord/DesktopNotifier.cpp
+    src/UI/Qord/NameDecorations.hpp
+    src/UI/Qord/NameDecorations.cpp
+    src/UI/Qord/PluginSurfaces.hpp
+    src/UI/Qord/PluginSurfaces.cpp
     src/Qord/EmojiPickerData.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)

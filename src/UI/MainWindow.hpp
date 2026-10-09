@@ -279,6 +279,13 @@ private:
                              Core::Snowflake channelId);
     class DesktopNotifier *notifier = nullptr;
     QToolButton *addServerButton = nullptr;
+    class ServerListButtonBar *serverListButtons = nullptr;
+    class MemberCountBar *memberCountBar = nullptr;
+    class NameDecorations *nameDecorations = nullptr;
+    void refreshPluginSurfaces();
+    void refreshMemberCountBar();
+    QString memberCountTooltip(Core::Snowflake accountId, Core::Snowflake guildId);
+    void openImageInViewer(const QUrl &url);
     UserPanel *userPanel = nullptr;
     QLabel *channelNameLabel = nullptr;
     QToolButton *pinsButton = nullptr;

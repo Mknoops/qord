@@ -15,6 +15,7 @@
 #include "Core/Theme/Manager.hpp"
 #include "Core/TimeUtils.hpp"
 #include "Discord/ChannelLink.hpp"
+#include "UI/Chat/ChatDelegate.hpp"
 #include "UI/Chat/FrameAnimator.hpp"
 #include "UI/Chat/InlineVideoController.hpp"
 #include "UI/Chat/MediaTarget.hpp"
@@ -609,6 +610,16 @@ bool ChatView::viewportEvent(QEvent *event)
         auto *helpEvent = static_cast<QHelpEvent *>(event);
         QModelIndex idx = indexAt(helpEvent->pos());
         const ChatLayout::ResolvedLayout resolved = ChatLayout::resolveLayout(this, idx);
+
+        // Qord: name decorations and the header timestamp
+        if (auto *delegate = qobject_cast<ChatDelegate *>(itemDelegate()); delegate && idx.isValid()) {
+            for (const auto &tip : delegate->headerTips(idx.data(ChatModel::MessageIdRole).toULongLong())) {
+                if (tip.rect.contains(helpEvent->pos()) && !tip.text.isEmpty()) {
+                    QToolTip::showText(helpEvent->globalPos(), tip.text, viewport(), tip.rect);
+                    return true;
+                }
+            }
+        }
 
         const auto region = ChatLayout::hitTest(resolved, helpEvent->pos());
         if (region && region->kind == ChatLayout::HitRegion::Kind::Sticker) {

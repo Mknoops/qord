@@ -70,8 +70,11 @@ void ImageViewer::fetchFullImage(const QUrl &proxyUrl)
                 zoomLevel *= scaleRatio;
             }
 
+            const bool hadPreview = !currentImage.isNull();
             fullImage = pixmap;
             currentImage = fullImage;
+            if (!hadPreview)
+                resetView(); // Qord: opened without a preview (ViewIcons)
         }
 
         isLoadingFull = false;

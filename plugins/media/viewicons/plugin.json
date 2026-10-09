@@ -1,0 +1,41 @@
+{
+  "id": "viewicons",
+  "equicordName": "ViewIcons",
+  "equicordPath": "src/plugins/viewIcons",
+  "name": "ViewIcons",
+  "description": "Makes avatars and banners in user profiles clickable, adds View Icon/Banner/Avatar entries in the user, server and group channel context menu.",
+  "categories": ["media", "appearance"],
+  "tags": ["Media", "Servers", "Appearance"],
+  "authors": ["Ven", "TheKodeToad", "Nuckyz", "nyx"],
+  "permissions": ["add_ui_elements"],
+  "hooks": ["userContextMenu", "channelContextMenu", "profileImages"],
+  "settings": [
+    { "key": "format", "type": "choice", "default": "webp", "label": "Format",
+      "description": "Choose the image format to use for non-animated images. Animated images will always use .webp",
+      "choices": [
+        { "value": "webp", "label": "webp" },
+        { "value": "png", "label": "png" },
+        { "value": "jpg", "label": "jpg" }
+      ] },
+    { "key": "imgSize", "type": "choice", "default": "1024", "label": "Image Size",
+      "description": "The image size to use",
+      "choices": [
+        { "value": "128", "label": "128" },
+        { "value": "256", "label": "256" },
+        { "value": "512", "label": "512" },
+        { "value": "1024", "label": "1024" },
+        { "value": "2048", "label": "2048" },
+        { "value": "4096", "label": "4096" }
+      ] }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "View Avatar Decoration: Qord does not read avatar decorations yet.",
+    "Clickable icons in a DM's or group DM's header: Qord's channel header shows no icon.",
+    "View Icon for group DMs without a custom icon: upstream opens Discord's built-in default group icon, which Qord does not have."
+  ],
+  "notes": "Images open in Qord's image viewer (zoom, pan, Esc to close). Upstream's modal also links the 4096px original; the viewer loads the chosen size."
+}

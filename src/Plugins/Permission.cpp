@@ -46,6 +46,10 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Decide which messages notify you") },
     { Permission::EditMessages, "edit_messages",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Change message settings on Discord (such as hiding embeds)") },
+    { Permission::MarkRead, "mark_read",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Mark channels as read") },
+    { Permission::ReadPresences, "read_presences",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See which devices people are online on") },
 };
 
 struct HookInfo
@@ -71,6 +75,10 @@ const HookInfo hookTable[] = {
     { Hook::Notifications, "notifications", Permission::ControlNotifications },
     { Hook::AuthorNames, "authorNames", Permission::ModifyDisplayedMessages },
     { Hook::ChannelContextMenu, "channelContextMenu", Permission::AddUiElements },
+    { Hook::ServerListButtons, "serverListButtons", Permission::AddUiElements },
+    { Hook::MemberCounts, "memberCounts", Permission::AddUiElements },
+    { Hook::UserDecorations, "userDecorations", Permission::ReadPresences },
+    { Hook::ProfileImages, "profileImages", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

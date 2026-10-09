@@ -86,6 +86,12 @@ qord_add_plugin(sendtimestamps chat SOURCES SendTimestamps.hpp SendTimestamps.cp
 qord_add_plugin(showmeyourname chat SOURCES ShowMeYourName.hpp ShowMeYourName.cpp)
 qord_add_plugin(dontroundmytimestamps appearance SOURCES DontRoundMyTimestamps.cpp)
 
+# Batch 5
+qord_add_plugin(viewicons media SOURCES ViewIcons.hpp ViewIcons.cpp)
+qord_add_plugin(readallnotificationsbutton utility SOURCES ReadAllNotificationsButton.cpp)
+qord_add_plugin(membercount utility SOURCES MemberCount.cpp)
+qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp PlatformIndicators.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

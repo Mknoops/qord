@@ -4,6 +4,7 @@
 #include "Core/Logging.hpp"
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
+#include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
@@ -183,6 +184,39 @@ std::function<void(const QString &)> &QtUiService::pluginSettingsOpener()
     return opener;
 }
 
+std::function<void(const QUrl &)> &QtUiService::imageOpener()
+{
+    static std::function<void(const QUrl &)> opener;
+    return opener;
+}
+
+void QtUiService::openImage(const QUrl &url)
+{
+    if (imageOpener())
+        imageOpener()(url);
+}
+
+std::function<void(Id)> &QtReadStates::allServersMarker()
+{
+    static std::function<void(Id)> marker;
+    return marker;
+}
+
+void QtReadStates::markAllServersRead(Id accountId)
+{
+    if (allServersMarker())
+        allServersMarker()(accountId);
+}
+
+void QtDisplayOptions::setMobileIndicatorForAnyStatus(bool any)
+{
+    if (Acheron::Core::mobileIndicatorForAnyStatus() == any)
+        return;
+    Acheron::Core::mobileIndicatorForAnyStatus() = any;
+    if (host)
+        emit host->presentationChanged();
+}
+
 void QtUiService::openPluginSettings(const QString &pluginId)
 {
     if (pluginSettingsOpener())
@@ -338,6 +372,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.messages = &messages;
     services.messageActions = &messageActions;
     services.displayOptions = &displayOptions;
+    services.readStates = &readStates;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

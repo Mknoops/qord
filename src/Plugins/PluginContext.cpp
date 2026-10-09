@@ -134,6 +134,12 @@ public:
     {
         inner->showTextDialog(title, sections);
     }
+    void openImage(const QUrl &url) override
+    {
+        static const QStringList hosts = { QStringLiteral("cdn.discordapp.com"), QStringLiteral("media.discordapp.net") };
+        if (url.scheme() == QLatin1String("https") && hosts.contains(url.host()))
+            inner->openImage(url);
+    }
     void openUrl(const QUrl &url) override
     {
         if (canOpen && (url.scheme() == QLatin1String("https") || url.scheme() == QLatin1String("http")))
@@ -154,6 +160,13 @@ UiService *PluginContext::ui()
     if (!scopedUi)
         scopedUi = std::make_unique<ScopedUi>(services.ui, granted.testFlag(Permission::OpenLinks));
     return scopedUi.get();
+}
+
+ReadStateService *PluginContext::readStates() const
+{
+    if (!granted.testFlag(Permission::MarkRead))
+        return nullptr;
+    return services.readStates;
 }
 
 DisplayOptionsService *PluginContext::displayOptions() const

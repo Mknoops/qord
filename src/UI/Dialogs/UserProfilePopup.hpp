@@ -96,6 +96,10 @@ private:
 
     QWidget *headerWidget = nullptr;
     QLabel *bannerLabel = nullptr;
+    // Qord: plugin icons after the name, and the banner shown (for ViewIcons)
+    QWidget *decorationsRow = nullptr;
+    QUrl shownBannerUrl;
+    void renderDecorations();
     QLabel *avatarLabel = nullptr;
 
     QLabel *displayNameLabel = nullptr;

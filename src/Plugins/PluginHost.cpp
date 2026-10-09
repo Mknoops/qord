@@ -176,7 +176,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit chatBarChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
-    if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing))
+    if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
+        hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations))
         emit presentationChanged();
 }
 
@@ -674,6 +675,60 @@ void PluginHost::dispatchChannelContextMenuAction(const QString &pluginId, const
 {
     if (Plugin *plugin = tablePlugin(Hook::ChannelContextMenu, pluginId))
         guarded(pluginId, "onChannelContextMenuAction", [&] { plugin->onChannelContextMenuAction(itemId, channel); });
+}
+
+QList<PluginHost::PluginServerListButton> PluginHost::dispatchServerListButtons(const ServerListContext &list)
+{
+    QList<PluginServerListButton> out;
+    const int h = hookIndex(Hook::ServerListButtons);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        const QString &id = tableIds[h][i];
+        guarded(id, "serverListButtons", [&] {
+            for (const auto &button : tables[h][i]->serverListButtons(list))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchServerListButtonClicked(const QString &pluginId, const QString &buttonId,
+                                                 const ServerListContext &list)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ServerListButtons, pluginId))
+        guarded(pluginId, "onServerListButtonClicked", [&] { plugin->onServerListButtonClicked(buttonId, list); });
+}
+
+QList<CountBadge> PluginHost::dispatchMemberCountBadges(const MemberCountContext &counts)
+{
+    const int h = hookIndex(Hook::MemberCounts);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        QList<CountBadge> badges;
+        guarded(tableIds[h][i], "memberCountBadges", [&] { badges = tables[h][i]->memberCountBadges(counts); });
+        if (!badges.isEmpty())
+            return badges;
+    }
+    return {};
+}
+
+QList<NameDecoration> PluginHost::dispatchNameDecorations(const DecorationContext &user)
+{
+    QList<NameDecoration> out;
+    const int h = hookIndex(Hook::UserDecorations);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "nameDecorations", [&] { out += tables[h][i]->nameDecorations(user); });
+    return out;
+}
+
+bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
+{
+    const int h = hookIndex(Hook::ProfileImages);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        bool handled = false;
+        guarded(tableIds[h][i], "onProfileImageClicked", [&] { handled = tables[h][i]->onProfileImageClicked(image); });
+        if (handled)
+            return true;
+    }
+    return false;
 }
 
 void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user)

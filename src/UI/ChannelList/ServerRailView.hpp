@@ -40,9 +40,16 @@ public:
     // Qord: lets the window add items (mute, notifications, plugins) to a server's menu
     using MenuExtender = std::function<void(QMenu *menu, Core::Snowflake accountId, Core::Snowflake guildId)>;
     void setMenuExtender(MenuExtender extender) { menuExtender = std::move(extender); }
+    // Qord: extra rich text under a server's name in its tooltip (MemberCount)
+    using TooltipExtender = std::function<QString(Core::Snowflake accountId, Core::Snowflake guildId)>;
+    void setTooltipExtender(TooltipExtender extender) { tooltipExtender = std::move(extender); }
+
+protected:
+    bool viewportEvent(QEvent *event) override;
 
 private:
     MenuExtender menuExtender;
+    TooltipExtender tooltipExtender;
 
 protected:
 

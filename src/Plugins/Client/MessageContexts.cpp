@@ -35,8 +35,8 @@ MessageContext toMessageContext(const Message &msg, Id accountId, Id guildId, Id
     MessageContext c;
     c.accountId = accountId;
     c.channelId = quint64(msg.channelId.get());
-    c.guildId = guildId;
-    c.parentChannelId = parentChannelId;
+    c.guildId = pluginId(guildId);
+    c.parentChannelId = pluginId(parentChannelId);
     c.messageId = quint64(msg.id.get());
     if (msg.author.hasValue()) {
         c.authorId = quint64(msg.author->id.get());

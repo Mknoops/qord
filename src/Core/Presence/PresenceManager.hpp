@@ -41,6 +41,10 @@ public:
     [[nodiscard]] PresenceBadge badge(Snowflake userId, Snowflake guildId = {}) const;
     [[nodiscard]] QList<Discord::Activity> activities(Snowflake userId, Snowflake guildId = {}) const;
     [[nodiscard]] const Discord::Activity *primaryActivity(Snowflake userId, Snowflake guildId = {}) const;
+    // Qord: which platforms the user is on (PlatformIndicators)
+    [[nodiscard]] QList<QPair<QString, QString>> clientPlatforms(Snowflake userId, Snowflake guildId = {}) const;
+    // Qord: the current user's sessions from the last SESSIONS_REPLACE
+    [[nodiscard]] const QList<Discord::UserSession> &ownSessions() const { return lastSessions; }
 
 public slots:
     void onPresenceUpdate(const Discord::Presence &presence);
@@ -72,6 +76,7 @@ private:
     PresenceEntry selfPresence;
     std::optional<Discord::Activity> selfCustomStatus;
     bool sessionsReplaceSeen = false;
+    QList<Discord::UserSession> lastSessions;
     bool showCurrentGame = true;
 
     QSet<Snowflake> dirtyUsers;

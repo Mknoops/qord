@@ -50,6 +50,8 @@ public:
     [[nodiscard]] MessageActionService *messageActions() const;
     // Null without the modify_displayed_messages permission.
     [[nodiscard]] DisplayOptionsService *displayOptions() const;
+    // Null without the mark_read permission.
+    [[nodiscard]] ReadStateService *readStates() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const

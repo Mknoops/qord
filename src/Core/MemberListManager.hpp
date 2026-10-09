@@ -52,6 +52,7 @@ struct GuildListState
     QHash<QString, Discord::Role> roleCache;
     int memberCount = 0;
     int onlineCount = 0;
+    int groupsOnline = -1; // Qord: non-offline groups of the last update
 };
 
 class MemberListManager : public QObject
@@ -88,9 +89,18 @@ public:
     [[nodiscard]] const QList<QPair<int, int>> &currentRanges() const { return ranges; }
     [[nodiscard]] QList<int> indicesForUsers(const QSet<Snowflake> &userIds) const;
 
+    // Qord (MemberCount): the server's member count (-1 if unknown), the last
+    // online count Discord sent for it, and the online members in the active
+    // channel's list (non-offline groups; -1 until it loads)
+    [[nodiscard]] int guildMemberCount(Snowflake guildId) const;
+    [[nodiscard]] int guildOnlineCount(Snowflake guildId) const;
+    [[nodiscard]] int activeListOnlineCount() const;
+    void seedMemberCount(Snowflake guildId, int count);
+
     static QString computeListId(const QList<Discord::PermissionOverwrite> &overwrites, Discord::Permissions everyonePermissions);
 
 signals:
+    void countsChanged(Snowflake guildId); // Qord
     void listAboutToReset();
     void listReset();
     void itemsChanged(const QList<int> &indices);
@@ -127,6 +137,7 @@ private:
     Storage::RoleRepository &roleRepo;
 
     QHash<Snowflake, GuildListState> guildStates;
+    QHash<Snowflake, int> seededMemberCounts; // Qord: from GUILD_CREATE and list updates
 
     Snowflake activeGuildId;
     Snowflake activeChannelId;

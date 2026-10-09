@@ -281,6 +281,15 @@ void MemberListManager::handleMemberListUpdate(const Discord::GuildMemberListUpd
     GuildListState &gs = guildStates[update.guildId];
     gs.memberCount = update.memberCount;
     gs.onlineCount = update.onlineCount;
+    if (!update.groups->isEmpty()) {
+        int online = 0;
+        for (const auto &group : update.groups.get())
+            if (group.id.get() != QLatin1String("offline"))
+                online += group.count.get();
+        gs.groupsOnline = online;
+    }
+    seededMemberCounts.insert(update.guildId, update.memberCount);
+    emit countsChanged(update.guildId);
 
     ListData &ld = gs.lists[update.id];
 
@@ -392,6 +401,38 @@ int MemberListManager::totalMemberCount() const
 {
     const auto *gs = activeGuildState();
     return gs ? gs->memberCount : 0;
+}
+
+int MemberListManager::guildMemberCount(Snowflake guildId) const
+{
+    return seededMemberCounts.value(guildId, -1);
+}
+
+int MemberListManager::guildOnlineCount(Snowflake guildId) const
+{
+    // OnlineMemberCountStore: the non-offline groups of the last list update
+    auto it = guildStates.constFind(guildId);
+    return it != guildStates.constEnd() ? it->groupsOnline : -1;
+}
+
+int MemberListManager::activeListOnlineCount() const
+{
+    const ListData *ld = activeListData();
+    if (!ld || ld->groups.isEmpty())
+        return -1;
+    int online = 0;
+    for (const auto &group : ld->groups)
+        if (group.id.get() != QLatin1String("offline"))
+            online += group.count.get();
+    return online;
+}
+
+void MemberListManager::seedMemberCount(Snowflake guildId, int count)
+{
+    if (count < 0)
+        return;
+    seededMemberCounts.insert(guildId, count);
+    emit countsChanged(guildId);
 }
 
 int MemberListManager::onlineCount() const

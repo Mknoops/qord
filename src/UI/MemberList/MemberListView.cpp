@@ -28,9 +28,26 @@ void MemberListView::scrollContentsBy(int dx, int dy)
     emitVisibleRange();
 }
 
+void MemberListView::setHeaderWidget(QWidget *widget)
+{
+    header = widget;
+    header->setParent(this);
+    updateHeader();
+}
+
+void MemberListView::updateHeader()
+{
+    if (!header)
+        return;
+    const int height = header->isVisibleTo(this) ? header->sizeHint().height() : 0;
+    setViewportMargins(0, height, 0, 0);
+    header->setGeometry(frameWidth(), frameWidth(), width() - 2 * frameWidth(), height);
+}
+
 void MemberListView::resizeEvent(QResizeEvent *event)
 {
     QListView::resizeEvent(event);
+    updateHeader();
     emitVisibleRange();
 }
 

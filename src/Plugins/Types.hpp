@@ -97,6 +97,10 @@ struct ChannelContext
     Id channelId = 0; // 0 when the menu is for the server itself
     QString name;
     int type = -1; // Discord channel type, -1 for a server
+    // CDN URLs as the client shows them; empty when there is none.
+    // For a server: its icon and banner. For a group DM: its icon.
+    QString iconUrl;
+    QString bannerUrl;
 };
 
 // A user that a context menu was opened for.
@@ -106,6 +110,96 @@ struct UserContext
     Id guildId = 0; // 0 outside servers
     Id channelId = 0; // 0 when not opened from a channel
     Id userId = 0;
+    // CDN URLs as the client shows them. avatarUrl is the user's own avatar
+    // (Discord's default avatar if they have none); memberAvatarUrl is their
+    // server avatar, empty if they have none.
+    QString avatarUrl;
+    QString memberAvatarUrl;
+};
+
+// An image in a user profile that was clicked.
+struct ProfileImageContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id userId = 0;
+    enum class Kind { Avatar, Banner };
+    Kind kind = Kind::Avatar;
+    QString url; // the CDN URL the profile shows
+};
+
+// The server list (left rail).
+struct ServerListContext
+{
+    Id accountId = 0;
+};
+
+// A button above the servers in the server list.
+struct ServerListButton
+{
+    QString id;
+    QString label;
+    QString tooltip;
+};
+
+// Member numbers for a server, for the member list header or the server's
+// tooltip in the server list.
+struct MemberCountContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0; // the channel whose member list is shown; 0 for tooltips
+    enum class Place { MemberList, ServerTooltip };
+    Place place = Place::MemberList;
+    // Unknown counts are -1. `online` is the online members in this channel's
+    // member list (MemberList) or the last known online count for the server
+    // (ServerTooltip).
+    int online = -1;
+    int total = -1;
+    int inVoice = 0; // users in voice channels the user can see
+};
+
+// One number in the member count widget.
+struct CountBadge
+{
+    enum class Icon { Online, Total, Voice };
+    Icon icon = Icon::Online;
+    QString text;
+    QString tooltip;
+};
+
+// One of the current user's sessions (from SESSIONS_REPLACE).
+struct SessionInfo
+{
+    QString client; // "desktop", "mobile", "web", "unknown", ...
+    QString status; // "online", "idle", "dnd", ...
+};
+
+// A user whose name is about to be shown, for decorations next to it.
+struct DecorationContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id userId = 0;
+    bool isBot = false;
+    bool isSelf = false;
+    enum class Place { MemberList, Message, Profile };
+    Place place = Place::Message;
+    // client_status from the user's presence: platform -> status, in the
+    // order Discord sent them ("desktop", "mobile", "web", "embedded", "vr")
+    QList<QPair<QString, QString>> clientStatus;
+    QList<SessionInfo> ownSessions; // only for the current user
+};
+
+// An icon drawn after a user's name. `svg` is an SVG document drawn in
+// `color` where it says "currentColor"; `size` is in pixels.
+struct NameDecoration
+{
+    QByteArray svg;
+    QString color;
+    QString tooltip;
+    int width = 20;
+    int height = 20;
 };
 
 // A button a plugin shows next to the message input. `svg` is an SVG

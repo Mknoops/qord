@@ -30,6 +30,8 @@ enum class Permission : quint32 {
     TrustLinks = 1u << 13, // linkWarnings
     ControlNotifications = 1u << 14, // notifications
     EditMessages = 1u << 15, // PluginContext::messageActions()
+    MarkRead = 1u << 16, // PluginContext::readStates()
+    ReadPresences = 1u << 17, // userDecorations
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -58,11 +60,15 @@ enum class Hook : quint32 {
     Notifications = 1u << 12,
     AuthorNames = 1u << 13,
     ChannelContextMenu = 1u << 14,
+    ServerListButtons = 1u << 15,
+    MemberCounts = 1u << 16,
+    UserDecorations = 1u << 17,
+    ProfileImages = 1u << 18,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 15;
+constexpr int HookCount = 19;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

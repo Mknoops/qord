@@ -384,9 +384,20 @@ def presence(key: str, gid: str | None = None) -> dict:
         p["client_status"] = {"desktop": "online", "mobile": "online"}
     if key == "fay":
         p["client_status"] = {"web": "online"}
+    if key == "ben":  # idle on mobile, gaming on a console (PlatformIndicators)
+        p["client_status"] = {"mobile": "idle", "embedded": "idle"}
     if gid:
         p["guild_id"] = gid
     return p
+
+
+def voice_states(gid: str) -> list:
+    """Ava hangs out in the first server's voice channel (MemberCount's voice number)."""
+    if gid != G1:
+        return []
+    return [{"user_id": U["ava"], "channel_id": CH["lounge"], "session_id": "mock-voice-ava",
+             "self_mute": False, "self_deaf": False, "mute": False, "deaf": False, "suppress": False,
+             "self_video": False}]
 
 
 def gateway_guild(gid: str) -> dict:
@@ -605,11 +616,20 @@ async def run_gateway(conn: GatewayConn) -> None:
             elif op in (2, 6):
                 await conn.dispatch("READY", ready_payload())
                 await conn.dispatch("READY_SUPPLEMENTAL", {
-                    "guilds": [{"id": gid, "voice_states": [], "embedded_activities": []} for gid in GUILDS],
+                    "guilds": [{"id": gid, "voice_states": voice_states(gid), "embedded_activities": []}
+                               for gid in GUILDS],
                     "merged_members": [[guild_member(gid, k, with_user=False) for k in MEMBERS[gid] if k != "self"]
                                        for gid in GUILDS],
                     "merged_presences": ready_payload()["merged_presences"],
                     "lazy_private_channels": [], "disclose": []})
+                # Two sessions of our own: this desktop client and a phone
+                await conn.dispatch("SESSIONS_REPLACE", [
+                    {"session_id": "all", "status": STATUS["self"], "activities": [],
+                     "client_info": {"client": "unknown", "os": "unknown"}},
+                    {"session_id": "mock-session", "status": STATUS["self"], "activities": [],
+                     "client_info": {"client": "desktop", "os": "windows"}},
+                    {"session_id": "mock-phone", "status": "idle", "activities": [],
+                     "client_info": {"client": "mobile", "os": "android"}}])
                 conn.ready = True
                 log("gateway: identified, READY sent")
             elif op == 41:
@@ -861,6 +881,12 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             log(f"rest: settings-proto/{parts[3] if len(parts) > 3 else '?'} patched ({len(body)} bytes)")
         return 200, {"settings": ""}, "json"
     if parts[:1] == ["read-states"]:
+        if parts[1:2] == ["ack-bulk"]:
+            try:
+                states = json.loads(body or b"{}").get("read_states", [])
+            except ValueError:
+                states = []
+            log(f"rest: ack-bulk for {len(states)} channel(s): {sorted(s.get('channel_id') for s in states)}")
         return 200, {}, "json"
     if parts[:1] == ["science"] or parts[:1] == ["metrics"]:
         return 204, None, "json"

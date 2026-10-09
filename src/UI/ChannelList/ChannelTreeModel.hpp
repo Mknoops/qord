@@ -101,6 +101,8 @@ public:
     QModelIndex serverIndex(Snowflake accountId, Snowflake guildId);
     QModelIndex folderIndex(Snowflake accountId, Snowflake folderId);
     QModelIndex dmHeaderIndex(Snowflake accountId);
+    // Qord: every server of the account, folders included
+    QList<Snowflake> guildIds(Snowflake accountId) const;
 
 signals:
     void totalMentionCountChanged(int count, int previousCount);

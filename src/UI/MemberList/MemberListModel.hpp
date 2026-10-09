@@ -37,6 +37,8 @@ public:
         PresenceBadgeRole,
         HasActivityRole,
         ActivityRole,
+        AccountIdRole, // Qord: for name decorations
+        GuildIdRole,
     };
 
     explicit MemberListModel(Core::ImageManager *imageManager, QObject *parent = nullptr);

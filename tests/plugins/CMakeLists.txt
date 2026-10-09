@@ -56,3 +56,8 @@ qord_add_plugin_test(unsuppressembeds)
 qord_add_plugin_test(sendtimestamps)
 qord_add_plugin_test(showmeyourname)
 qord_add_plugin_test(dontroundmytimestamps)
+
+qord_add_plugin_test(viewicons)
+qord_add_plugin_test(readallnotificationsbutton)
+qord_add_plugin_test(membercount)
+qord_add_plugin_test(platformindicators)

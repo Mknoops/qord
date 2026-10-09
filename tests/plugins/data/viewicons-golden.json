@@ -1,0 +1,650 @@
+[
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=128",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=128&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=1024&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=4096&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=128&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=1024&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=4096&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=128&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=1024&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=80&animated=true",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/a_0123456789abcdef0123456789abcdef.webp?size=4096&animated=true"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpeg?size=64&size=32",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/avatars/100000000000000002/0123456789abcdef0123456789abcdef.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/embed/avatars/3.png?size=128",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/embed/avatars/3.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.png?size=128",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/guilds/1/users/2/avatars/abcdef.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.png?size=64",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/fedcba9876543210fedcba9876543210.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=64",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/icons/200000000000000001/a_fedcba9876543210fedcba9876543210.gif?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.png?size=480",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/200000000000000001/fedcba.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.webp?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.webp?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.webp?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.jpg?size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.jpg?size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.png?size=64",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/channel-icons/300000000000000001/abc123.jpg?size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "webp",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.webp?keep=1&size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "webp",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.webp?keep=1&size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "webp",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.webp?keep=1&size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "png",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.png?keep=1&size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "png",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.png?keep=1&size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "png",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.png?keep=1&size=4096"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "jpg",
+  "size": "128",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=128"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "jpg",
+  "size": "1024",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=1024"
+ },
+ {
+  "url": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=600",
+  "format": "jpg",
+  "size": "4096",
+  "expected": "https://cdn.discordapp.com/banners/100000000000000002/abc.jpg?keep=1&size=4096"
+ }
+]

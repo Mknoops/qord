@@ -77,6 +77,8 @@ public:
     [[nodiscard]] std::optional<RoleHierarchy> selfRoleHierarchy(Snowflake guildId);
 
     void markGuildsAsRead(const QList<Snowflake> &guildIds);
+    // Qord (MemberCount): users in the server's voice channels you can see
+    [[nodiscard]] int guildVoiceUserCount(Snowflake guildId);
     void markCategoryAsRead(Snowflake guildId, Snowflake categoryId);
 
     struct ThreadListPage

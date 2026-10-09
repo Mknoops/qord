@@ -5,6 +5,7 @@
 #include <QFlags>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QtGlobal>
 
 namespace Qord {
@@ -293,6 +294,30 @@ struct NotificationContext
 {
     MessageContext message;
     bool isOldestUnread = false; // first unread message in its channel
+};
+
+// A click on a message in the chat (DOM-style: detail is 1, 2 or 3 for
+// single, double and triple clicks).
+struct MessageClickContext
+{
+    MessageContext message;
+    int detail = 1;
+    bool primaryButton = true;
+    // held while clicking
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool backspace = false;
+    bool deleteKey = false;
+    qint64 timeMs = 0;
+    // what the user may do here
+    bool canSend = true;
+    bool canManageMessages = false;
+    bool canReact = true;
+    bool pinned = false;
+    bool isSystemDm = false; // a DM with Discord's system account
+    QStringList myReactions; // reactions you added: "name:id" for custom emoji, else the emoji
+    QString selectedText;
 };
 
 // One part of a text diff (see TextDiff.hpp).

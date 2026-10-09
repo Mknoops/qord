@@ -82,6 +82,16 @@ public:
     virtual void pickTimestamp(std::function<void(const QString &markup)> done) { Q_UNUSED(done); }
     // Opens the Plugins settings page at this plugin.
     virtual void openPluginSettings(const QString &pluginId) { Q_UNUSED(pluginId); }
+    // Starts editing one of your messages in the chat
+    virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
+    // Replies to a message. With no explicit `mention`, the client decides
+    // like Discord (ping unless shift is held; reply-mention plugins apply).
+    virtual void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention)
+    {
+        Q_UNUSED(message);
+        Q_UNUSED(shiftHeld);
+        Q_UNUSED(mention);
+    }
     // Shows a Discord-hosted image (cdn.discordapp.com, media.discordapp.net)
     // in the client's image viewer; other URLs are ignored.
     virtual void openImage(const QUrl &url) { Q_UNUSED(url); }
@@ -125,6 +135,30 @@ public:
     virtual ~MessageActionService() = default;
     // PATCH a message's flags (e.g. SUPPRESS_EMBEDS). Discord checks permissions.
     virtual void setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags) = 0;
+    // Deletes the message on Discord; a message a plugin kept on screen after
+    // it was deleted is just removed from the chat.
+    virtual void deleteMessage(Id accountId, Id channelId, Id messageId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(messageId);
+    }
+    virtual void setPinned(Id accountId, Id channelId, Id messageId, bool pinned)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(messageId);
+        Q_UNUSED(pinned);
+    }
+    // emoji: "name:id" for custom emoji, else the emoji itself
+    virtual void setReaction(Id accountId, Id channelId, Id messageId, const QString &emoji, bool add)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(messageId);
+        Q_UNUSED(emoji);
+        Q_UNUSED(add);
+    }
 };
 
 class MessageService

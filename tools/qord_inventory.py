@@ -100,6 +100,7 @@ HOOK_DISPATCH = {
     "userDecorations": "dispatchNameDecorations(",
     "profileImages": "dispatchProfileImageClicked(",
     "voiceStates": "dispatchVoiceStateChanged(",
+    "messageClicks": "dispatchMessageClicked(",
 }
 
 MANIFEST_REQUIRED = {

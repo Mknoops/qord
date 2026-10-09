@@ -1,0 +1,504 @@
+{
+  "id": "messageclickactions",
+  "equicordName": "MessageClickActions",
+  "equicordPath": "src/plugins/messageClickActions",
+  "name": "MessageClickActions",
+  "description": "Customize click actions on messages.",
+  "categories": [
+    "chat"
+  ],
+  "tags": [
+    "Chat",
+    "Shortcuts"
+  ],
+  "authors": [
+    "Ven",
+    "keircn",
+    "ZcraftElite",
+    "omaw"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "edit_messages",
+    "write_clipboard",
+    "open_links"
+  ],
+  "hooks": [
+    "messageClicks"
+  ],
+  "settings": [
+    {
+      "key": "singleClickAction",
+      "type": "choice",
+      "default": "DELETE",
+      "label": "Single click (your messages)",
+      "description": "Action on single click (your messages)",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "COPY_LINK",
+          "label": "Copy Link"
+        },
+        {
+          "value": "COPY_ID",
+          "label": "Copy ID"
+        },
+        {
+          "value": "COPY_CONTENT",
+          "label": "Copy Content"
+        },
+        {
+          "value": "COPY_USER_ID",
+          "label": "Copy User ID"
+        },
+        {
+          "value": "EDIT",
+          "label": "Edit"
+        },
+        {
+          "value": "REPLY",
+          "label": "Reply"
+        },
+        {
+          "value": "REACT",
+          "label": "React"
+        },
+        {
+          "value": "OPEN_THREAD",
+          "label": "Open Thread"
+        },
+        {
+          "value": "OPEN_TAB",
+          "label": "Open Tab"
+        }
+      ]
+    },
+    {
+      "key": "singleClickModifier",
+      "type": "choice",
+      "default": "BACKSPACE",
+      "label": "Single click modifier (your messages)",
+      "description": "Modifier required for single click action (your messages)",
+      "choices": [
+        {
+          "value": "BACKSPACE",
+          "label": "Backspace"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "SHIFT",
+          "label": "Shift"
+        },
+        {
+          "value": "CTRL",
+          "label": "Ctrl"
+        },
+        {
+          "value": "ALT",
+          "label": "Alt"
+        }
+      ]
+    },
+    {
+      "key": "singleClickOthersAction",
+      "type": "choice",
+      "default": "DELETE",
+      "label": "Single click (others' messages)",
+      "description": "Action on single click (others' messages)",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "COPY_LINK",
+          "label": "Copy Link"
+        },
+        {
+          "value": "COPY_ID",
+          "label": "Copy ID"
+        },
+        {
+          "value": "COPY_CONTENT",
+          "label": "Copy Content"
+        },
+        {
+          "value": "COPY_USER_ID",
+          "label": "Copy User ID"
+        },
+        {
+          "value": "EDIT",
+          "label": "Edit"
+        },
+        {
+          "value": "REPLY",
+          "label": "Reply"
+        },
+        {
+          "value": "REACT",
+          "label": "React"
+        },
+        {
+          "value": "OPEN_THREAD",
+          "label": "Open Thread"
+        },
+        {
+          "value": "OPEN_TAB",
+          "label": "Open Tab"
+        }
+      ]
+    },
+    {
+      "key": "singleClickOthersModifier",
+      "type": "choice",
+      "default": "BACKSPACE",
+      "label": "Single click modifier (others' messages)",
+      "description": "Modifier required for single click action (others' messages)",
+      "choices": [
+        {
+          "value": "BACKSPACE",
+          "label": "Backspace"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "SHIFT",
+          "label": "Shift"
+        },
+        {
+          "value": "CTRL",
+          "label": "Ctrl"
+        },
+        {
+          "value": "ALT",
+          "label": "Alt"
+        }
+      ]
+    },
+    {
+      "key": "doubleClickAction",
+      "type": "choice",
+      "default": "EDIT",
+      "label": "Double-click (your messages)",
+      "description": "Action on double-click (your messages)",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "REPLY",
+          "label": "Reply"
+        },
+        {
+          "value": "EDIT",
+          "label": "Edit"
+        },
+        {
+          "value": "QUOTE",
+          "label": "Quote"
+        },
+        {
+          "value": "COPY_CONTENT",
+          "label": "Copy Content"
+        },
+        {
+          "value": "COPY_LINK",
+          "label": "Copy Link"
+        },
+        {
+          "value": "COPY_ID",
+          "label": "Copy ID"
+        },
+        {
+          "value": "COPY_USER_ID",
+          "label": "Copy User ID"
+        },
+        {
+          "value": "REACT",
+          "label": "React"
+        },
+        {
+          "value": "PIN",
+          "label": "Pin"
+        }
+      ]
+    },
+    {
+      "key": "doubleClickOthersAction",
+      "type": "choice",
+      "default": "REPLY",
+      "label": "Double-click (others' messages)",
+      "description": "Action on double-click (others' messages)",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "REPLY",
+          "label": "Reply"
+        },
+        {
+          "value": "QUOTE",
+          "label": "Quote"
+        },
+        {
+          "value": "COPY_CONTENT",
+          "label": "Copy Content"
+        },
+        {
+          "value": "COPY_LINK",
+          "label": "Copy Link"
+        },
+        {
+          "value": "COPY_ID",
+          "label": "Copy ID"
+        },
+        {
+          "value": "COPY_USER_ID",
+          "label": "Copy User ID"
+        },
+        {
+          "value": "REACT",
+          "label": "React"
+        },
+        {
+          "value": "PIN",
+          "label": "Pin"
+        }
+      ]
+    },
+    {
+      "key": "doubleClickModifier",
+      "type": "choice",
+      "default": "NONE",
+      "label": "Double-click modifier",
+      "description": "Modifier required for double-click action",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "SHIFT",
+          "label": "Shift"
+        },
+        {
+          "value": "CTRL",
+          "label": "Ctrl"
+        },
+        {
+          "value": "ALT",
+          "label": "Alt"
+        }
+      ]
+    },
+    {
+      "key": "tripleClickAction",
+      "type": "choice",
+      "default": "REACT",
+      "label": "Triple-click",
+      "description": "Action on triple-click",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "DELETE",
+          "label": "Delete"
+        },
+        {
+          "value": "COPY_LINK",
+          "label": "Copy Link"
+        },
+        {
+          "value": "COPY_ID",
+          "label": "Copy ID"
+        },
+        {
+          "value": "COPY_CONTENT",
+          "label": "Copy Content"
+        },
+        {
+          "value": "COPY_USER_ID",
+          "label": "Copy User ID"
+        },
+        {
+          "value": "EDIT",
+          "label": "Edit"
+        },
+        {
+          "value": "REPLY",
+          "label": "Reply"
+        },
+        {
+          "value": "REACT",
+          "label": "React"
+        },
+        {
+          "value": "OPEN_THREAD",
+          "label": "Open Thread"
+        },
+        {
+          "value": "OPEN_TAB",
+          "label": "Open Tab"
+        }
+      ]
+    },
+    {
+      "key": "tripleClickModifier",
+      "type": "choice",
+      "default": "NONE",
+      "label": "Triple-click modifier",
+      "description": "Modifier required for triple-click action",
+      "choices": [
+        {
+          "value": "NONE",
+          "label": "None"
+        },
+        {
+          "value": "SHIFT",
+          "label": "Shift"
+        },
+        {
+          "value": "CTRL",
+          "label": "Ctrl"
+        },
+        {
+          "value": "ALT",
+          "label": "Alt"
+        }
+      ]
+    },
+    {
+      "key": "reactEmoji",
+      "type": "string",
+      "default": "💀",
+      "label": "React emoji",
+      "description": "Emoji to use for react actions."
+    },
+    {
+      "key": "addAdditionalReacts",
+      "type": "bool",
+      "default": false,
+      "label": "Additional reactions",
+      "description": "Also add additional configured reaction emojis"
+    },
+    {
+      "key": "additionalReactEmojis",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "Additional reaction emojis",
+      "description": "Additional emojis to add when using React action (comma/newline separated, max 8)"
+    },
+    {
+      "key": "disableInDms",
+      "type": "bool",
+      "default": false,
+      "label": "Disable in DMs",
+      "description": "Disable all click actions in direct messages"
+    },
+    {
+      "key": "disableInSystemDms",
+      "type": "bool",
+      "default": true,
+      "label": "Disable in system DMs",
+      "description": "Disable all click actions in system DMs"
+    },
+    {
+      "key": "clickTimeout",
+      "type": "int",
+      "default": 300,
+      "min": 100,
+      "max": 500,
+      "label": "Click timeout (ms)",
+      "description": "Timeout to distinguish double/triple clicks (ms)"
+    },
+    {
+      "key": "doubleClickHoldThreshold",
+      "type": "int",
+      "default": 150,
+      "min": 50,
+      "max": 500,
+      "label": "Double-click hold threshold (ms)",
+      "description": "Max hold time for double-click actions (ms). Holding longer allows text selection"
+    },
+    {
+      "key": "deferDoubleClickForTriple",
+      "type": "bool",
+      "default": false,
+      "label": "Defer double-click for triple",
+      "description": "Delay double-click to allow triple-click actions (disables triple-click when off)"
+    },
+    {
+      "key": "selectionHoldTimeout",
+      "type": "int",
+      "default": 300,
+      "min": 100,
+      "max": 1000,
+      "label": "Selection hold timeout (ms)",
+      "description": "Timeout to allow text selection (ms)"
+    },
+    {
+      "key": "quoteWithReply",
+      "type": "bool",
+      "default": true,
+      "label": "Quote with reply",
+      "description": "When quoting, also reply to the message"
+    },
+    {
+      "key": "useSelectionForQuote",
+      "type": "bool",
+      "default": false,
+      "label": "Use selection for quote",
+      "description": "When quoting, use selected text if available"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Open Thread: Qord cannot start a thread from a message yet.",
+    "Toasts: upstream confirms copies (\"Link copied!\") and missing permissions with a toast; Qord has no toast yet, so these happen silently.",
+    "The emoji setting is a text field instead of upstream's emoji picker.",
+    "Delete on a message MessageLogger kept after deletion: upstream removes it from the chat; Qord leaves it.",
+    "Disable in system DMs: Qord does not recognise DMs with Discord's system account yet."
+  ],
+  "notes": "Clicks are counted in the chat like the browser's click detail (single, double, triple); held Shift/Ctrl/Alt and Backspace/Delete count as modifiers. Which message types can be replied to follows the types Discord documents (MessageTypeSets.REPLYABLE only exists at runtime in Discord's client)."
+}

@@ -83,6 +83,9 @@ public:
     static constexpr int InlineEditMinHeight = 60;
 
     bool hasTextSelection() const;
+    // Qord: the selected text (MessageClickActions' quotes), and editing a message by id
+    QString selectedChatText() const;
+    bool startEditingMessage(Core::Snowflake messageId);
 
     ChatCursor selectionStart() const;
     ChatCursor selectionEnd() const;

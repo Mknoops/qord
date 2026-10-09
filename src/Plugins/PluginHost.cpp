@@ -732,6 +732,20 @@ bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
     return false;
 }
 
+void PluginHost::dispatchChatMouseDown(qint64 timeMs)
+{
+    const int h = hookIndex(Hook::MessageClicks);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onChatMouseDown", [&] { tables[h][i]->onChatMouseDown(timeMs); });
+}
+
+void PluginHost::dispatchMessageClicked(const MessageClickContext &click)
+{
+    const int h = hookIndex(Hook::MessageClicks);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onMessageClicked", [&] { tables[h][i]->onMessageClicked(click); });
+}
+
 void PluginHost::dispatchVoiceStateChanged(const VoiceStateChange &change)
 {
     const int h = hookIndex(Hook::VoiceStates);

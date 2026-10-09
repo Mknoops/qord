@@ -190,6 +190,30 @@ std::function<void(const QUrl &)> &QtUiService::imageOpener()
     return opener;
 }
 
+std::function<void(const MessageContext &)> &QtUiService::editStarter()
+{
+    static std::function<void(const MessageContext &)> starter;
+    return starter;
+}
+
+std::function<void(const MessageContext &, bool, std::optional<bool>)> &QtUiService::replyStarter()
+{
+    static std::function<void(const MessageContext &, bool, std::optional<bool>)> starter;
+    return starter;
+}
+
+void QtUiService::startEditing(const MessageContext &message)
+{
+    if (editStarter())
+        editStarter()(message);
+}
+
+void QtUiService::startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention)
+{
+    if (replyStarter())
+        replyStarter()(message, shiftHeld, mention);
+}
+
 void QtUiService::openImage(const QUrl &url)
 {
     if (imageOpener())
@@ -322,6 +346,36 @@ void QtDisplayOptions::setRelativeTimeRoundsDown(bool floor)
     // Re-render what is on screen (signals are public; the window listens)
     if (host)
         emit host->displayTransformsChanged();
+}
+
+void SessionMessageActions::deleteMessage(Id accountId, Id channelId, Id messageId)
+{
+    auto *client = session->client(Acheron::Core::Snowflake(accountId));
+    if (!client)
+        return;
+    client->discord()->deleteMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+}
+
+void SessionMessageActions::setPinned(Id accountId, Id channelId, Id messageId, bool pinned)
+{
+    auto *client = session->client(Acheron::Core::Snowflake(accountId));
+    if (!client)
+        return;
+    if (pinned)
+        client->discord()->pinMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+    else
+        client->discord()->unpinMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+}
+
+void SessionMessageActions::setReaction(Id accountId, Id channelId, Id messageId, const QString &emoji, bool add)
+{
+    auto *client = session->client(Acheron::Core::Snowflake(accountId));
+    if (!client)
+        return;
+    if (add)
+        client->discord()->addReaction(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId), emoji);
+    else
+        client->discord()->removeReaction(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId), emoji);
 }
 
 void SessionMessageActions::setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags)

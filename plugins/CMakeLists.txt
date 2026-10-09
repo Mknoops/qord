@@ -94,6 +94,7 @@ qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp Pla
 
 # Batch 6
 qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)
+qord_add_plugin(messageclickactions chat SOURCES MessageClickActions.hpp MessageClickActions.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

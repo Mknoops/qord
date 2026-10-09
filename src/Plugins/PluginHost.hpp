@@ -141,6 +141,8 @@ public:
     // True if a plugin handled the click.
     [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
     void dispatchVoiceStateChanged(const VoiceStateChange &change);
+    void dispatchChatMouseDown(qint64 timeMs);
+    void dispatchMessageClicked(const MessageClickContext &click);
     // First plugin with a label/text wins.
     [[nodiscard]] std::optional<VoiceLabel> dispatchVoiceParticipantLabel(const VoiceParticipantContext &participant);
     [[nodiscard]] std::optional<QString> dispatchVoiceConnectionText(const VoiceConnectionContext &connection);

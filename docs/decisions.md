@@ -78,6 +78,9 @@ and why, so it can be revisited deliberately.
 
 52. **Voice states hook.** `voiceStates` (new permission `read_voice_states`) tells plugins when someone joins, moves between or leaves voice channels (your own connection included), and lets them add text to voice participants in the channel list (after the name, or as a clock icon with a tooltip) and to the voice connection panel. Contexts carry the time, so plugins are testable without a clock; the client repaints these once a second while a plugin uses the hook. CallTimer is the first user; its duration format is checked against Equicord's `formatDurationMs` run in Node.
 
+53. **GIF and sticker pickers.** The message box gained Discord's GIF and sticker buttons. One popup has GIFs / Stickers tabs plus an Emoji tab that opens the emoji picker. GIFs come from Discord's Tenor proxy (`/gifs/trending-gifs`, `/gifs/search`) and are sent as their link through the normal send path, so plugins, slowmode and replies apply. Stickers are the current server's (`/guilds/{id}/stickers`) and are sent with `sticker_ids`. Not covered yet: Discord's built-in sticker packs, other servers' stickers with Nitro, animated previews (the picker shows still images), and Lottie stickers (shown by name). The endpoints follow Discord's web client and are only exercised against the mock so far; the buttons were seen in the mock client, but the pickers were not clicked through there yet.
+54. **CallTimer seen in the mock.** With "All call timers" and "Show without hover" on, the timer counted next to a user in a voice channel. The connection timer needs a voice connection, which the mock cannot provide.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

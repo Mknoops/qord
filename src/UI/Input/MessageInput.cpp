@@ -186,6 +186,21 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     inputLayout->addWidget(textEdit);
 
+    // Qord: GIF and sticker buttons, like Discord's message box
+    const auto addTextButton = [&](const QString &label, const QString &tooltip, void (MessageInput::*signal)(QWidget *)) {
+        auto *button = new QToolButton(inputContainer);
+        button->setText(label);
+        button->setObjectName(QStringLiteral("MessageBoxTextButton"));
+        button->setFixedSize(label.size() > 1 ? 34 : 30, 44);
+        button->setAutoRaise(true);
+        button->setCursor(Qt::PointingHandCursor);
+        button->setToolTip(tooltip);
+        connect(button, &QToolButton::clicked, this, [this, button, signal]() { emit (this->*signal)(button); });
+        inputLayout->addWidget(button, 0, Qt::AlignTop);
+    };
+    addTextButton(QStringLiteral("GIF"), tr("Open GIF picker"), &MessageInput::gifButtonClicked);
+    addTextButton(QStringLiteral("\u25A3"), tr("Open sticker picker"), &MessageInput::stickerButtonClicked);
+
     auto *emojiButton = new QToolButton(inputContainer);
     emojiButton->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Smile, Core::Theme::Token::MutedText));
     emojiButton->setIconSize(QSize(22, 22));

@@ -269,6 +269,10 @@ public:
     void updateGuildNotificationSettings(Snowflake guildId, const QJsonObject &patch, ActionCallback callback);
     // PATCH a message's flags (SUPPRESS_EMBEDS); the result arrives as MESSAGE_UPDATE
     void setMessageFlags(Snowflake channelId, Snowflake messageId, quint64 flags);
+    // Discord's Tenor proxy: trending GIFs for an empty query, else a search
+    void fetchGifs(const QString &query, JsonCallback callback);
+    // A message with just a sticker; it arrives as MESSAGE_CREATE
+    void sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback);
 
 signals:
     void stateChanged(Core::ConnectionState state);

@@ -391,6 +391,15 @@ def presence(key: str, gid: str | None = None) -> dict:
     return p
 
 
+GUILD_STICKERS = {
+    G1: [{"id": "700000000000000001", "name": "Qord Wave", "tags": "wave", "description": "Hello!",
+          "format_type": 1, "available": True, "guild_id": G1, "type": 2},
+         {"id": "700000000000000002", "name": "Ship It", "tags": "ship", "description": None,
+          "format_type": 1, "available": True, "guild_id": G1, "type": 2}],
+}
+GUILD_OF = {c["id"]: gid for gid, chans in GUILD_CHANNELS.items() for c in chans}
+
+
 def voice_states(gid: str) -> list:
     """Ava hangs out in the first server's voice channel (MemberCount's voice number)."""
     if gid != G1:
@@ -727,6 +736,10 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             m = message(cid, "self", j.get("content", ""), int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))
             m["nonce"] = j.get("nonce")
             m["flags"] = int(j.get("flags", 0) or 0)
+            stickers = [s for s in GUILD_STICKERS.get(GUILD_OF.get(cid, ""), []) if s["id"] in (j.get("sticker_ids") or [])]
+            if stickers:
+                m["sticker_items"] = [{"id": s["id"], "name": s["name"], "format_type": s["format_type"]}
+                                      for s in stickers]
             ref = j.get("message_reference")
             if ref:
                 orig = find_message(cid, ref.get("message_id", ""))
@@ -880,6 +893,18 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         if method == "PATCH":
             log(f"rest: settings-proto/{parts[3] if len(parts) > 3 else '?'} patched ({len(body)} bytes)")
         return 200, {"settings": ""}, "json"
+    if parts[:2] == ["gifs", "trending-gifs"] or parts[:2] == ["gifs", "search"]:
+        q = query.get("q", [""])[0]
+        log(f"rest: gifs {parts[1]} q={q!r}")
+        words = ["wave", "party", "cat", "thumbs up", "dance", "coffee", "ship it", "facepalm"]
+        hits = [w for w in words if q.lower() in w] if q else words
+        return 200, [{"id": f"mock-{i}", "title": w, "url": f"https://tenor.com/view/mock-{w.replace(' ', '-')}-gif-{i}",
+                      "src": f"https://media.discordapp.net/mock-gifs/{i}.mp4",
+                      "gif_src": f"https://media.discordapp.net/mock-gifs/{i}.gif",
+                      "preview": f"https://media.discordapp.net/mock-gifs/{i}.png", "width": 220, "height": 160}
+                     for i, w in enumerate(hits)], "json"
+    if len(parts) == 3 and parts[0] == "guilds" and parts[2] == "stickers" and method == "GET":
+        return 200, GUILD_STICKERS.get(parts[1], []), "json"
     if parts[:1] == ["read-states"]:
         if parts[1:2] == ["ack-bulk"]:
             try:

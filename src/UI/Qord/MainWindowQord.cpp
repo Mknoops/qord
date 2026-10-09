@@ -16,6 +16,7 @@
 #include "Core/MessageManager.hpp"
 #include "UI/Chat/ChatView.hpp"
 #include "UI/Qord/EmojiPicker.hpp"
+#include "UI/Qord/ExpressionPicker.hpp"
 #include "UI/Qord/FriendsPage.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -126,6 +127,31 @@ void MainWindow::setupQordFeatures()
         });
         emojiPicker->open(currentInstance, channelId, true, chatView);
         emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker
+    });
+
+    // GIF and sticker pickers
+    expressionPicker = new ExpressionPicker(session->getImageManager(), this);
+    const auto openExpressions = [this](ExpressionPicker::Tab tab, QWidget *anchor) {
+        if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+            return;
+        expressionPicker->open(currentInstance, chatModel->getActiveChannelId(), chatModel->getActiveGuildId(), tab,
+                               anchor);
+    };
+    connect(messageInput, &MessageInput::gifButtonClicked, this,
+            [openExpressions](QWidget *anchor) { openExpressions(ExpressionPicker::Tab::Gifs, anchor); });
+    connect(messageInput, &MessageInput::stickerButtonClicked, this,
+            [openExpressions](QWidget *anchor) { openExpressions(ExpressionPicker::Tab::Stickers, anchor); });
+    connect(expressionPicker, &ExpressionPicker::emojiTabRequested, messageInput, &MessageInput::emojiButtonClicked);
+    // A GIF is sent as its link, through the normal send path (plugins, slowmode, replies)
+    connect(expressionPicker, &ExpressionPicker::gifPicked, this,
+            [this](const QString &url) { emit messageInput->sendMessage(url, {}); });
+    connect(expressionPicker, &ExpressionPicker::stickerPicked, this, [this](Snowflake stickerId) {
+        if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+            return;
+        const Snowflake replyTo = messageInput->replyTargetMessageId();
+        messageInput->clearReplyTarget();
+        currentInstance->discord()->sendSticker(chatModel->getActiveChannelId(), stickerId, replyTo,
+                                                [](const Core::Result<void> &) {});
     });
 
     // Desktop notifications for DMs and mentions

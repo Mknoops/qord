@@ -95,6 +95,15 @@ static QString buildQordStyleSheet()
                           "#AddServerButton { background-color: %2; border: none; border-radius: 24px; }"
                           "#AddServerButton:hover { background-color: #23a55a; border-radius: 16px; }")
                    .arg(hex(rail), hex(chat));
+    // GIF / sticker buttons in the message box and the picker tabs
+    qss += QStringLiteral("#MessageBoxTextButton { border: none; background: transparent; color: %1;"
+                          "  font-weight: bold; font-size: 12px; }"
+                          "#MessageBoxTextButton:hover { color: %2; }"
+                          "#PickerTab { border: none; background: transparent; color: %1; padding: 4px 10px;"
+                          "  border-radius: 4px; font-weight: 600; }"
+                          "#PickerTab:checked { background: %3; color: %2; }"
+                          "#PickerTab:hover { color: %2; }")
+                   .arg(hex(muted), hex(text), hex(m.color(Token::SelectedBg)));
     // Plugin text buttons above the servers (ReadAllNotificationsButton)
     qss += QStringLiteral("#ServerListTextButton { background: transparent; border: none; color: %1;"
                           "  font-size: 13px; padding: 4px 0; }"

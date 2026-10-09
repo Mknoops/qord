@@ -73,6 +73,9 @@ signals:
     void userTyping();
     // Qord: the emoji button in the message box was clicked
     void emojiButtonClicked(QWidget *anchor);
+    // Qord: Discord's GIF and sticker buttons
+    void gifButtonClicked(QWidget *anchor);
+    void stickerButtonClicked(QWidget *anchor);
 
 private:
     ChatTextEdit *textEdit;

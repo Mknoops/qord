@@ -92,6 +92,9 @@ qord_add_plugin(readallnotificationsbutton utility SOURCES ReadAllNotificationsB
 qord_add_plugin(membercount utility SOURCES MemberCount.cpp)
 qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp PlatformIndicators.cpp)
 
+# Batch 6
+qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

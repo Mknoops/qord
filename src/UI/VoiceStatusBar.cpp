@@ -75,8 +75,18 @@ void VoiceStatusBar::setupUi()
     layout->addWidget(statusDot);
     layout->addWidget(statusLabel);
     layout->addWidget(channelLabel);
+    extraLabel = new QLabel(this);
+    extraLabel->setStyleSheet("QLabel { color: #b5bac1; font-size: 11px; font-family: Consolas, monospace; }");
+    extraLabel->hide();
+    layout->addWidget(extraLabel);
     layout->addStretch();
     layout->addWidget(disconnectBtn);
+}
+
+void VoiceStatusBar::setExtraText(const QString &text)
+{
+    extraLabel->setText(text);
+    extraLabel->setVisible(!text.isEmpty());
 }
 
 void VoiceStatusBar::setVoiceManager(Core::Audio::VoiceManager *manager)

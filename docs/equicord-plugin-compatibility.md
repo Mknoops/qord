@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 342 |
+| Not Started | 341 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 27 |
+| Tested | 28 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -57,7 +57,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BlurNSFW | `src/plugins/blurNsfw` |  | Not Started |  |
 | BypassPinPrompt | `src/equicordplugins/bypassPinPrompt` |  | Not Started |  |
 | BypassStatus | `src/equicordplugins/bypassStatus` |  | Not Started |  |
-| CallTimer | `src/plugins/callTimer` |  | Not Started |  |
+| CallTimer | `src/plugins/callTimer` | `plugins/utility/calltimer` | Tested | The connection timer is shown in the voice panel above the user panel; participant timers sit after names in the channel list (an icon with the time as tooltip, or the time itself with Show without hover). Qord's voice list does not colour names by role, so Show role color has no visible effect. As upstream, people already in voice when Qord connects are timed from that moment. wired; not yet verified in the running client. gaps: Watch large guilds: upstream subscribes to every server so voice changes in large servers are not missed; Qord does not send that subscription yet. |
 | CancelFriendRequest | `src/equicordplugins/pendingFriendRequest` |  | Not Started |  |
 | ChannelBadges | `src/equicordplugins/channelBadges` |  | Not Started |  |
 | ChannelTabs | `src/equicordplugins/channelTabs` |  | Not Started |  |

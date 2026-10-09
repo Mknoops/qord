@@ -34,6 +34,11 @@
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/MemberList/MemberListView.hpp"
 #include "UI/ImageViewer.hpp"
+#include "UI/ChannelList/ChannelDelegate.hpp"
+#ifndef ACHERON_NO_VOICE
+#include "UI/VoiceStatusBar.hpp"
+#endif
+#include <QTimer>
 #include "Discord/CdnUrls.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -196,6 +201,55 @@ void MainWindow::setupQordFeatures()
     });
     connect(session, &Core::Session::ready, this, [this]() { refreshPluginSurfaces(); });
     refreshPluginSurfaces();
+
+    // Voice labels (CallTimer): participants in the channel list, and the
+    // connection panel; ticking once a second while a plugin shows them
+    ChannelDelegate::setVoiceLabelProvider([](quint64 accountId, quint64 guildId, quint64 channelId,
+                                              quint64 userId) -> std::optional<ChannelDelegate::VoiceLabel> {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host || !host->hasHook(Qord::Plugins::Hook::VoiceStates))
+            return std::nullopt;
+        Qord::Plugins::VoiceParticipantContext ctx;
+        ctx.accountId = accountId;
+        ctx.guildId = guildId;
+        ctx.channelId = channelId;
+        ctx.userId = userId;
+        ctx.isSelf = userId == accountId;
+        ctx.nowMs = QDateTime::currentMSecsSinceEpoch();
+        const auto label = host->dispatchVoiceParticipantLabel(ctx);
+        if (!label)
+            return std::nullopt;
+        return ChannelDelegate::VoiceLabel { label->text, label->inlineText };
+    });
+    connect(this, &QObject::destroyed, []() { ChannelDelegate::setVoiceLabelProvider(nullptr); });
+    auto *voiceTick = new QTimer(this);
+    voiceTick->setInterval(1000);
+    connect(voiceTick, &QTimer::timeout, this, [this]() {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const bool active = host && host->hasHook(Qord::Plugins::Hook::VoiceStates);
+#ifndef ACHERON_NO_VOICE
+        QString text;
+        if (active) {
+            for (const auto &instance : session->getClients()) {
+                if (!instance || !instance->isInVoice())
+                    continue;
+                Qord::Plugins::VoiceConnectionContext ctx;
+                ctx.accountId = quint64(instance->accountId());
+                ctx.userId = quint64(instance->accountId());
+                ctx.guildId = Qord::Plugins::pluginId(instance->voiceGuildId());
+                ctx.channelId = Qord::Plugins::pluginId(instance->voiceChannelId());
+                ctx.nowMs = QDateTime::currentMSecsSinceEpoch();
+                text = host->dispatchVoiceConnectionText(ctx).value_or(QString());
+                break;
+            }
+        }
+        if (voiceStatusBar)
+            voiceStatusBar->setExtraText(text);
+#endif
+        if (active)
+            channelTree->viewport()->update();
+    });
+    voiceTick->start();
     Qord::Plugins::QtUiService::pluginSettingsOpener() = [this](const QString &pluginId) {
         openSettingsWindow();
         if (settingsWindow)
@@ -336,11 +390,41 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
             refreshMemberCountBar();
     });
 #ifndef ACHERON_NO_VOICE
-    connect(instance->voice(), &Core::Audio::VoiceManager::channelVoiceMemberChanged, this, [this, guard]() {
-        if (guard && guard == currentInstance)
-            refreshMemberCountBar();
-    });
+    connect(instance->voice(), &Core::Audio::VoiceManager::channelVoiceMemberChanged, this,
+            [this, guard](Snowflake channelId, Snowflake userId, bool joined) {
+                if (!guard)
+                    return;
+                if (guard == currentInstance)
+                    refreshMemberCountBar();
+                // CallTimer: joins, moves and leaves of other users
+                auto *host = Qord::Plugins::PluginHost::instance();
+                if (!host || !host->hasHook(Qord::Plugins::Hook::VoiceStates))
+                    return;
+                Qord::Plugins::VoiceStateChange change;
+                change.accountId = quint64(guard->accountId());
+                change.userId = quint64(userId);
+                const auto channel = guard->getChannel(channelId);
+                change.guildId = channel && channel->guildId.hasValue() ? quint64(channel->guildId.get()) : 0;
+                change.channelId = joined ? quint64(channelId) : 0;
+                change.atMs = QDateTime::currentMSecsSinceEpoch();
+                host->dispatchVoiceStateChanged(change);
+            });
 #endif
+    // Our own voice connection
+    connect(instance, &Core::ClientInstance::voiceStateChanged, this,
+            [guard](Snowflake channelId, Snowflake guildId) {
+                auto *host = Qord::Plugins::PluginHost::instance();
+                if (!guard || !host || !host->hasHook(Qord::Plugins::Hook::VoiceStates))
+                    return;
+                Qord::Plugins::VoiceStateChange change;
+                change.accountId = quint64(guard->accountId());
+                change.userId = quint64(guard->accountId());
+                change.guildId = Qord::Plugins::pluginId(guildId);
+                change.channelId = Qord::Plugins::pluginId(channelId);
+                change.isSelf = true;
+                change.atMs = QDateTime::currentMSecsSinceEpoch();
+                host->dispatchVoiceStateChanged(change);
+            });
     connect(instance, &Core::ClientInstance::notifiableMessage, this,
             [this, guard](const Discord::Message &message, bool mentionsMe, bool wasUnread) {
                 if (guard && notifier)

@@ -177,7 +177,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
-        hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations))
+        hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
+        hooks.testFlag(Hook::VoiceStates))
         emit presentationChanged();
 }
 
@@ -729,6 +730,37 @@ bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
             return true;
     }
     return false;
+}
+
+void PluginHost::dispatchVoiceStateChanged(const VoiceStateChange &change)
+{
+    const int h = hookIndex(Hook::VoiceStates);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onVoiceStateChanged", [&] { tables[h][i]->onVoiceStateChanged(change); });
+}
+
+std::optional<VoiceLabel> PluginHost::dispatchVoiceParticipantLabel(const VoiceParticipantContext &participant)
+{
+    const int h = hookIndex(Hook::VoiceStates);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<VoiceLabel> label;
+        guarded(tableIds[h][i], "voiceParticipantLabel", [&] { label = tables[h][i]->voiceParticipantLabel(participant); });
+        if (label)
+            return label;
+    }
+    return std::nullopt;
+}
+
+std::optional<QString> PluginHost::dispatchVoiceConnectionText(const VoiceConnectionContext &connection)
+{
+    const int h = hookIndex(Hook::VoiceStates);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<QString> text;
+        guarded(tableIds[h][i], "voiceConnectionText", [&] { text = tables[h][i]->voiceConnectionText(connection); });
+        if (text)
+            return text;
+    }
+    return std::nullopt;
 }
 
 void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user)

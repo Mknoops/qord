@@ -61,3 +61,5 @@ qord_add_plugin_test(viewicons)
 qord_add_plugin_test(readallnotificationsbutton)
 qord_add_plugin_test(membercount)
 qord_add_plugin_test(platformindicators)
+
+qord_add_plugin_test(calltimer)

@@ -398,22 +398,62 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
 #endif
 
     if (layout.hasSeparator) {
-        painter->setPen(QPen(option.palette.alternateBase().color(), 1));
-        int midY = layout.separatorRect.center().y();
-        painter->drawLine(layout.separatorRect.left() + 10, midY, layout.separatorRect.right() - 10,
-                          midY);
+        // Qord: Discord's dividers. A date gets a thin line with the date in the
+        // middle; the first unread message gets a red line with a NEW tag.
+        const auto &theme = Core::Theme::Manager::instance();
+        const bool isNew = index.data(ChatModel::NewMarkerRole).toBool();
+        const QDate previousDate = index.row() == 0 ? QDate()
+                                                    : index.model()
+                                                              ->index(index.row() - 1, 0)
+                                                              .data(ChatModel::TimestampRole)
+                                                              .toDateTime()
+                                                              .toLocalTime()
+                                                              .date();
+        const bool dateChanged = !previousDate.isValid() || previousDate != timestamp.date();
+        const QColor newRed(0xf2, 0x3f, 0x43);
+        const QColor lineColor = isNew ? newRed : theme.color(Core::Theme::Token::MutedText).darker(220);
+        const int midY = layout.separatorRect.center().y();
+        const int left = layout.separatorRect.left() + 16;
+        int right = layout.separatorRect.right() - 14;
 
-        QString dateText = timestamp.toString("MMMM d, yyyy");
+        QFont tagFont = option.font;
+        tagFont.setPixelSize(10);
+        tagFont.setBold(true);
+        const QFontMetrics tagFm(tagFont);
+        QRect newTag;
+        if (isNew) {
+            const int tagWidth = tagFm.horizontalAdvance(QStringLiteral("NEW")) + 8;
+            newTag = QRect(right - tagWidth, midY - 7, tagWidth, 14);
+            right = newTag.left();
+        }
+        painter->setPen(QPen(lineColor, 1));
+        painter->drawLine(left, midY, right, midY);
 
-        painter->setFont(option.font);
-        QFontMetrics separatorFm(option.font);
-        int textWidth = separatorFm.horizontalAdvance(dateText) + 20;
-        QRect textBgRect(layout.separatorRect.center().x() - textWidth / 2,
-                         layout.separatorRect.top(), textWidth, layout.separatorRect.height());
-
-        painter->fillRect(textBgRect, option.palette.base());
-        painter->setPen(option.palette.text().color());
-        painter->drawText(layout.separatorRect, Qt::AlignCenter, dateText);
+        if (dateChanged) {
+            QFont dateFont = option.font;
+            dateFont.setPixelSize(12);
+            dateFont.setWeight(QFont::DemiBold);
+            const QString dateText = QLocale().toString(timestamp.date(), QLocale::LongFormat);
+            const QFontMetrics dateFm(dateFont);
+            const int textWidth = dateFm.horizontalAdvance(dateText) + 12;
+            const QRect textBgRect(layout.separatorRect.center().x() - textWidth / 2, midY - dateFm.height() / 2,
+                                   textWidth, dateFm.height());
+            painter->fillRect(textBgRect, option.palette.base());
+            painter->setFont(dateFont);
+            painter->setPen(isNew ? newRed : theme.color(Core::Theme::Token::MutedText));
+            painter->drawText(textBgRect, Qt::AlignCenter, dateText);
+        }
+        if (isNew) {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(newRed);
+            painter->drawRoundedRect(newTag, 3, 3);
+            painter->setFont(tagFont);
+            painter->setPen(Qt::white);
+            painter->drawText(newTag, Qt::AlignCenter, QStringLiteral("NEW"));
+            painter->restore();
+        }
     }
 
     if (layout.hasReply && !layout.replyRect.isNull()) {

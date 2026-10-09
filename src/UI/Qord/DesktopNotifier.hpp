@@ -38,6 +38,7 @@ signals:
     void openRequested(Core::Snowflake accountId, Core::Snowflake channelId, Core::Snowflake messageId);
 
 private:
+    class NotificationSound *sound = nullptr;
     QWidget *window;
     QSystemTrayIcon *tray = nullptr;
     Core::Snowflake lastAccount;

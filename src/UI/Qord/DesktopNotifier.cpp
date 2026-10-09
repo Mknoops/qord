@@ -6,6 +6,7 @@
 #include "Core/UserManager.hpp"
 #include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "UI/Qord/NotificationSound.hpp"
 
 #include <QApplication>
 #include <QMenu>
@@ -22,6 +23,7 @@ constexpr const char *EnabledKey = "notifications/desktop";
 
 DesktopNotifier::DesktopNotifier(QWidget *window) : QObject(window), window(window)
 {
+    sound = new NotificationSound(this);
     if (!QSystemTrayIcon::isSystemTrayAvailable())
         return;
     tray = new QSystemTrayIcon(window->windowIcon().isNull() ? qApp->windowIcon() : window->windowIcon(), this);
@@ -64,7 +66,9 @@ void DesktopNotifier::setEnabled(bool enabled)
 void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Message &message, bool mentionsMe,
                                bool wasUnread, Core::Snowflake viewedChannelId)
 {
-    if (!instance || !enabled())
+    const bool toast = enabled();
+    const bool chime = NotificationSound::enabled();
+    if (!instance || (!toast && !chime))
         return;
     const bool isDm = !message.guildId.hasValue();
     if (!isDm && !mentionsMe)
@@ -108,6 +112,10 @@ void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Me
     if (body.size() > 200)
         body = body.left(200) + QStringLiteral("…");
 
+    if (chime)
+        sound->play();
+    if (!toast)
+        return;
     lastAccount = instance->accountId();
     lastChannel = channelId;
     lastMessage = message.id.get();

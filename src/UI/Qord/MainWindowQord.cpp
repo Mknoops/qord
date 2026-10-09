@@ -230,7 +230,10 @@ void MainWindow::setupQordFeatures()
     }
 
     // Sending a message ends the typing state, like the official client
-    connect(messageInput, &MessageInput::sendMessage, this, [this]() { lastTypingSentMs = 0; });
+    connect(messageInput, &MessageInput::sendMessage, this, [this]() {
+        lastTypingSentMs = 0;
+        chatModel->setUnreadMarker(Snowflake::Invalid); // Discord drops the NEW divider once you reply
+    });
 }
 
 void MainWindow::applyQordSurfaces()

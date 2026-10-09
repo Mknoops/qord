@@ -67,6 +67,11 @@ public:
     void markForumPostAsRead(Snowflake threadId, Snowflake lastMessageId);
     [[nodiscard]] bool hasBeenRead(Snowflake channelId) const;
     [[nodiscard]] Snowflake effectiveAckId(Snowflake channelId, Snowflake guildId) const;
+    // Qord: what was read when the channel was opened (the "NEW" divider)
+    [[nodiscard]] Snowflake ackIdWhenOpened(Snowflake channelId) const
+    {
+        return ackIdAtSelect.value(channelId, Snowflake::Invalid);
+    }
 
     void onMessageAck(const Discord::MessageAck &ack);
     void onUserGuildSettingsUpdate(const Discord::UserGuildSettings &settings);

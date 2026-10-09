@@ -127,6 +127,20 @@ public:
     [[nodiscard]] QList<PluginMenuItem> dispatchChannelContextMenuItems(const ChannelContext &channel);
     void dispatchChannelContextMenuAction(const QString &pluginId, const QString &itemId, const ChannelContext &channel);
 
+    struct PluginServerListButton
+    {
+        QString pluginId;
+        ServerListButton button;
+    };
+    [[nodiscard]] QList<PluginServerListButton> dispatchServerListButtons(const ServerListContext &list);
+    void dispatchServerListButtonClicked(const QString &pluginId, const QString &buttonId, const ServerListContext &list);
+    // First plugin with badges wins.
+    [[nodiscard]] QList<CountBadge> dispatchMemberCountBadges(const MemberCountContext &counts);
+    // Every plugin's decorations, in plugin order.
+    [[nodiscard]] QList<NameDecoration> dispatchNameDecorations(const DecorationContext &user);
+    // True if a plugin handled the click.
+    [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
+
 signals:
     void pluginStateChanged(const QString &id);
     // Something that affects how received messages are rendered changed

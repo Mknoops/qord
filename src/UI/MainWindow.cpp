@@ -57,10 +57,12 @@
 #include "Core/Session.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
 #include "Input/PluginChatButtons.hpp"
 #include "Qord/UserPanel.hpp"
 #include "Qord/MessageListPopup.hpp"
 #include "Qord/FriendsPage.hpp"
+#include "Qord/PluginSurfaces.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #include "VoiceStatusBar.hpp"
@@ -420,6 +422,7 @@ void MainWindow::switchChatChannel(Core::Snowflake channelId, Core::Snowflake gu
     typingTracker->setActiveChannel(channelId);
     messageInput->clearReplyTarget();
     pluginChatButtons->rebuild();
+    refreshMemberCountBar(); // Qord
 }
 
 // Session destroys a ClientInstance as soon as it reports Disconnected, so every
@@ -1167,8 +1170,8 @@ void MainWindow::setupUi()
     pluginChatButtons = new PluginChatButtons([this] {
         Qord::Plugins::ChatContext chat;
         chat.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
-        chat.channelId = quint64(chatModel->getActiveChannelId());
-        chat.guildId = quint64(chatModel->getActiveGuildId());
+        chat.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
+        chat.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
         return chat;
     }, messageInput);
     messageInput->addTrailingWidget(pluginChatButtons);
@@ -1321,6 +1324,7 @@ void MainWindow::setupUi()
     addServerButton->setCursor(Qt::PointingHandCursor);
     addServerButton->setToolTip(tr("Add a Server"));
     addServerButton->hide();
+    serverListButtons = new ServerListButtonBar(this); // Qord: plugin buttons (Read All)
 
     friendsButton = new QPushButton(tr("Friends"), this);
     friendsButton->setObjectName("FriendsButton");
@@ -1508,8 +1512,8 @@ void MainWindow::setupUi()
                 if (plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeEdit)) {
                     Qord::Plugins::OutgoingMessage out;
                     out.accountId = quint64(currentInstance->accountId());
-                    out.channelId = quint64(channelId);
-                    out.guildId = quint64(currentInstance->discord()->getGuildIdForChannel(channelId));
+                    out.channelId = Qord::Plugins::pluginId(channelId);
+                    out.guildId = Qord::Plugins::pluginId(currentInstance->discord()->getGuildIdForChannel(channelId));
                     out.messageId = quint64(messageId);
                     out.isEdit = true;
                     out.content = content;
@@ -1529,8 +1533,8 @@ void MainWindow::setupUi()
                         return !shiftHeld;
                     Qord::Plugins::ReplyContext reply;
                     reply.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
-                    reply.channelId = quint64(channelId);
-                    reply.guildId = quint64(chatModel->getActiveGuildId());
+                    reply.channelId = Qord::Plugins::pluginId(channelId);
+                    reply.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
                     reply.messageId = quint64(messageId);
                     reply.authorId = quint64(authorId);
                     reply.shiftHeld = shiftHeld;
@@ -1720,6 +1724,7 @@ QWidget *MainWindow::buildLeftSide()
         auto *railLayout = new QVBoxLayout(railColumn);
         railLayout->setContentsMargins(0, 0, 0, 8);
         railLayout->setSpacing(4);
+        railLayout->addWidget(serverListButtons, 0);
         railLayout->addWidget(serverRail, 1);
         railLayout->addWidget(addServerButton, 0, Qt::AlignHCenter);
         addServerButton->show();
@@ -1748,6 +1753,7 @@ QWidget *MainWindow::buildLeftSide()
         auto *v = new QVBoxLayout(container);
         v->setContentsMargins(0, 0, 0, 0);
         v->setSpacing(0);
+        v->addWidget(serverListButtons, 0);
         v->addWidget(friendsButton, 0);
         friendsButton->show();
         channelTree->show();
@@ -1760,6 +1766,7 @@ QWidget *MainWindow::buildLeftSide()
         userPanel->show();
     }
 
+    refreshPluginSurfaces(); // Qord: the rebuild hid the plugin buttons
     container->setMinimumWidth(200);
     return container;
 }
@@ -1791,7 +1798,7 @@ void MainWindow::setChannelListMode(ChannelListMode mode)
     guildHeaderLabel->setParent(this);
     guildHeaderLabel->hide();
     // Qord widgets live in the left side too; keep them across the rebuild
-    for (QWidget *w : std::initializer_list<QWidget *> { userPanel, friendsButton, addServerButton }) {
+    for (QWidget *w : std::initializer_list<QWidget *> { userPanel, friendsButton, addServerButton, serverListButtons }) {
         w->setParent(this);
         w->hide();
     }
@@ -2829,9 +2836,19 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         plugins && plugins->hasHook(Qord::Plugins::Hook::UserContextMenu)) {
         Qord::Plugins::UserContext user;
         user.accountId = instance ? quint64(instance->accountId()) : 0;
-        user.guildId = quint64(guildId);
-        user.channelId = quint64(chatModel->getActiveChannelId());
+        user.guildId = Qord::Plugins::pluginId(guildId);
+        user.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
         user.userId = quint64(userId);
+        if (instance) {
+            const auto u = instance->users()->getUser(userId);
+            user.avatarUrl = (u ? Discord::Cdn::userAvatar(userId, u->avatar.valueOr(), 128)
+                                : Discord::Cdn::defaultUserAvatar(userId, 128))
+                                     .toString();
+            if (guildId.isValid())
+                if (const auto member = instance->users()->getMember(guildId, userId))
+                    user.memberAvatarUrl =
+                            Discord::Cdn::guildMemberAvatar(guildId, userId, member->avatar.valueOr(), 128).toString();
+        }
         for (const auto &entry : plugins->dispatchUserContextMenuItems(user)) {
             QAction *action = menu.addAction(entry.item.label);
             connect(action, &QAction::triggered, this, [pluginId = entry.pluginId, itemId = entry.item.id, user]() {

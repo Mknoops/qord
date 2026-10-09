@@ -95,6 +95,12 @@ static QString buildQordStyleSheet()
                           "#AddServerButton { background-color: %2; border: none; border-radius: 24px; }"
                           "#AddServerButton:hover { background-color: #23a55a; border-radius: 16px; }")
                    .arg(hex(rail), hex(chat));
+    // Plugin text buttons above the servers (ReadAllNotificationsButton)
+    qss += QStringLiteral("#ServerListTextButton { background: transparent; border: none; color: %1;"
+                          "  font-size: 13px; padding: 4px 0; }"
+                          "#ServerListTextButton:hover { color: %2; }"
+                          "#MemberCountBar { background: transparent; }")
+                   .arg(hex(muted), hex(text));
     qss += QStringLiteral("#EmojiPicker { background-color: %1; border: 1px solid %2; border-radius: 8px; }"
                           "#EmojiPickerSearch { background-color: %2; color: %3; border: none; border-radius: 4px;"
                           "  padding: 6px 8px; }"

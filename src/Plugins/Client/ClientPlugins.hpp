@@ -91,13 +91,25 @@ public:
     void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                     std::function<void(const QString &)> done) override;
     static std::function<void(const QString &)> &pluginSettingsOpener();
+    void openImage(const QUrl &url) override;
+    // Set by the main window, which owns the image viewer's parent
+    static std::function<void(const QUrl &)> &imageOpener();
 };
 
 class QtDisplayOptions : public DisplayOptionsService
 {
 public:
     void setRelativeTimeRoundsDown(bool floor) override;
+    void setMobileIndicatorForAnyStatus(bool any) override;
     PluginHost *host = nullptr;
+};
+
+// Marks servers read through the main window, which knows the server list
+class QtReadStates : public ReadStateService
+{
+public:
+    void markAllServersRead(Id accountId) override;
+    static std::function<void(Id accountId)> &allServersMarker();
 };
 
 class SessionMessageActions : public MessageActionService
@@ -153,6 +165,7 @@ private:
     SessionMessageService messages;
     SessionMessageActions messageActions;
     QtDisplayOptions displayOptions;
+    QtReadStates readStates;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

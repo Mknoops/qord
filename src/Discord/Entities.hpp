@@ -229,6 +229,7 @@ struct ClientStatus : Core::JsonUtils::JsonObject
     Field<QString, true> mobile;
     Field<QString, true> web;
     Field<QString, true> vr;
+    Field<QString, true> embedded; // Qord: consoles and games (PlatformIndicators)
 
     static ClientStatus fromJson(const QJsonObject &obj)
     {
@@ -237,7 +238,33 @@ struct ClientStatus : Core::JsonUtils::JsonObject
         get(obj, "mobile", status.mobile);
         get(obj, "web", status.web);
         get(obj, "vr", status.vr);
+        get(obj, "embedded", status.embedded);
         return status;
+    }
+
+    // Qord: on mobile whatever the status (PlatformIndicators' colorMobileIndicator)
+    bool isOnMobile() const
+    {
+        auto isOnline = [](const auto &field) {
+            return field.hasValue() && field.get() == "online";
+        };
+        return mobile.hasValue() && !mobile.get().isEmpty() && !isOnline(desktop) && !isOnline(vr);
+    }
+
+    // Qord: platform -> status, in JSON object (alphabetical) order
+    QList<QPair<QString, QString>> platforms() const
+    {
+        QList<QPair<QString, QString>> out;
+        auto add = [&out](const char *name, const Field<QString, true> &field) {
+            if (field.hasValue() && !field.get().isEmpty())
+                out.append({ QString::fromLatin1(name), field.get() });
+        };
+        add("desktop", desktop);
+        add("embedded", embedded);
+        add("mobile", mobile);
+        add("vr", vr);
+        add("web", web);
+        return out;
     }
 
     bool isMobileOnly() const
@@ -295,6 +322,7 @@ struct UserSession : Core::JsonUtils::JsonObject
     Field<QString, true> status;
     Field<QList<Activity>, true> activities;
     Field<bool, true> active;
+    QString client; // Qord: client_info.client ("desktop", "mobile", "web", "unknown")
 
     static UserSession fromJson(const QJsonObject &obj)
     {
@@ -303,6 +331,7 @@ struct UserSession : Core::JsonUtils::JsonObject
         get(obj, "status", session.status);
         get(obj, "activities", session.activities);
         get(obj, "active", session.active);
+        session.client = obj.value(QStringLiteral("client_info")).toObject().value(QStringLiteral("client")).toString();
         return session;
     }
 
@@ -932,10 +961,12 @@ struct GatewayGuild : Core::JsonUtils::JsonObject
     Field<QList<Presence>, true> presences;
     Field<QDateTime, true> joinedAt;
     Field<bool, true> unavailable;
+    int memberCount = -1; // Qord: member_count (MemberCount)
 
     static GatewayGuild fromJson(const QJsonObject &obj)
     {
         GatewayGuild guild;
+        guild.memberCount = obj.value(QStringLiteral("member_count")).toInt(-1);
         get(obj, "properties", guild.properties);
         get(obj, "channels", guild.channels);
         get(obj, "threads", guild.threads);

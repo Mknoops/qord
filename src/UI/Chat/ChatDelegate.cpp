@@ -13,6 +13,7 @@
 #include "UI/Chat/InlineVideoController.hpp"
 #include "UI/Chat/MediaTarget.hpp"
 #include "UI/Chat/VideoControls.hpp"
+#include "UI/Qord/NameDecorations.hpp"
 
 #include <QCache>
 
@@ -520,15 +521,60 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(headerColor);
         painter->drawText(layout.headerRect, Qt::AlignLeft | Qt::AlignTop, username);
 
-        QFont timestampFont = option.font;
-        timestampFont.setWeight(QFont::Light);
-        painter->setFont(timestampFont);
+        // Qord: after the name come Discord's APP tag for bots, plugin icons
+        // (PlatformIndicators), then "Today at 3:45 PM"
+        QList<HeaderTip> tips;
+        int afterName = layout.headerRect.left() + headerFm.horizontalAdvance(username);
+        const int lineCenter = layout.headerRect.top() + headerFm.height() / 2;
+        const Snowflake headerMessageId = index.data(ChatModel::MessageIdRole).toULongLong();
+        const Discord::Message *headerMessage = chatModel ? chatModel->messageAt(index.row()) : nullptr;
+        const bool isBot = headerMessage && headerMessage->author.hasValue() &&
+                           headerMessage->author->bot.hasValue() && headerMessage->author->bot.get();
+        if (isBot) {
+            QFont tagFont = option.font;
+            tagFont.setPixelSize(10);
+            tagFont.setBold(true);
+            const QString tag = QStringLiteral("APP");
+            const QFontMetrics tagFm(tagFont);
+            const QRect tagRect(afterName + 4, lineCenter - 8, tagFm.horizontalAdvance(tag) + 8, 15);
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(0x58, 0x65, 0xf2));
+            painter->drawRoundedRect(tagRect, 3, 3);
+            painter->setPen(Qt::white);
+            painter->setFont(tagFont);
+            painter->drawText(tagRect, Qt::AlignCenter, tag);
+            painter->restore();
+            afterName = tagRect.right() + 1;
+        }
+        if (auto *provider = NameDecorations::instance(); provider && headerMessage && headerMessage->author.hasValue()) {
+            const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+            const auto decorations =
+                    provider->forUser(chatModel->getAccountId(), chatModel->getActiveGuildId(),
+                                      headerMessage->author->id.get(), NameDecorations::Place::Message, dpr);
+            const QList<QRect> rects = NameDecorations::paint(*painter, decorations, afterName, lineCenter);
+            for (int i = 0; i < rects.size(); ++i)
+                tips.append({ rects[i], decorations[i].tooltip });
+            afterName += NameDecorations::width(decorations);
+        }
 
-        int usernameWidth = headerFm.horizontalAdvance(username);
-        QRect timestampRect = layout.headerRect.adjusted(usernameWidth, 0, 0, 0);
-        painter->setPen(option.palette.text().color().darker(150));
-        painter->drawText(timestampRect, Qt::AlignLeft | Qt::AlignTop,
-                          "  " + timestamp.toString("hh:mm"));
+        QFont timestampFont = option.font;
+        timestampFont.setPixelSize(12);
+        painter->setFont(timestampFont);
+        const QFontMetrics timestampFm(timestampFont);
+
+        const QString timestampText = headerTimestamp(timestamp);
+        const int timestampX = afterName + 8;
+        const QRect timestampRect(timestampX, layout.headerRect.top(), timestampFm.horizontalAdvance(timestampText),
+                                  headerFm.height());
+        painter->setPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
+        painter->drawText(timestampRect, Qt::AlignLeft | Qt::AlignVCenter, timestampText);
+        tips.append({ timestampRect, QLocale().toString(timestamp.date(), QLocale::LongFormat) + QLatin1Char(' ') +
+                                             QLocale().toString(timestamp.time(), QLocale::ShortFormat) });
+        if (lastHeaderTips.size() > 512)
+            lastHeaderTips.clear();
+        lastHeaderTips.insert(quint64(headerMessageId), tips);
     }
 
     Snowflake msgId = index.data(ChatModel::MessageIdRole).toULongLong();
@@ -1094,6 +1140,18 @@ QSize ChatDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInd
     }
 
     return size;
+}
+
+QString ChatDelegate::headerTimestamp(const QDateTime &timestamp)
+{
+    const QLocale locale;
+    const QString time = locale.toString(timestamp.time(), QLocale::ShortFormat);
+    const qint64 days = timestamp.date().daysTo(QDate::currentDate());
+    if (days == 0)
+        return tr("Today at %1").arg(time);
+    if (days == 1)
+        return tr("Yesterday at %1").arg(time);
+    return locale.toString(timestamp.date(), QLocale::ShortFormat) + QLatin1Char(' ') + time;
 }
 
 } // namespace UI

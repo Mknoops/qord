@@ -1,0 +1,29 @@
+{
+  "id": "membercount",
+  "equicordName": "MemberCount",
+  "equicordPath": "src/plugins/memberCount",
+  "name": "MemberCount",
+  "description": "Shows the number of online members, total members, and users in voice channels on the server - in the member list and tooltip.",
+  "categories": ["utility"],
+  "tags": ["Servers", "Utility"],
+  "authors": ["Ven", "Commandtechno", "Apexo"],
+  "permissions": ["add_ui_elements"],
+  "hooks": ["memberCounts"],
+  "settings": [
+    { "key": "toolTip", "type": "bool", "default": true, "label": "Tooltip",
+      "description": "Show member count on the server tooltip" },
+    { "key": "memberList", "type": "bool", "default": true, "label": "Member list",
+      "description": "Show member count in the member list" },
+    { "key": "voiceActivity", "type": "bool", "default": true, "label": "Voice activity",
+      "description": "Show voice activity with member count in the member list" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Online counts for servers you have not opened: upstream preloads each hovered server's member list to learn its online count; Qord shows \"?\" until you open the server.",
+    "Thread member lists: Qord has no thread member list, so threads use the parent channel's count."
+  ],
+  "notes": "The numbers come from the member list Discord sends (online members in the channel's list, total server members) and from the voice states of channels you can see."
+}

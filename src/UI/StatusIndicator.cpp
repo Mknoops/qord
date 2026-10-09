@@ -44,7 +44,8 @@ QColor color(const PresenceBadge &badge)
 
 bool isPhone(const PresenceBadge &badge)
 {
-    return badge.mobile && !badge.streaming && badge.status == Discord::StatusType::ONLINE;
+    return badge.mobile && !badge.streaming &&
+           (badge.status == Discord::StatusType::ONLINE || Core::mobileIndicatorForAnyStatus());
 }
 
 QSizeF badgeSize(int dotSize, const PresenceBadge &badge)

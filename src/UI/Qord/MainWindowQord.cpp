@@ -22,12 +22,23 @@
 #include "Core/UserManager.hpp"
 #include "Plugins/Client/ClientPlugins.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
 #include "UI/TypingIndicator.hpp"
 #include "Core/TypingTracker.hpp"
 #include "UI/Qord/AddServerDialog.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
 #include "UI/Qord/UserPanel.hpp"
+#include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/PluginSurfaces.hpp"
+#include "UI/ChannelList/ChannelTreeModel.hpp"
+#include "UI/MemberList/MemberListView.hpp"
+#include "UI/ImageViewer.hpp"
+#include "Discord/CdnUrls.hpp"
+#ifndef ACHERON_NO_VOICE
+#include "Core/Audio/VoiceManager.hpp"
+#endif
+#include "Core/MemberListManager.hpp"
 
 #include <QDateTime>
 #include <QJsonObject>
@@ -67,9 +78,9 @@ void MainWindow::setupQordFeatures()
         if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::Typing)) {
             Qord::Plugins::TypingContext typing;
             typing.accountId = quint64(currentInstance->accountId());
-            typing.channelId = quint64(channelId);
-            typing.guildId = quint64(chatModel->getActiveGuildId());
-            typing.connectedVoiceChannelId = quint64(currentInstance->voiceChannelId());
+            typing.channelId = Qord::Plugins::pluginId(channelId);
+            typing.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
+            typing.connectedVoiceChannelId = Qord::Plugins::pluginId(currentInstance->voiceChannelId());
             for (int row = chatModel->rowCount() - 1; row >= 0; --row) {
                 const QModelIndex idx = chatModel->index(row, 0);
                 if (Snowflake(idx.data(ChatModel::UserIdRole).toULongLong()) == currentInstance->accountId()) {
@@ -160,7 +171,31 @@ void MainWindow::setupQordFeatures()
     connect(this, &QObject::destroyed, []() {
         Qord::Plugins::QtUiService::pluginSettingsOpener() = nullptr;
         Qord::Plugins::QtUiService::messageBoxInserter() = nullptr;
+        Qord::Plugins::QtUiService::imageOpener() = nullptr;
+        Qord::Plugins::QtReadStates::allServersMarker() = nullptr;
     });
+    Qord::Plugins::QtUiService::imageOpener() = [this](const QUrl &url) { openImageInViewer(url); };
+    // ReadAllNotificationsButton: every server of the account, like Mark As Read on each
+    Qord::Plugins::QtReadStates::allServersMarker() = [this](quint64 accountId) {
+        if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
+            instance->markGuildsAsRead(channelTreeModel->guildIds(Snowflake(accountId)));
+    };
+
+    // Plugin surfaces: icons after names, member counts, server list buttons
+    nameDecorations = new NameDecorations(session, this);
+    for (const auto &instance : session->getClients())
+        nameDecorations->watch(instance);
+    connect(nameDecorations, &NameDecorations::changed, this, [this]() {
+        memberListView->viewport()->update();
+        chatView->viewport()->update();
+    });
+    memberCountBar = new MemberCountBar(memberListView);
+    memberListView->setHeaderWidget(memberCountBar);
+    serverRail->setTooltipExtender([this](Snowflake accountId, Snowflake guildId) {
+        return memberCountTooltip(accountId, guildId);
+    });
+    connect(session, &Core::Session::ready, this, [this]() { refreshPluginSurfaces(); });
+    refreshPluginSurfaces();
     Qord::Plugins::QtUiService::pluginSettingsOpener() = [this](const QString &pluginId) {
         openSettingsWindow();
         if (settingsWindow)
@@ -187,8 +222,11 @@ void MainWindow::setupQordFeatures()
             chatModel->invalidateDocCache();
             chatModel->invalidateLayout();
             chatView->viewport()->update();
+            memberListView->viewport()->update();
             refreshTypers();
+            refreshPluginSurfaces();
         });
+        connect(host, &Qord::Plugins::PluginHost::pluginStateChanged, this, [this]() { refreshPluginSurfaces(); });
     }
 
     // Sending a message ends the typing state, like the official client
@@ -212,9 +250,94 @@ void MainWindow::applyQordSurfaces()
     setSurface(userPanel, theme.color(Token::SidebarBg).darker(115));
 }
 
+void MainWindow::refreshPluginSurfaces()
+{
+    if (serverListButtons) {
+        Snowflake accountId = railSelectedAccountId;
+        if (!accountId.isValid() && currentInstance)
+            accountId = currentInstance->accountId();
+        if (!accountId.isValid())
+            for (const auto &instance : session->getClients())
+                if (instance) {
+                    accountId = instance->accountId();
+                    break;
+                }
+        serverListButtons->refresh(accountId);
+    }
+    refreshMemberCountBar();
+}
+
+void MainWindow::refreshMemberCountBar()
+{
+    if (!memberCountBar)
+        return;
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const Snowflake guildId = chatModel->getActiveGuildId();
+    QList<Qord::Plugins::CountBadge> badges;
+    if (host && host->hasHook(Qord::Plugins::Hook::MemberCounts) && currentInstance && guildId.isValid()) {
+        Qord::Plugins::MemberCountContext ctx;
+        ctx.accountId = quint64(currentInstance->accountId());
+        ctx.guildId = Qord::Plugins::pluginId(guildId);
+        ctx.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
+        ctx.place = Qord::Plugins::MemberCountContext::Place::MemberList;
+        Core::MemberListManager *list = currentInstance->memberList();
+        ctx.total = list->guildMemberCount(guildId);
+        ctx.online = list->currentGuildId() == guildId ? list->activeListOnlineCount() : -1;
+        if (ctx.online < 0)
+            ctx.online = list->guildOnlineCount(guildId);
+        ctx.inVoice = currentInstance->guildVoiceUserCount(guildId);
+        badges = host->dispatchMemberCountBadges(ctx);
+    }
+    memberCountBar->setBadges(badges);
+    memberListView->updateHeader();
+}
+
+QString MainWindow::memberCountTooltip(Snowflake accountId, Snowflake guildId)
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    Core::ClientInstance *instance = session->client(accountId);
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::MemberCounts))
+        return {};
+    Qord::Plugins::MemberCountContext ctx;
+    ctx.accountId = quint64(accountId);
+    ctx.guildId = Qord::Plugins::pluginId(guildId);
+    ctx.place = Qord::Plugins::MemberCountContext::Place::ServerTooltip;
+    ctx.total = instance->memberList()->guildMemberCount(guildId);
+    ctx.online = instance->memberList()->guildOnlineCount(guildId);
+    return MemberCountBar::badgesHtml(host->dispatchMemberCountBadges(ctx));
+}
+
+void MainWindow::openImageInViewer(const QUrl &url)
+{
+    Core::ClientInstance *instance = currentInstance;
+    if (!instance)
+        for (const auto &client : session->getClients())
+            if (client) {
+                instance = client;
+                break;
+            }
+    if (!instance)
+        return;
+    auto *viewer = new ImageViewer(session->getImageManager(), instance->accountId(), this);
+    viewer->showImage(url, QPixmap());
+}
+
 void MainWindow::connectQordInstance(Core::ClientInstance *instance)
 {
     const QPointer<Core::ClientInstance> guard(instance);
+    if (nameDecorations)
+        nameDecorations->watch(instance);
+    // MemberCount: new numbers from Discord, people joining or leaving voice
+    connect(instance->memberList(), &Core::MemberListManager::countsChanged, this, [this, guard](Snowflake guildId) {
+        if (guard && guard == currentInstance && guildId == chatModel->getActiveGuildId())
+            refreshMemberCountBar();
+    });
+#ifndef ACHERON_NO_VOICE
+    connect(instance->voice(), &Core::Audio::VoiceManager::channelVoiceMemberChanged, this, [this, guard]() {
+        if (guard && guard == currentInstance)
+            refreshMemberCountBar();
+    });
+#endif
     connect(instance, &Core::ClientInstance::notifiableMessage, this,
             [this, guard](const Discord::Message &message, bool mentionsMe, bool wasUnread) {
                 if (guard && notifier)
@@ -292,8 +415,8 @@ void MainWindow::refreshTypers()
     if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::Typing)) {
         Qord::Plugins::ChatContext chat;
         chat.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
-        chat.channelId = quint64(chatModel->getActiveChannelId());
-        chat.guildId = quint64(chatModel->getActiveGuildId());
+        chat.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
+        chat.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
         if (!host->dispatchShouldShowTypers(chat)) {
             typingIndicator->setTypers({});
             return;
@@ -310,8 +433,8 @@ QString MainWindow::qordAuthorName(const Discord::User &author, Snowflake guildI
         return fallback;
     Qord::Plugins::AuthorContext ctx;
     ctx.accountId = quint64(currentInstance->accountId());
-    ctx.guildId = quint64(guildId);
-    ctx.channelId = quint64(chatModel->getActiveChannelId());
+    ctx.guildId = Qord::Plugins::pluginId(guildId);
+    ctx.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
     ctx.userId = quint64(author.id.get());
     ctx.username = author.username.get();
     ctx.globalName = author.globalName.hasValue() ? author.globalName.get() : QString();
@@ -332,17 +455,22 @@ void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowfla
         return;
     Qord::Plugins::ChannelContext ctx;
     ctx.accountId = quint64(accountId);
-    ctx.channelId = quint64(channelId);
+    ctx.channelId = Qord::Plugins::pluginId(channelId);
     if (channelId.isValid()) {
         if (const auto channel = instance->getChannel(channelId)) {
             ctx.guildId = channel->guildId.hasValue() ? quint64(channel->guildId.get()) : 0;
             ctx.name = channel->name.hasValue() ? channel->name.get() : QString();
             ctx.type = channel->type.hasValue() ? int(channel->type.get()) : -1;
+            if (channel->type.hasValue() && channel->type.get() == Discord::ChannelType::GROUP_DM)
+                ctx.iconUrl = Discord::Cdn::channelIcon(channelId, channel->icon.valueOr(), 128).toString();
         }
     } else {
-        ctx.guildId = quint64(guildId);
-        if (const auto guild = instance->getGuild(guildId))
+        ctx.guildId = Qord::Plugins::pluginId(guildId);
+        if (const auto guild = instance->getGuild(guildId)) {
             ctx.name = guild->name.get();
+            ctx.iconUrl = Discord::Cdn::guildIcon(guildId, guild->icon.valueOr(), 128).toString();
+            ctx.bannerUrl = Discord::Cdn::guildBanner(guildId, guild->banner.valueOr(), 480).toString();
+        }
     }
     const auto items = host->dispatchChannelContextMenuItems(ctx);
     if (items.isEmpty())

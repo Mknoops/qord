@@ -1,0 +1,36 @@
+{
+  "id": "platformindicators",
+  "equicordName": "PlatformIndicators",
+  "equicordPath": "src/plugins/platformIndicators",
+  "name": "PlatformIndicators",
+  "description": "Adds platform indicators (Desktop, Mobile, Web...) to users",
+  "categories": ["appearance"],
+  "tags": ["Appearance"],
+  "authors": ["kemo", "TheSun", "Nuckyz", "Ven", "neoarz"],
+  "permissions": ["read_presences", "modify_displayed_messages"],
+  "hooks": ["userDecorations"],
+  "settings": [
+    { "key": "list", "type": "bool", "default": true, "label": "Member list",
+      "description": "Show indicators in the member list" },
+    { "key": "profiles", "type": "bool", "default": true, "label": "Profiles",
+      "description": "Show indicators in user profiles" },
+    { "key": "messages", "type": "bool", "default": true, "label": "Messages",
+      "description": "Show indicators inside messages" },
+    { "key": "colorMobileIndicator", "type": "bool", "default": true, "label": "Color mobile indicator",
+      "description": "Whether to make the mobile indicator match the color of the user status." },
+    { "key": "showBots", "type": "bool", "default": false, "label": "Show bots",
+      "description": "Whether to show platform indicators on bots" },
+    { "key": "ConsoleIcon", "type": "choice", "default": "equicord", "label": "Console icon",
+      "description": "What console icon to use",
+      "choices": [
+        { "value": "equicord", "label": "Equicord" },
+        { "value": "suncord", "label": "Suncord" },
+        { "value": "vencord", "label": "Vencord" }
+      ] }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Icons follow the platforms in a user's presence (client_status) and, for yourself, your sessions, coloured with the theme's status colours. Qord reads client_status as a JSON object, which sorts the platforms alphabetically, where Discord keeps the order it received. Color mobile indicator shows the phone-shaped status dot for mobile users whatever their status (upstream's isMobileOnline patches); it needs modify_displayed_messages."
+}

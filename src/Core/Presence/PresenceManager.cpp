@@ -282,7 +282,7 @@ PresenceBadge PresenceManager::badge(Snowflake userId, Snowflake guildId) const
 
     PresenceBadge badge;
     badge.status = entry->status;
-    badge.mobile = entry->clientStatus.isMobileOnly();
+    badge.mobile = mobileIndicatorForAnyStatus() ? entry->clientStatus.isOnMobile() : entry->clientStatus.isMobileOnly();
 
     if (hidesGames(userId))
         return badge;
@@ -295,6 +295,12 @@ PresenceBadge PresenceManager::badge(Snowflake userId, Snowflake guildId) const
     }
 
     return badge;
+}
+
+QList<QPair<QString, QString>> PresenceManager::clientPlatforms(Snowflake userId, Snowflake guildId) const
+{
+    const PresenceEntry *entry = resolve(userId, guildId);
+    return entry ? entry->clientStatus.platforms() : QList<QPair<QString, QString>>();
 }
 
 QList<Discord::Activity> PresenceManager::activities(Snowflake userId, Snowflake guildId) const
@@ -347,6 +353,7 @@ void PresenceManager::onSessionsReplace(const QList<Discord::UserSession> &sessi
 {
     if (sessions.isEmpty())
         return;
+    lastSessions = sessions;
 
     const Discord::UserSession *chosen = nullptr;
     for (const Discord::UserSession &session : sessions) {

@@ -70,6 +70,8 @@ PERMISSIONS = {
     "trust_links",
     "control_notifications",
     "edit_messages",
+    "mark_read",
+    "read_presences",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -92,6 +94,10 @@ HOOK_DISPATCH = {
     "notifications": "dispatchShouldNotify(",
     "authorNames": "dispatchAuthorDisplayName(",
     "channelContextMenu": "dispatchChannelContextMenuItems(",
+    "serverListButtons": "dispatchServerListButtons(",
+    "memberCounts": "dispatchMemberCountBadges(",
+    "userDecorations": "dispatchNameDecorations(",
+    "profileImages": "dispatchProfileImageClicked(",
 }
 
 MANIFEST_REQUIRED = {

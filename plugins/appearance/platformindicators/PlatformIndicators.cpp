@@ -1,0 +1,206 @@
+/*
+ * Qord, a native Discord client
+ * Port of Equicord's PlatformIndicators plugin (src/plugins/platformIndicators)
+ * Original: Copyright (c) Vendicated and contributors, authors kemo, TheSun, Nuckyz, Ven, neoarz
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+#include "PlatformIndicators.hpp"
+
+#include "Plugins/PluginContext.hpp"
+#include "Plugins/Registry.hpp"
+
+#include <algorithm>
+
+namespace Qord {
+namespace Plugins {
+
+namespace {
+// Icon paths copied from upstream's Icons table
+const char desktopPath[] =
+        "M4 2.5c-1.103 0-2 .897-2 2v11c0 1.104.897 2 2 2h7v2H7v2h10v-2h-4v-2h7c1.103 0 2-.896 2-2v-11c0-1.103-.897-2-2-2H4Zm16 "
+        "2v9H4v-9h16Z";
+const char webPath[] =
+        "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 "
+        "15v1c0 1.1.9 2 2 2v1.93Zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 "
+        "2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39Z";
+const char mobilePath[] =
+        "M 187 0 L 813 0 C 916.277 0 1000 83.723 1000 187 L 1000 1313 C 1000 1416.277 916.277 1500 813 1500 L 187 1500 C 83.723 "
+        "1500 0 1416.277 0 1313 L 0 187 C 0 83.723 83.723 0 187 0 Z M 125 1000 L 875 1000 L 875 250 L 125 250 Z M 500 1125 C "
+        "430.964 1125 375 1180.964 375 1250 C 375 1319.036 430.964 1375 500 1375 C 569.036 1375 625 1319.036 625 1250 C 625 "
+        "1180.964 569.036 1125 500 1125 Z";
+const char embeddedPath[] =
+        "M3.06 20.4q-1.53 0-2.37-1.065T.06 16.74l1.26-9q.27-1.8 1.605-2.97T6.06 3.6h11.88q1.8 0 3.135 1.17t1.605 2.97l1.26 9q.21 "
+        "1.53-.63 2.595T20.94 20.4q-.63 0-1.17-.225T18.78 19.5l-2.7-2.7H7.92l-2.7 2.7q-.45.45-.99.675t-1.17.225Zm14.94-7.2q.51 0 "
+        ".855-.345T19.2 12q0-.51-.345-.855T18 10.8q-.51 0-.855.345T16.8 12q0 .51.345 .855T18 13.2Zm-2.4-3.6q.51 0 .855-.345T16.8 "
+        "8.4q0-.51-.345-.855T15.6 7.2q-.51 0-.855.345T14.4 8.4q0 .51.345 .855T15.6 9.6ZM6.9 13.2h1.8v-2.1h2.1v-1.8h-2.1v-2.1h-1.8v2.1h-"
+        "2.1v1.8h2.1v2.1Z";
+const char vrPath[] =
+        "M8.46 8.64a1 1 0 0 1 1 1c0 .44-.3.8-.72.92l-.11.07c-.08.06-.2.19-.2.41a.99.99 0 0 1-.98.86h-.06a1 1 0 0 1-.94-1.05l.02-.32c.05-"
+        "1.06.92-1.9 1.99-1.9ZM15.55 5a5.5 5.5 0 0 1 5.15 3.67h.3a2 2 0 0 1 2 2v3.18a2 2 0 0 1-2 1.99h-.2A4.54 4.54 0 0 1 16.55 19a4.45 "
+        "4.45 0 0 1-3.6-1.83 1.2 1.2 0 0 0-1.9 0 4.44 4.44 0 0 1-3.9 1.82 4.54 4.54 0 0 1-3.94-3.15H3a2 2 0 0 1-2-2v-3.18c0-1.1.9-1.99 "
+        "2-1.99h.3A5.5 5.5 0 0 1 8.46 5h7.09Zm-7.1 2C6.6 7 5.06 8.5 4.97 10.41l-.02.66v3.18c0 1.43 1.05 2.66 2.34 2.74.85.06 1.63-.32 "
+        "2.14-1.01a3.2 3.2 0 0 1 2.57-1.3c1 0 1.97.48 2.57 1.3.5.69 1.3 1.08 2.14 1.01 1.3-.08 2.34-1.31 2.34-2.74l-.02-3.84a3.54 3.54 "
+        "0 0 0-3.49-3.43H8.45Z";
+const char suncordPath[] =
+        "M7 4a6 6 0 00-6 6v4a6 6 0 006 6h10a6 6 0 006-6v-4a6 6 0 00-6-6H7zm0 11a1 1 0 01-1-1v-1H5a1 1 0 010-2h1v-1a1 1 0 012 0v1h1a1 1 0 "
+        "010 2H8v1a1 1 0 01-1 1zm10-4a1 1 0 100-2 1 1 0 000 2zm1 3a1 1 0 11-2 0 1 1 0 012 0zm0-2a1 1 0 102 0 1 1 0 00-2 0zm-3 1a1 1 0 "
+        "110-2 1 1 0 010 2z";
+const char vencordPath[] =
+        "M14.8 2.7 9 3.1V47h3.3c1.7 0 6.2.3 10 .7l6.7.6V2l-4.2.2c-2.4.1-6.9.3-10 .5zm1.8 6.4c1 1.7-1.3 3.6-2.7 2.2C12.7 10.1 13.5 8 15 "
+        "8c.5 0 1.2.5 1.6 1.1zM16 33c0 6-.4 10-1 10s-1-4-1-10 .4-10 1-10 1 4 1 10zm15-8v23.3l3.8-.7c2-.3 4.7-.6 6-.6H43V3h-2.2c-1.3 "
+        "0-4-.3-6-.6L31 1.7V25z";
+
+PlatformIndicators::Icon icon(const char *path, const char *viewBox = "0 0 24 24", int width = 20, int height = 20)
+{
+    return { QString::fromLatin1(viewBox), width, height, QString::fromLatin1(path) };
+}
+
+int statusRank(const QString &status)
+{
+    if (status == QLatin1String("online"))
+        return 2;
+    if (status == QLatin1String("idle"))
+        return 1;
+    return 0;
+}
+
+QByteArray svgFor(const PlatformIndicators::Icon &i, int width, int height)
+{
+    return QStringLiteral("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%1\" height=\"%2\" viewBox=\"%3\">"
+                          "<path fill=\"currentColor\" d=\"%4\"/></svg>")
+            .arg(width)
+            .arg(height)
+            .arg(i.viewBox, i.path)
+            .toUtf8();
+}
+} // namespace
+
+QList<QPair<QString, QString>> PlatformIndicators::ownClientStatus(const QList<SessionInfo> &sessions)
+{
+    QList<SessionInfo> sorted = sessions;
+    std::stable_sort(sorted.begin(), sorted.end(), [](const SessionInfo &a, const SessionInfo &b) {
+        return statusRank(a.status) < statusRank(b.status);
+    });
+    QList<QPair<QString, QString>> out;
+    for (const SessionInfo &s : sorted) {
+        if (s.client == QLatin1String("unknown"))
+            continue;
+        auto it = std::find_if(out.begin(), out.end(), [&](const auto &p) { return p.first == s.client; });
+        if (it != out.end())
+            it->second = s.status;
+        else
+            out.append({ s.client, s.status });
+    }
+    return out;
+}
+
+PlatformIndicators::Icon PlatformIndicators::iconFor(const QString &platform, const QString &consoleIcon)
+{
+    if (platform == QLatin1String("embedded")) {
+        if (consoleIcon == QLatin1String("suncord"))
+            return icon(suncordPath, "0 0 24 24", 24, 24);
+        if (consoleIcon == QLatin1String("vencord"))
+            return icon(vencordPath, "0 0 50 50");
+        return icon(embeddedPath);
+    }
+    if (platform == QLatin1String("web"))
+        return icon(webPath);
+    if (platform == QLatin1String("mobile"))
+        return icon(mobilePath, "0 0 1000 1500", 17, 17);
+    if (platform == QLatin1String("vr"))
+        return icon(vrPath, "0 4 24 16");
+    return icon(desktopPath);
+}
+
+QString PlatformIndicators::tooltipFor(const QString &platform)
+{
+    if (platform == QLatin1String("embedded"))
+        return QStringLiteral("Embedded (Console or Game)");
+    if (platform == QLatin1String("vr"))
+        return QStringLiteral("VR");
+    if (platform.isEmpty())
+        return platform;
+    return platform.at(0).toUpper() + platform.mid(1);
+}
+
+void PlatformIndicatorsPlugin::start(PluginContext &ctx)
+{
+    context = &ctx;
+    display = ctx.displayOptions();
+    applyMobileIndicator(ctx.settings().boolValue(QStringLiteral("colorMobileIndicator")));
+}
+
+void PlatformIndicatorsPlugin::stop()
+{
+    applyMobileIndicator(false);
+    display = nullptr;
+    context = nullptr;
+}
+
+void PlatformIndicatorsPlugin::onSettingChanged(const QString &key)
+{
+    if (key == QLatin1String("colorMobileIndicator") && context)
+        applyMobileIndicator(context->settings().boolValue(key));
+}
+
+void PlatformIndicatorsPlugin::applyMobileIndicator(bool on)
+{
+    if (display)
+        display->setMobileIndicatorForAnyStatus(on);
+}
+
+QList<NameDecoration> PlatformIndicatorsPlugin::nameDecorations(const DecorationContext &user)
+{
+    if (!context || !user.userId)
+        return {};
+    auto &s = context->settings();
+    bool small = false;
+    switch (user.place) {
+    case DecorationContext::Place::MemberList:
+        if (!s.boolValue(QStringLiteral("list")))
+            return {};
+        small = true;
+        break;
+    case DecorationContext::Place::Profile:
+        if (!s.boolValue(QStringLiteral("profiles")))
+            return {};
+        small = true;
+        break;
+    case DecorationContext::Place::Message:
+        if (!s.boolValue(QStringLiteral("messages")))
+            return {};
+        break;
+    }
+    if (user.isBot && !s.boolValue(QStringLiteral("showBots")))
+        return {};
+
+    const auto status = user.isSelf && !user.ownSessions.isEmpty() ? PlatformIndicators::ownClientStatus(user.ownSessions)
+                                                                  : user.clientStatus;
+    const QString console = s.stringValue(QStringLiteral("ConsoleIcon"));
+    QList<NameDecoration> out;
+    for (const auto &[platform, platformStatus] : status) {
+        const PlatformIndicators::Icon i = PlatformIndicators::iconFor(platform, console);
+        const int width = i.width - (small ? 3 : 0);
+        const int height = i.height - (small ? 3 : 0);
+        NameDecoration d;
+        d.svg = svgFor(i, width, height);
+        // useStatusFillColor(status): the theme's colour for that status
+        d.color = QStringLiteral("status:") + platformStatus;
+        d.tooltip = PlatformIndicators::tooltipFor(platform);
+        d.width = width;
+        d.height = height;
+        out.append(d);
+    }
+    return out;
+}
+
+QByteArray qord_manifest_platformindicators();
+
+void qord_register_platformindicators(Registry &registry)
+{
+    registry.add({ QStringLiteral("platformindicators/plugin.json"),
+                   [] { return std::make_unique<PlatformIndicatorsPlugin>(); }, qord_manifest_platformindicators() });
+}
+
+} // namespace Plugins
+} // namespace Qord

@@ -8,6 +8,8 @@
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QHelpEvent>
+#include <QToolTip>
 
 namespace Acheron {
 namespace UI {
@@ -123,6 +125,27 @@ void ServerRailView::contextMenuEvent(QContextMenuEvent *event)
     }
 
     menu.exec(event->globalPos());
+}
+
+bool ServerRailView::viewportEvent(QEvent *event)
+{
+    if (event->type() == QEvent::ToolTip && tooltipExtender) {
+        auto *help = static_cast<QHelpEvent *>(event);
+        const QModelIndex idx = indexAt(help->pos());
+        if (idx.isValid() &&
+            static_cast<ServerRailModel::Kind>(idx.data(ServerRailModel::KindRole).toInt()) == ServerRailModel::Kind::Server) {
+            const QString extra = tooltipExtender(Core::Snowflake(idx.data(ServerRailModel::AccountIdRole).toULongLong()),
+                                                  Core::Snowflake(idx.data(ServerRailModel::IdRole).toULongLong()));
+            if (!extra.isEmpty()) {
+                QToolTip::showText(help->globalPos(),
+                                   QStringLiteral("<b>%1</b><br>%2")
+                                           .arg(idx.data(Qt::ToolTipRole).toString().toHtmlEscaped(), extra),
+                                   viewport(), visualRect(idx));
+                return true;
+            }
+        }
+    }
+    return QListView::viewportEvent(event);
 }
 
 void ServerRailView::mouseMoveEvent(QMouseEvent *event)

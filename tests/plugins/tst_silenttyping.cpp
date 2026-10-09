@@ -36,9 +36,9 @@ private slots:
         SilentTyping::Config c;
         const QDateTime now = QDateTime::currentDateTimeUtc();
         QVERIFY(!SilentTyping::shouldSendTyping(c, typing(10, 100), now));
-        c.disabledLocations = { "100" }; // whole guild allowed
+        c.disabledLocations = QStringList { QStringLiteral("100") }; // whole guild allowed
         QVERIFY(SilentTyping::shouldSendTyping(c, typing(10, 100), now));
-        c.disabledLocations = { "10" }; // just the channel
+        c.disabledLocations = QStringList { QStringLiteral("10") }; // just the channel
         QVERIFY(SilentTyping::shouldSendTyping(c, typing(10, 100), now));
         QVERIFY(!SilentTyping::shouldSendTyping(c, typing(11, 100), now));
         // Disabled globally: typing is always visible
@@ -52,7 +52,7 @@ private slots:
         c.defaultHidden = false;
         const QDateTime now = QDateTime::currentDateTimeUtc();
         QVERIFY(SilentTyping::shouldSendTyping(c, typing(10, 100), now));
-        c.enabledLocations = { "100" };
+        c.enabledLocations = QStringList { QStringLiteral("100") };
         QVERIFY(!SilentTyping::shouldSendTyping(c, typing(10, 100), now));
         QVERIFY(SilentTyping::shouldSendTyping(c, typing(10, 200), now));
     }
@@ -86,9 +86,9 @@ private slots:
     {
         SilentTyping::Config c;
         QCOMPARE(SilentTyping::tooltip(c, 10, 100, 0), QStringLiteral("Typing Hidden (Global)"));
-        c.disabledLocations = { "100" };
+        c.disabledLocations = QStringList { QStringLiteral("100") };
         QCOMPARE(SilentTyping::tooltip(c, 10, 100, 0), QStringLiteral("Typing Visible (Guild)"));
-        c.disabledLocations = { "10" };
+        c.disabledLocations = QStringList { QStringLiteral("10") };
         QCOMPARE(SilentTyping::tooltip(c, 10, 100, 0), QStringLiteral("Typing Visible (Channel)"));
         QCOMPARE(SilentTyping::tooltip(c, 10, 100, 2),
                  QStringLiteral("Typing Temporarily Visible In This Channel Due To A Recent Message"));

@@ -1,0 +1,18 @@
+{
+  "id": "readallnotificationsbutton",
+  "equicordName": "ReadAllNotificationsButton",
+  "equicordPath": "src/plugins/readAllNotificationsButton",
+  "name": "ReadAllNotificationsButton",
+  "description": "Read all server notifications with a single button click!",
+  "categories": ["utility"],
+  "tags": ["Notifications", "Shortcuts"],
+  "authors": ["kemo", "KrystalSkull"],
+  "permissions": ["add_ui_elements", "mark_read"],
+  "hooks": ["serverListButtons"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The Read All button sits above the servers in the server list. It marks every unread channel, voice channel and joined thread you can see as read with one bulk acknowledgement, as Discord's own Mark As Read does for a single server."
+}

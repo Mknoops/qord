@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QStyledItemDelegate>
 
 namespace Acheron {
@@ -21,7 +22,20 @@ public:
                const QModelIndex &index) const override;
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
+    // Qord: tooltips in a message header (name decorations, the timestamp),
+    // where they were last painted
+    struct HeaderTip
+    {
+        QRect rect;
+        QString text;
+    };
+    [[nodiscard]] QList<HeaderTip> headerTips(quint64 messageId) const { return lastHeaderTips.value(messageId); }
+
+    // Qord: Discord's header timestamp ("Today at 3:45 PM")
+    static QString headerTimestamp(const QDateTime &timestamp);
+
 private:
+    mutable QHash<quint64, QList<HeaderTip>> lastHeaderTips;
     bool paintBodyTextOnly(QPainter *painter, const QStyleOptionViewItem &option,
                            const QModelIndex &index, const ChatModel *chatModel, const ChatView *chatView,
                            const QRect &textRect, const QRect &damage) const;

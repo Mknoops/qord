@@ -34,6 +34,10 @@
 #include "Discord/CdnUrls.hpp"
 #include "Discord/Client.hpp"
 #include "UI/Chat/MessageTextBrowser.hpp"
+#include "UI/Qord/NameDecorations.hpp"
+#include "Plugins/PluginHost.hpp"
+
+#include <QMouseEvent>
 
 namespace Acheron {
 namespace UI {
@@ -269,13 +273,20 @@ QWidget *UserProfilePopup::buildHeader()
     }
     nameRow->addWidget(displayNameLabel, 0);
 
-    botBadgeLabel = new QLabel(QStringLiteral("BOT"), identityRow);
+    botBadgeLabel = new QLabel(QStringLiteral("APP"), identityRow); // Qord: Discord's tag for bots
     botBadgeLabel->setStyleSheet(QStringLiteral(
             "background-color: palette(highlight); color: palette(highlighted-text); "
             "font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 3px;"));
     botBadgeLabel->setVisible(false);
     botBadgeLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     nameRow->addWidget(botBadgeLabel, 0, Qt::AlignVCenter);
+
+    decorationsRow = new QWidget(identityRow);
+    auto *decorationsLayout = new QHBoxLayout(decorationsRow);
+    decorationsLayout->setContentsMargins(0, 0, 0, 0);
+    decorationsLayout->setSpacing(NameDecorations::Spacing);
+    decorationsRow->setVisible(false);
+    nameRow->addWidget(decorationsRow, 0, Qt::AlignVCenter);
 
     badgesRow = new QWidget(identityRow);
     auto *badgesLayout = new QHBoxLayout(badgesRow);
@@ -346,6 +357,13 @@ QWidget *UserProfilePopup::buildHeader()
                                        .arg(AvatarSize / 2));
     avatarLabel->move(ContentSidePadding, BannerHeight - AvatarOverlap);
     avatarLabel->raise();
+    // Qord: plugins (ViewIcons) can open the avatar and banner
+    avatarLabel->installEventFilter(this);
+    bannerLabel->installEventFilter(this);
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::ProfileImages)) {
+        avatarLabel->setCursor(Qt::PointingHandCursor);
+        bannerLabel->setCursor(Qt::PointingHandCursor);
+    }
 
     avatarStatusDot = attachStatusDot(headerWidget, avatarLabel->geometry(), StatusDotSize);
 
@@ -533,6 +551,22 @@ bool UserProfilePopup::eventFilter(QObject *obj, QEvent *ev)
     if (obj == noteEdit && ev->type() == QEvent::FocusOut) {
         saveNote();
     }
+    if ((obj == avatarLabel || obj == bannerLabel) && ev->type() == QEvent::MouseButtonRelease &&
+        static_cast<QMouseEvent *>(ev)->button() == Qt::LeftButton) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const QUrl url = obj == avatarLabel ? resolvedAvatarUrl(256) : shownBannerUrl;
+        if (host && host->hasHook(Qord::Plugins::Hook::ProfileImages) && url.isValid()) {
+            Qord::Plugins::ProfileImageContext image;
+            image.accountId = quint64(accountId());
+            image.guildId = guildView ? quint64(guildId) : 0;
+            image.userId = quint64(userId);
+            image.kind = obj == avatarLabel ? Qord::Plugins::ProfileImageContext::Kind::Avatar
+                                            : Qord::Plugins::ProfileImageContext::Kind::Banner;
+            image.url = url.toString();
+            if (host->dispatchProfileImageClicked(image))
+                return true;
+        }
+    }
     return QDialog::eventFilter(obj, ev);
 }
 
@@ -541,6 +575,27 @@ void UserProfilePopup::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
     positionOverParent();
     updateActivityTicker();
+}
+
+void UserProfilePopup::renderDecorations()
+{
+    QLayout *layout = decorationsRow->layout();
+    while (QLayoutItem *item = layout->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+    QList<NameDecorations::Decoration> decorations;
+    if (auto *provider = NameDecorations::instance())
+        decorations = provider->forUser(accountId(), guildView ? guildId : Core::Snowflake(), userId,
+                                        NameDecorations::Place::Profile, devicePixelRatioF());
+    for (const auto &d : decorations) {
+        auto *icon = new QLabel(decorationsRow);
+        icon->setPixmap(d.pixmap);
+        icon->setFixedSize(d.size);
+        icon->setToolTip(d.tooltip);
+        layout->addWidget(icon);
+    }
+    decorationsRow->setVisible(!decorations.isEmpty());
 }
 
 void UserProfilePopup::renderPresence()
@@ -552,6 +607,7 @@ void UserProfilePopup::renderPresence()
     const Core::Snowflake presenceGuild = guildView ? guildId : Core::Snowflake();
 
     avatarStatusDot->setBadge(presences->badge(userId, presenceGuild));
+    renderDecorations();
 
     const QList<Discord::Activity> all = presences->activities(userId, presenceGuild);
 
@@ -740,6 +796,7 @@ void UserProfilePopup::renderBannerAndBio()
     if (!bannerHash.isEmpty()) {
         QUrl bannerUrl = Discord::Cdn::userBanner(userId, bannerHash, 1024);
         images->assign(bannerLabel, bannerUrl, QSize(1024, 1024), accountId());
+        shownBannerUrl = bannerUrl;
     }
 
     QString bio;

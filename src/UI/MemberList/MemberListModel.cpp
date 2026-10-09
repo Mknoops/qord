@@ -60,6 +60,10 @@ QVariant MemberListModel::data(const QModelIndex &index, int role) const
         return static_cast<int>(item->type);
     case LoadedRole:
         return true;
+    case AccountIdRole:
+        return QVariant::fromValue(static_cast<quint64>(accountId));
+    case GuildIdRole:
+        return QVariant::fromValue(static_cast<quint64>(manager->currentGuildId()));
     case UserIdRole:
         return item->type == Core::MemberListItem::Type::Member
                        ? QVariant::fromValue(static_cast<quint64>(item->userId))

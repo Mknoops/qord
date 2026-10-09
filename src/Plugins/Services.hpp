@@ -82,6 +82,9 @@ public:
     virtual void pickTimestamp(std::function<void(const QString &markup)> done) { Q_UNUSED(done); }
     // Opens the Plugins settings page at this plugin.
     virtual void openPluginSettings(const QString &pluginId) { Q_UNUSED(pluginId); }
+    // Shows a Discord-hosted image (cdn.discordapp.com, media.discordapp.net)
+    // in the client's image viewer; other URLs are ignored.
+    virtual void openImage(const QUrl &url) { Q_UNUSED(url); }
     // A small dialog asking for one line of text. `done` gets the text when
     // the user saves; it is not called if they cancel.
     virtual void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
@@ -102,6 +105,18 @@ public:
     virtual ~DisplayOptionsService() = default;
     // Relative timestamps (<t:...:R>) round down instead of to nearest
     virtual void setRelativeTimeRoundsDown(bool floor) = 0;
+    // Avatar status dots show the phone shape for users on mobile whatever
+    // their status, instead of only when they are online
+    virtual void setMobileIndicatorForAnyStatus(bool any) { Q_UNUSED(any); }
+};
+
+class ReadStateService
+{
+public:
+    virtual ~ReadStateService() = default;
+    // Marks every unread channel, voice channel and joined thread in every
+    // server as read, like Discord's "Mark As Read" on all servers at once.
+    virtual void markAllServersRead(Id accountId) = 0;
 };
 
 class MessageActionService
@@ -134,6 +149,7 @@ struct Services
     MessageService *messages = nullptr;
     MessageActionService *messageActions = nullptr;
     DisplayOptionsService *displayOptions = nullptr;
+    ReadStateService *readStates = nullptr;
 };
 
 } // namespace Plugins

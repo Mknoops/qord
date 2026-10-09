@@ -152,6 +152,41 @@ public:
         Q_UNUSED(channel);
     }
 
+    // Hook::ServerListButtons: buttons above the servers in the server list.
+    virtual QList<ServerListButton> serverListButtons(const ServerListContext &list)
+    {
+        Q_UNUSED(list);
+        return {};
+    }
+    virtual void onServerListButtonClicked(const QString &id, const ServerListContext &list)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(list);
+    }
+
+    // Hook::MemberCounts: the numbers shown above the member list or in a
+    // server's tooltip. An empty list shows nothing.
+    virtual QList<CountBadge> memberCountBadges(const MemberCountContext &counts)
+    {
+        Q_UNUSED(counts);
+        return {};
+    }
+
+    // Hook::UserDecorations: icons after a user's name.
+    virtual QList<NameDecoration> nameDecorations(const DecorationContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+
+    // Hook::ProfileImages: an avatar or banner in a profile was clicked.
+    // Return true if the plugin handled it.
+    virtual bool onProfileImageClicked(const ProfileImageContext &image)
+    {
+        Q_UNUSED(image);
+        return false;
+    }
+
     // Hook::UserContextMenu
     virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
     {

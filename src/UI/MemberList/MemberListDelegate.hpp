@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QStyledItemDelegate>
 
 #include "MemberListModel.hpp"
@@ -17,6 +18,9 @@ public:
                const QModelIndex &index) const override;
     QSize sizeHint(const QStyleOptionViewItem &option,
                    const QModelIndex &index) const override;
+    // Qord: tooltips for name decorations
+    bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
 
 private:
     void paintGroup(QPainter *painter, const QStyleOptionViewItem &option,
@@ -28,6 +32,9 @@ private:
     void paintPlaceholder(QPainter *painter, const QStyleOptionViewItem &option) const;
 
     static QString activityIconName(Discord::ActivityType kind);
+
+    // Qord: where each row's name decorations were last painted
+    mutable QHash<int, QList<QPair<QRect, QString>>> decorationRects;
 };
 
 } // namespace UI

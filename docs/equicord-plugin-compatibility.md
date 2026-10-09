@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 346 |
+| Not Started | 342 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 23 |
+| Tested | 27 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -186,7 +186,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | LoginWithQR | `src/equicordplugins/loginWithQR` |  | Not Started |  |
 | MarkdownTables | `src/equicordplugins/markdownTables` |  | Not Started |  |
 | MediaPlaybackSpeed | `src/equicordplugins/mediaPlaybackSpeed` |  | Not Started |  |
-| MemberCount | `src/plugins/memberCount` |  | Not Started |  |
+| MemberCount | `src/plugins/memberCount` | `plugins/utility/membercount` | Tested | The numbers come from the member list Discord sends (online members in the channel's list, total server members) and from the voice states of channels you can see. wired; not yet verified in the running client. gaps: Online counts for servers you have not opened: upstream preloads each hovered server's member list to learn its online count; Qord shows "?" until you open the server.; Thread member lists: Qord has no thread member list, so threads use the parent channel's count. |
 | MentionAvatars | `src/plugins/mentionAvatars` |  | Not Started |  |
 | MessageBurst | `src/equicordplugins/messageBurst` |  | Not Started |  |
 | MessageClickActions | `src/plugins/messageClickActions` |  | Not Started |  |
@@ -249,7 +249,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PingNotifications | `src/equicordplugins/pingNotifications` |  | Not Started |  |
 | PinIcon | `src/equicordplugins/pinIcon` |  | Not Started |  |
 | PlainFolderIcon | `src/plugins/plainFolderIcon` |  | Not Started |  |
-| PlatformIndicators | `src/plugins/platformIndicators` |  | Not Started |  |
+| PlatformIndicators | `src/plugins/platformIndicators` | `plugins/appearance/platformindicators` | Tested | Icons follow the platforms in a user's presence (client_status) and, for yourself, your sessions, coloured with the theme's status colours. Qord reads client_status as a JSON object, which sorts the platforms alphabetically, where Discord keeps the order it received. Color mobile indicator shows the phone-shaped status dot for mobile users whatever their status (upstream's isMobileOnline patches); it needs modify_displayed_messages. wired; not yet verified in the running client. |
 | PlatformSpoofer | `src/equicordplugins/platformSpoofer` |  | Not Started |  |
 | PolishWording | `src/equicordplugins/polishWording` | `plugins/chat/polishwording` | Tested | A __CODE_BLOCK_n__ placeholder typed by the user is left as typed; upstream replaces it with "undefined". wired; not yet verified in the running client. |
 | PreviewMessage | `src/plugins/previewMessage` |  | Not Started |  |
@@ -262,7 +262,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | RandomVoice | `src/equicordplugins/randomVoice` |  | Not Started |  |
 | ReactErrorDecoder | `src/plugins/reactErrorDecoder` |  | Not Started |  |
 | ReactionTimestamps | `src/equicordplugins/reactionTimestamps` |  | Not Started |  |
-| ReadAllNotificationsButton | `src/plugins/readAllNotificationsButton` |  | Not Started |  |
+| ReadAllNotificationsButton | `src/plugins/readAllNotificationsButton` | `plugins/utility/readallnotificationsbutton` | Tested | The Read All button sits above the servers in the server list. It marks every unread channel, voice channel and joined thread you can see as read with one bulk acknowledgement, as Discord's own Mark As Read does for a single server. wired; not yet verified in the running client. |
 | RecentDMSwitcher | `src/equicordplugins/recentDMSwitcher` |  | Not Started |  |
 | RelationshipNotifier | `src/plugins/relationshipNotifier` |  | Not Started |  |
 | RemixRevived | `src/equicordplugins/remix` |  | Not Started |  |
@@ -358,7 +358,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ValidUser | `src/plugins/validUser` |  | Not Started |  |
 | VcNarrator | `src/plugins/vcNarrator` |  | Not Started |  |
 | VCPanelSettings | `src/equicordplugins/vcPanelSettings` |  | Not Started |  |
-| ViewIcons | `src/plugins/viewIcons` |  | Not Started |  |
+| ViewIcons | `src/plugins/viewIcons` | `plugins/media/viewicons` | Tested | Images open in Qord's image viewer (zoom, pan, Esc to close). Upstream's modal also links the 4096px original; the viewer loads the chosen size. wired; not yet verified in the running client. gaps: View Avatar Decoration: Qord does not read avatar decorations yet.; Clickable icons in a DM's or group DM's header: Qord's channel header shows no icon.; View Icon for group DMs without a custom icon: upstream opens Discord's built-in default group icon, which Qord does not have. |
 | ViewRaw | `src/plugins/viewRaw` | `plugins/developer/viewraw` | Tested | "Message Data" is the message as Qord stores it (sorted keys; no private author fields), which can differ slightly from Discord's payload. The entries are in the message context menu. wired; not yet verified in the running client. gaps: Upstream's hover-bar button (and its left/right click setting) needs plugin buttons in the message action bar; View Raw for users, channels, servers, roles and profiles needs those context menus to expose their data. |
 | VoiceButtons | `src/equicordplugins/voiceButtons` |  | Not Started |  |
 | VoiceChannelLog | `src/equicordplugins/voiceChannelLog` |  | Not Started |  |

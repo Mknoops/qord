@@ -384,6 +384,7 @@ void ClientInstance::saveGuild(const Discord::GatewayGuild &guild, const QList<D
         permissionManager->precomputeGuildPermissions(guild.asGuild(), *me, guild.roles.get(), guild.channels.get(), myId);
 
     guildRepo.saveGuild(guild.asGuild(), db);
+    memberListManager->seedMemberCount(guildId, guild.memberCount); // Qord
 
     if (guild.emojis.hasValue())
         emojiManager->setGuildEmojis(guildId, guild.emojis.get());
@@ -1390,6 +1391,24 @@ void ClientInstance::markGuildsAsRead(const QList<Snowflake> &guildIds)
         channelIds += markableChannelIds(guildId, Snowflake::Invalid);
 
     readStateManager->markChannelsAsRead(channelIds);
+}
+
+int ClientInstance::guildVoiceUserCount(Snowflake guildId)
+{
+    int count = 0;
+#ifndef ACHERON_NO_VOICE
+    for (const auto &channel : channelRepo.getChannelsForGuild(guildId)) {
+        if (!channel.type.hasValue() || !channel.isVoice())
+            continue;
+        const Snowflake channelId = channel.id.get();
+        if (!permissionManager->hasChannelPermission(account.id, channelId, Discord::Permission::VIEW_CHANNEL))
+            continue;
+        count += voiceManager->channelVoiceUserCount(channelId);
+    }
+#else
+    Q_UNUSED(guildId);
+#endif
+    return count;
 }
 
 void ClientInstance::markCategoryAsRead(Snowflake guildId, Snowflake categoryId)

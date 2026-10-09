@@ -1,7 +1,12 @@
 #include "MemberListDelegate.hpp"
 
+#include <QAbstractItemView>
+#include <QHelpEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QToolTip>
+
+#include "UI/Qord/NameDecorations.hpp"
 
 #include "Core/MemberListManager.hpp"
 #include "Core/Theme/Icons.hpp"
@@ -172,11 +177,37 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
     painter->setPen(nameColor);
 
     QFontMetrics fm(font);
-    QString elidedName = fm.elidedText(displayName, Qt::ElideRight, textWidth);
+
+    // Qord: plugin icons after the name (PlatformIndicators)
+    QList<NameDecorations::Decoration> decorations;
+    if (auto *provider = NameDecorations::instance()) {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        decorations = provider->forUser(Core::Snowflake(index.data(MemberListModel::AccountIdRole).toULongLong()),
+                                        Core::Snowflake(index.data(MemberListModel::GuildIdRole).toULongLong()),
+                                        Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),
+                                        NameDecorations::Place::MemberList, dpr);
+    }
+    const int decorationWidth = qMin(NameDecorations::width(decorations), textWidth / 2);
+    QString elidedName = fm.elidedText(displayName, Qt::ElideRight, textWidth - decorationWidth);
+    auto paintDecorations = [&](int lineTop, int lineHeight) {
+        if (decorations.isEmpty()) {
+            decorationRects.remove(index.row());
+            return;
+        }
+        const QList<QRect> rects = NameDecorations::paint(*painter, decorations, x + fm.horizontalAdvance(elidedName),
+                                                          lineTop + lineHeight / 2);
+        QList<QPair<QRect, QString>> tips;
+        for (int i = 0; i < rects.size(); ++i)
+            tips.append({ rects[i], decorations[i].tooltip });
+        if (decorationRects.size() > 512)
+            decorationRects.clear();
+        decorationRects.insert(index.row(), tips);
+    };
 
     if (activity.text.isEmpty()) {
         painter->drawText(QRect(x, option.rect.top(), textWidth, option.rect.height()),
                           Qt::AlignLeft | Qt::AlignVCenter, elidedName);
+        paintDecorations(option.rect.top(), option.rect.height());
         return;
     }
 
@@ -186,6 +217,7 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
 
     painter->drawText(QRect(x, blockTop, textWidth, lineHeight),
                       Qt::AlignLeft | Qt::AlignVCenter, elidedName);
+    paintDecorations(blockTop, lineHeight);
 
     paintActivityLine(painter, option, activity,
                       QRect(x, blockTop + lineHeight, textWidth, lineHeight));
@@ -238,6 +270,20 @@ void MemberListDelegate::paintActivityLine(QPainter *painter, const QStyleOption
     const QString text = fm.elidedText(activity.text, Qt::ElideRight, available);
     painter->drawText(QRect(x, lineRect.top(), available, lineRect.height()),
                       Qt::AlignLeft | Qt::AlignVCenter, text);
+}
+
+bool MemberListDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                                   const QModelIndex &index)
+{
+    if (event && index.isValid()) {
+        for (const auto &[rect, tip] : decorationRects.value(index.row())) {
+            if (rect.contains(event->pos()) && !tip.isEmpty()) {
+                QToolTip::showText(event->globalPos(), tip, view ? view->viewport() : nullptr, rect);
+                return true;
+            }
+        }
+    }
+    return QStyledItemDelegate::helpEvent(event, view, option, index);
 }
 
 QString MemberListDelegate::activityIconName(Discord::ActivityType kind)

@@ -134,6 +134,11 @@ public:
     {
         inner->showTextDialog(title, sections);
     }
+    void startEditing(const MessageContext &message) override { inner->startEditing(message); }
+    void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
+    {
+        inner->startReply(message, shiftHeld, mention);
+    }
     void openImage(const QUrl &url) override
     {
         static const QStringList hosts = { QStringLiteral("cdn.discordapp.com"), QStringLiteral("media.discordapp.net") };

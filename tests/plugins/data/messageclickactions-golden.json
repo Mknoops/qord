@@ -1,0 +1,123 @@
+{
+ "max": 8,
+ "normalized": [
+  {
+   "input": "💀",
+   "expected": "💀"
+  },
+  {
+   "input": "  👍  ",
+   "expected": "👍"
+  },
+  {
+   "input": "",
+   "expected": null
+  },
+  {
+   "input": "   ",
+   "expected": null
+  },
+  {
+   "input": "<:pepe:123456789012345678>",
+   "expected": "<:pepe:123456789012345678>"
+  },
+  {
+   "input": "<a:party:223456789012345678>",
+   "expected": "party:223456789012345678"
+  },
+  {
+   "input": ":blob:323456789012345678:",
+   "expected": ":blob:323456789012345678:"
+  },
+  {
+   "input": "wave:423456789012345678",
+   "expected": "wave:423456789012345678"
+  },
+  {
+   "input": "name~1:523456789012345678",
+   "expected": "name:523456789012345678"
+  },
+  {
+   "input": "not a custom one",
+   "expected": "not a custom one"
+  },
+  {
+   "input": "<:x:12>",
+   "expected": "<:x:12>"
+  }
+ ],
+ "reactCases": [
+  {
+   "reactEmoji": "💀",
+   "addAdditionalReacts": false,
+   "additionalReactEmojis": "",
+   "expected": [
+    "💀"
+   ]
+  },
+  {
+   "reactEmoji": "💀",
+   "addAdditionalReacts": true,
+   "additionalReactEmojis": "👍, 🎉\n❤️",
+   "expected": [
+    "💀",
+    "👍",
+    "🎉",
+    "❤️"
+   ]
+  },
+  {
+   "reactEmoji": "💀",
+   "addAdditionalReacts": true,
+   "additionalReactEmojis": "💀,👍,👍,🎉,❤️,🔥",
+   "expected": [
+    "💀",
+    "👍",
+    "🎉",
+    "❤️",
+    "🔥"
+   ]
+  },
+  {
+   "reactEmoji": "<:pepe:123456789012345678>",
+   "addAdditionalReacts": true,
+   "additionalReactEmojis": ",, 👍 ,",
+   "expected": [
+    "<:pepe:123456789012345678>",
+    "👍"
+   ]
+  },
+  {
+   "reactEmoji": "",
+   "addAdditionalReacts": true,
+   "additionalReactEmojis": "👍",
+   "expected": [
+    "👍"
+   ]
+  },
+  {
+   "reactEmoji": "  ",
+   "addAdditionalReacts": false,
+   "additionalReactEmojis": "👍",
+   "expected": []
+  }
+ ],
+ "quotes": [
+  {
+   "input": "hello",
+   "expected": "> hello\n"
+  },
+  {
+   "input": "two\nlines",
+   "expected": "> two\n> lines\n"
+  },
+  {
+   "input": "",
+   "expected": "> \n"
+  },
+  {
+   "input": "trailing\n",
+   "expected": "> trailing\n> \n"
+  }
+ ]
+}

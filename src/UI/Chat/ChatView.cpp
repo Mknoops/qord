@@ -1279,8 +1279,24 @@ void ChatView::dropEvent(QDropEvent *event)
 
 void ChatView::copySelectedText()
 {
+    const QString selectedText = selectedChatText();
+    if (!selectedText.isEmpty())
+        QGuiApplication::clipboard()->setText(selectedText);
+}
+
+bool ChatView::startEditingMessage(Core::Snowflake messageId)
+{
+    const int row = static_cast<ChatModel *>(model())->rowForMessage(messageId);
+    if (row < 0)
+        return false;
+    startInlineEdit(model()->index(row, 0));
+    return true;
+}
+
+QString ChatView::selectedChatText() const
+{
     if (!hasTextSelection())
-        return;
+        return {};
 
     ChatCursor start = selectionStart();
     ChatCursor end = selectionEnd();
@@ -1314,9 +1330,7 @@ void ChatView::copySelectedText()
             selectedText += '\n';
         selectedText += rowText;
     }
-
-    if (!selectedText.isEmpty())
-        QGuiApplication::clipboard()->setText(selectedText);
+    return selectedText;
 }
 
 void ChatView::copyMessageContent(const QModelIndex &index)

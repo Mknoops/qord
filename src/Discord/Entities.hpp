@@ -1279,6 +1279,7 @@ struct Message : Core::JsonUtils::JsonObject
     QString interactionName;
     QString interactionUserName;
     Core::Snowflake interactionUserId;
+    bool pinned = false; // Qord
 
     std::shared_ptr<Message> snapshotMessage;
 
@@ -1347,6 +1348,7 @@ struct Message : Core::JsonUtils::JsonObject
             if (message.interactionUserName.isEmpty())
                 message.interactionUserName = user.value(QStringLiteral("username")).toString();
             message.interactionUserId = Core::Snowflake(user.value(QStringLiteral("id")).toString().toULongLong());
+            message.pinned = obj.value(QStringLiteral("pinned")).toBool();
         }
         get(obj, "channel_id", message.channelId);
         get(obj, "author", message.author);

@@ -82,6 +82,7 @@ const HookInfo hookTable[] = {
     { Hook::UserDecorations, "userDecorations", Permission::ReadPresences },
     { Hook::ProfileImages, "profileImages", Permission::AddUiElements },
     { Hook::VoiceStates, "voiceStates", Permission::ReadVoiceStates },
+    { Hook::MessageClicks, "messageClicks", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

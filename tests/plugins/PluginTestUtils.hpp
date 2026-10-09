@@ -114,6 +114,19 @@ public:
     }
     void openUrl(const QUrl &url) override { opened.append(url); }
     void openImage(const QUrl &url) override { images.append(url); }
+    void startEditing(const MessageContext &message) override { edits.append(message.messageId); }
+    void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
+    {
+        replies.append({ message.messageId, shiftHeld, mention });
+    }
+    struct Reply
+    {
+        Id messageId;
+        bool shiftHeld;
+        std::optional<bool> mention;
+    };
+    QList<Id> edits;
+    QList<Reply> replies;
     void insertIntoMessageBox(const QString &text) override { inserted.append(text); }
     void pickTimestamp(std::function<void(const QString &)> done) override { pendingPick = std::move(done); }
     void openPluginSettings(const QString &pluginId) override { settingsOpened.append(pluginId); }
@@ -155,6 +168,15 @@ public:
     {
         calls.append({ channelId, messageId, flags });
     }
+    void deleteMessage(Id, Id, Id messageId) override { deleted.append(messageId); }
+    void setPinned(Id, Id, Id messageId, bool pinned) override { pins.append({ messageId, pinned }); }
+    void setReaction(Id, Id, Id, const QString &emoji, bool add) override
+    {
+        reactions.append((add ? QStringLiteral("+") : QStringLiteral("-")) + emoji);
+    }
+    QList<Id> deleted;
+    QList<QPair<Id, bool>> pins;
+    QStringList reactions;
     struct Call
     {
         Id channelId;

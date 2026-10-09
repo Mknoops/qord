@@ -43,6 +43,11 @@
 #include "UI/VoiceStatusBar.hpp"
 #endif
 #include <QTimer>
+#include <QApplication>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Core/PermissionManager.hpp"
 #include "Discord/CdnUrls.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -61,6 +66,80 @@ namespace UI {
 
 using Core::Snowflake;
 using Core::Theme::Token;
+
+namespace {
+// MessageClickActions: every press in the chat, then clicks with their count
+// (like the browser's click detail) and the keys held
+class ChatClickWatcher : public QObject
+{
+public:
+    using ClickHandler = std::function<void(const QPoint &pos, int detail, Qt::MouseButton button)>;
+
+    ChatClickWatcher(QWidget *viewport, QObject *parent) : QObject(parent), viewport(viewport)
+    {
+        viewport->installEventFilter(this);
+        qApp->installEventFilter(this);
+    }
+
+    ClickHandler onClick;
+    bool backspaceHeld = false;
+    bool deleteHeld = false;
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        switch (event->type()) {
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease: {
+            auto *key = static_cast<QKeyEvent *>(event);
+            if (key->isAutoRepeat())
+                break;
+            const bool down = event->type() == QEvent::KeyPress;
+            if (key->key() == Qt::Key_Backspace)
+                backspaceHeld = down;
+            else if (key->key() == Qt::Key_Delete)
+                deleteHeld = down;
+            break;
+        }
+        case QEvent::ApplicationDeactivate:
+            backspaceHeld = deleteHeld = false;
+            break;
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonDblClick:
+            if (watched == viewport) {
+                auto *mouse = static_cast<QMouseEvent *>(event);
+                const qint64 now = QDateTime::currentMSecsSinceEpoch();
+                const QPoint pos = mouse->pos();
+                if (now - lastPress < QApplication::doubleClickInterval() &&
+                    (pos - lastPos).manhattanLength() < QApplication::startDragDistance() * 2)
+                    detail = qMin(detail + 1, 3);
+                else
+                    detail = 1;
+                lastPress = now;
+                lastPos = pos;
+                if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::MessageClicks))
+                    host->dispatchChatMouseDown(now);
+            }
+            break;
+        case QEvent::MouseButtonRelease:
+            if (watched == viewport && onClick) {
+                auto *mouse = static_cast<QMouseEvent *>(event);
+                onClick(mouse->pos(), detail, mouse->button());
+            }
+            break;
+        default:
+            break;
+        }
+        return false;
+    }
+
+private:
+    QWidget *viewport;
+    qint64 lastPress = 0;
+    QPoint lastPos;
+    int detail = 0;
+};
+} // namespace
 
 void MainWindow::setupQordFeatures()
 {
@@ -131,6 +210,69 @@ void MainWindow::setupQordFeatures()
         emojiPicker->open(currentInstance, channelId, true, chatView);
         emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker
     });
+
+    // MessageClickActions: clicks on messages, and the edit/reply it can start
+    auto *clickWatcher = new ChatClickWatcher(chatView->viewport(), this);
+    clickWatcher->onClick =          [this, clickWatcher](const QPoint &pos, int detail, Qt::MouseButton button) {
+                                         auto *host = Qord::Plugins::PluginHost::instance();
+                                         if (!host || !host->hasHook(Qord::Plugins::Hook::MessageClicks) || !currentInstance)
+                                             return;
+                                         const QModelIndex idx = chatView->indexAt(pos);
+                                         const Discord::Message *msg = idx.isValid() ? chatModel->messageAt(idx.row()) : nullptr;
+                                         if (!msg)
+                                             return;
+                                         Qord::Plugins::MessageClickContext click;
+                                         const Snowflake channelId = chatModel->getActiveChannelId();
+                                         const Snowflake guildId = chatModel->getActiveGuildId();
+                                         click.message = Qord::Plugins::toMessageContext(
+                                                 *msg, quint64(currentInstance->accountId()), quint64(guildId));
+                                         if (const auto channel = currentInstance->getChannel(channelId); channel && channel->type.hasValue()) {
+                                             click.message.isDm = channel->type.get() == Discord::ChannelType::DM;
+                                             click.message.isGroupDm = channel->type.get() == Discord::ChannelType::GROUP_DM;
+                                         }
+                                         click.detail = detail;
+                                         click.primaryButton = button == Qt::LeftButton;
+                                         const auto mods = QGuiApplication::queryKeyboardModifiers();
+                                         click.shift = mods & Qt::ShiftModifier;
+                                         click.ctrl = mods & Qt::ControlModifier;
+                                         click.alt = mods & Qt::AltModifier;
+                                         click.backspace = clickWatcher->backspaceHeld;
+                                         click.deleteKey = clickWatcher->deleteHeld;
+                                         click.timeMs = QDateTime::currentMSecsSinceEpoch();
+                                         const Snowflake me = currentInstance->accountId();
+                                         auto *perms = currentInstance->permissions();
+                                         if (guildId.isValid()) {
+                                             click.canSend = perms->hasChannelPermission(me, channelId, Discord::Permission::SEND_MESSAGES);
+                                             click.canManageMessages = perms->hasChannelPermission(me, channelId, Discord::Permission::MANAGE_MESSAGES);
+                                             click.canReact = perms->hasChannelPermission(me, channelId, Discord::Permission::ADD_REACTIONS) &&
+                                                              perms->hasChannelPermission(me, channelId, Discord::Permission::READ_MESSAGE_HISTORY);
+                                         }
+                                         click.pinned = msg->pinned;
+                                         if (msg->reactions.hasValue())
+                                             for (const auto &r : msg->reactions.get())
+                                                 if (r.me.get())
+                                                     click.myReactions.append(r.emoji->id.isNull() || !r.emoji->id.get().isValid()
+                                                                                      ? r.emoji->name.get()
+                                                                                      : r.emoji->name.get() + QLatin1Char(':') +
+                                                                                                QString::number(quint64(r.emoji->id.get())));
+                                         click.selectedText = chatView->selectedChatText();
+                                         host->dispatchMessageClicked(click);
+                                     };
+    Qord::Plugins::QtUiService::editStarter() = [this](const Qord::Plugins::MessageContext &message) {
+        chatView->startEditingMessage(Snowflake(message.messageId));
+    };
+    Qord::Plugins::QtUiService::replyStarter() = [this](const Qord::Plugins::MessageContext &message, bool,
+                                                        std::optional<bool> mention) {
+        if (!mention) {
+            // Discord's own reply: shift and reply-mention plugins decide the ping
+            emit chatView->replyToMessageRequested(Snowflake(message.channelId), Snowflake(message.messageId));
+            return;
+        }
+        const int row = chatModel->rowForMessage(Snowflake(message.messageId));
+        const QModelIndex idx = chatModel->index(row, 0);
+        messageInput->setReplyTarget(Snowflake(message.messageId), idx.data(ChatModel::UsernameRole).toString(),
+                                     idx.data(ChatModel::ContentRole).toString(), *mention);
+    };
 
     // Slash commands
     slashPopup = new SlashCommandPopup(messageInput->editor(), messageInput, [this]() { return slashIndex(); });
@@ -210,6 +352,8 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::messageBoxInserter() = nullptr;
         Qord::Plugins::QtUiService::imageOpener() = nullptr;
         Qord::Plugins::QtReadStates::allServersMarker() = nullptr;
+        Qord::Plugins::QtUiService::editStarter() = nullptr;
+        Qord::Plugins::QtUiService::replyStarter() = nullptr;
     });
     Qord::Plugins::QtUiService::imageOpener() = [this](const QUrl &url) { openImageInViewer(url); };
     // ReadAllNotificationsButton: every server of the account, like Mark As Read on each

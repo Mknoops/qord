@@ -94,6 +94,11 @@ public:
     void openImage(const QUrl &url) override;
     // Set by the main window, which owns the image viewer's parent
     static std::function<void(const QUrl &)> &imageOpener();
+    void startEditing(const MessageContext &message) override;
+    void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override;
+    // Set by the main window (chat and message box)
+    static std::function<void(const MessageContext &)> &editStarter();
+    static std::function<void(const MessageContext &, bool, std::optional<bool>)> &replyStarter();
 };
 
 class QtDisplayOptions : public DisplayOptionsService
@@ -120,6 +125,9 @@ public:
     {
     }
     void setMessageFlags(Id accountId, Id channelId, Id messageId, quint64 flags) override;
+    void deleteMessage(Id accountId, Id channelId, Id messageId) override;
+    void setPinned(Id accountId, Id channelId, Id messageId, bool pinned) override;
+    void setReaction(Id accountId, Id channelId, Id messageId, const QString &emoji, bool add) override;
 
 private:
     Acheron::Core::Session *session;

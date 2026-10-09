@@ -187,6 +187,11 @@ public:
         return false;
     }
 
+    // Hook::MessageClicks: every mouse press in the chat, then the click on a
+    // message (with its click count and the keys held)
+    virtual void onChatMouseDown(qint64 timeMs) { Q_UNUSED(timeMs); }
+    virtual void onMessageClicked(const MessageClickContext &click) { Q_UNUSED(click); }
+
     // Hook::VoiceStates: voice joins, moves and leaves, and text for the
     // voice participant list and the voice connection panel.
     virtual void onVoiceStateChanged(const VoiceStateChange &change) { Q_UNUSED(change); }

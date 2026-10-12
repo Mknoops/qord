@@ -16,6 +16,37 @@ namespace Plugins {
 using Id = quint64;
 
 // A message about to be sent or edited. Hooks may rewrite `content`.
+// A custom emoji from one of your servers.
+struct CustomEmojiInfo
+{
+    Id id = 0;
+    QString name;
+    bool animated = false;
+    Id guildId = 0;
+    bool available = true; // false when the server lost the boost level for it
+    bool managed = false; // from an integration (Twitch subscriber emojis)
+    QList<Id> roles; // roles allowed to use it; empty for everyone
+};
+
+// A sticker the client knows: your servers' stickers.
+struct StickerInfo
+{
+    Id id = 0;
+    QString name;
+    int formatType = 1; // 1 PNG, 2 APNG, 3 Lottie, 4 GIF
+    Id guildId = 0;
+    bool available = true;
+    bool standard = false; // one of Discord's own sticker packs
+};
+
+// A sticker to show on a message.
+struct StickerRef
+{
+    Id id = 0;
+    QString name;
+    int formatType = 1;
+};
+
 struct OutgoingMessage
 {
     Id accountId = 0;
@@ -25,6 +56,9 @@ struct OutgoingMessage
     Id replyToMessageId = 0;
     bool isEdit = false;
     QString content;
+    QList<Id> stickerIds; // a sticker being sent (new messages only)
+    // Set by a hook to stop the send or edit; the text stays in the message box
+    bool cancel = false;
 };
 
 // A received message about to be rendered. Hooks may rewrite `content`; the
@@ -38,6 +72,24 @@ struct IncomingMessage
     Id authorId = 0;
     bool isOwn = false; // authored by the current account
     QString content;
+
+    struct Attachment
+    {
+        QString url;
+        QString contentType;
+    };
+    struct Embed
+    {
+        QString type; // "image", "rich", ...
+        QString url; // the embed's url, else its image's
+    };
+    QList<Attachment> attachments;
+    QList<Embed> embeds;
+    // Set by hooks: attachments and embeds (by index) not to show, and
+    // stickers to show with the message
+    QList<int> hiddenAttachments;
+    QList<int> hiddenEmbeds;
+    QList<StickerRef> addedStickers;
 };
 
 // Context for deciding whether replying to a message pings its author.

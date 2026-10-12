@@ -149,6 +149,7 @@ void EmojiManager::removeGuild(Snowflake guildId)
 {
     if (guildEmojis.remove(guildId) > 0)
         customCandidatesDirty = true;
+    guildStickers.remove(guildId); // Qord
 }
 
 void EmojiManager::onGuildEmojisUpdated(const Discord::GuildEmojisUpdate &event)
@@ -235,7 +236,7 @@ const QList<EmojiManager::UnicodeCandidate> &EmojiManager::unicodeCandidates()
 bool EmojiManager::isUsable(const CustomEmoji &custom, UsabilityContext &context) const
 {
     const Discord::Emoji &emoji = custom.emoji;
-    if (emoji.available.hasValue() && !emoji.available.get())
+    if (!context.bypass && emoji.available.hasValue() && !emoji.available.get())
         return false;
 
     if (emoji.roles.hasValue() && !emoji.roles.get().isEmpty()) {
@@ -259,6 +260,10 @@ bool EmojiManager::isUsable(const CustomEmoji &custom, UsabilityContext &context
             return false;
     }
 
+    // Qord: FakeNitro sends what Discord would lock as a link
+    if (context.bypass)
+        return true;
+
     const bool inGuild = context.channelGuildId.isValid();
     const bool external = !inGuild || context.channelGuildId != custom.guildId;
     if (external) {
@@ -275,7 +280,7 @@ bool EmojiManager::isUsable(const CustomEmoji &custom, UsabilityContext &context
     return !animated || context.premium;
 }
 
-QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId, int maxResults)
+QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId, int maxResults, bool forReaction)
 {
     const QueryMatcher matcher(query);
     if (matcher.normalized.isEmpty())
@@ -288,6 +293,7 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
     usability.selfId = client->getMe().id.get();
     usability.premium = client->isPremium();
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
+    usability.bypass = !forReaction && expressionBypass().emojis; // Qord
 
     struct Scored
     {

@@ -137,6 +137,27 @@ public:
         promptInitial = initial;
         pendingPrompt = std::move(done);
     }
+    bool confirm(Confirmation &confirmation) override
+    {
+        confirmations.append(confirmation);
+        if (checkboxAnswer)
+            confirmation.checkboxChecked = *checkboxAnswer;
+        return confirmAnswer;
+    }
+    void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override
+    {
+        attachments.append({ fileName, data, mimeType });
+    }
+    struct Attached
+    {
+        QString fileName;
+        QByteArray data;
+        QString mimeType;
+    };
+    QList<Confirmation> confirmations;
+    bool confirmAnswer = true;
+    std::optional<bool> checkboxAnswer;
+    QList<Attached> attachments;
     QString promptTitle;
     QString promptInitial;
     std::function<void(const QString &)> pendingPrompt;
@@ -221,6 +242,34 @@ public:
     QList<Id> changed;
 };
 
+class FakeExpressions : public ExpressionService
+{
+public:
+    int premiumType(Id) const override { return premium; }
+    std::optional<CustomEmojiInfo> customEmoji(Id, Id emojiId) const override
+    {
+        if (emojis.contains(emojiId))
+            return emojis.value(emojiId);
+        return std::nullopt;
+    }
+    std::optional<StickerInfo> sticker(Id, Id stickerId) const override
+    {
+        if (stickers.contains(stickerId))
+            return stickers.value(stickerId);
+        return std::nullopt;
+    }
+    QList<Id> ownRoles(Id, Id guildId) const override { return roles.value(guildId); }
+    bool hasChannelPermission(Id, Id, quint64 permission) const override { return !(denied & permission); }
+    void setChatBypass(bool emojis, bool stickers) override { bypass = { emojis, stickers }; }
+
+    int premium = 0;
+    QHash<Id, CustomEmojiInfo> emojis;
+    QHash<Id, StickerInfo> stickers;
+    QHash<Id, QList<Id>> roles;
+    quint64 denied = 0;
+    std::pair<bool, bool> bypass { false, false };
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -241,6 +290,7 @@ struct SinglePluginHost
         services.displayOptions = &displayOptions;
         services.readStates = &readStates;
         services.reactions = &reactions;
+        services.expressions = &expressions;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -271,6 +321,7 @@ struct SinglePluginHost
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;
     FakeReactions reactions;
+    FakeExpressions expressions;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

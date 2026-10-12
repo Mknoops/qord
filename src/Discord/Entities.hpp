@@ -956,6 +956,7 @@ struct GatewayGuild : Core::JsonUtils::JsonObject
     Field<QList<Channel>, true> threads;
     Field<QList<Role>, true> roles;
     Field<QList<Emoji>, true> emojis;
+    Field<QList<Sticker>, true> stickers; // Qord
     Field<QList<Member>, true> members;
     // only sometimes
     Field<QList<Presence>, true> presences;
@@ -972,6 +973,7 @@ struct GatewayGuild : Core::JsonUtils::JsonObject
         get(obj, "threads", guild.threads);
         get(obj, "roles", guild.roles);
         get(obj, "emojis", guild.emojis);
+        get(obj, "stickers", guild.stickers); // Qord
         get(obj, "members", guild.members);
         get(obj, "presences", guild.presences);
         get(obj, "joined_at", guild.joinedAt);
@@ -1299,6 +1301,10 @@ struct Message : Core::JsonUtils::JsonObject
 
     // Qord: deleted on Discord but kept on screen by a plugin (MessageLogger)
     bool qordDeleted = false;
+    // Qord: set by display plugins (FakeNitro) each time the message is parsed
+    QList<int> qordHiddenAttachments;
+    QList<int> qordHiddenEmbeds;
+    QList<StickerItem> qordAddedStickers;
 
     // track for MESSAGE_UPDATE
     QSet<QString> presentKeys;

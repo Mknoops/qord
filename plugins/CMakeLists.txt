@@ -96,6 +96,10 @@ qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp Pla
 qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)
 qord_add_plugin(messageclickactions chat SOURCES MessageClickActions.hpp MessageClickActions.cpp)
 
+# Batch 7
+qord_add_plugin(fakenitro chat SOURCES FakeNitro.hpp FakeNitro.cpp ApngToGif.hpp ApngToGif.cpp)
+target_link_libraries(qord_plugin_fakenitro PUBLIC Qt::Gui) # QImage/QPainter for animated stickers
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

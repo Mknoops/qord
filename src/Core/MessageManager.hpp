@@ -60,10 +60,12 @@ public:
     void requestLoadHistory(Snowflake channelId, Snowflake beforeId);
     void requestLoadFuture(Snowflake channelId, Snowflake afterId);
     void requestLoadAround(Snowflake channelId, Snowflake messageId);
-    void sendMessage(Snowflake channelId, const QString &content,
+    // Qord: false when a plugin cancelled the send; with
+    // runPlugins false the BeforeSend hook already ran
+    bool sendMessage(Snowflake channelId, const QString &content,
                      Snowflake replyToMessageId = Snowflake::Invalid,
                      const QList<PendingAttachment> &attachments = {},
-                     bool mentionRepliedUser = true);
+                     bool mentionRepliedUser = true, bool runPlugins = true);
     void cancelSend(Snowflake channelId, const QString &nonce);
     void addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst);
 

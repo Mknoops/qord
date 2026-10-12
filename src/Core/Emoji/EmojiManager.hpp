@@ -29,6 +29,18 @@ struct FrecencyUserSettings;
 
 namespace Core {
 
+// Qord: FakeNitro lets the pickers offer emojis and stickers Discord would lock
+struct ExpressionBypass
+{
+    bool emojis = false;
+    bool stickers = false;
+};
+inline ExpressionBypass &expressionBypass()
+{
+    static ExpressionBypass bypass;
+    return bypass;
+}
+
 struct UnicodeEmoji;
 class ClientInstance;
 
@@ -41,7 +53,9 @@ public:
     void setGuildEmojis(Snowflake guildId, const QList<Discord::Emoji> &emojis);
     void removeGuild(Snowflake guildId);
 
-    [[nodiscard]] QList<EmojiMatch> search(const QString &query, Snowflake channelId, int maxResults = 10);
+    // Qord: forReaction leaves out FakeNitro's bypass
+    [[nodiscard]] QList<EmojiMatch> search(const QString &query, Snowflake channelId, int maxResults = 10,
+                                           bool forReaction = false);
 
     void trackMessageEmojis(const QString &content);
     void trackReaction(const QString &reactionEmoji);
@@ -53,6 +67,15 @@ public:
         QList<EmojiMatch> emojis;
     };
     [[nodiscard]] QList<PickerSection> pickerSections(Snowflake channelId, bool forReaction);
+
+    // Qord: your servers' stickers, and lookups by id (src/Qord/EmojiPickerData.cpp)
+    void setGuildStickers(Snowflake guildId, const QList<Discord::Sticker> &stickers);
+    void onGuildStickersUpdated(const Discord::GuildStickersUpdate &event);
+    [[nodiscard]] std::optional<Discord::Sticker> stickerById(Snowflake stickerId) const;
+    [[nodiscard]] QList<Discord::Sticker> guildStickerList(Snowflake guildId) const;
+    [[nodiscard]] QList<Snowflake> stickerGuilds() const;
+    // The emoji and its server
+    [[nodiscard]] std::optional<std::pair<Discord::Emoji, Snowflake>> customEmojiById(Snowflake emojiId) const;
 
     // write back to settings-proto/2
     void savePendingUsage();
@@ -93,6 +116,7 @@ private:
         Snowflake channelGuildId;
         Snowflake selfId;
         bool premium = false;
+        bool bypass = false; // Qord: FakeNitro, for messages
         QHash<Snowflake, QSet<Snowflake>> rolesByGuild;
     };
 
@@ -117,6 +141,7 @@ private:
     ClientInstance *instance;
 
     QHash<Snowflake /*guildId*/, QList<Discord::Emoji>> guildEmojis;
+    QHash<Snowflake /*guildId*/, QList<Discord::Sticker>> guildStickers; // Qord
     QList<CustomEmoji> customCandidates;
     bool customCandidatesDirty = true;
     QList<UnicodeCandidate> unicodeCandidateCache;

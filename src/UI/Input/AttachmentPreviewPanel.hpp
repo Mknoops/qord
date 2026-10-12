@@ -21,6 +21,8 @@ public:
     void setMaxFileSize(qint64 bytes);
     void addFiles(const QList<QUrl> &urls);
     void addImage(const QImage &image);
+    // Qord: a file made in memory (FakeNitro's animated stickers)
+    void addData(const QString &fileName, const QByteArray &data, const QString &mimeType);
     [[nodiscard]] bool hasAttachments() const { return !items.isEmpty(); }
     [[nodiscard]] QList<Core::PendingAttachment> attachments() const { return items; }
     void clearAttachments();

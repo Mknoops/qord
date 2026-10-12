@@ -54,6 +54,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See who joins and leaves voice channels") },
     { Permission::ReadReactions, "read_reactions",
       QT_TRANSLATE_NOOP("Qord::Plugins", "See who reacted to messages") },
+    { Permission::ReadExpressions, "read_expressions",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See your servers' emojis and stickers, your Nitro status and channel permissions") },
 };
 
 struct HookInfo

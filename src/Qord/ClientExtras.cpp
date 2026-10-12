@@ -256,10 +256,11 @@ void Client::fetchGifs(const QString &query, JsonCallback callback)
     httpClient->get(endpoint, params, [callback](const HttpResponse &response) { callback(jsonResult(response)); });
 }
 
-void Client::sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback)
+void Client::sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback,
+                         const QString &content)
 {
     QJsonObject payload;
-    payload["content"] = QString();
+    payload["content"] = content;
     payload["sticker_ids"] = QJsonArray { QString::number(quint64(stickerId)) };
     payload["nonce"] = QString::number(quint64(Core::Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch())));
     payload["tts"] = false;

@@ -1,0 +1,949 @@
+{
+ "emojis": {
+  "200000000000000001": {
+   "id": "200000000000000001",
+   "name": "pepe",
+   "animated": false,
+   "guildId": "100000000000000001",
+   "available": true,
+   "managed": false,
+   "roles": [],
+   "type": 1
+  },
+  "200000000000000002": {
+   "id": "200000000000000002",
+   "name": "party",
+   "animated": true,
+   "guildId": "100000000000000001",
+   "available": true,
+   "managed": false,
+   "roles": [],
+   "type": 1
+  },
+  "200000000000000003": {
+   "id": "200000000000000003",
+   "name": "far_away",
+   "animated": false,
+   "guildId": "100000000000000002",
+   "available": true,
+   "managed": false,
+   "roles": [],
+   "type": 1
+  },
+  "200000000000000004": {
+   "id": "200000000000000004",
+   "name": "lost",
+   "animated": false,
+   "guildId": "100000000000000001",
+   "available": false,
+   "managed": false,
+   "roles": [],
+   "type": 1
+  },
+  "200000000000000005": {
+   "id": "200000000000000005",
+   "name": "twitch",
+   "animated": false,
+   "guildId": "100000000000000002",
+   "available": true,
+   "managed": true,
+   "roles": [
+    "300000000000000001"
+   ],
+   "type": 1
+  }
+ },
+ "stickers": {
+  "400000000000000001": {
+   "id": "400000000000000001",
+   "name": "Wave",
+   "format_type": 1,
+   "guild_id": "100000000000000001",
+   "available": true
+  },
+  "400000000000000002": {
+   "id": "400000000000000002",
+   "name": "Dance Party",
+   "format_type": 2,
+   "guild_id": "100000000000000002",
+   "available": true
+  },
+  "400000000000000003": {
+   "id": "400000000000000003",
+   "name": "gif one",
+   "format_type": 4,
+   "guild_id": "100000000000000002",
+   "available": true
+  },
+  "400000000000000004": {
+   "id": "400000000000000004",
+   "name": "png far",
+   "format_type": 1,
+   "guild_id": "100000000000000002",
+   "available": true
+  },
+  "400000000000000005": {
+   "id": "400000000000000005",
+   "name": "standard",
+   "format_type": 3,
+   "pack_id": "1",
+   "available": true
+  },
+  "400000000000000006": {
+   "id": "400000000000000006",
+   "name": "gone",
+   "format_type": 1,
+   "guild_id": "100000000000000001",
+   "available": false
+  },
+  "400000000000000007": {
+   "id": "400000000000000007",
+   "name": "Ünï cödé!*~ &=+",
+   "format_type": 1,
+   "guild_id": "100000000000000002",
+   "available": true
+  }
+ },
+ "boundaries": [
+  {
+   "s": "a b",
+   "offset": -1,
+   "expected": ""
+  },
+  {
+   "s": "a b",
+   "offset": 0,
+   "expected": " "
+  },
+  {
+   "s": "a b",
+   "offset": 1,
+   "expected": ""
+  },
+  {
+   "s": "a b",
+   "offset": 3,
+   "expected": ""
+  },
+  {
+   "s": "a b",
+   "offset": 1,
+   "expected": ""
+  },
+  {
+   "s": "",
+   "offset": 0,
+   "expected": ""
+  },
+  {
+   "s": "xy",
+   "offset": 1,
+   "expected": " "
+  }
+ ],
+ "send": [
+  {
+   "name": "usable emoji in its server",
+   "guildId": "100000000000000001",
+   "content": "hi <:pepe:200000000000000001>",
+   "expected": {
+    "content": "hi <:pepe:200000000000000001>",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "animated without nitro",
+   "guildId": "100000000000000001",
+   "content": "<a:party:200000000000000002>",
+   "expected": {
+    "content": "[party](https://cdn.discordapp.com/emojis/200000000000000002.gif?size=48&animated=true&name=party&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "other server without nitro",
+   "guildId": "100000000000000001",
+   "content": "look <:far_away:200000000000000003> there",
+   "expected": {
+    "content": "look [far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true) there",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "no hyperlinks",
+   "guildId": "100000000000000001",
+   "content": "x<:far_away:200000000000000003>y",
+   "settings": {
+    "useEmojiHyperLinks": false,
+    "emojiSize": 96
+   },
+   "expected": {
+    "content": "x https://cdn.discordapp.com/emojis/200000000000000003.webp?size=96&name=far_away&lossless=true y",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "custom link text",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "settings": {
+    "hyperLinkText": "emoji {{NAME}} {{NAME}}"
+   },
+   "expected": {
+    "content": "[emoji far_away far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "nitro, external allowed",
+   "premium": 2,
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "expected": {
+    "content": "<:far_away:200000000000000003>",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "nitro, external denied",
+   "premium": 2,
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "denied": [
+    "USE_EXTERNAL_EMOJIS"
+   ],
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "unavailable emoji",
+   "premium": 2,
+   "guildId": "100000000000000001",
+   "content": "<:lost:200000000000000004>",
+   "expected": {
+    "content": "[lost](https://cdn.discordapp.com/emojis/200000000000000004.webp?size=48&name=lost&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "twitch emoji with role",
+   "guildId": "100000000000000001",
+   "content": "<:twitch:200000000000000005>",
+   "myRoles": {
+    "100000000000000002": [
+     "300000000000000001"
+    ]
+   },
+   "expected": {
+    "content": "<:twitch:200000000000000005>",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "twitch emoji without role",
+   "guildId": "100000000000000001",
+   "content": "<:twitch:200000000000000005>",
+   "expected": {
+    "content": "[twitch](https://cdn.discordapp.com/emojis/200000000000000005.webp?size=48&name=twitch&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "in a DM",
+   "content": "<:pepe:200000000000000001> and <a:party:200000000000000002>",
+   "expected": {
+    "content": "[pepe](https://cdn.discordapp.com/emojis/200000000000000001.webp?size=48&name=pepe&lossless=true) and [party](https://cdn.discordapp.com/emojis/200000000000000002.gif?size=48&animated=true&name=party&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker name encoding",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000007"
+   ],
+   "settings": {
+    "hyperLinkText": "$& {{NAME}}"
+   },
+   "expected": {
+    "content": "[$& Ünï cödé!*~ &=+](https://media.discordapp.net/stickers/400000000000000007.png?size=160&name=%C3%9Cn%C3%AF+c%C3%B6d%C3%A9%21*%7E+%26%3D%2B&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "unknown emoji left alone",
+   "guildId": "100000000000000001",
+   "content": "<:nope:299999999999999999>",
+   "expected": {
+    "content": "<:nope:299999999999999999>",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "emoji bypass off",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "settings": {
+    "enableEmojiBypass": false
+   },
+   "expected": {
+    "content": "<:far_away:200000000000000003>",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "no embed permission, confirmed",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "denied": [
+    "EMBED_LINKS"
+   ],
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 1
+   }
+  },
+  {
+   "name": "no embed permission, cancelled",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "denied": [
+    "EMBED_LINKS"
+   ],
+   "confirm": false,
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "stickerIds": [],
+    "cancel": true,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 1
+   }
+  },
+  {
+   "name": "no embed permission, check disabled",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "denied": [
+    "EMBED_LINKS"
+   ],
+   "settings": {
+    "disableEmbedPermissionCheck": true
+   },
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker from its server",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000001"
+   ],
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000001"
+    ],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker from elsewhere",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "expected": {
+    "content": "[png far](https://media.discordapp.net/stickers/400000000000000004.png?size=160&name=png+far&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker with text",
+   "guildId": "100000000000000001",
+   "content": "look",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "settings": {
+    "useStickerHyperLinks": false,
+    "stickerSize": 256
+   },
+   "expected": {
+    "content": "look https://media.discordapp.net/stickers/400000000000000004.png?size=256&name=png+far&lossless=true",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "gif sticker",
+   "guildId": "100000000000000001",
+   "content": "a ",
+   "stickerIds": [
+    "400000000000000003"
+   ],
+   "expected": {
+    "content": "a [gif one](https://media.discordapp.net/stickers/400000000000000003.gif?size=160&name=gif+one&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "standard sticker",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000005"
+   ],
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000005"
+    ],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "unavailable sticker",
+   "guildId": "100000000000000001",
+   "premium": 2,
+   "content": "",
+   "stickerIds": [
+    "400000000000000006"
+   ],
+   "expected": {
+    "content": "[gone](https://media.discordapp.net/stickers/400000000000000006.png?size=160&name=gone&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "nitro basic sticker",
+   "guildId": "100000000000000001",
+   "premium": 3,
+   "content": "",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000004"
+    ],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "nitro classic sticker",
+   "guildId": "100000000000000001",
+   "premium": 1,
+   "content": "",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "expected": {
+    "content": "[png far](https://media.discordapp.net/stickers/400000000000000004.png?size=160&name=png+far&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "apng sticker",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000002"
+   ],
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000002"
+    ],
+    "cancel": true,
+    "animatedSent": [
+     {
+      "link": "https://media.discordapp.net/stickers/400000000000000002.png?size=160",
+      "id": "400000000000000002"
+     }
+    ],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "apng sticker without attach permission",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000002"
+   ],
+   "denied": [
+    "ATTACH_FILES"
+   ],
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000002"
+    ],
+    "cancel": true,
+    "animatedSent": [],
+    "modals": 1,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker bypass off",
+   "guildId": "100000000000000001",
+   "content": "",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "settings": {
+    "enableStickerBypass": false
+   },
+   "expected": {
+    "content": "",
+    "stickerIds": [
+     "400000000000000004"
+    ],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "sticker and emoji",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "stickerIds": [
+    "400000000000000004"
+   ],
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true) [png far](https://media.discordapp.net/stickers/400000000000000004.png?size=160&name=png+far&lossless=true)",
+    "stickerIds": [],
+    "cancel": false,
+    "animatedSent": [],
+    "modals": 0,
+    "embedNotices": 0
+   }
+  }
+ ],
+ "edit": [
+  {
+   "name": "edit with an emoji from elsewhere",
+   "guildId": "100000000000000001",
+   "content": "edit <:far_away:200000000000000003>!",
+   "expected": {
+    "content": "edit [far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true) !",
+    "cancel": false,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "edit with an animated emoji",
+   "guildId": "100000000000000001",
+   "content": "<a:party:200000000000000002><:pepe:200000000000000001>",
+   "expected": {
+    "content": "[party](https://cdn.discordapp.com/emojis/200000000000000002.webp?size=48&animated=true&name=party&lossless=true) <:pepe:200000000000000001>",
+    "cancel": false,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "escaped emoji untouched",
+   "guildId": "100000000000000001",
+   "content": "\\<:far_away:200000000000000003>",
+   "expected": {
+    "content": "\\<:far_away:200000000000000003>",
+    "cancel": false,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "edit, bypass off",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "settings": {
+    "enableEmojiBypass": false
+   },
+   "expected": {
+    "content": "<:far_away:200000000000000003>",
+    "cancel": false,
+    "embedNotices": 0
+   }
+  },
+  {
+   "name": "edit without embed permission",
+   "guildId": "100000000000000001",
+   "content": "<:far_away:200000000000000003>",
+   "denied": [
+    "EMBED_LINKS"
+   ],
+   "confirm": false,
+   "expected": {
+    "content": "[far_away](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=far_away&lossless=true)",
+    "cancel": true,
+    "embedNotices": 1
+   }
+  }
+ ],
+ "ast": [
+  {
+   "target": "https://cdn.discordapp.com/emojis/200000000000000001.webp?size=48&name=pepe&lossless=true",
+   "result": {
+    "animated": false,
+    "emojiId": "200000000000000001",
+    "name": ":pepe:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://cdn.discordapp.com/emojis/299999999999999999.webp?size=48&name=some+thing&lossless=true",
+   "result": {
+    "animated": false,
+    "emojiId": "299999999999999999",
+    "name": ":some thing:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://cdn.discordapp.com/emojis/299999999999999998.gif?size=48&name=x",
+   "result": {
+    "animated": true,
+    "emojiId": "299999999999999998",
+    "name": ":x:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://cdn.discordapp.com/emojis/299999999999999997.webp?size=48&animated=true",
+   "result": {
+    "animated": true,
+    "emojiId": "299999999999999997",
+    "name": ":FakeNitroEmoji:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://cdn.discordapp.com/emojis/299999999999999996.png",
+   "result": {
+    "animated": false,
+    "emojiId": "299999999999999996",
+    "name": ":FakeNitroEmoji:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://cdn.discordapp.com/emojis/299999999999999995.webp?size=48&name=%C3%A9%20e",
+   "result": {
+    "animated": false,
+    "emojiId": "299999999999999995",
+    "name": ":é e:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://media.discordapp.net/stickers/400000000000000004.png?size=160&name=png+far&lossless=true",
+   "result": null
+  },
+  {
+   "target": "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+   "result": null
+  },
+  {
+   "target": "https://cdn.discordapp.com/attachments/1/2/499999999999999999.gif",
+   "result": {
+    "type": "link",
+    "target": "https://cdn.discordapp.com/attachments/1/2/499999999999999999.gif"
+   }
+  },
+  {
+   "target": "https://example.com/emojis/12.png",
+   "result": {
+    "animated": false,
+    "emojiId": "12",
+    "name": ":FakeNitroEmoji:",
+    "type": "customEmoji",
+    "fake": true
+   }
+  },
+  {
+   "target": "https://example.com/other.png",
+   "result": {
+    "type": "link",
+    "target": "https://example.com/other.png"
+   }
+  }
+ ],
+ "stickers_": [
+  {
+   "content": "https://media.discordapp.net/stickers/400000000000000004.png?size=160&name=png+far&lossless=true",
+   "expected": [
+    {
+     "format_type": 1,
+     "id": "400000000000000004",
+     "name": "png far",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "https://media.discordapp.net/stickers/499999999999999999.png?size=160&name=Some+Name",
+   "expected": [
+    {
+     "format_type": 1,
+     "id": "499999999999999999",
+     "name": "Some Name",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "[png far](https://media.discordapp.net/stickers/499999999999999999.png?size=160&name=x)",
+   "expected": [
+    {
+     "format_type": 1,
+     "id": "499999999999999999",
+     "name": "FakeNitroSticker",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "[two words](https://media.discordapp.net/stickers/499999999999999999.png?size=160&name=x)",
+   "expected": [
+    {
+     "format_type": 1,
+     "id": "499999999999999999",
+     "name": "FakeNitroSticker",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "look https://media.discordapp.net/stickers/499999999999999999.png?size=160",
+   "expected": []
+  },
+  {
+   "content": "look https://media.discordapp.net/stickers/499999999999999999.png?size=160",
+   "compound": true,
+   "expected": [
+    {
+     "format_type": 1,
+     "id": "499999999999999999",
+     "name": "FakeNitroSticker",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "",
+   "gifs": [
+    "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+    "https://cdn.discordapp.com/attachments/1/2/499999999999999999.gif"
+   ],
+   "expected": [
+    {
+     "format_type": 2,
+     "id": "400000000000000002",
+     "name": "Dance Party",
+     "fake": true
+    }
+   ]
+  },
+  {
+   "content": "plain text",
+   "expected": []
+  }
+ ],
+ "embeds": [
+  {
+   "content": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "expected": true
+  },
+  {
+   "content": "[x](https://cdn.discordapp.com/emojis/1.webp?size=48)",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "expected": true
+  },
+  {
+   "content": "[two words](https://cdn.discordapp.com/emojis/1.webp?size=48)",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "expected": true
+  },
+  {
+   "content": "hey https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "expected": false
+  },
+  {
+   "content": "hey https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/1.webp?size=48",
+   "compound": true,
+   "expected": true
+  },
+  {
+   "content": "https://media.discordapp.net/stickers/5.png",
+   "type": "image",
+   "url": "https://media.discordapp.net/stickers/5.png",
+   "expected": true
+  },
+  {
+   "content": "https://media.discordapp.net/stickers/5.png",
+   "type": "image",
+   "url": "https://media.discordapp.net/stickers/5.png",
+   "stickers": false,
+   "expected": false
+  },
+  {
+   "content": "https://cdn.discordapp.com/emojis/1.webp",
+   "type": "rich",
+   "url": "https://cdn.discordapp.com/emojis/1.webp",
+   "expected": false
+  },
+  {
+   "content": "https://cdn.discordapp.com/emojis/1.webp",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/emojis/2.webp",
+   "expected": false
+  },
+  {
+   "content": "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+   "type": "image",
+   "url": "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+   "expected": true
+  },
+  {
+   "content": "https://example.com/a.png",
+   "type": "image",
+   "url": "https://example.com/a.png",
+   "expected": false
+  }
+ ],
+ "attachments": [
+  {
+   "url": "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+   "content_type": "image/gif",
+   "hidden": true
+  },
+  {
+   "url": "https://cdn.discordapp.com/attachments/1/2/499999999999999999.gif",
+   "content_type": "image/gif",
+   "hidden": false
+  },
+  {
+   "url": "https://cdn.discordapp.com/attachments/1/2/400000000000000002.gif",
+   "content_type": "image/png",
+   "hidden": false
+  }
+ ]
+}

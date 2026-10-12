@@ -277,7 +277,8 @@ public:
     void sendInteraction(const QJsonObject &payload, ActionCallback callback);
     [[nodiscard]] QString gatewaySessionId() const;
     // A message with just a sticker; it arrives as MESSAGE_CREATE
-    void sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback);
+    void sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback,
+                     const QString &content = {});
 
 signals:
     void stateChanged(Core::ConnectionState state);

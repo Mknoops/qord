@@ -167,6 +167,20 @@ void AttachmentPreviewPanel::addImage(const QImage &image)
     appendAttachment(attachment);
 }
 
+void AttachmentPreviewPanel::addData(const QString &fileName, const QByteArray &data, const QString &mimeType)
+{
+    if (data.isEmpty())
+        return;
+    Core::PendingAttachment attachment;
+    attachment.data = data;
+    if (mimeType.startsWith(QLatin1String("image/")))
+        attachment.image = QImage::fromData(data);
+    attachment.filename = fileName;
+    attachment.mimeType = mimeType;
+    attachment.size = data.size();
+    appendAttachment(attachment);
+}
+
 bool AttachmentPreviewPanel::appendAttachment(Core::PendingAttachment attachment)
 {
     if (items.size() >= MaxFiles) {

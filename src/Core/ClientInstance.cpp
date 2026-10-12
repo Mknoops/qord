@@ -244,6 +244,7 @@ ClientInstance::ClientInstance(const AccountInfo &info,
 
     connect(client, &Discord::Client::ready, emojiManager, &EmojiManager::onReady);
     connect(client, &Discord::Client::guildEmojisUpdated, emojiManager, &EmojiManager::onGuildEmojisUpdated);
+    connect(client, &Discord::Client::guildStickersUpdated, emojiManager, &EmojiManager::onGuildStickersUpdated); // Qord
     connect(client, &Discord::Client::userSettingsProtoUpdated, emojiManager, &EmojiManager::onUserSettingsProtoUpdated);
     connect(client, &Discord::Client::settingsChanged, this, [this]() { presenceManager->applyProtoStatus(client->getSettings()); });
 
@@ -388,6 +389,8 @@ void ClientInstance::saveGuild(const Discord::GatewayGuild &guild, const QList<D
 
     if (guild.emojis.hasValue())
         emojiManager->setGuildEmojis(guildId, guild.emojis.get());
+    if (guild.stickers.hasValue())
+        emojiManager->setGuildStickers(guildId, guild.stickers.get()); // Qord
 
     if (guild.roles.hasValue())
         roleRepo.saveRoles(guildId, guild.roles.get(), db);

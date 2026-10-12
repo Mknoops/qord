@@ -1,6 +1,8 @@
 #include "ClientPlugins.hpp"
 
 #include "Core/ClientInstance.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
+#include "Core/PermissionManager.hpp"
 #include "Core/Logging.hpp"
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
@@ -11,6 +13,8 @@
 #include "Core/Markdown/Parser.hpp"
 
 #include <QApplication>
+#include <QCheckBox>
+#include <QMessageBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QDateTimeEdit>
@@ -273,6 +277,121 @@ void QtUiService::promptText(const QString &title, const QString &label, const Q
     field->setFocus();
 }
 
+bool QtUiService::confirm(Confirmation &confirmation)
+{
+    QMessageBox box(QApplication::activeWindow());
+    box.setWindowTitle(confirmation.title);
+    box.setText(confirmation.title);
+    box.setInformativeText(confirmation.text);
+    box.setIcon(confirmation.cancelText.isEmpty() ? QMessageBox::Information : QMessageBox::Question);
+    QPushButton *ok = box.addButton(confirmation.confirmText.isEmpty() ? QObject::tr("OK") : confirmation.confirmText,
+                                    QMessageBox::AcceptRole);
+    if (!confirmation.cancelText.isEmpty())
+        box.addButton(confirmation.cancelText, QMessageBox::RejectRole);
+    box.setDefaultButton(ok);
+    QCheckBox *check = nullptr;
+    if (!confirmation.checkboxText.isEmpty()) {
+        check = new QCheckBox(confirmation.checkboxText, &box);
+        check->setChecked(confirmation.checkboxChecked);
+        box.setCheckBox(check);
+    }
+    box.exec();
+    if (check)
+        confirmation.checkboxChecked = check->isChecked();
+    return box.clickedButton() == ok;
+}
+
+std::function<void(const QString &, const QByteArray &, const QString &)> &QtUiService::fileAttacher()
+{
+    static std::function<void(const QString &, const QByteArray &, const QString &)> attacher;
+    return attacher;
+}
+
+void QtUiService::attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType)
+{
+    if (fileAttacher())
+        fileAttacher()(fileName, data, mimeType);
+}
+
+int SessionExpressions::premiumType(Id accountId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance)
+        return 0;
+    const auto me = instance->discord()->getMe();
+    return me.premiumType.hasValue() ? int(me.premiumType.get()) : 0;
+}
+
+std::optional<CustomEmojiInfo> SessionExpressions::customEmoji(Id accountId, Id emojiId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->emojis())
+        return std::nullopt;
+    const auto found = instance->emojis()->customEmojiById(Acheron::Core::Snowflake(emojiId));
+    if (!found)
+        return std::nullopt;
+    const Acheron::Discord::Emoji &emoji = found->first;
+    CustomEmojiInfo info;
+    info.id = emojiId;
+    info.name = emoji.name.hasValue() ? emoji.name.get() : QString();
+    info.animated = emoji.animated.hasValue() && emoji.animated.get();
+    info.guildId = quint64(found->second);
+    info.available = !emoji.available.hasValue() || emoji.available.get();
+    info.managed = emoji.managed.hasValue() && emoji.managed.get();
+    if (emoji.roles.hasValue())
+        for (const auto &role : emoji.roles.get())
+            info.roles.append(quint64(role));
+    return info;
+}
+
+std::optional<StickerInfo> SessionExpressions::sticker(Id accountId, Id stickerId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->emojis())
+        return std::nullopt;
+    const auto found = instance->emojis()->stickerById(Acheron::Core::Snowflake(stickerId));
+    if (!found)
+        return std::nullopt;
+    StickerInfo info;
+    info.id = stickerId;
+    info.name = found->name.get();
+    info.formatType = int(found->formatType.get());
+    info.guildId = found->guildId.hasValue() ? quint64(found->guildId.get()) : 0;
+    info.available = !found->available.hasValue() || found->available.get();
+    info.standard = false; // only servers' stickers are known
+    return info;
+}
+
+QList<Id> SessionExpressions::ownRoles(Id accountId, Id guildId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->users())
+        return {};
+    QList<Id> out;
+    if (auto roles = instance->users()->getMemberRoles(Acheron::Core::Snowflake(guildId),
+                                                       Acheron::Core::Snowflake(accountId)))
+        for (const auto &role : *roles)
+            out.append(quint64(role));
+    return out;
+}
+
+bool SessionExpressions::hasChannelPermission(Id accountId, Id channelId, quint64 permission) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance)
+        return true;
+    const Acheron::Core::Snowflake channel(channelId);
+    if (!instance->discord()->getGuildIdForChannel(channel).isValid())
+        return true; // DMs and group DMs
+    return instance->permissions()->hasChannelPermission(instance->accountId(), channel,
+                                                         Acheron::Discord::Permission(permission));
+}
+
+void SessionExpressions::setChatBypass(bool emojis, bool stickers)
+{
+    Acheron::Core::expressionBypass() = { emojis, stickers };
+}
+
 void QtUiService::insertIntoMessageBox(const QString &text)
 {
     if (messageBoxInserter())
@@ -409,7 +528,7 @@ static QString pluginDataDirectory()
 }
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
-    : members(session), relationships(session), messages(session), messageActions(session)
+    : members(session), relationships(session), messages(session), messageActions(session), expressions(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -427,6 +546,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.messageActions = &messageActions;
     services.displayOptions = &displayOptions;
     services.readStates = &readStates;
+    services.expressions = &expressions;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

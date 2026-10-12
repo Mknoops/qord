@@ -1434,8 +1434,12 @@ void MainWindow::setupUi()
         Snowflake replyTo = messageInput->replyTargetMessageId();
         if (!chatModel->isAtLatest())
             chatView->jumpToPresent();
-        currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments,
-                                                 messageInput->replyMentionEnabled());
+        if (!currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments,
+                                                      messageInput->replyMentionEnabled())) {
+            // Qord: a plugin stopped the send; the text stays, like Discord
+            messageInput->keepContentsAfterSend();
+            return;
+        }
 
         int rateLimit = currentInstance->getChannelRateLimit(channelId);
         Snowflake userId = currentInstance->accountId();
@@ -1524,6 +1528,8 @@ void MainWindow::setupUi()
                     out.isEdit = true;
                     out.content = content;
                     plugins->dispatchBeforeEdit(out);
+                    if (out.cancel)
+                        return;
                     edited = out.content;
                 }
                 currentInstance->discord()->editMessage(channelId, messageId, edited);

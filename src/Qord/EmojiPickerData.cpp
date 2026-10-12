@@ -18,6 +18,7 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
     usability.selfId = client->getMe().id.get();
     usability.premium = client->isPremium();
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
+    usability.bypass = !forReaction && expressionBypass().emojis;
 
     const auto customMatch = [](const CustomEmoji &custom) {
         const Snowflake id = custom.emoji.id.get();
@@ -89,6 +90,46 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
         unicode.emojis.append(unicodeMatch(*emoji));
     sections.append(unicode);
     return sections;
+}
+
+void EmojiManager::setGuildStickers(Snowflake guildId, const QList<Discord::Sticker> &stickers)
+{
+    if (guildId.isValid())
+        guildStickers.insert(guildId, stickers);
+}
+
+void EmojiManager::onGuildStickersUpdated(const Discord::GuildStickersUpdate &event)
+{
+    if (event.guildId.hasValue())
+        setGuildStickers(event.guildId.get(), event.stickers.get());
+}
+
+std::optional<Discord::Sticker> EmojiManager::stickerById(Snowflake stickerId) const
+{
+    for (const auto &stickers : guildStickers)
+        for (const Discord::Sticker &sticker : stickers)
+            if (sticker.id.get() == stickerId)
+                return sticker;
+    return std::nullopt;
+}
+
+QList<Discord::Sticker> EmojiManager::guildStickerList(Snowflake guildId) const
+{
+    return guildStickers.value(guildId);
+}
+
+QList<Snowflake> EmojiManager::stickerGuilds() const
+{
+    return guildStickers.keys();
+}
+
+std::optional<std::pair<Discord::Emoji, Snowflake>> EmojiManager::customEmojiById(Snowflake emojiId) const
+{
+    for (auto it = guildEmojis.cbegin(); it != guildEmojis.cend(); ++it)
+        for (const Discord::Emoji &emoji : it.value())
+            if (emoji.id.hasValue() && emoji.id.get() == emojiId)
+                return std::make_pair(emoji, it.key());
+    return std::nullopt;
 }
 
 } // namespace Core

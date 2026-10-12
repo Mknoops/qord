@@ -89,6 +89,9 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         return userManager->getAuthorDisplayName(msg.author.get(), client->getGuildIdForChannel(msg.channelId));
     };
     QString content = resolveSystemMessageContent(msg, authorName);
+    msg.qordHiddenAttachments.clear();
+    msg.qordHiddenEmbeds.clear();
+    msg.qordAddedStickers.clear();
     // Plugins may change how received messages look to this user (never the
     // stored message); synthesized system texts are left alone
     auto *plugins = Qord::Plugins::PluginHost::instance();
@@ -102,8 +105,28 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         in.authorId = msg.author.hasValue() ? quint64(msg.author.get().id.get()) : 0;
         in.isOwn = in.authorId && in.authorId == in.accountId;
         in.content = content;
+        if (msg.attachments.hasValue())
+            for (const auto &att : msg.attachments.get())
+                in.attachments.append({ att.url.hasValue() ? att.url.get() : QString(),
+                                        att.contentType.hasValue() ? att.contentType.get() : QString() });
+        if (msg.embeds.hasValue())
+            for (const auto &embed : msg.embeds.get()) {
+                QString url = embed.url.hasValue() ? embed.url.get() : QString();
+                if (url.isEmpty() && embed.image.hasValue() && embed.image->url.hasValue())
+                    url = embed.image->url.get();
+                in.embeds.append({ embed.type.hasValue() ? embed.type.get() : QString(), url });
+            }
         plugins->dispatchTransformIncomingContent(in);
         content = in.content;
+        msg.qordHiddenAttachments = in.hiddenAttachments;
+        msg.qordHiddenEmbeds = in.hiddenEmbeds;
+        for (const auto &sticker : in.addedStickers) {
+            Discord::StickerItem item;
+            item.id = Snowflake(sticker.id);
+            item.name = sticker.name;
+            item.formatType = Discord::StickerFormatType(sticker.formatType);
+            msg.qordAddedStickers.append(item);
+        }
     }
     msg.parsedContentCached = inlineHtml(content, msg.channelId);
 
@@ -552,14 +575,14 @@ void MessageManager::addReaction(Snowflake channelId, Snowflake messageId, const
     client->addReaction(channelId, messageId, emoji, isBurst);
 }
 
-void MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
+bool MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
                                  Snowflake replyToMessageId,
                                  const QList<PendingAttachment> &attachments,
-                                 bool mentionRepliedUser)
+                                 bool mentionRepliedUser, bool runPlugins)
 {
     QString content = originalContent;
     auto *plugins = Qord::Plugins::PluginHost::instance();
-    if (plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
+    if (runPlugins && plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
         Qord::Plugins::OutgoingMessage out;
         out.accountId = quint64(client->getMe().id.get());
         out.channelId = Qord::Plugins::pluginId(channelId);
@@ -567,10 +590,12 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
         out.replyToMessageId = quint64(replyToMessageId);
         out.content = content;
         plugins->dispatchBeforeSend(out);
+        if (out.cancel)
+            return false;
         content = out.content;
         // Nothing left to send (e.g. a rule replaced everything)
         if (content.trimmed().isEmpty() && attachments.isEmpty())
-            return;
+            return true;
     }
 
     // Like Discord's client: a leading "@silent " sends without notifying
@@ -650,11 +675,12 @@ void MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
     for (const auto &att : outgoing) {
         if (att.data.isEmpty() && att.filePath.isEmpty()) {
             emit messageErrored(nonce);
-            return;
+            return true;
         }
     }
 
     client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
+    return true;
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)

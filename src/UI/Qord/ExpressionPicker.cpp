@@ -1,6 +1,8 @@
 #include "ExpressionPicker.hpp"
 
 #include "Core/ClientInstance.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
+#include "Core/PermissionManager.hpp"
 #include "Core/ImageManager.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "Discord/CdnUrls.hpp"
@@ -245,39 +247,69 @@ void ExpressionPicker::loadStickers()
     pendingImages.clear();
     if (!instance)
         return;
-    if (!guildId.isValid()) {
-        status->setText(tr("Server stickers can be sent in servers"));
-        return;
-    }
     const int request = ++generation;
     const QString query = search->text().trimmed();
+    const qreal dpr = devicePixelRatioF();
+    // Other servers' stickers: with Nitro (and permission here), or when
+    // FakeNitro's sticker bypass is on (unavailable ones too, as upstream)
+    const auto me = instance->discord()->getMe();
+    const bool premium = me.premiumType.hasValue() && (me.premiumType.get() == Discord::PremiumType::TIER_2 ||
+                                                       me.premiumType.get() == Discord::PremiumType::TIER_3);
+    const bool bypass = Core::expressionBypass().stickers;
+    const bool external = bypass || (premium && (!guildId.isValid() || instance->permissions()->hasChannelPermission(
+                                                                               instance->accountId(), channelId,
+                                                                               Discord::Permission::USE_EXTERNAL_STICKERS)));
+
+    const auto addStickers = [this, query, dpr, bypass](const QList<Discord::Sticker> &stickers, const QString &server) {
+        int shown = 0;
+        for (const auto &sticker : stickers) {
+            const QString name = sticker.name.get();
+            const QString tags = sticker.tags.hasValue() ? sticker.tags.get() : QString();
+            if (!query.isEmpty() && !name.contains(query, Qt::CaseInsensitive) &&
+                !tags.contains(query, Qt::CaseInsensitive))
+                continue;
+            if (!bypass && sticker.available.hasValue() && !sticker.available.get())
+                continue;
+            const QUrl still = Discord::Cdn::stickerStill(sticker.id.get(), sticker.formatType.get(),
+                                                          Discord::Cdn::stickerAssetPx(StickerCell.width(), dpr));
+            addImageItem(server.isEmpty() ? name : name + QStringLiteral(" — ") + server, still,
+                         quint64(sticker.id.get()), StickerCell);
+            ++shown;
+        }
+        return shown;
+    };
+    const auto addOtherServers = [this, addStickers, external]() {
+        int shown = 0;
+        if (!external || !instance->emojis())
+            return shown;
+        for (const Core::Snowflake otherId : instance->emojis()->stickerGuilds()) {
+            if (otherId == guildId)
+                continue;
+            const auto guild = instance->getGuild(otherId);
+            shown += addStickers(instance->emojis()->guildStickerList(otherId),
+                                 guild && guild->name.hasValue() ? guild->name.get() : QString());
+        }
+        return shown;
+    };
+
+    if (!guildId.isValid()) {
+        const int shown = addOtherServers();
+        status->setText(shown ? QString()
+                              : external ? tr("No stickers found") : tr("Server stickers can be sent in servers"));
+        return;
+    }
     status->setText(tr("Loading…"));
     const QPointer<ExpressionPicker> guard(this);
     instance->discord()->fetchGuildStickers(
-            guildId, [guard, request, query](const Core::Result<QList<Discord::Sticker>> &result) {
+            guildId, [guard, request, addStickers, addOtherServers](const Core::Result<QList<Discord::Sticker>> &result) {
                 if (!guard || request != guard->generation || guard->tab != Tab::Stickers)
                     return;
-                if (!result.success()) {
+                int shown = result.success() ? addStickers(*result.value, QString()) : 0;
+                shown += addOtherServers();
+                if (!result.success() && !shown)
                     guard->status->setText(tr("Couldn't load stickers"));
-                    return;
-                }
-                int shown = 0;
-                const qreal dpr = guard->devicePixelRatioF();
-                for (const auto &sticker : *result.value) {
-                    const QString name = sticker.name.get();
-                    const QString tags = sticker.tags.hasValue() ? sticker.tags.get() : QString();
-                    if (!query.isEmpty() && !name.contains(query, Qt::CaseInsensitive) &&
-                        !tags.contains(query, Qt::CaseInsensitive))
-                        continue;
-                    if (sticker.available.hasValue() && !sticker.available.get())
-                        continue;
-                    const QUrl still = Discord::Cdn::stickerStill(
-                            sticker.id.get(), sticker.formatType.get(),
-                            Discord::Cdn::stickerAssetPx(StickerCell.width(), dpr));
-                    guard->addImageItem(name, still, quint64(sticker.id.get()), StickerCell);
-                    ++shown;
-                }
-                guard->status->setText(shown ? QString() : tr("This server has no stickers"));
+                else
+                    guard->status->setText(shown ? QString() : tr("This server has no stickers"));
             });
 }
 

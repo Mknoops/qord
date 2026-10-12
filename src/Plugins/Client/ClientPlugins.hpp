@@ -110,6 +110,8 @@ public:
     static std::function<void(const MemberPermissionsView &)> &memberPermissionsShower();
     void refreshLockScreen() override;
     static std::function<void()> &lockScreenRefresher(); // set by the main window
+    void refreshAttachments(Id accountId, Id channelId, Id messageId) override;
+    static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &, const QByteArray &, const QString &)> &fileAttacher();

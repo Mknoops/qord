@@ -115,6 +115,9 @@ public:
     [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
+    [[nodiscard]] QList<PluginButton> dispatchAttachmentButtons(const AttachmentContext &attachment);
+    void dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
+                                         const AttachmentContext &attachment);
     // The first plugin that shows hidden channels decides how
     [[nodiscard]] std::optional<HiddenChannelDisplay> dispatchHiddenChannelDisplay();
     [[nodiscard]] std::optional<LockScreen> dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel);

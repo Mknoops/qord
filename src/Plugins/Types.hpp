@@ -559,6 +559,20 @@ struct LockScreen
     std::function<void()> showPermissionDetails;
 };
 
+// A text file attachment with the start of it Qord loaded (CopyFileContents)
+struct AttachmentContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    Id messageId = 0;
+    Id attachmentId = 0;
+    QString filename;
+    QString contentType;
+    qint64 size = 0;
+    QString text; // the start of the file
+    qint64 bytesLeft = 0; // the part that wasn't loaded (0: `text` is the whole file)
+};
+
 // One part of a text diff (see TextDiff.hpp).
 struct DiffPart
 {

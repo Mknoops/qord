@@ -118,6 +118,8 @@ public:
     void showPermissions(const PermissionsView &view) override { permissionViews.append(view); }
     void showMemberPermissions(const MemberPermissionsView &view) override { memberPermissionViews.append(view); }
     QList<PermissionsView> permissionViews;
+    void refreshAttachments(Id, Id, Id messageId) override { attachmentRefreshes.append(messageId); }
+    QList<Id> attachmentRefreshes;
     QList<MemberPermissionsView> memberPermissionViews;
     void openImage(const QUrl &url) override { images.append(url); }
     void startEditing(const MessageContext &message) override { edits.append(message.messageId); }

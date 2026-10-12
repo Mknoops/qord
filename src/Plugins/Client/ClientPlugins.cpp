@@ -198,6 +198,18 @@ std::function<void()> &QtUiService::lockScreenRefresher()
     return refresher;
 }
 
+std::function<void(Id, Id, Id)> &QtUiService::attachmentRefresher()
+{
+    static std::function<void(Id, Id, Id)> refresher;
+    return refresher;
+}
+
+void QtUiService::refreshAttachments(Id accountId, Id channelId, Id messageId)
+{
+    if (attachmentRefresher())
+        attachmentRefresher()(accountId, channelId, messageId);
+}
+
 void QtUiService::refreshLockScreen()
 {
     if (lockScreenRefresher())

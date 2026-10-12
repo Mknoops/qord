@@ -142,6 +142,10 @@ public:
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
+    void refreshAttachments(Id accountId, Id channelId, Id messageId) override
+    {
+        inner->refreshAttachments(accountId, channelId, messageId);
+    }
     // The popout's buttons may be clicked after the plugin stopped
     void showMemberPermissions(const MemberPermissionsView &view) override
     {

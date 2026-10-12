@@ -99,6 +99,13 @@ public:
     virtual void showMemberPermissions(const MemberPermissionsView &view) { Q_UNUSED(view); }
     // Re-renders the lock screen of a hidden channel, if it is showing
     virtual void refreshLockScreen() {}
+    // Re-asks for a message's attachment buttons (their state changed)
+    virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(messageId);
+    }
     // Starts editing one of your messages in the chat
     virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
     // Replies to a message. With no explicit `mention`, the client decides

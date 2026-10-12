@@ -215,6 +215,19 @@ public:
         return std::nullopt;
     }
 
+    // Hook::AttachmentButtons: buttons in a text file's preview (and its
+    // full view), once its start is loaded
+    virtual QList<ChatBarButton> attachmentButtons(const AttachmentContext &attachment)
+    {
+        Q_UNUSED(attachment);
+        return {};
+    }
+    virtual void onAttachmentButtonClicked(const QString &id, const AttachmentContext &attachment)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(attachment);
+    }
+
     // Hook::HiddenChannels: show channels you can't see (nullopt: don't), and
     // what selecting one shows instead of its messages
     virtual std::optional<HiddenChannelDisplay> hiddenChannelDisplay() { return std::nullopt; }

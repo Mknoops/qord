@@ -94,6 +94,7 @@ const HookInfo hookTable[] = {
     { Hook::ReactionUsers, "reactionUsers", Permission::ReadReactions },
     { Hook::ProfileRoleButtons, "profileRoleButtons", Permission::AddUiElements },
     { Hook::HiddenChannels, "hiddenChannels", Permission::ShowHiddenChannels },
+    { Hook::AttachmentButtons, "attachmentButtons", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

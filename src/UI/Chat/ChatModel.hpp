@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Plugins/Types.hpp"
+
 #include <QtWidgets>
 #include <QCache>
 #include <QTextDocument>
@@ -34,6 +36,21 @@ struct AttachmentData
     bool isSpoiler;
     qint64 uploadSent = -1;
     qint64 uploadTotal = -1;
+
+    // Qord: Discord's preview of text files, once the start is loaded
+    bool isText = false;
+    bool textLoaded = false;
+    bool textExpanded = false;
+    QString textPreview;
+    qint64 textBytesLeft = 0; // the part that wasn't loaded
+    struct PluginButton
+    {
+        QString pluginId;
+        QString id;
+        QString tooltip;
+        QByteArray svg;
+    };
+    QList<PluginButton> textButtons; // CopyFileContents
 
     [[nodiscard]] bool isMedia() const { return isImage || isVideo; }
 };
@@ -263,6 +280,20 @@ public:
     // Qord: re-render a message whose reaction users changed (WhoReacted)
     void refreshReactions(Snowflake messageId);
 
+    // Qord: text file previews. The loader fetches the start of a file
+    // (at most TextPreviewBytes; `total` is the file's size when known)
+    static constexpr qint64 TextPreviewBytes = 50000;
+    using TextLoader = std::function<void(const QUrl &url, QObject *context,
+                                          std::function<void(bool ok, const QByteArray &data)> done)>;
+    void setTextLoader(TextLoader loader) { textLoader = std::move(loader); }
+    [[nodiscard]] static bool isTextFile(const QString &filename, const QString &contentType);
+    void toggleTextExpanded(Snowflake messageId, Snowflake attachmentId);
+    // Re-asks plugins for the buttons on a message's text files
+    void refreshAttachments(Snowflake messageId);
+    // A text file as plugins see it (CopyFileContents)
+    [[nodiscard]] Qord::Plugins::AttachmentContext attachmentContext(Snowflake messageId,
+                                                                     const AttachmentData &attachment) const;
+
     using DisplayNameResolver = std::function<QString(const Discord::User &author, Snowflake guildId)>;
     void setDisplayNameResolver(DisplayNameResolver resolver);
     // Qord: names shown in reply previews (plugins may treat them differently)
@@ -358,6 +389,16 @@ private:
     AvatarUrlResolver avatarUrlResolver;
     UserAvatarResolver userAvatarResolver;
     mutable QSet<QUrl> reactionAvatarUrls; // to refresh when they arrive
+    struct TextPreview
+    {
+        bool loaded = false;
+        QString text;
+        qint64 bytesLeft = 0;
+    };
+    mutable QHash<Snowflake, TextPreview> textPreviews; // by attachment
+    void loadTextPreview(Snowflake messageId, AttachmentData &data) const;
+    QSet<Snowflake> expandedTexts;
+    TextLoader textLoader;
     DisplayNameResolver displayNameResolver;
     RoleColorResolver roleColorResolver;
     ChannelNameResolver channelNameResolver;

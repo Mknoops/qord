@@ -108,6 +108,7 @@ HOOK_DISPATCH = {
     "reactionUsers": "dispatchReactionUsers(",
     "profileRoleButtons": "dispatchProfileRoleButtons(",
     "hiddenChannels": "dispatchHiddenChannelDisplay(",
+    "attachmentButtons": "dispatchAttachmentButtons(",
 }
 
 MANIFEST_REQUIRED = {

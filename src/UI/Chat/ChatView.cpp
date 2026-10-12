@@ -1,4 +1,5 @@
 #include "ChatView.hpp"
+#include "UI/Qord/TextFileDialog.hpp"
 
 #include <QRegularExpression>
 
@@ -480,6 +481,38 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
         break;
     }
 
+    case Kind::AttachmentTextButton: {
+        // Qord: a text file preview's buttons
+        if (region->index < 0 || region->index >= resolved.ctx.attachments.size())
+            break;
+        const AttachmentData att = resolved.ctx.attachments[region->index];
+        const Core::Snowflake messageId = resolved.ctx.messageId;
+        auto download = [this, att]() {
+            ConfirmPopup dialog(tr("Open File"),
+                                QString(tr("Do you want to open <b>%1</b> (%2) in your browser?"))
+                                        .arg(att.filename)
+                                        .arg(ChatLayout::formatFileSize(att.fileSizeBytes)),
+                                tr("Open"), this);
+            if (dialog.exec() == QDialog::Accepted)
+                QDesktopServices::openUrl(att.originalUrl);
+        };
+        auto pluginButton = [chatModel, att, messageId](int i) {
+            auto *host = Qord::Plugins::PluginHost::instance();
+            if (host && i >= 0 && i < att.textButtons.size())
+                host->dispatchAttachmentButtonClicked(att.textButtons[i].pluginId, att.textButtons[i].id,
+                                                      chatModel->attachmentContext(messageId, att));
+        };
+        if (region->subIndex == 0)
+            chatModel->toggleTextExpanded(messageId, att.id);
+        else if (region->subIndex == 1)
+            TextFileDialog::show(window(), att, pluginButton, download);
+        else if (region->subIndex == 2)
+            download();
+        else if (region->subIndex >= 100)
+            pluginButton(region->subIndex - 100);
+        break;
+    }
+
     case Kind::ReactionUser: {
         // Qord: an avatar on a reaction opens that user's profile
         if (hasTextSelection() || region->index < 0 || region->index >= resolved.ctx.reactions.size())
@@ -634,6 +667,10 @@ bool ChatView::viewportEvent(QEvent *event)
         }
 
         const auto region = ChatLayout::hitTest(resolved, helpEvent->pos());
+        if (region && region->kind == ChatLayout::HitRegion::Kind::AttachmentTextButton && !region->url.isEmpty()) {
+            QToolTip::showText(helpEvent->globalPos(), region->url, viewport(), region->rect);
+            return true;
+        }
         if (region && region->kind == ChatLayout::HitRegion::Kind::Sticker) {
             QToolTip::showText(helpEvent->globalPos(), resolved.ctx.stickers[region->index].name, viewport(), region->rect);
             return true;

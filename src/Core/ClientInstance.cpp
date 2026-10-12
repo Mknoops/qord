@@ -337,8 +337,7 @@ ClientInstance::ClientInstance(const AccountInfo &info,
     connect(client, &Discord::Client::voiceServerUpdated, this,
             [this](const Discord::VoiceServerUpdate &event) {
                 qCInfo(LogVoice) << "VOICE_SERVER_UPDATE: guild" << event.guildId.get()
-                                 << "endpoint" << (event.endpoint.isNull() ? "null" : event.endpoint.get())
-                                 << "token" << event.token.get().left(8) + "...";
+                                 << "endpoint" << (event.endpoint.isNull() ? "null" : event.endpoint.get());
 
                 voiceManager->handleVoiceServerUpdate(event);
             });

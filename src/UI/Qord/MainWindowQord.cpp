@@ -338,6 +338,38 @@ void MainWindow::setupQordFeatures()
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
 
+    // TypingIndicator: who is typing next to channels in the list. The
+    // dots animate only while someone types and the plugin is on.
+    channelTreeModel->setTypingSource({ [this](Snowflake accountId, Snowflake channelId) {
+                                           if (!currentInstance || currentInstance->accountId() != accountId)
+                                               return QList<Snowflake>();
+                                           return typingTracker->typers(channelId);
+                                       },
+                                        [this](Snowflake channelId) { return chatModel->getActiveChannelId() == channelId; } });
+    auto *typingAnimation = new QTimer(this);
+    typingAnimation->setInterval(150);
+    connect(typingAnimation, &QTimer::timeout, this, [this]() {
+        ++ChannelDelegate::typingPhase();
+        channelTree->viewport()->update();
+    });
+    auto updateTyping = [this, typingAnimation](Snowflake channelId) {
+        if (currentInstance && channelId.isValid())
+            channelTreeModel->typingChanged(currentInstance->accountId(), channelId);
+        else
+            channelTree->viewport()->update();
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const bool animate =
+                typingTracker->anyTypers() && host && host->hasHook(Qord::Plugins::Hook::ChannelTyping);
+        if (animate && !typingAnimation->isActive())
+            typingAnimation->start();
+        else if (!animate)
+            typingAnimation->stop();
+    };
+    connect(typingTracker, &Core::TypingTracker::channelTypersChanged, this, updateTyping);
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this,
+                [updateTyping]() { updateTyping(Snowflake::Invalid); });
+
     // ServerInfo: its window, profiles, and the servers for mutual users
     Qord::Plugins::QtUiService::serverInfoShower() = [this](const Qord::Plugins::ServerInfoView &view) {
         ServerInfoDialog::Actions actions;

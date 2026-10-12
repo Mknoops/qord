@@ -1,0 +1,39 @@
+{
+  "id": "typingindicator",
+  "equicordName": "TypingIndicator",
+  "equicordPath": "src/plugins/typingIndicator",
+  "name": "TypingIndicator",
+  "description": "Adds an indicator if someone is typing on a channel.",
+  "categories": ["appearance"],
+  "tags": ["Notifications", "Appearance", "Servers"],
+  "authors": ["Nuckyz", "fawn", "Sqaaakoi"],
+  "permissions": ["add_ui_elements", "read_relationships", "read_server_permissions"],
+  "hooks": ["channelTyping"],
+  "settings": [
+    { "key": "includeCurrentChannel", "type": "bool", "default": true, "label": "Include current channel",
+      "description": "Whether to show the typing indicator for the currently selected channel" },
+    { "key": "includeMutedChannels", "type": "bool", "default": false, "label": "Include muted channels",
+      "description": "Whether to show the typing indicator for muted channels." },
+    { "key": "includeIgnoredUsers", "type": "bool", "default": false, "label": "Include ignored users",
+      "description": "Whether to show the typing indicator for ignored users." },
+    { "key": "includeBlockedUsers", "type": "bool", "default": false, "label": "Include blocked users",
+      "description": "Whether to show the typing indicator for blocked users." },
+    { "key": "indicatorMode", "type": "choice", "default": "both", "label": "Indicator mode",
+      "description": "How should the indicator be displayed?",
+      "choices": [
+        { "value": "both", "label": "Avatars and animated dots" },
+        { "value": "dots", "label": "Animated dots" },
+        { "value": "avatars", "label": "Avatars" }
+      ] }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Channels, voice channels' chats and threads in the channel list show who is typing in them: up to three avatars (then \"+N\") and Discord's animated dots, with \"Ava is typing...\" as the tooltip. Names are the server nickname, display name or username, as upstream.",
+  "gaps": [
+    "Only the account you are viewing: Qord tracks typing for the current account",
+    "With more than three typers the tooltip says \"Several people are typing...\" (upstream names two when TypingTweaks, not ported yet, is on)",
+    "Clicking the avatars doesn't open user popouts"
+  ]
+}

@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 334 |
+| Not Started | 333 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 35 |
+| Tested | 36 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -339,7 +339,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Translate | `src/plugins/translate` |  | Not Started |  |
 | Translate+ | `src/equicordplugins/translatePlus` |  | Not Started |  |
 | TriviaAI | `src/equicordplugins/triviaAI` |  | Not Started |  |
-| TypingIndicator | `src/plugins/typingIndicator` |  | Not Started |  |
+| TypingIndicator | `src/plugins/typingIndicator` | `plugins/appearance/typingindicator` | Tested | Channels, voice channels' chats and threads in the channel list show who is typing in them: up to three avatars (then "+N") and Discord's animated dots, with "Ava is typing..." as the tooltip. Names are the server nickname, display name or username, as upstream. wired; not yet verified in the running client. gaps: Only the account you are viewing: Qord tracks typing for the current account; With more than three typers the tooltip says "Several people are typing..." (upstream names two when TypingTweaks, not ported yet, is on); Clicking the avatars doesn't open user popouts. |
 | TypingTweaks | `src/plugins/typingTweaks` |  | Not Started |  |
 | Unindent | `src/plugins/unindent` | `plugins/chat/unindent` | Tested | Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). Received messages are unindented when shown, like upstream's renderer patch; the stored message is unchanged. wired; not yet verified in the running client. |
 | UnitConverter | `src/equicordplugins/unitConverter` |  | Not Started |  |

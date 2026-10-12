@@ -50,7 +50,7 @@ bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, cons
     if (event && index.isValid()) {
         QModelIndex source = proxyModel ? proxyModel->mapToSource(index) : index;
         const void *node = source.internalPointer();
-        for (const auto *tips : { &voiceLabelTips, &hiddenIconTips }) {
+        for (const auto *tips : { &voiceLabelTips, &hiddenIconTips, &typingTips }) {
             auto it = tips->constFind(node);
             if (it != tips->constEnd() && it->first.contains(event->pos())) {
                 QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
@@ -769,6 +769,66 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         rightReserve = fm.horizontalAdvance(countText) + fm.height() / 2 + 8;
     } else if (showForumBadge) {
         rightReserve = painter->fontMetrics().horizontalAdvance(forumBadgeText) + 12;
+    }
+
+    // Qord: TypingIndicator's avatars and dots, on the right
+    typingTips.remove(node);
+    const auto typing = index.data(ChannelTreeModel::TypingIndicatorRole).value<ChannelTreeModel::ChannelTyping>();
+    if (!typing.avatars.isEmpty() || typing.dots) {
+        constexpr int avatarSize = 16;
+        constexpr int avatarStep = 12;
+        const QFontMetrics fm(painter->font());
+        const QString more = typing.moreUsers > 0 ? QStringLiteral("+%1").arg(typing.moreUsers) : QString();
+        int width = 0;
+        if (!typing.avatars.isEmpty())
+            width += avatarSize + (int(typing.avatars.size()) - 1) * avatarStep;
+        if (!more.isEmpty())
+            width += 3 + fm.horizontalAdvance(more);
+        if (typing.dots)
+            width += (width ? 4 : 0) + 20;
+        const int top = contentOpt.rect.top() + (contentOpt.rect.height() - avatarSize) / 2;
+        int x = contentOpt.rect.right() - rightReserve - width + 4;
+        const QRect area(x, top, width, avatarSize);
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setRenderHint(QPainter::SmoothPixmapTransform);
+        for (const QPixmap &avatar : typing.avatars) {
+            const QRectF circle(x, top, avatarSize, avatarSize);
+            painter->setPen(QPen(option.palette.base().color(), 2));
+            painter->setBrush(Qt::NoBrush);
+            QPainterPath clip;
+            clip.addEllipse(circle);
+            painter->save();
+            painter->setClipPath(clip);
+            painter->drawPixmap(circle.toRect(), avatar);
+            painter->restore();
+            painter->drawEllipse(circle);
+            x += avatarStep;
+        }
+        if (!typing.avatars.isEmpty())
+            x += avatarSize - avatarStep;
+        if (!more.isEmpty()) {
+            painter->setPen(textColor);
+            painter->drawText(QRect(x + 3, contentOpt.rect.top(), fm.horizontalAdvance(more), contentOpt.rect.height()),
+                              Qt::AlignVCenter, more);
+            x += 3 + fm.horizontalAdvance(more);
+        }
+        if (typing.dots) {
+            if (!typing.avatars.isEmpty() || !more.isEmpty())
+                x += 4;
+            const int phase = typingPhase() % 8;
+            painter->setPen(Qt::NoPen);
+            for (int i = 0; i < 3; ++i) {
+                QColor dot = textColor;
+                dot.setAlphaF(phase / 2 == i ? 1.0 : 0.35);
+                painter->setBrush(dot);
+                painter->drawEllipse(QPointF(x + 3 + i * 7, contentOpt.rect.center().y() + 0.5), 3, 3);
+            }
+        }
+        painter->restore();
+        if (!typing.tooltip.isEmpty())
+            typingTips.insert(node, { area.adjusted(-2, -2, 2, 2), typing.tooltip });
+        rightReserve += width + 4;
     }
 
     hiddenIconTips.remove(node);

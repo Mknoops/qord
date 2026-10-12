@@ -115,6 +115,8 @@ public:
     [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
+    // The first plugin with an indicator wins
+    [[nodiscard]] std::optional<TypingIndicator> dispatchChannelTypingIndicator(const ChannelTypingContext &channel);
     [[nodiscard]] QList<PluginButton> dispatchAttachmentButtons(const AttachmentContext &attachment);
     void dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
                                          const AttachmentContext &attachment);

@@ -51,7 +51,25 @@ public:
         // Qord: false for channels (and voice channels) you can't see or join
         CanViewRole = Qt::UserRole + 18,
         CanConnectRole = Qt::UserRole + 19,
+        TypingIndicatorRole = Qt::UserRole + 20, // Qord: TypingIndicator (ChannelTyping)
     };
+
+    // Qord: who is typing next to a channel (TypingIndicator)
+    struct ChannelTyping
+    {
+        QList<QPixmap> avatars; // at most three
+        int moreUsers = 0; // "+N"
+        bool dots = false;
+        QString tooltip;
+    };
+    struct TypingSource
+    {
+        std::function<QList<Snowflake>(Snowflake accountId, Snowflake channelId)> typers;
+        std::function<bool(Snowflake channelId)> isSelected;
+    };
+    void setTypingSource(TypingSource source) { typingSource = std::move(source); }
+    // Re-renders a channel whose typers changed
+    void typingChanged(Snowflake accountId, Snowflake channelId);
 
     // Qord: how ShowHiddenChannels shows channels you can't see; when
     // `show` is off they stay out of the list, as in Discord
@@ -157,6 +175,7 @@ private:
 
     std::unique_ptr<ChannelNode> root;
     QHash<Snowflake, ChannelNode *> accountNodes;
+    TypingSource typingSource;
     QHash<Snowflake, Snowflake> accountVoiceChannels;
     int publishedMentionCount = 0;
     mutable AvatarRequestTracker<QPersistentModelIndex> avatarTracker;
@@ -166,3 +185,5 @@ private:
 };
 } // namespace UI
 } // namespace Acheron
+
+Q_DECLARE_METATYPE(Acheron::UI::ChannelTreeModel::ChannelTyping)

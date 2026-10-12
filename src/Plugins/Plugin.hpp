@@ -215,6 +215,14 @@ public:
         return std::nullopt;
     }
 
+    // Hook::ChannelTyping: an indicator next to a channel someone is typing in
+    // (nullopt: none)
+    virtual std::optional<TypingIndicator> channelTypingIndicator(const ChannelTypingContext &channel)
+    {
+        Q_UNUSED(channel);
+        return std::nullopt;
+    }
+
     // Hook::AttachmentButtons: buttons in a text file's preview (and its
     // full view), once its start is loaded
     virtual QList<ChatBarButton> attachmentButtons(const AttachmentContext &attachment)

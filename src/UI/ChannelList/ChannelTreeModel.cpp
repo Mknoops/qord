@@ -11,6 +11,7 @@
 #include <Core/Logging.hpp>
 #include <Discord/CdnUrls.hpp>
 #include <Discord/Enums.hpp>
+#include <Plugins/PluginHost.hpp>
 #include <Storage/DatabaseManager.hpp>
 #include <Storage/ChannelRepository.hpp>
 #include <Storage/UserRepository.hpp>
@@ -220,6 +221,49 @@ QVariant ChannelTreeModel::data(const QModelIndex &index, int role) const
     }
     if (role == OwnerIdRole)
         return static_cast<quint64>(node->ownerId);
+
+    if (role == TypingIndicatorRole) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const bool typingRow = node->type == ChannelNode::Type::Channel || node->type == ChannelNode::Type::VoiceChannel ||
+                               node->type == ChannelNode::Type::Thread || node->type == ChannelNode::Type::DMChannel;
+        if (!typingRow || !typingSource.typers || !host || !host->hasHook(Qord::Plugins::Hook::ChannelTyping))
+            return {};
+        ChannelNode *accNode = getAccountNodeFor(node);
+        if (!accNode)
+            return {};
+        const QList<Snowflake> typers = typingSource.typers(accNode->id, node->id);
+        if (typers.isEmpty())
+            return {};
+        ChannelNode *guildNode = findGuildNode(node);
+        Qord::Plugins::ChannelTypingContext context;
+        context.accountId = quint64(accNode->id);
+        context.guildId = guildNode ? quint64(guildNode->id) : 0;
+        context.channelId = quint64(node->id);
+        context.selected = typingSource.isSelected && typingSource.isSelected(node->id);
+        context.muted = node->isMuted;
+        for (const Snowflake id : typers)
+            context.typers.append(quint64(id));
+        const auto indicator = host->dispatchChannelTypingIndicator(context);
+        if (!indicator)
+            return {};
+        ChannelTyping out;
+        out.dots = indicator->dots;
+        out.tooltip = indicator->tooltip;
+        auto *instance = session->client(accNode->id);
+        for (int i = 0; i < indicator->avatars.size(); ++i) {
+            if (i >= 3) {
+                out.moreUsers = int(indicator->avatars.size()) - 3;
+                break;
+            }
+            const Snowflake userId(indicator->avatars[i]);
+            const auto user = instance ? instance->users()->getUser(userId) : std::nullopt;
+            const QUrl url = user ? Discord::Cdn::userAvatar(userId, user->avatar.valueOr(), 32)
+                                  : Discord::Cdn::defaultUserAvatar(userId, 32);
+            out.avatars.append(avatarTracker.fetch(session->getImageManager(), url, QSize(16, 16), index, accNode->id,
+                                                   Core::PinGroup::ChannelList));
+        }
+        return QVariant::fromValue(out);
+    }
 
     if (role == CanViewRole || role == CanConnectRole) {
         const bool voice = node->type == ChannelNode::Type::VoiceChannel;
@@ -1694,6 +1738,15 @@ void ChannelTreeModel::aggregateChildren(ChannelNode *node)
     if (node->type == ChannelNode::Type::Server || node->type == ChannelNode::Type::Folder ||
         node->type == ChannelNode::Type::DMHeader)
         node->isUnread = node->countsForGuildUnread;
+}
+
+void ChannelTreeModel::typingChanged(Snowflake accountId, Snowflake channelId)
+{
+    if (ChannelNode *node = findChannelTreeNode(channelId, accountId)) {
+        const QModelIndex idx = indexForNode(node);
+        if (idx.isValid())
+            emit dataChanged(idx, idx, { TypingIndicatorRole });
+    }
 }
 
 void ChannelTreeModel::refreshAllReadStates()

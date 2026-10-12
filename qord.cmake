@@ -36,6 +36,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/HiddenChannelScreen.cpp
     src/UI/Qord/TextFileDialog.hpp
     src/UI/Qord/TextFileDialog.cpp
+    src/UI/Qord/ServerInfoDialog.hpp
+    src/UI/Qord/ServerInfoDialog.cpp
     src/UI/Qord/MessageListPopup.hpp
     src/UI/Qord/MessageListPopup.cpp
     src/UI/Qord/MainWindowQord.cpp

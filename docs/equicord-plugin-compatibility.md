@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 335 |
+| Not Started | 334 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 34 |
+| Tested | 35 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -285,7 +285,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | SedEnhanced | `src/equicordplugins/sedEnhanced` |  | Not Started |  |
 | SekaiStickers | `src/equicordplugins/sekaiStickers` |  | Not Started |  |
 | SendTimestamps | `src/plugins/sendTimestamps` | `plugins/chat/sendtimestamps` | Tested | Type a time in backticks, like `17:59` or `3:51 PM`, and it is sent as a timestamp everyone sees in their own time zone (the next occurrence of that time). The calendar button opens the timestamp picker. Upstream's picker also lists the newer "s"/"S" formats; Qord's picker offers the seven formats its renderer shows. wired; not yet verified in the running client. |
-| ServerInfo | `src/plugins/serverInfo` |  | Not Started |  |
+| ServerInfo | `src/plugins/serverInfo` | `plugins/utility/serverinfo` | Tested | "Server Info" in the server menu opens the server's icon, name, description and banner (click them to view them full size), its details (owner, creation and join dates, vanity link, locale, verification level, boosts, channels, roles) and your friends, mutual users, blocked and ignored users in it. Clicking a user opens their profile. Lists come from the members Qord has loaded; the friends, blocked and ignored users it lacks are asked for from Discord. wired; not yet verified in the running client. gaps: Members Discord sends after the window opened appear the next time it is opened (upstream's list updates live); User rows don't show online status. |
 | ServerListIndicators | `src/plugins/serverListIndicators` |  | Not Started |  |
 | ServerSearch | `src/equicordplugins/serverSearch` |  | Not Started |  |
 | Settings | `src/plugins/_core/settings.tsx` |  | Not Started |  |

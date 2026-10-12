@@ -147,6 +147,24 @@ bool SessionRelationshipDirectory::isIgnored(Id accountId, Id userId) const
     return rel && rel->userIgnored.hasValue() && rel->userIgnored.get();
 }
 
+QList<Id> SessionRelationshipDirectory::relationshipIds(Id accountId, Kind kind) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->relationships())
+        return {};
+    QList<Id> out;
+    for (const auto &rel : instance->relationships()->all()) {
+        const bool match =
+                kind == Kind::Ignored ? rel.userIgnored.hasValue() && rel.userIgnored.get()
+                : kind == Kind::Blocked
+                        ? rel.type.hasValue() && rel.type.get() == Acheron::Discord::RelationshipType::BLOCKED
+                        : rel.type.hasValue() && rel.type.get() == Acheron::Discord::RelationshipType::FRIEND;
+        if (match && rel.id.hasValue())
+            out.append(quint64(rel.id.get()));
+    }
+    return out;
+}
+
 void QtUiService::showTextDialog(const QString &title, const QList<TextSection> &sections)
 {
     auto *dialog = new QDialog(QApplication::activeWindow());
@@ -196,6 +214,30 @@ std::function<void()> &QtUiService::lockScreenRefresher()
 {
     static std::function<void()> refresher;
     return refresher;
+}
+
+std::function<void(const ServerInfoView &)> &QtUiService::serverInfoShower()
+{
+    static std::function<void(const ServerInfoView &)> shower;
+    return shower;
+}
+
+std::function<void(Id, Id, Id)> &QtUiService::profileOpener()
+{
+    static std::function<void(Id, Id, Id)> opener;
+    return opener;
+}
+
+void QtUiService::showServerInfo(const ServerInfoView &view)
+{
+    if (serverInfoShower())
+        serverInfoShower()(view);
+}
+
+void QtUiService::openUserProfile(Id accountId, Id guildId, Id userId)
+{
+    if (profileOpener())
+        profileOpener()(accountId, guildId, userId);
 }
 
 std::function<void(Id, Id, Id)> &QtUiService::attachmentRefresher()
@@ -491,6 +533,53 @@ std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const
         info.unicodeEmoji = role.unicodeEmoji.valueOr();
         out.roles.append(info);
     }
+    const Acheron::Core::Snowflake id(guildId);
+    out.description = guild->description.valueOr();
+    if (!guild->icon.get().isEmpty())
+        out.iconUrl = Acheron::Discord::Cdn::guildIcon(id, guild->icon.get(), 512).toString();
+    if (!guild->banner.valueOr().isEmpty())
+        out.bannerUrl = Acheron::Discord::Cdn::guildBanner(id, guild->banner.valueOr(), 1024).toString();
+    const QJsonObject extra = QJsonDocument::fromJson(guild->extraJson.toUtf8()).object();
+    out.vanityUrlCode = extra.value(QStringLiteral("vanity_url_code")).toString();
+    out.preferredLocale = extra.value(QStringLiteral("preferred_locale")).toString();
+    if (guild->verificationLevel.hasValue())
+        out.verificationLevel = int(guild->verificationLevel.get());
+    out.premiumSubscriptionCount = guild->premiumSubscriptionCount.valueOr(0);
+    out.premiumTier = guild->premiumTier.hasValue() ? int(guild->premiumTier.get()) : 0;
+    if (instance->users())
+        if (const auto self = instance->users()->getMember(id, instance->accountId()); self && self->joinedAt.hasValue())
+            out.joinedAt = self->joinedAt.get();
+    if (auto *perms = instance->permissions()) {
+        int count = 0;
+        for (const auto &channel : instance->getGuildChannels(id))
+            if (!channel.isThread() &&
+                perms->hasChannelPermission(instance->accountId(), channel.id.get(), Acheron::Discord::Permission::VIEW_CHANNEL))
+                ++count;
+        out.channelCount = count;
+    }
+    return out;
+}
+
+std::function<QList<Id>(Id)> &SessionGuilds::guildIdsProvider()
+{
+    static std::function<QList<Id>(Id)> provider;
+    return provider;
+}
+
+QList<Id> SessionGuilds::guildIds(Id accountId) const
+{
+    return guildIdsProvider() ? guildIdsProvider()(accountId) : QList<Id>();
+}
+
+QList<Id> SessionGuilds::memberIds(Id accountId, Id guildId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->users())
+        return {};
+    QList<Id> out;
+    for (const auto &member : instance->users()->getKnownMembers(Acheron::Core::Snowflake(guildId)))
+        if (member.user.hasValue())
+            out.append(quint64(member.user->id.get()));
     return out;
 }
 

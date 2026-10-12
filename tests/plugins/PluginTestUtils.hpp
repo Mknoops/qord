@@ -10,6 +10,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <algorithm>
 #include <memory>
 
 namespace Qord {
@@ -99,8 +100,16 @@ public:
         Q_UNUSED(accountId);
         return ignored.contains(userId);
     }
+    QList<Id> relationshipIds(Id, Kind kind) const override
+    {
+        const QSet<Id> &set = kind == Kind::Friend ? friends : kind == Kind::Blocked ? blocked : ignored;
+        QList<Id> out(set.begin(), set.end());
+        std::sort(out.begin(), out.end());
+        return out;
+    }
     QSet<Id> blocked;
     QSet<Id> ignored;
+    QSet<Id> friends;
 };
 
 class FakeUi : public UiService
@@ -119,6 +128,8 @@ public:
     void showMemberPermissions(const MemberPermissionsView &view) override { memberPermissionViews.append(view); }
     QList<PermissionsView> permissionViews;
     void refreshAttachments(Id, Id, Id messageId) override { attachmentRefreshes.append(messageId); }
+    void showServerInfo(const ServerInfoView &view) override { serverInfoViews.append(view); }
+    QList<ServerInfoView> serverInfoViews;
     QList<Id> attachmentRefreshes;
     QList<MemberPermissionsView> memberPermissionViews;
     void openImage(const QUrl &url) override { images.append(url); }
@@ -294,6 +305,10 @@ public:
         return members.contains(userId) ? std::optional<MemberInfo>(members.value(userId)) : std::nullopt;
     }
     void requestMembers(Id, Id guildId, const QList<Id> &userIds) override { requested.append({ guildId, userIds }); }
+    QList<Id> guildIds(Id) const override { return guildOrder; }
+    QList<Id> memberIds(Id, Id guildId) const override { return guildMembers.value(guildId); }
+    QList<Id> guildOrder;
+    QHash<Id, QList<Id>> guildMembers;
 
     QHash<Id, GuildInfo> guilds;
     QHash<Id, ChannelInfo> channels;

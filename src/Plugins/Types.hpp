@@ -438,6 +438,17 @@ struct GuildInfo
     QString name;
     Id ownerId = 0;
     QList<RoleInfo> roles; // highest position first, as Discord sorts them
+    // ServerInfo
+    QString description;
+    QString iconUrl; // empty without an icon
+    QString bannerUrl;
+    QString vanityUrlCode;
+    QString preferredLocale;
+    int verificationLevel = -1; // -1: unknown
+    int premiumSubscriptionCount = 0;
+    int premiumTier = 0;
+    QDateTime joinedAt; // when you joined
+    int channelCount = -1; // channels and categories you can see; -1: unknown
 };
 
 struct ChannelInfo
@@ -571,6 +582,49 @@ struct AttachmentContext
     qint64 size = 0;
     QString text; // the start of the file
     qint64 bytesLeft = 0; // the part that wasn't loaded (0: `text` is the whole file)
+};
+
+// ServerInfo's window: the server's details and four lists of users
+struct ServerInfoUser
+{
+    Id userId = 0;
+    QString name; // display name, or username
+    QString username;
+    QString avatarUrl;
+    int mutualServers = 0; // Mutual Users only
+    struct Server
+    {
+        QString name;
+        QString iconUrl;
+        QString acronym; // shown without an icon
+    };
+    QList<Server> mutualServerIcons; // the first three
+};
+
+struct ServerInfoView
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    QString name;
+    QString description;
+    QString iconUrl;
+    QString bannerUrl;
+    QString acronym; // shown without an icon
+    struct Field
+    {
+        QString label;
+        QString text;
+        QDateTime time; // shown instead of `text` when valid
+        Id userId = 0; // a user (the owner) shown with `avatarUrl`
+        QString avatarUrl;
+    };
+    QList<Field> fields;
+    struct Tab
+    {
+        QString title;
+        QList<ServerInfoUser> users;
+    };
+    QList<Tab> tabs;
 };
 
 // One part of a text diff (see TextDiff.hpp).

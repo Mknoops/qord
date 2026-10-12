@@ -37,6 +37,9 @@ import zlib
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mock_voice  # noqa: E402  (voice gateway, media and Go Live)
+
 DISCORD_EPOCH = 1420070400000
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -438,12 +441,65 @@ GUILD_OF = {c["id"]: gid for gid, chans in GUILD_CHANNELS.items() for c in chans
 
 
 def voice_states(gid: str) -> list:
-    """Ava hangs out in the first server's voice channel (MemberCount's voice number)."""
+    """Ava hangs out in the first server's voice channel (MemberCount's voice number),
+    streaming a test picture (Go Live)."""
     if gid != G1:
         return []
     return [{"user_id": U["ava"], "channel_id": CH["lounge"], "session_id": "mock-voice-ava",
              "self_mute": False, "self_deaf": False, "mute": False, "deaf": False, "suppress": False,
-             "self_video": False}]
+             "self_video": False, "self_stream": True}]
+
+
+VOICE: dict[str, Any] = {"endpoint": "", "guild_id": None, "channel_id": None}
+
+
+async def voice_state_update(conn, d: dict) -> None:
+    """Joining or leaving voice: the voice state, then where the voice server is
+    (only when the channel changes; mute and deafen are just state)."""
+    moved = d.get("channel_id") != VOICE["channel_id"]
+    VOICE["guild_id"], VOICE["channel_id"] = d.get("guild_id"), d.get("channel_id")
+    state = {"guild_id": d.get("guild_id"), "channel_id": d.get("channel_id"), "user_id": SELF_ID,
+             "session_id": "mock-session", "self_mute": bool(d.get("self_mute")), "self_deaf": bool(d.get("self_deaf")),
+             "mute": False, "deaf": False, "suppress": False, "self_video": False, "self_stream": False}
+    if d.get("guild_id") in GUILDS:
+        state["member"] = guild_member(d["guild_id"], "self")
+    await conn.dispatch("VOICE_STATE_UPDATE", state)
+    if d.get("channel_id") and moved:
+        await conn.dispatch("VOICE_SERVER_UPDATE", {"token": "mock-voice-token", "guild_id": d.get("guild_id"),
+                                                    "channel_id": d.get("channel_id"), "endpoint": VOICE["endpoint"]})
+    log(f"gateway: voice -> {d.get('channel_id')}")
+
+
+async def go_live(conn, op: int, d: dict) -> None:
+    """STREAM_CREATE (18), STREAM_DELETE (19), STREAM_WATCH (20), STREAM_SET_PAUSED (22)."""
+    if op == 18:
+        gid, cid = d.get("guild_id"), d.get("channel_id")
+        key = f"guild:{gid}:{cid}:{SELF_ID}" if gid else f"call:{cid}:{SELF_ID}"
+    else:
+        key = d.get("stream_key", "")
+    rtc = str(int(hashlib.sha1(key.encode()).hexdigest()[:12], 16))  # numeric, like Discord's
+    owner = key.rsplit(":", 1)[-1]
+    if op in (18, 20):
+        if owner == U["ava"]:
+            mock_voice.FAKE_STREAMS[rtc] = owner
+        await conn.dispatch("STREAM_CREATE", {"stream_key": key, "rtc_server_id": rtc, "region": "mock",
+                                              "viewer_ids": [], "paused": False})
+        await conn.dispatch("STREAM_SERVER_UPDATE", {"stream_key": key, "endpoint": VOICE["endpoint"],
+                                                     "token": "mock-stream-token", "guild_id": None})
+        if op == 18:
+            await conn.dispatch("VOICE_STATE_UPDATE", {
+                "guild_id": VOICE["guild_id"], "channel_id": VOICE["channel_id"], "user_id": SELF_ID,
+                "session_id": "mock-session", "self_mute": False, "self_deaf": False, "mute": False, "deaf": False,
+                "suppress": False, "self_video": False, "self_stream": True})
+        log(f"gateway: {'stream created' if op == 18 else 'watching'} {key}")
+    elif op == 19:
+        if owner == SELF_ID:
+            await conn.dispatch("STREAM_DELETE", {"stream_key": key, "unavailable": False, "reason": "user_requested"})
+            await conn.dispatch("VOICE_STATE_UPDATE", {
+                "guild_id": VOICE["guild_id"], "channel_id": VOICE["channel_id"], "user_id": SELF_ID,
+                "session_id": "mock-session", "self_mute": False, "self_deaf": False, "mute": False, "deaf": False,
+                "suppress": False, "self_video": False, "self_stream": False})
+        log(f"gateway: stream closed {key}")
 
 
 def gateway_guild(gid: str) -> dict:
@@ -681,6 +737,10 @@ async def run_gateway(conn: GatewayConn) -> None:
                 log("gateway: identified, READY sent")
             elif op == 41:
                 pass  # time-spent session id
+            elif op == 4:
+                await voice_state_update(conn, d or {})
+            elif op in (18, 19, 20, 22):
+                await go_live(conn, op, d or {})
             elif op == 37:
                 for gid in (d or {}).get("subscriptions", {}):
                     if gid in GUILDS:
@@ -1099,6 +1159,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 writer.write(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
                              b"Sec-WebSocket-Accept: " + accept + b"\r\n\r\n")
                 await writer.drain()
+                if target.startswith("/voice"):
+                    log("voice: gateway connected")
+                    await mock_voice.run_voice_gateway(GatewayConn(reader, writer))
+                    return
                 log("gateway: client connected")
                 await run_gateway(GatewayConn(reader, writer))
                 return
@@ -1204,6 +1268,9 @@ async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
 
 async def serve(port: int) -> None:
     server = await asyncio.start_server(handle_client, "127.0.0.1", port)
+    mock_voice.LOG = log
+    await mock_voice.start_udp()
+    VOICE["endpoint"] = f"ws://127.0.0.1:{port}/voice"
     log(f"listening on http://127.0.0.1:{port}  (set QORD_MOCK_DISCORD=http://127.0.0.1:{port})")
     async with server:
         await server.serve_forever()

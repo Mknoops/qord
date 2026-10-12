@@ -290,6 +290,12 @@ void Client::sendInteraction(const QJsonObject &payload, ActionCallback callback
                      [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }
 
+void Client::sendGatewayOp(int op, const Core::OrderedJson &d)
+{
+    if (gateway)
+        gateway->sendOp(op, d);
+}
+
 QString Client::gatewaySessionId() const
 {
     return gateway ? gateway->currentSessionId() : QString();

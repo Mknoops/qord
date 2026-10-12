@@ -33,6 +33,7 @@ public:
     [[nodiscard]] bool selfDeaf() const { return deafened; }
     // Re-applies mute/deafen to the active voice connection (after joining)
     void applyVoiceFlags();
+    void applyLocalVoiceFlags();
 
 signals:
     void settingsRequested();

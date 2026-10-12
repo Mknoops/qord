@@ -296,6 +296,8 @@ private:
     void refreshMemberCountBar();
     QString memberCountTooltip(Core::Snowflake accountId, Core::Snowflake guildId);
     void openImageInViewer(const QUrl &url);
+    class GoLiveUi *goLiveUi = nullptr;
+    void addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Core::Snowflake userId);
     UserPanel *userPanel = nullptr;
     QLabel *channelNameLabel = nullptr;
     QToolButton *pinsButton = nullptr;

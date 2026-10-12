@@ -83,6 +83,12 @@ void VoiceStatusBar::setupUi()
     layout->addWidget(disconnectBtn);
 }
 
+void VoiceStatusBar::insertActionButton(QWidget *button)
+{
+    auto *box = static_cast<QHBoxLayout *>(layout());
+    box->insertWidget(box->indexOf(disconnectBtn), button);
+}
+
 void VoiceStatusBar::setExtraText(const QString &text)
 {
     extraLabel->setText(text);

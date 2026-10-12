@@ -36,11 +36,16 @@
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
+#include "UI/ChannelList/ChannelFilterProxyModel.hpp"
+#include "UI/ChannelList/ChannelNode.hpp"
 #include "UI/MemberList/MemberListView.hpp"
 #include "UI/ImageViewer.hpp"
 #include "UI/ChannelList/ChannelDelegate.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "UI/VoiceStatusBar.hpp"
+#endif
+#ifdef QORD_HAVE_GO_LIVE
+#include "UI/Qord/GoLiveUi.hpp"
 #endif
 #include <QTimer>
 #include <QApplication>
@@ -141,9 +146,40 @@ private:
 };
 } // namespace
 
+void MainWindow::addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Snowflake userId)
+{
+#ifdef QORD_HAVE_GO_LIVE
+    if (goLiveUi)
+        goLiveUi->addUserMenuItems(menu, instance, userId);
+#else
+    Q_UNUSED(menu);
+    Q_UNUSED(instance);
+    Q_UNUSED(userId);
+#endif
+}
+
 void MainWindow::setupQordFeatures()
 {
     applyQordSurfaces();
+#ifdef QORD_HAVE_GO_LIVE
+    // Go Live: share your screen from the voice panel, LIVE badges, watching
+    goLiveUi = new GoLiveUi(session, voiceStatusBar, this);
+    ChannelDelegate::setLiveProvider([this](quint64 accountId, quint64 userId) {
+        return goLiveUi && goLiveUi->isLive(accountId, userId);
+    });
+    connect(this, &QObject::destroyed, []() { ChannelDelegate::setLiveProvider(nullptr); });
+    // Double-clicking someone who is live opens their stream, as clicking does in Discord
+    connect(channelTree, &QAbstractItemView::doubleClicked, this, [this](const QModelIndex &proxyIndex) {
+        auto *node = channelTreeModel->nodeFromIndex(channelFilterProxy->mapToSource(proxyIndex));
+        if (!node || node->type != ChannelNode::Type::VoiceParticipant)
+            return;
+        ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
+        Core::ClientInstance *instance = accountNode ? session->client(accountNode->id) : nullptr;
+        if (instance && goLiveUi->isLive(quint64(instance->accountId()), quint64(node->id)) &&
+            node->id != instance->accountId())
+            goLiveUi->watch(instance, node->id);
+    });
+#endif
     // Hover highlights on channel rows, like Discord
     channelTree->setMouseTracking(true);
     channelTree->viewport()->setAttribute(Qt::WA_Hover);

@@ -327,6 +327,11 @@ void Gateway::handleDispatch(const Inbound &data)
         handleSessionsReplace(data);
         break;
     case GatewayEvent::UNKNOWN:
+        // Qord: Go Live
+        if (t.startsWith(QLatin1String("STREAM_"))) {
+            emit gatewayStreamEvent(t, data.data.toObject());
+            break;
+        }
         qCInfo(LogDiscord) << "Unknown gateway event: " << t;
         break;
     default:
@@ -763,6 +768,14 @@ void Gateway::sendVoiceStateUpdate(Core::Snowflake guildId, Core::Snowflake chan
     msg.selfDeaf = selfDeaf;
 
     sendPayload(msg.toJson());
+}
+
+void Gateway::sendOp(int op, const Core::OrderedJson &d)
+{
+    Core::OrderedJson obj;
+    obj.insert("op", op);
+    obj.insert("d", d);
+    sendPayload(obj);
 }
 
 void Gateway::handleHello(const Inbound &data)

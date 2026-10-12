@@ -141,6 +141,8 @@ public:
     void ackBulk(const QList<AckEntry> &entries, std::function<void(bool success)> onFinished);
 
     void sendVoiceStateUpdate(Snowflake guildId, Snowflake channelId, bool selfMute, bool selfDeaf);
+    // Qord: Go Live
+    void sendGatewayOp(int op, const Core::OrderedJson &d);
     void setVoiceConnected(bool connected);
 
     void restoreHeartbeatSession(const std::optional<HeartbeatSession> &stored);
@@ -327,6 +329,7 @@ signals:
     void guildMemberListUpdate(const GuildMemberListUpdate &event);
     void voiceStateUpdated(const VoiceState &event);
     void voiceServerUpdated(const VoiceServerUpdate &event);
+    void streamEvent(const QString &type, const QJsonObject &data); // Qord: Go Live
     void relationshipAdded(const Relationship &event);
     void relationshipUpdated(const RelationshipPartial &event);
     void relationshipRemoved(const RelationshipPartial &event);

@@ -9,6 +9,10 @@
 #include "Core/Audio/IAudioBackend.hpp"
 #include "Core/Logging.hpp"
 
+#include <QDateTime>
+#include <QJsonArray>
+#include <QtEndian>
+
 #include <array>
 
 namespace Acheron {
@@ -80,6 +84,8 @@ void VoiceClient::start()
     setState(State::Connecting);
 
     gateway = new VoiceGateway(endpoint, serverId, channelId, userId, sessionId, token, proxy, this);
+    gateway->setVideoStreamType(videoStreamType); // Qord
+    connect(gateway, &VoiceGateway::videoReceived, this, &VoiceClient::onVideoOp);
 
     connect(gateway, &VoiceGateway::connected, this, &VoiceClient::onGatewayConnected);
     connect(gateway, &VoiceGateway::disconnected, this, &VoiceClient::onGatewayDisconnected);
@@ -151,6 +157,10 @@ void VoiceClient::stop()
     cleanupTransport();
 
     localSsrc = 0;
+    localVideoSsrc = 0;
+    localRtxSsrc = 0;
+    videoCodecAssigned = false;
+    depacketizers.clear();
     selectedMode.clear();
     sessionKey.clear();
 
@@ -206,6 +216,13 @@ void VoiceClient::onGatewayReady(const VoiceReady &data)
                      << "modes =" << data.modes.get();
 
     localSsrc = data.ssrc;
+    // Qord: the video stream the server assigned (first one)
+    if (!data.streams.isEmpty()) {
+        const QJsonObject stream = data.streams.first().toObject();
+        localVideoSsrc = quint32(stream.value(QStringLiteral("ssrc")).toDouble());
+        localRtxSsrc = quint32(stream.value(QStringLiteral("rtx_ssrc")).toDouble());
+        qCInfo(LogVoice) << "Video SSRC =" << localVideoSsrc << "RTX SSRC =" << localRtxSsrc;
+    }
     serverIp = data.ip;
     serverPort = data.port;
     serverModes = data.modes;
@@ -374,8 +391,17 @@ void VoiceClient::onDatagram(const QByteArray &data)
     if (((p[0] >> 6) & 0x03) != 2)
         return;
 
+    // Qord: RTCP (keyframe requests) and video
+    if (p[1] >= 192 && p[1] <= 223) {
+        onRtcpDatagram(data);
+        return;
+    }
     // ignore all non-opus packets. theres rtcp and other stuff
     uint8_t payloadType = p[1] & 0x7F;
+    if (payloadType == Qord::Video::H264PayloadType) {
+        onVideoDatagram(data);
+        return;
+    }
     if (payloadType != 120)
         return;
 
@@ -476,6 +502,177 @@ void VoiceClient::onDatagram(const QByteArray &data)
     }
 
     emit audioReceived(header.ssrc, header.sequence, header.timestamp, decrypted);
+}
+
+void VoiceClient::setVideoActive(bool active, int width, int height, int fps, int maxBitrate)
+{
+    if (!gateway || !localVideoSsrc)
+        return;
+    gateway->sendVideo(localSsrc, localVideoSsrc, localRtxSsrc, active, width, height, fps, maxBitrate);
+    // Discord's clients mark themselves speaking while sending media
+    gateway->sendSpeaking(active ? static_cast<int>(SpeakingFlag::MICROPHONE) : 0, 0, localSsrc);
+}
+
+void VoiceClient::requestVideo(int quality)
+{
+    if (gateway)
+        gateway->sendMediaSinkWants(quality);
+}
+
+void VoiceClient::sendVideoFrame(const QByteArray &annexB, quint32 timestamp)
+{
+    if (currentState != State::Connected || !encryption || !udpTransport || !localVideoSsrc || annexB.isEmpty())
+        return;
+
+    QByteArray frame = annexB;
+    if (isDaveEnabled()) {
+        auto *enc = daveSession->encryptor();
+        if (!videoCodecAssigned) {
+            enc->AssignSsrcToCodec(localVideoSsrc, discord::dave::Codec::H264);
+            videoCodecAssigned = true;
+        }
+        std::vector<uint8_t> out(enc->GetMaxCiphertextByteSize(discord::dave::MediaType::Video, frame.size()));
+        size_t written = 0;
+        auto result = enc->Encrypt(discord::dave::MediaType::Video, localVideoSsrc,
+                                   discord::dave::ArrayView<const uint8_t>(
+                                           reinterpret_cast<const uint8_t *>(frame.constData()), frame.size()),
+                                   discord::dave::ArrayView<uint8_t>(out.data(), out.size()), &written);
+        if (result != discord::dave::IEncryptor::Success) {
+            qCWarning(LogVoice) << "DAVE video encrypt failed: result =" << static_cast<int>(result);
+            return;
+        }
+        frame = QByteArray(reinterpret_cast<const char *>(out.data()), static_cast<qsizetype>(written));
+    }
+
+    const Qord::Video::HeaderExtension ext = Qord::Video::playoutDelayExtension();
+    const QList<QByteArray> payloads = Qord::Video::packetize(frame);
+    for (int i = 0; i < payloads.size(); ++i) {
+        RtpHeader header;
+        header.payloadType = Qord::Video::H264PayloadType;
+        header.extension = true;
+        header.marker = i == payloads.size() - 1;
+        header.sequence = videoSequence++;
+        header.timestamp = timestamp;
+        header.ssrc = localVideoSsrc;
+        // rtpsize: the header and the extension's 4-byte header are additional
+        // data; the extension body is encrypted with the payload
+        const QByteArray clear = header.serialize() + ext.header;
+        const QByteArray sealed = encryption->encrypt(clear, ext.body + payloads[i]);
+        if (sealed.isEmpty())
+            return;
+        udpTransport->send(clear + sealed);
+    }
+}
+
+void VoiceClient::onVideoOp(const QJsonObject &data)
+{
+    const quint64 uid = data.value(QStringLiteral("user_id")).toString().toULongLong();
+    const quint32 ssrc = quint32(data.value(QStringLiteral("video_ssrc")).toDouble());
+    if (uid && ssrc) {
+        ssrcToUserIdMap.insert(ssrc, uid);
+        if (daveSession)
+            daveSession->applyKeyRatchetForSsrc(ssrc, uid);
+    }
+    bool active = ssrc != 0;
+    const QJsonArray streams = data.value(QStringLiteral("streams")).toArray();
+    if (!streams.isEmpty())
+        active = active && streams.first().toObject().value(QStringLiteral("active")).toBool(true);
+    emit videoStreamsChanged(uid, ssrc, active);
+}
+
+void VoiceClient::onVideoDatagram(const QByteArray &data)
+{
+    const auto *p = reinterpret_cast<const uint8_t *>(data.constData());
+    const int csrcCount = p[0] & 0x0F;
+    const bool hasExtension = (p[0] >> 4) & 1;
+    const int headerSize = RtpHeader::FIXED_SIZE + csrcCount * 4 + (hasExtension ? 4 : 0);
+    if (data.size() <= headerSize + 4 || !encryption)
+        return;
+    const RtpHeader header = RtpHeader::parse(data);
+    if (header.ssrc == localVideoSsrc)
+        return;
+
+    QByteArray decrypted = encryption->decrypt(data.left(headerSize), data.mid(headerSize));
+    if (decrypted.isEmpty())
+        return;
+    if (hasExtension) {
+        const int extOffset = RtpHeader::FIXED_SIZE + csrcCount * 4;
+        const int extBytes = ((p[extOffset + 2] << 8) | p[extOffset + 3]) * 4;
+        if (decrypted.size() < extBytes)
+            return;
+        decrypted = decrypted.mid(extBytes);
+    }
+
+    auto &depacketizer = depacketizers[header.ssrc];
+    auto frame = depacketizer.push(header.sequence, header.timestamp, header.marker, decrypted);
+    if (depacketizer.needsKeyframe())
+        sendPictureLossIndication(header.ssrc);
+    if (!frame)
+        return;
+
+    QByteArray annexB = frame->annexB;
+    const quint64 uid = ssrcToUserIdMap.value(header.ssrc, 0);
+    if (daveSession && daveSession->isDaveEnabled()) {
+        auto *dec = daveSession->getOrCreateDecryptor(header.ssrc, uid);
+        std::vector<uint8_t> plain(dec->GetMaxPlaintextByteSize(discord::dave::MediaType::Video, annexB.size()));
+        size_t written = 0;
+        auto result = dec->Decrypt(discord::dave::MediaType::Video,
+                                   discord::dave::ArrayView<const uint8_t>(
+                                           reinterpret_cast<const uint8_t *>(annexB.constData()), annexB.size()),
+                                   discord::dave::ArrayView<uint8_t>(plain.data(), plain.size()), &written);
+        if (result != discord::dave::IDecryptor::Success) {
+            qCDebug(LogDave) << "DAVE video decrypt failed: SSRC =" << header.ssrc << "result =" << static_cast<int>(result);
+            return;
+        }
+        annexB = QByteArray(reinterpret_cast<const char *>(plain.data()), static_cast<qsizetype>(written));
+    } else if (daveSession && !daveSession->isDowngraded()) {
+        return;
+    }
+    emit videoFrameReceived(uid, header.ssrc, annexB, frame->keyframe);
+}
+
+// RTCP for rtpsize modes: the 8-byte header (with the sender SSRC) is
+// additional data, the rest is encrypted, the 4-byte nonce follows
+void VoiceClient::onRtcpDatagram(const QByteArray &data)
+{
+    if (data.size() < 8 + 4 + 4 || !encryption)
+        return;
+    const auto *p = reinterpret_cast<const uint8_t *>(data.constData());
+    const uint8_t fmt = p[0] & 0x1F;
+    const uint8_t type = p[1];
+    // Payload-specific feedback: PLI (1) or FIR (4) for our video
+    if (type != 206 || (fmt != 1 && fmt != 4))
+        return;
+    const QByteArray plain = encryption->decrypt(data.left(8), data.mid(8));
+    if (plain.size() < 4)
+        return;
+    const quint32 mediaSsrc = qFromBigEndian<quint32>(reinterpret_cast<const uint8_t *>(plain.constData()));
+    quint32 target = mediaSsrc;
+    if (fmt == 4 && plain.size() >= 8)
+        target = qFromBigEndian<quint32>(reinterpret_cast<const uint8_t *>(plain.constData()) + 4);
+    if (target == localVideoSsrc || mediaSsrc == localVideoSsrc || mediaSsrc == 0)
+        emit keyframeRequested();
+}
+
+void VoiceClient::sendPictureLossIndication(quint32 mediaSsrc)
+{
+    if (!encryption || !udpTransport)
+        return;
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastPliMs.value(mediaSsrc, 0) < 1000)
+        return;
+    lastPliMs.insert(mediaSsrc, now);
+    QByteArray head(8, '\0');
+    auto *h = reinterpret_cast<uint8_t *>(head.data());
+    h[0] = 0x80 | 1; // V=2, FMT=1 (PLI)
+    h[1] = 206; // payload-specific feedback
+    qToBigEndian<quint16>(2, h + 2); // length in words minus one
+    qToBigEndian<quint32>(localSsrc, h + 4);
+    QByteArray media(4, '\0');
+    qToBigEndian<quint32>(mediaSsrc, reinterpret_cast<uint8_t *>(media.data()));
+    const QByteArray sealed = encryption->encrypt(head, media);
+    if (!sealed.isEmpty())
+        udpTransport->send(head + sealed);
 }
 
 bool VoiceClient::isDaveEnabled() const

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Core/ProxyConfig.hpp"
+#include "Qord/Video/H264Rtp.hpp"
 #include "Core/Snowflake.hpp"
 #include "VoiceEnums.hpp"
 #include "VoiceEntities.hpp"
@@ -61,6 +62,17 @@ public:
     void setSpeaking(bool speaking);
 
     bool isDaveEnabled() const;
+
+    // Qord: video. Set the stream type ("screen" for Go Live, "video" for
+    // cameras) before start() to get video SSRCs.
+    void setVideoStreamType(const QString &streamType) { videoStreamType = streamType; }
+    [[nodiscard]] quint32 videoSsrc() const { return localVideoSsrc; }
+    // Announces our video (op 12) or stops it
+    void setVideoActive(bool active, int width, int height, int fps, int maxBitrate);
+    // One H.264 access unit (Annex B) with its 90 kHz timestamp
+    void sendVideoFrame(const QByteArray &annexB, quint32 timestamp);
+    // Asks the server to forward video to us
+    void requestVideo(int quality);
     void requestVerificationCode(Core::Snowflake targetUserId, std::function<void(const QString &)> callback);
 
 signals:
@@ -75,6 +87,12 @@ signals:
     void audioReceived(quint32 ssrc, uint16_t sequence, uint32_t timestamp, const QByteArray &opusData);
 
     void privacyCodeChanged(const QString &code);
+
+    // Qord: video
+    void videoFrameReceived(quint64 userId, quint32 ssrc, const QByteArray &annexB, bool keyframe);
+    void videoStreamsChanged(quint64 userId, quint32 videoSsrc, bool active);
+    // Someone asked us for a keyframe (RTCP PLI/FIR)
+    void keyframeRequested();
 
 private slots:
     void onGatewayConnected();
@@ -95,6 +113,11 @@ private:
     void sendSilence();
     void cleanupTransport();
     void ensureDaveSession(uint16_t protocolVersion);
+    // Qord
+    void onVideoDatagram(const QByteArray &data);
+    void onRtcpDatagram(const QByteArray &data);
+    void onVideoOp(const QJsonObject &data);
+    void sendPictureLossIndication(quint32 mediaSsrc);
 
 private:
     VoiceGateway *gateway = nullptr;
@@ -134,6 +157,15 @@ private:
     QHash<quint32, uint64_t> ssrcToUserIdMap;
 
     static constexpr int KEEPALIVE_INTERVAL_MS = 10000;
+
+    // Qord: video
+    QString videoStreamType;
+    quint32 localVideoSsrc = 0;
+    quint32 localRtxSsrc = 0;
+    uint16_t videoSequence = 0;
+    bool videoCodecAssigned = false;
+    QHash<quint32, Qord::Video::Depacketizer> depacketizers;
+    QHash<quint32, qint64> lastPliMs;
 };
 
 } // namespace Voice

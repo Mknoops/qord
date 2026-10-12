@@ -35,9 +35,14 @@ public:
     void clear();
 
     QList<TyperInfo> getActiveTypers() const;
+    // Qord: who is typing in any channel (TypingIndicator), oldest first
+    [[nodiscard]] QList<Snowflake> typers(Snowflake channelId) const;
+    [[nodiscard]] bool anyTypers() const { return !channelTypers.isEmpty(); }
 
 signals:
     void typersChanged();
+    // Qord: a channel's typers changed (Invalid: every channel's)
+    void channelTypersChanged(Snowflake channelId);
 
 private slots:
     void cleanupExpired();

@@ -109,6 +109,7 @@ HOOK_DISPATCH = {
     "profileRoleButtons": "dispatchProfileRoleButtons(",
     "hiddenChannels": "dispatchHiddenChannelDisplay(",
     "attachmentButtons": "dispatchAttachmentButtons(",
+    "channelTyping": "dispatchChannelTypingIndicator(",
 }
 
 MANIFEST_REQUIRED = {

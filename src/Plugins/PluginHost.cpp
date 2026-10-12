@@ -179,7 +179,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
         hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
         hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers) ||
-        hooks.testFlag(Hook::HiddenChannels) || hooks.testFlag(Hook::AttachmentButtons))
+        hooks.testFlag(Hook::HiddenChannels) || hooks.testFlag(Hook::AttachmentButtons) ||
+        hooks.testFlag(Hook::ChannelTyping))
         emit presentationChanged();
 }
 
@@ -801,6 +802,19 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
 {
     if (Plugin *plugin = tablePlugin(Hook::UserContextMenu, pluginId))
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
+}
+
+std::optional<TypingIndicator> PluginHost::dispatchChannelTypingIndicator(const ChannelTypingContext &channel)
+{
+    const auto &table = tables[hookIndex(Hook::ChannelTyping)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<TypingIndicator> out;
+        guarded(tableIds[hookIndex(Hook::ChannelTyping)][i], "channelTypingIndicator",
+                [&] { out = table[i]->channelTypingIndicator(channel); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
 }
 
 QList<PluginHost::PluginButton> PluginHost::dispatchAttachmentButtons(const AttachmentContext &attachment)

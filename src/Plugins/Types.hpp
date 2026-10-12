@@ -627,6 +627,25 @@ struct ServerInfoView
     QList<Tab> tabs;
 };
 
+// A channel in the channel list that someone is typing in (TypingIndicator)
+struct ChannelTypingContext
+{
+    Id accountId = 0;
+    Id guildId = 0; // 0 for DMs
+    Id channelId = 0;
+    bool selected = false; // the channel you have open
+    bool muted = false;
+    QList<Id> typers; // oldest first; never you
+};
+
+// What the channel list shows next to such a channel
+struct TypingIndicator
+{
+    QList<Id> avatars; // up to three are drawn, then "+N"
+    bool dots = true; // Discord's animated dots
+    QString tooltip;
+};
+
 // One part of a text diff (see TextDiff.hpp).
 struct DiffPart
 {

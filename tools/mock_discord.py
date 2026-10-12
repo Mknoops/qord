@@ -99,6 +99,8 @@ USERS = {
     "system": dict(user("643945264868098049", "discord", "Discord", None), system=True),
 }
 U = {k: v["id"] for k, v in USERS.items()}
+# Someone the client isn't told about at startup (ValidUser's "@unknown-user")
+STRANGER = user("200000000000000099", "gus", "Gus", "a8")
 
 STATUS = {"self": "online", "ava": "online", "ben": "idle", "cleo": "dnd", "dan": "offline",
           "eve": "online", "bot": "online", "fay": "online"}
@@ -389,6 +391,7 @@ def seed_messages() -> None:
 
     add(CH["media"], "ava", "screenshot of the new layout", 90, attachments=[attachment("layout.png", 480, 270)])
     add(CH["media"], "ben", "", 80, attachments=[attachment("diagram.png", 320, 320)])
+    add(CH["media"], "ava", f"ask <@{STRANGER['id']}> about the render farm", 78)
     add(CH["dev"], "ben", "here's the build log", 75, attachments=[text_attachment("build.log")])
     add(CH["dev"], "cleo", "and my (long) notes", 74, attachments=[text_attachment("notes-big.txt")])
     add(CH["rules"], "self", "1. Be kind\n2. No spam\n3. Have fun", 60 * 400)
@@ -1092,6 +1095,9 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         return 200, settings, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
         return await relationships(method, parts[3] if len(parts) > 3 else None, j)
+    if parts[:1] == ["users"] and len(parts) == 2 and method == "GET":
+        found = next((u for u in list(USERS.values()) + [STRANGER] if u["id"] == parts[1]), None)
+        return (200, found, "json") if found else (404, {"message": "Unknown User", "code": 10013}, "json")
     if parts[:1] == ["users"] and len(parts) >= 3 and parts[2] == "profile":
         return 200, profile(parts[1]), "json"
     if parts[:2] == ["users", "@me"] and method == "GET" and len(parts) == 2:

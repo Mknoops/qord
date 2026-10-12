@@ -132,6 +132,9 @@ signals:
     void openThreadRequested(Core::Snowflake threadId);
     // Qord: an avatar on a reaction (WhoReacted)
     void reactionUserClicked(Core::Snowflake userId);
+    // Qord: a user mention was clicked or the mouse entered one
+    void userMentionClicked(Core::Snowflake userId);
+    void userMentionHovered(Core::Snowflake userId, Core::Snowflake messageId);
     void replyToMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void addReactionRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void cancelUploadRequested(Core::Snowflake channelId, Core::Snowflake messageId);
@@ -213,6 +216,7 @@ private:
     int hoveredRow;
     int hoveredChar;
     bool hoveredReplyBar = false;
+    QPair<Core::Snowflake, Core::Snowflake> hoveredMention; // Qord: message, user
 
     ChatCursor selectionAnchor;
     ChatCursor selectionHead;

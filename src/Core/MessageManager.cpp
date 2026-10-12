@@ -74,6 +74,9 @@ MessageManager::MessageManager(Snowflake accountId, Discord::Client *client,
     messageCache.setMaxCost(1'000);
 
     parser->setUserResolver([this](Snowflake userId, Snowflake sourceChannelId) {
+        // Qord: Discord's name for a user it doesn't know (ValidUser fixes these)
+        if (!this->userManager->getUser(userId))
+            return QStringLiteral("unknown-user");
         return this->userManager->getDisplayName(userId, this->client->getGuildIdForChannel(sourceChannelId));
     });
 

@@ -804,6 +804,14 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
 }
 
+void PluginHost::dispatchUserMentionHovered(const MentionContext &mention)
+{
+    const auto &table = tables[hookIndex(Hook::UnknownMentions)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::UnknownMentions)][i], "onUserMentionHovered",
+                [&] { table[i]->onUserMentionHovered(mention); });
+}
+
 std::optional<TypingIndicator> PluginHost::dispatchChannelTypingIndicator(const ChannelTypingContext &channel)
 {
     const auto &table = tables[hookIndex(Hook::ChannelTyping)];

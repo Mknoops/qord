@@ -219,6 +219,25 @@ public:
     }
 };
 
+// Users on Discord (ValidUser): whether the client knows one, fetching one
+// (GET /users/{id}; the client keeps what it gets), and re-rendering a
+// message once it does
+class UserLookupService
+{
+public:
+    struct Result
+    {
+        bool ok = false;
+        int status = 0; // HTTP status, 429 when rate limited
+        int retryAfterMs = 0;
+    };
+    using Callback = std::function<void(const Result &)>;
+    virtual ~UserLookupService() = default;
+    [[nodiscard]] virtual bool isKnown(Id accountId, Id userId) const = 0;
+    virtual void fetchUser(Id accountId, Id userId, Callback done) = 0;
+    virtual void refreshMessage(Id accountId, Id channelId, Id messageId) = 0;
+};
+
 // Emojis, stickers and what you may use where.
 class ExpressionService
 {
@@ -309,6 +328,7 @@ struct Services
     ReactionService *reactions = nullptr;
     ExpressionService *expressions = nullptr;
     GuildDirectory *guilds = nullptr;
+    UserLookupService *users = nullptr;
 };
 
 } // namespace Plugins

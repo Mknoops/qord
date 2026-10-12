@@ -646,6 +646,15 @@ struct TypingIndicator
     QString tooltip;
 };
 
+// The mouse entered a user mention in a message (ValidUser)
+struct MentionContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    Id messageId = 0;
+    Id userId = 0;
+};
+
 // One part of a text diff (see TextDiff.hpp).
 struct DiffPart
 {

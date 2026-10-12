@@ -107,6 +107,7 @@ qord_add_plugin(showhiddenchannels utility SOURCES ShowHiddenChannels.hpp ShowHi
 qord_add_plugin(copyfilecontents utility SOURCES CopyFileContents.hpp CopyFileContents.cpp)
 qord_add_plugin(serverinfo utility SOURCES ServerInfo.hpp ServerInfo.cpp)
 qord_add_plugin(typingindicator appearance SOURCES TypingIndicator.hpp TypingIndicator.cpp)
+qord_add_plugin(validuser chat SOURCES ValidUser.hpp ValidUser.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

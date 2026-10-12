@@ -178,12 +178,13 @@ inventory). All are off by default.
 | **TypingIndicator** | Who is typing, next to channels in the channel list | add_ui_elements, read_relationships, read_server_permissions |
 | **Unindent** | Trims leading indentation from code blocks | modify_outgoing_messages, modify_displayed_messages |
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |
+| **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
 | **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** ValidUser, QuickReply and Translate.
+**Up next:** QuickReply and Translate.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

@@ -13,6 +13,7 @@
 #include "Core/UserManager.hpp"
 #include "Core/Markdown/Parser.hpp"
 #include "Discord/CdnUrls.hpp"
+#include "Discord/HttpClient.hpp"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -560,6 +561,44 @@ std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const
     return out;
 }
 
+bool SessionUsers::isKnown(Id accountId, Id userId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    return instance && instance->users() && instance->users()->getUser(Acheron::Core::Snowflake(userId)).has_value();
+}
+
+void SessionUsers::fetchUser(Id accountId, Id userId, Callback done)
+{
+    QPointer<Acheron::Core::ClientInstance> instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done({});
+        return;
+    }
+    instance->discord()->fetchUser(Acheron::Core::Snowflake(userId),
+                                   [instance, done](const Acheron::Discord::HttpResponse &response,
+                                                    const std::optional<Acheron::Discord::User> &user) {
+                                       Result result;
+                                       result.status = response.statusCode;
+                                       if (response.rateLimited())
+                                           result.retryAfterMs = int(QJsonDocument::fromJson(response.body)
+                                                                             .object()
+                                                                             .value(QStringLiteral("retry_after"))
+                                                                             .toDouble(1.0) *
+                                                                     1000);
+                                       if (user && instance && instance->users()) {
+                                           instance->users()->saveUsers({ *user });
+                                           result.ok = true;
+                                       }
+                                       done(result);
+                                   });
+}
+
+void SessionUsers::refreshMessage(Id accountId, Id channelId, Id messageId)
+{
+    if (auto *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->messages()->refreshMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+}
+
 std::function<QList<Id>(Id)> &SessionGuilds::guildIdsProvider()
 {
     static std::function<QList<Id>(Id)> provider;
@@ -856,7 +895,7 @@ static QString pluginDataDirectory()
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session)
+      reactions(session), guilds(session), users(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -877,6 +916,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.expressions = &expressions;
     services.reactions = &reactions;
     services.guilds = &guilds;
+    services.users = &users;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

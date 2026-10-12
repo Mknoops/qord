@@ -215,6 +215,9 @@ public:
         return std::nullopt;
     }
 
+    // Hook::UnknownMentions: the mouse entered a user mention
+    virtual void onUserMentionHovered(const MentionContext &mention) { Q_UNUSED(mention); }
+
     // Hook::ChannelTyping: an indicator next to a channel someone is typing in
     // (nullopt: none)
     virtual std::optional<TypingIndicator> channelTypingIndicator(const ChannelTypingContext &channel)

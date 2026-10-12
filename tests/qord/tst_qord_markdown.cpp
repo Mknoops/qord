@@ -140,6 +140,14 @@ private slots:
         QCOMPARE(render("</ban user:123>"), QStringLiteral("<span class=\"mention\">/ban user</span>"));
         // Existing rules still win where they apply
         QVERIFY(render("<@123>").contains("@123"));
+        // User mentions are links, so clicking one opens the profile
+        QCOMPARE(render("<@123>"), QStringLiteral("<a href=\"acheron://user/123\" class=\"mention\">@123</a>"));
+        parser.setUserResolver([](Acheron::Core::Snowflake id, Acheron::Core::Snowflake) {
+            return id == Acheron::Core::Snowflake(7) ? QStringLiteral("Ava") : QStringLiteral("unknown-user");
+        });
+        QCOMPARE(parser.toHtml(parser.parse("<@!7> and <@8>", state)),
+                 QStringLiteral("<a href=\"acheron://user/7\" class=\"mention\">@Ava</a> and "
+                                "<a href=\"acheron://user/8\" class=\"mention\">@unknown-user</a>"));
     }
 
     void plainTextUnchanged()

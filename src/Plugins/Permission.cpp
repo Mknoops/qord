@@ -60,6 +60,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See servers' roles, owners and channel permission settings") },
     { Permission::ShowHiddenChannels, "show_hidden_channels",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Show channels you can't see in the channel list") },
+    { Permission::FetchUsers, "fetch_users",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Look up users on Discord") },
 };
 
 struct HookInfo
@@ -96,6 +98,7 @@ const HookInfo hookTable[] = {
     { Hook::HiddenChannels, "hiddenChannels", Permission::ShowHiddenChannels },
     { Hook::AttachmentButtons, "attachmentButtons", Permission::AddUiElements },
     { Hook::ChannelTyping, "channelTyping", Permission::AddUiElements },
+    { Hook::UnknownMentions, "unknownMentions", Permission::FetchUsers },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

@@ -340,6 +340,14 @@ def add(cid: str, author: str, content: str, minutes_ago: float, **extra) -> dic
     return m
 
 
+def member_count(gid: str) -> int:
+    # QORD_MOCK_LARGE=1 reports Second Server as a 1,500-member server
+    # (ForceOwnerCrown: Qord hides the owner crown in large servers)
+    if gid == G2 and os.environ.get("QORD_MOCK_LARGE") == "1":
+        return 1500
+    return len(MEMBERS[gid])
+
+
 def seed_messages() -> None:
     g = CH["general"]
     add(g, "dan", "", 60 * 26, type=7)  # member join
@@ -590,7 +598,7 @@ def gateway_guild(gid: str) -> dict:
     return {
         "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": GUILD_EMOJIS.get(gid, []),
         "stickers": GUILD_STICKERS.get(gid, []),
-        "threads": [], "members": [guild_member(gid, "self")], "member_count": len(MEMBERS[gid]),
+        "threads": [], "members": [guild_member(gid, "self")], "member_count": member_count(gid),
         "joined_at": iso(NOW - 900 * HOUR), "lazy": True, "large": False, "premium_subscription_count":
         props["premium_subscription_count"], "data_mode": "full", "version": 1,
         "guild_scheduled_events": [], "stage_instances": [], "activity_instances": [],
@@ -692,7 +700,7 @@ def member_list_update(gid: str) -> dict:
             m["presence"] = dict(presence(key), user={"id": USERS[key]["id"]})
             items.append({"member": m})
     online = sum(1 for k in MEMBERS[gid] if STATUS[k] != "offline")
-    return {"guild_id": gid, "id": "everyone", "member_count": len(MEMBERS[gid]), "online_count": online,
+    return {"guild_id": gid, "id": "everyone", "member_count": member_count(gid), "online_count": online,
             "groups": group_list, "ops": [{"op": "SYNC", "range": [0, 99], "items": items}]}
 
 

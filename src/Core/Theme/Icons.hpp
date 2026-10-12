@@ -24,6 +24,7 @@ inline constexpr auto ChartColumn = "chart-column";
 inline constexpr auto ChevronDown = "chevron-down";
 inline constexpr auto ChevronRight = "chevron-right";
 inline constexpr auto Compass = "compass";
+inline constexpr auto Crown = "crown";
 inline constexpr auto Ellipsis = "ellipsis";
 inline constexpr auto Eye = "eye";
 inline constexpr auto EyeOff = "eye-off";

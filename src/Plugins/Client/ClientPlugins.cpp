@@ -9,6 +9,7 @@
 #include "Core/NetworkRequest.hpp"
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
+#include "Core/OwnerCrown.hpp"
 #include "Core/Session.hpp"
 #include "Core/TokenStore.hpp"
 #include "Qord/DevMock.hpp"
@@ -402,6 +403,15 @@ void QtDisplayOptions::setMobileIndicatorForAnyStatus(bool any)
     if (Acheron::Core::mobileIndicatorForAnyStatus() == any)
         return;
     Acheron::Core::mobileIndicatorForAnyStatus() = any;
+    if (host)
+        emit host->presentationChanged();
+}
+
+void QtDisplayOptions::setForceOwnerCrown(bool force)
+{
+    if (Acheron::Core::forceOwnerCrown() == force)
+        return;
+    Acheron::Core::forceOwnerCrown() = force;
     if (host)
         emit host->presentationChanged();
 }

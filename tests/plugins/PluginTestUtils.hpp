@@ -264,7 +264,9 @@ class FakeDisplayOptions : public DisplayOptionsService
 public:
     void setRelativeTimeRoundsDown(bool floor) override { roundsDown = floor; }
     void setMobileIndicatorForAnyStatus(bool any) override { mobileAnyStatus = any; }
+    void setForceOwnerCrown(bool force) override { ownerCrown = force; }
     bool roundsDown = false;
+    bool ownerCrown = false;
     bool mobileAnyStatus = false;
 };
 

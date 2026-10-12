@@ -211,6 +211,7 @@ class QtDisplayOptions : public DisplayOptionsService
 public:
     void setRelativeTimeRoundsDown(bool floor) override;
     void setMobileIndicatorForAnyStatus(bool any) override;
+    void setForceOwnerCrown(bool force) override;
     PluginHost *host = nullptr;
 };
 

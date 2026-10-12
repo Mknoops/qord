@@ -489,6 +489,10 @@ void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
     auto *msgs = currentInstance->messages();
 
     memberListModel->setAccount(currentInstance->accountId());
+    memberListModel->setOwnerProvider([instance = QPointer<Core::ClientInstance>(currentInstance)](Snowflake guildId) {
+        const auto guild = instance ? instance->getGuild(guildId) : std::nullopt;
+        return guild ? guild->ownerId.get() : Snowflake::Invalid;
+    });
     memberListModel->setPresenceManager(currentInstance->presences());
     memberListModel->setManager(currentInstance->memberList());
 

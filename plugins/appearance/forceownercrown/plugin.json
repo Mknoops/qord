@@ -1,0 +1,21 @@
+{
+  "id": "forceownercrown",
+  "equicordName": "ForceOwnerCrown",
+  "equicordPath": "src/plugins/forceOwnerCrown",
+  "name": "ForceOwnerCrown",
+  "description": "Force the owner crown next to usernames even if the server is large.",
+  "categories": ["appearance"],
+  "tags": ["Roles", "Appearance", "Servers"],
+  "authors": ["D3SOX", "Nickyux"],
+  "permissions": ["modify_displayed_messages"],
+  "hooks": [],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Qord's member list shows a crown (\"Server Owner\") next to the server's owner, and leaves it out in servers of 1,000 members or more; with this plugin the crown shows in every server.",
+  "gaps": [
+    "Discord's exact rule for hiding the crown isn't documented; Qord's 1,000-member limit is its own reading, and the crown isn't hidden when the owner is listed under a separately shown role."
+  ]
+}

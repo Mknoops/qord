@@ -55,6 +55,12 @@ public:
     // Qord: for Go Live's stream connections
     [[nodiscard]] const QString &sessionId() const { return voiceSessionId; }
     [[nodiscard]] const ProxyConfig &proxyConfig() const { return proxy; }
+    // Qord: cameras. With video supported, the call's connection asks for a
+    // video stream when it identifies, so a camera can be turned on later.
+    static void setVideoSupported(bool supported);
+    [[nodiscard]] static bool videoSupported();
+    // The call's connection (it lives on the voice thread), or null
+    [[nodiscard]] Discord::Voice::VoiceClient *callClient() const { return voiceClient; }
 
     void setInputGain(float gain);
     void setOutputVolume(float volume);
@@ -117,6 +123,10 @@ signals:
     void participantsCleared();
     void userAudioLevelChanged(Snowflake userId, float rms);
     void privacyCodeChanged(const QString &code);
+    // Qord: the call's connection, made (moved to the voice thread, not yet
+    // started) and about to stop, for camera video
+    void voiceClientCreated(Discord::Voice::VoiceClient *client);
+    void voiceClientStopping(Discord::Voice::VoiceClient *client);
 
 private slots:
     void onVoiceClientConnected();

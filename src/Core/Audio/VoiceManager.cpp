@@ -445,6 +445,20 @@ void VoiceManager::requestVerificationCode(Snowflake targetUserId, std::function
     });
 }
 
+namespace {
+bool qordVideoSupported = false;
+}
+
+void VoiceManager::setVideoSupported(bool supported)
+{
+    qordVideoSupported = supported;
+}
+
+bool VoiceManager::videoSupported()
+{
+    return qordVideoSupported;
+}
+
 void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &token)
 {
     if (voiceSessionId.isEmpty()) {
@@ -470,6 +484,8 @@ void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &
 
     Snowflake serverId = guildId.isValid() ? guildId : channelId;
     voiceClient = new Discord::Voice::VoiceClient(endpoint, token, serverId, channelId, accountId, voiceSessionId, proxy);
+    if (qordVideoSupported)
+        voiceClient->setVideoStreamType(QStringLiteral("video"));
     audioPipeline = new AudioPipeline;
 
     QList<Snowflake> channelUsers;
@@ -581,6 +597,8 @@ void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &
                 emit privacyCodeChanged(code);
             });
 
+    emit voiceClientCreated(voiceClient);
+
     voiceThread->start();
     QMetaObject::invokeMethod(voiceClient, &Discord::Voice::VoiceClient::start);
 }
@@ -589,6 +607,8 @@ void VoiceManager::stopVoiceThread()
 {
     if (!voiceThread)
         return;
+
+    emit voiceClientStopping(voiceClient);
 
     voiceGeneration++;
     bool hadParticipants = !participants.isEmpty();

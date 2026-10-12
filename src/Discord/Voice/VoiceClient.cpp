@@ -509,8 +509,10 @@ void VoiceClient::setVideoActive(bool active, int width, int height, int fps, in
     if (!gateway || !localVideoSsrc)
         return;
     gateway->sendVideo(localSsrc, localVideoSsrc, localRtxSsrc, active, width, height, fps, maxBitrate);
-    // Discord's clients mark themselves speaking while sending media
-    gateway->sendSpeaking(active ? static_cast<int>(SpeakingFlag::MICROPHONE) : 0, 0, localSsrc);
+    // Discord's clients mark a stream connection speaking while it sends
+    // media; on the call's own connection the microphone decides that
+    if (videoStreamType == QLatin1String("screen"))
+        gateway->sendSpeaking(active ? static_cast<int>(SpeakingFlag::MICROPHONE) : 0, 0, localSsrc);
 }
 
 void VoiceClient::requestVideo(int quality)

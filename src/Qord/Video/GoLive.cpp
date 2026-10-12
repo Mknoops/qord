@@ -10,6 +10,10 @@
 #include <QJsonArray>
 #include <QThread>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace Qord {
 namespace Video {
 
@@ -84,7 +88,7 @@ GoLive::Connection *GoLive::connectionFor(const QString &key)
     return watched.value(key);
 }
 
-bool GoLive::startStreaming(const CaptureSource &source, const Quality &quality)
+bool GoLive::startStreaming(const CaptureSource &source, const Quality &quality, bool audio)
 {
     if (!voice || !voice->isConnected() || !voice->currentChannelId().isValid()) {
         emit streamError(tr("Join a voice channel to share your screen"));
@@ -96,6 +100,7 @@ bool GoLive::startStreaming(const CaptureSource &source, const Quality &quality)
     own->key = streamKey(voice->currentGuildId(), voice->currentChannelId(), accountId);
     own->source = source;
     own->quality = quality;
+    own->audio = audio && Qord::Audio::StreamAudio::isSupported();
 
     Acheron::Core::OrderedJson create;
     create.insert("type", voice->currentGuildId().isValid() ? QStringLiteral("guild") : QStringLiteral("call"));
@@ -236,6 +241,7 @@ void GoLive::connectStream(Connection *c)
         connect(c->client, &VoiceClient::connected, this, [this, key]() {
             if (own && own->key == key) {
                 qCInfo(LogVoice) << "Go Live: streaming" << key;
+                startStreamAudio(own);
                 emit streamingChanged(true);
             }
         });
@@ -248,6 +254,8 @@ void GoLive::connectStream(Connection *c)
                 [this, key](const QImage &frame) { emit watchFrame(key, frame); });
         VoiceClient *vc = c->client;
         connect(c->client, &VoiceClient::connected, c->client, [vc]() { vc->requestVideo(100); });
+        // The stream's sound plays with the call's
+        voice->addStreamAudio(c->client);
     }
     connect(c->client, &VoiceClient::disconnected, this, [this, key]() {
         if (own && own->key == key) {
@@ -261,8 +269,39 @@ void GoLive::connectStream(Connection *c)
     QMetaObject::invokeMethod(c->client, &VoiceClient::start);
 }
 
+void GoLive::startStreamAudio(Connection *c)
+{
+    if (!c->audio || c->streamAudio || !c->client)
+        return;
+    Qord::Audio::LoopbackTarget target;
+#ifdef Q_OS_WIN
+    // A window: that program's sound only
+    if (c->source.kind == CaptureSource::Kind::Window && c->source.window) {
+        DWORD pid = 0;
+        GetWindowThreadProcessId(reinterpret_cast<HWND>(c->source.window), &pid);
+        target.processId = pid;
+    }
+#endif
+    c->streamAudio = new Qord::Audio::StreamAudio(this);
+    // Emitted on the capture thread, sent on the stream's
+    connect(c->streamAudio, &Qord::Audio::StreamAudio::opusFrame, c->client, &VoiceClient::sendAudio);
+    if (!c->streamAudio->start(target)) {
+        const QString reason = c->streamAudio->errorString();
+        delete c->streamAudio;
+        c->streamAudio = nullptr;
+        emit streamError(tr("Streaming without sound: %1").arg(reason));
+    }
+}
+
 void GoLive::closeConnection(Connection *c)
 {
+    if (c->streamAudio) {
+        c->streamAudio->stop();
+        delete c->streamAudio;
+        c->streamAudio = nullptr;
+    }
+    if (voice && c->client && !c->ownStream)
+        voice->removeStreamAudio(c->client);
     QThread *main = thread();
     if (c->sender && c->senderThread) {
         VideoSender *sender = c->sender;

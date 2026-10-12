@@ -154,6 +154,7 @@ public:
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
+    void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override
     {
@@ -284,6 +285,13 @@ UserLookupService *PluginContext::users()
     if (!scopedUsers)
         scopedUsers = std::make_unique<ScopedUsers>(services.users);
     return scopedUsers.get();
+}
+
+const PrivateChannelDirectory *PluginContext::privateChannels() const
+{
+    if (!granted.testFlag(Permission::ReadDms))
+        return nullptr;
+    return services.privateChannels;
 }
 
 GuildDirectory *PluginContext::guilds() const

@@ -238,6 +238,29 @@ std::function<void()> &QtUiService::lockScreenRefresher()
     return refresher;
 }
 
+std::function<void(Id, Id)> &QtUiService::channelOpener()
+{
+    static std::function<void(Id, Id)> opener;
+    return opener;
+}
+
+void QtUiService::openChannel(Id accountId, Id channelId)
+{
+    if (channelOpener())
+        channelOpener()(accountId, channelId);
+}
+
+std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
+{
+    static std::function<QList<PrivateChannelInfo>(Id)> list;
+    return list;
+}
+
+QList<PrivateChannelInfo> QtPrivateChannels::privateChannels(Id accountId) const
+{
+    return provider() ? provider()(accountId) : QList<PrivateChannelInfo>();
+}
+
 std::function<void(const ServerInfoView &)> &QtUiService::serverInfoShower()
 {
     static std::function<void(const ServerInfoView &)> shower;
@@ -1064,6 +1087,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.reactions = &reactions;
     services.guilds = &guilds;
     services.users = &users;
+    services.privateChannels = &privateChannels;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

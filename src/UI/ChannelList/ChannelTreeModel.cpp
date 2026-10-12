@@ -1029,6 +1029,23 @@ QList<Snowflake> ChannelTreeModel::guildIds(Snowflake accountId) const
     return out;
 }
 
+QList<const ChannelNode *> ChannelTreeModel::dmChannels(Snowflake accountId) const
+{
+    QList<const ChannelNode *> out;
+    const ChannelNode *accNode = accountNodes.value(accountId, nullptr);
+    if (!accNode)
+        return out;
+    for (const auto &child : accNode->children)
+        if (child->type == ChannelNode::Type::DMHeader)
+            for (const auto &dm : child->children)
+                if (dm->type == ChannelNode::Type::DMChannel)
+                    out.append(dm.get());
+    std::stable_sort(out.begin(), out.end(), [](const ChannelNode *a, const ChannelNode *b) {
+        return quint64(a->lastMessageId) > quint64(b->lastMessageId);
+    });
+    return out;
+}
+
 QModelIndex ChannelTreeModel::dmHeaderIndex(Snowflake accountId)
 {
     ChannelNode *accNode = accountNodes.value(accountId, nullptr);

@@ -134,6 +134,8 @@ public:
     void openUserProfile(Id accountId, Id guildId, Id userId) override;
     static std::function<void(const ServerInfoView &)> &serverInfoShower(); // set by the main window
     static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window
+    void openChannel(Id accountId, Id channelId) override;
+    static std::function<void(Id, Id)> &channelOpener(); // set by the main window
     static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
@@ -176,6 +178,14 @@ private:
 };
 
 // Users on Discord (ValidUser)
+// The DM list, as the main window's channel list has it
+class QtPrivateChannels : public PrivateChannelDirectory
+{
+public:
+    QList<PrivateChannelInfo> privateChannels(Id accountId) const override;
+    static std::function<QList<PrivateChannelInfo>(Id accountId)> &provider(); // set by the main window
+};
+
 class SessionUsers : public UserLookupService
 {
 public:
@@ -285,6 +295,7 @@ private:
     SessionReactions reactions;
     SessionGuilds guilds;
     SessionUsers users;
+    QtPrivateChannels privateChannels;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

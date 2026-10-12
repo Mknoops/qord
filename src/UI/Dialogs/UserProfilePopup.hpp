@@ -61,6 +61,7 @@ private:
     void renderConnections();
     void renderMutualServers();
     void renderMutualFriends();
+    void addPluginTabs(); // Qord: tabs from plugins (MutualGroupDMs)
     void renderFriendStatus();
     void renderPresence();
     QUrl activityFallbackImage(const Discord::Activity &activity);

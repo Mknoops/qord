@@ -78,6 +78,7 @@ PERMISSIONS = {
     "read_server_permissions",
     "show_hidden_channels",
     "fetch_users",
+    "read_dms",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -114,6 +115,7 @@ HOOK_DISPATCH = {
     "unknownMentions": "dispatchUserMentionHovered(",
     "keyboardShortcuts": "dispatchShortcut(",
     "messageAccessories": "dispatchMessageAccessories(",
+    "profileTabs": "dispatchProfileTabs(",
 }
 
 MANIFEST_REQUIRED = {

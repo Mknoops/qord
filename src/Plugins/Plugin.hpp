@@ -246,6 +246,20 @@ public:
         Q_UNUSED(message);
     }
 
+    // Hook::ProfileTabs: tabs added to a user's profile, and a click on one
+    // of their rows
+    virtual QList<ProfileTab> profileTabs(const UserContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+    virtual void onProfileTabRowClicked(const QString &tabId, const QString &rowId, const UserContext &user)
+    {
+        Q_UNUSED(tabId);
+        Q_UNUSED(rowId);
+        Q_UNUSED(user);
+    }
+
     // Hook::AttachmentButtons: buttons in a text file's preview (and its
     // full view), once its start is loaded
     virtual QList<ChatBarButton> attachmentButtons(const AttachmentContext &attachment)

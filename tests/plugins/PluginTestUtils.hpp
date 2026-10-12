@@ -148,6 +148,8 @@ public:
     void cancelEditing() override { ++editCancels; }
     void focusMessageBox() override { ++focuses; }
     void revealMessage(Id messageId) override { revealed.append(messageId); }
+    void openChannel(Id accountId, Id channelId) override { openedChannels.append({ accountId, channelId }); }
+    QList<QPair<Id, Id>> openedChannels;
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override
     {
@@ -221,6 +223,13 @@ public:
     int dialogs = 0;
     QList<QUrl> opened;
     QList<QUrl> images;
+};
+
+class FakePrivateChannels : public PrivateChannelDirectory
+{
+public:
+    QList<PrivateChannelInfo> privateChannels(Id) const override { return channels; }
+    QList<PrivateChannelInfo> channels;
 };
 
 class FakeMessages : public MessageService
@@ -393,6 +402,7 @@ struct SinglePluginHost
         services.expressions = &expressions;
         services.guilds = &guilds;
         services.users = &users;
+        services.privateChannels = &dms;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -419,6 +429,7 @@ struct SinglePluginHost
     FakeRelationships relationships;
     FakeUi ui;
     FakeMessages messages;
+    FakePrivateChannels dms;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

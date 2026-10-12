@@ -502,7 +502,30 @@ void MainWindow::setupQordFeatures()
             out.append(quint64(id));
         return out;
     };
+    // MutualGroupDMs: the DM list, and opening a group from a profile
+    Qord::Plugins::QtPrivateChannels::provider() = [this](Qord::Plugins::Id accountId) {
+        QList<Qord::Plugins::PrivateChannelInfo> out;
+        Core::ClientInstance *instance = session->client(Snowflake(accountId));
+        for (const ChannelNode *node : channelTreeModel->dmChannels(Snowflake(accountId))) {
+            Qord::Plugins::PrivateChannelInfo info;
+            info.channelId = quint64(node->id);
+            const auto channel = instance ? instance->getChannel(node->id) : std::nullopt;
+            info.isGroup = channel ? channel->type == Discord::ChannelType::GROUP_DM : !node->dmRecipientId.isValid();
+            info.name = node->name;
+            if (!node->TEMP_iconHash.isEmpty())
+                info.iconUrl = Discord::Cdn::channelIcon(node->id, node->TEMP_iconHash, 64).toString();
+            for (const Snowflake id : node->recipientIds)
+                info.recipientIds.append(quint64(id));
+            out.append(info);
+        }
+        return out;
+    };
+    Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
+        selectChannelInTree(Snowflake(accountId), Snowflake(channelId));
+    };
     connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtPrivateChannels::provider() = nullptr;
+        Qord::Plugins::QtUiService::channelOpener() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;

@@ -134,6 +134,14 @@ public:
     [[nodiscard]] std::optional<HiddenChannelDisplay> dispatchHiddenChannelDisplay();
     [[nodiscard]] std::optional<LockScreen> dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel);
     [[nodiscard]] QList<PluginButton> dispatchProfileRoleButtons(const UserContext &user);
+    struct PluginProfileTab
+    {
+        QString pluginId;
+        ProfileTab tab;
+    };
+    [[nodiscard]] QList<PluginProfileTab> dispatchProfileTabs(const UserContext &user);
+    void dispatchProfileTabRowClicked(const QString &pluginId, const QString &tabId, const QString &rowId,
+                                      const UserContext &user);
     void dispatchProfileRoleButtonClicked(const QString &pluginId, const QString &buttonId, const UserContext &user);
 
     // Any plugin saying no wins (default: send / show).

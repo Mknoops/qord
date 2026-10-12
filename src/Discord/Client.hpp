@@ -241,6 +241,14 @@ public:
     void deleteGuildEmoji(Snowflake guildId, Snowflake emojiId, ActionCallback callback);
 
     void fetchGuildStickers(Snowflake guildId, ResultCallback<QList<Sticker>> callback);
+    // Qord: Discord's own sticker packs, which anyone can send; fetched once
+    struct StickerPack
+    {
+        Snowflake id;
+        QString name;
+        QList<Sticker> stickers;
+    };
+    void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
     void createGuildSticker(Snowflake guildId, const QString &name, const QString &tags, const QString &description,
                             const FileUpload &file, const QByteArray &originalMd5, ResultCallback<Sticker> callback);
     void modifyGuildSticker(Snowflake guildId, Snowflake stickerId, const QString &name, const QString &tags,
@@ -433,6 +441,7 @@ private:
     QHash<Snowflake, Snowflake> channelToGuild; // todo prob move this somewhere or just a cache
     QHash<Snowflake, PremiumTier> guildPremiumTiers;
     QSet<Snowflake> subscribedGuilds;
+    std::optional<QList<StickerPack>> stickerPacks; // Qord
     QHash<QString, std::shared_ptr<UploadState>> activeUploads; // by nonce
 
     QHash<Snowflake, QString> applicationIcons;

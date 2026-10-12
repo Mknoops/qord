@@ -435,6 +435,33 @@ GUILD_EMOJIS = {
          {"id": "720000000000000003", "name": "party_blob", "animated": True, "available": True,
           "managed": False, "roles": [], "require_colons": True}],
 }
+# Discord's own packs: anyone can send these, anywhere (one Lottie, one PNG)
+STICKER_PACKS = [
+    {"id": "847199849233514549", "name": "Wumpus Beyond", "sku_id": "847199849233514547",
+     "cover_sticker_id": "749054660769218631", "description": "Wumpus's adventures", "banner_asset_id": None,
+     "stickers": [
+         {"id": "749054660769218631", "name": "Wave", "tags": "wumpus, hello, hi", "description": "Wumpus waves",
+          "format_type": 3, "type": 1, "pack_id": "847199849233514549", "available": True, "sort_value": 1},
+         {"id": "749054660769218632", "name": "Cheer", "tags": "wumpus, yay", "description": "Wumpus cheers",
+          "format_type": 1, "type": 1, "pack_id": "847199849233514549", "available": True, "sort_value": 2}]},
+]
+PACK_STICKERS = {st["id"]: st for pack in STICKER_PACKS for st in pack["stickers"]}
+
+# A tiny Lottie animation (a yellow circle) for Lottie stickers
+LOTTIE_STICKER = json.dumps({
+    "v": "5.5.2", "fr": 30, "ip": 0, "op": 30, "w": 160, "h": 160, "nm": "mock", "ddd": 0, "assets": [],
+    "layers": [{"ddd": 0, "ind": 1, "ty": 4, "nm": "circle", "sr": 1, "ip": 0, "op": 30, "st": 0, "bm": 0,
+                "ks": {"o": {"a": 0, "k": 100}, "r": {"a": 0, "k": 0}, "p": {"a": 0, "k": [80, 80, 0]},
+                       "a": {"a": 0, "k": [0, 0, 0]},
+                       "s": {"a": 0, "k": [100, 100, 100]}},
+                "shapes": [{"ty": "gr", "nm": "g", "it": [
+                    {"ty": "el", "nm": "e", "d": 1, "p": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [120, 120]}},
+                    {"ty": "fl", "nm": "f", "c": {"a": 0, "k": [0.996, 0.906, 0.361, 1]},
+                     "o": {"a": 0, "k": 100}, "r": 1},
+                    {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]},
+                     "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}}]}]}],
+}).encode()
+
 GUILD_STICKERS = {
     G2: [{"id": "700000000000000003", "name": "Far Dance", "tags": "dance", "description": None,
           "format_type": 1, "available": True, "guild_id": G2, "type": 2}],
@@ -843,6 +870,7 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             m["nonce"] = j.get("nonce")
             m["flags"] = int(j.get("flags", 0) or 0)
             stickers = [s for s in GUILD_STICKERS.get(GUILD_OF.get(cid, ""), []) if s["id"] in (j.get("sticker_ids") or [])]
+            stickers += [PACK_STICKERS[i] for i in (j.get("sticker_ids") or []) if i in PACK_STICKERS]
             if stickers:
                 m["sticker_items"] = [{"id": s["id"], "name": s["name"], "format_type": s["format_type"]}
                                       for s in stickers]
@@ -1070,6 +1098,8 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
                       "gif_src": f"https://media.discordapp.net/mock-gifs/{i}.gif",
                       "preview": f"https://media.discordapp.net/mock-gifs/{i}.png", "width": 220, "height": 160}
                      for i, w in enumerate(hits)], "json"
+    if parts == ["sticker-packs"] and method == "GET":
+        return 200, {"sticker_packs": STICKER_PACKS}, "json"
     if len(parts) == 3 and parts[0] == "guilds" and parts[2] == "stickers" and method == "GET":
         return 200, GUILD_STICKERS.get(parts[1], []), "json"
     if parts[:1] == ["read-states"]:
@@ -1161,6 +1191,8 @@ def cdn(path: str) -> tuple[int, bytes, str]:
         if name.startswith("diagram"):
             return 200, png(320, 320, (88, 101, 242), gradient=True), "image/png"
         return 200, png(480, 270, (235, 69, 158), gradient=True), "image/png"
+    if "/stickers/" in path and path.endswith(".json"):
+        return 200, LOTTIE_STICKER, "application/json"
     if "/embed/avatars/" in path:
         return 200, png(64, 64, (88, 101, 242)), "image/png"
     return 200, png(64, 64, colour_for(key.split("/")[4] if key.count("/") > 4 else key)), "image/png"

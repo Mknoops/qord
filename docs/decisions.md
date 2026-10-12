@@ -115,6 +115,8 @@ and why, so it can be revisited deliberately.
 
 71. **Toasts.** Plugins get Vencord's `showToast` as `UiService::showToast(text, Message|Success|Failure)`, available to every plugin (it only shows text over the window, like a dialog); text dialogs can name the toast their Copy buttons show. The toast is a dark pill above the message box with Discord's green check or red cross, over whichever window is in front, replaced by the next one and faded out after about three seconds. ViewRaw now toasts as upstream does ("Copied to clipboard!", "Content copied to clipboard!", "Message data copied to clipboard!"); the copy-user plugins don't, because upstream copies silently there. Seen in the mock client.
 
+72. **Discord's sticker packs.** The sticker picker lists Discord's own packs (`GET /sticker-packs`, fetched once per session) after the server's stickers, labelled with the pack name, in servers and DMs alike, since anyone can send them. Many are Lottie animations, which have no still image on the CDN: when rlottie is built in, the picker and every other image request render the Lottie file's first frame instead (`ImageManager`, guarded by `ACHERON_HAVE_RLOTTIE`); without it those tiles stay empty. This also fixed the picker never showing images: `ImageManager::get` returns a placeholder pixmap while downloading, never a null one, so the picker never waited for the real picture; that hid server stickers and GIF previews since decision 53. Checked against the mock (which now has a pack with one Lottie and one PNG sticker): the tiles show, and a pack sticker sends and plays in the chat.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

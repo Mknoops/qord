@@ -58,6 +58,13 @@ public:
     virtual ~RelationshipDirectory() = default;
     [[nodiscard]] virtual bool isBlocked(Id accountId, Id userId) const = 0;
     [[nodiscard]] virtual bool isIgnored(Id accountId, Id userId) const = 0;
+    enum class Kind { Friend, Blocked, Ignored };
+    [[nodiscard]] virtual QList<Id> relationshipIds(Id accountId, Kind kind) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(kind);
+        return {};
+    }
 };
 
 class UiService
@@ -97,6 +104,14 @@ public:
     // popout at the mouse
     virtual void showPermissions(const PermissionsView &view) { Q_UNUSED(view); }
     virtual void showMemberPermissions(const MemberPermissionsView &view) { Q_UNUSED(view); }
+    // ServerInfo's window, and a user's profile
+    virtual void showServerInfo(const ServerInfoView &view) { Q_UNUSED(view); }
+    virtual void openUserProfile(Id accountId, Id guildId, Id userId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        Q_UNUSED(userId);
+    }
     // Re-renders the lock screen of a hidden channel, if it is showing
     virtual void refreshLockScreen() {}
     // Re-asks for a message's attachment buttons (their state changed)
@@ -190,6 +205,18 @@ public:
     [[nodiscard]] virtual std::optional<MemberInfo> member(Id accountId, Id guildId, Id userId) const = 0;
     // Asks Discord for members the cache lacks (op 8); they arrive later
     virtual void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) = 0;
+    // Your servers, and a server's members the client has loaded
+    [[nodiscard]] virtual QList<Id> guildIds(Id accountId) const
+    {
+        Q_UNUSED(accountId);
+        return {};
+    }
+    [[nodiscard]] virtual QList<Id> memberIds(Id accountId, Id guildId) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        return {};
+    }
 };
 
 // Emojis, stickers and what you may use where.

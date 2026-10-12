@@ -142,6 +142,11 @@ public:
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
+    void showServerInfo(const ServerInfoView &view) override { inner->showServerInfo(view); }
+    void openUserProfile(Id accountId, Id guildId, Id userId) override
+    {
+        inner->openUserProfile(accountId, guildId, userId);
+    }
     void refreshAttachments(Id accountId, Id channelId, Id messageId) override
     {
         inner->refreshAttachments(accountId, channelId, messageId);

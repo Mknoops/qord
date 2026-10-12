@@ -73,6 +73,7 @@ public:
     }
     bool isBlocked(Id accountId, Id userId) const override;
     bool isIgnored(Id accountId, Id userId) const override;
+    QList<Id> relationshipIds(Id accountId, Kind kind) const override;
 
 private:
     Acheron::Core::Session *session;
@@ -111,6 +112,10 @@ public:
     void refreshLockScreen() override;
     static std::function<void()> &lockScreenRefresher(); // set by the main window
     void refreshAttachments(Id accountId, Id channelId, Id messageId) override;
+    void showServerInfo(const ServerInfoView &view) override;
+    void openUserProfile(Id accountId, Id guildId, Id userId) override;
+    static std::function<void(const ServerInfoView &)> &serverInfoShower(); // set by the main window
+    static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window
     static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
@@ -143,6 +148,10 @@ public:
     [[nodiscard]] std::optional<ChannelInfo> channel(Id accountId, Id channelId) const override;
     [[nodiscard]] std::optional<MemberInfo> member(Id accountId, Id guildId, Id userId) const override;
     void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) override;
+    [[nodiscard]] QList<Id> guildIds(Id accountId) const override;
+    [[nodiscard]] QList<Id> memberIds(Id accountId, Id guildId) const override;
+    // Set by the main window, which lists the servers
+    static std::function<QList<Id>(Id accountId)> &guildIdsProvider();
 
 private:
     Acheron::Core::Session *session;

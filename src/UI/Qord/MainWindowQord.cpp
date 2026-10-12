@@ -42,6 +42,7 @@
 #include "UI/Qord/Toast.hpp"
 #include "UI/Qord/PermissionsView.hpp"
 #include "UI/Qord/HiddenChannelScreen.hpp"
+#include "UI/Qord/ServerInfoDialog.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -336,6 +337,43 @@ void MainWindow::setupQordFeatures()
             chatModel->refreshAttachments(Snowflake(messageId));
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
+
+    // ServerInfo: its window, profiles, and the servers for mutual users
+    Qord::Plugins::QtUiService::serverInfoShower() = [this](const Qord::Plugins::ServerInfoView &view) {
+        ServerInfoDialog::Actions actions;
+        const Snowflake accountId(view.accountId);
+        const Snowflake guildId(view.guildId);
+        actions.loadImage = [this, accountId](const QUrl &url, QObject *context,
+                                              std::function<void(const QPixmap &)> done) {
+            session->getImageManager()->fetch(url, accountId, context, [done](const QByteArray &data) {
+                QPixmap pixmap;
+                if (pixmap.loadFromData(data))
+                    done(pixmap);
+            });
+        };
+        actions.openImage = [this](const QUrl &url) { openImageInViewer(url); };
+        actions.openProfile = [this, accountId, guildId](Qord::Plugins::Id userId) {
+            if (Core::ClientInstance *instance = session->client(accountId))
+                showUserProfile(instance, Snowflake(userId), guildId);
+        };
+        ServerInfoDialog::show(this, view, actions);
+    };
+    Qord::Plugins::QtUiService::profileOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id guildId,
+                                                         Qord::Plugins::Id userId) {
+        if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
+            showUserProfile(instance, Snowflake(userId), Snowflake(guildId));
+    };
+    Qord::Plugins::SessionGuilds::guildIdsProvider() = [this](Qord::Plugins::Id accountId) {
+        QList<Qord::Plugins::Id> out;
+        for (const Snowflake id : channelTreeModel->guildIds(Snowflake(accountId)))
+            out.append(quint64(id));
+        return out;
+    };
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
+        Qord::Plugins::QtUiService::profileOpener() = nullptr;
+        Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;
+    });
 
     // ShowHiddenChannels: the list follows the plugin, and its lock screen
     // loads avatars and can be re-rendered by the plugin

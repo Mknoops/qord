@@ -35,7 +35,7 @@ const PermissionInfo permissionTable[] = {
     { Permission::HideMessages, "hide_messages",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Hide messages from the chat") },
     { Permission::ReadRelationships, "read_relationships",
-      QT_TRANSLATE_NOOP("Qord::Plugins", "See who you have blocked or ignored") },
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See your friends and who you have blocked or ignored") },
     { Permission::OpenLinks, "open_links",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Open links in your browser") },
     { Permission::ControlTyping, "control_typing",

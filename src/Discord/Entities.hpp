@@ -796,6 +796,7 @@ struct Guild : Core::JsonUtils::JsonObject
     Field<bool, true> premiumProgressBarEnabled;
     Field<GuildPremiumFeatures, true, true> premiumFeatures;
     Field<GuildIncidentsData, true, true> incidentsData;
+    QString extraJson; // Qord: vanity_url_code and preferred_locale (ServerInfo)
 
     static Guild fromJson(const QJsonObject &obj)
     {
@@ -823,6 +824,13 @@ struct Guild : Core::JsonUtils::JsonObject
         get(obj, "premium_progress_bar_enabled", guild.premiumProgressBarEnabled);
         get(obj, "premium_features", guild.premiumFeatures);
         get(obj, "incidents_data", guild.incidentsData);
+        // Qord: settings only ServerInfo shows, as Discord sent them
+        QJsonObject extra;
+        for (const char *key : { "vanity_url_code", "preferred_locale" })
+            if (obj.contains(QLatin1String(key)))
+                extra.insert(QLatin1String(key), obj.value(QLatin1String(key)));
+        if (!extra.isEmpty())
+            guild.extraJson = QString::fromUtf8(QJsonDocument(extra).toJson(QJsonDocument::Compact));
         return guild;
     }
 

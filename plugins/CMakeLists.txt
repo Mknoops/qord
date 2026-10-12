@@ -105,6 +105,7 @@ target_link_libraries(qord_plugin_fakenitro PUBLIC Qt::Gui) # QImage/QPainter fo
 qord_add_plugin(permissionsviewer utility SOURCES PermissionsViewer.hpp PermissionsViewer.cpp)
 qord_add_plugin(showhiddenchannels utility SOURCES ShowHiddenChannels.hpp ShowHiddenChannels.cpp)
 qord_add_plugin(copyfilecontents utility SOURCES CopyFileContents.hpp CopyFileContents.cpp)
+qord_add_plugin(serverinfo utility SOURCES ServerInfo.hpp ServerInfo.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

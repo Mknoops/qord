@@ -2,6 +2,7 @@
 
 #include "Core/Theme/Manager.hpp"
 
+#include <QJsonValue>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
@@ -11,12 +12,21 @@
 namespace Acheron {
 namespace UI {
 
-SlashCommandPopup::SlashCommandPopup(QTextEdit *editor, QWidget *anchor, IndexProvider provider)
+namespace {
+constexpr int ValueRole = Qt::UserRole + 1;
+}
+
+SlashCommandPopup::SlashCommandPopup(QTextEdit *editor, QWidget *anchor, IndexProvider provider,
+                                     AutocompleteRequester autocomplete)
     : QFrame(anchor, Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus),
       editor(editor),
       anchor(anchor),
-      provider(std::move(provider))
+      provider(std::move(provider)),
+      autocomplete(std::move(autocomplete))
 {
+    autocompleteDelay.setSingleShot(true);
+    autocompleteDelay.setInterval(AutocompleteDelayMs);
+    connect(&autocompleteDelay, &QTimer::timeout, this, &SlashCommandPopup::requestAutocomplete);
     setObjectName(QStringLiteral("EmojiPicker")); // same frame style as the pickers
     setAttribute(Qt::WA_ShowWithoutActivating);
     auto *layout = new QVBoxLayout(this);
@@ -44,17 +54,21 @@ void SlashCommandPopup::refresh()
         return;
     const QString text = editor->toPlainText();
     if (!text.startsWith(QLatin1Char('/')) || text.contains(QLatin1Char('\n'))) {
+        picked.clear();
         hide();
         return;
     }
     const Qord::SlashCommands::Index *index = provider ? provider() : nullptr;
     list->clear();
+    mode = Mode::Commands;
+    autocompleteDelay.stop();
     const int space = text.indexOf(QLatin1Char(' '));
     if (!index) {
         hint->setText(tr("Loading commands…"));
         list->hide();
     } else if (space < 0) {
         // Still typing the name: list matching commands
+        picked.clear();
         const auto matches = Qord::SlashCommands::suggest(*index, text.mid(1), 25);
         for (const auto &c : matches) {
             auto *item = new QListWidgetItem(QStringLiteral("/%1  —  %2").arg(c.name, c.description), list);
@@ -73,13 +87,72 @@ void SlashCommandPopup::refresh()
             line += QStringLiteral("\n") + command->description;
         if (!command->applicationName.isEmpty())
             line += QStringLiteral(" · ") + command->applicationName;
-        hint->setText(line);
         list->hide();
+        // ...and the values the option being written can take
+        const auto focus = Qord::SlashCommands::focus(*index, text, picked);
+        // A value followed by a space is finished (a picked choice ends so):
+        // no list, so Enter sends
+        if (focus && focus->option && !focus->typed.endsWith(QLatin1Char(' '))) {
+            focusedOption = focus->option->name;
+            focusedValueStart = focus->valueStart;
+            const QString header = QStringLiteral("%1: %2").arg(focus->option->name, focus->option->description);
+            if (!focus->option->choices.isEmpty()) {
+                showChoices(Qord::SlashCommands::matchingChoices(*focus->option, focus->typed), header);
+                place();
+                return;
+            }
+            if (focus->option->autocomplete && autocomplete) {
+                hint->setText(header + QStringLiteral("\n") + tr("Loading suggestions…"));
+                autocompleteText = text;
+                autocompleteDelay.start(); // wait for a pause in typing
+                place();
+                return;
+            }
+            line += QStringLiteral("\n") + header;
+        }
+        hint->setText(line);
     } else {
         hide();
         return;
     }
     place();
+}
+
+void SlashCommandPopup::showChoices(const Choices &choices, const QString &header)
+{
+    list->clear();
+    mode = Mode::Choices;
+    for (const auto &[name, value] : choices) {
+        auto *item = new QListWidgetItem(name, list);
+        item->setData(Qt::UserRole, name);
+        item->setData(ValueRole, value.toVariant());
+    }
+    hint->setText(header + QStringLiteral("\n") +
+                  (choices.isEmpty() ? tr("No choices match") : tr("Tab or Enter to choose")));
+    list->setVisible(!choices.isEmpty());
+    if (!choices.isEmpty())
+        list->setCurrentRow(0);
+}
+
+void SlashCommandPopup::requestAutocomplete()
+{
+    if (!editor || !autocomplete || editor->toPlainText() != autocompleteText)
+        return;
+    const Qord::SlashCommands::Index *index = provider ? provider() : nullptr;
+    const auto focus = index ? Qord::SlashCommands::focus(*index, autocompleteText, picked) : std::nullopt;
+    if (!focus || !focus->option || !focus->option->autocomplete)
+        return;
+    const int request = ++autocompleteGeneration;
+    const QString header = QStringLiteral("%1: %2").arg(focus->option->name, focus->option->description);
+    const QPointer<SlashCommandPopup> guard(this);
+    autocomplete(*focus->command, focus->autocompleteData, [guard, request, header](const Choices &choices) {
+        // Only the answer to the latest request, while the text is unchanged
+        if (!guard || request != guard->autocompleteGeneration || !guard->editor ||
+            guard->editor->toPlainText() != guard->autocompleteText)
+            return;
+        guard->showChoices(choices, header);
+        guard->place();
+    });
 }
 
 void SlashCommandPopup::place()
@@ -99,7 +172,16 @@ void SlashCommandPopup::accept()
     if (!editor || !list->currentItem())
         return;
     const QString name = list->currentItem()->data(Qt::UserRole).toString();
-    editor->setPlainText(QStringLiteral("/%1 ").arg(name));
+    QString text = editor->toPlainText();
+    if (mode == Mode::Choices && focusedValueStart >= 0 && focusedValueStart <= text.size()) {
+        // Put the choice's name in place of what was typed, and remember its value
+        picked.insert(focusedOption, { name, QJsonValue::fromVariant(list->currentItem()->data(ValueRole)) });
+        text = text.left(focusedValueStart) + name + QLatin1Char(' ');
+    } else {
+        picked.clear();
+        text = QStringLiteral("/%1 ").arg(name);
+    }
+    editor->setPlainText(text);
     QTextCursor cursor = editor->textCursor();
     cursor.movePosition(QTextCursor::End);
     editor->setTextCursor(cursor);

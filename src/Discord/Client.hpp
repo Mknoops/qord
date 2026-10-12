@@ -345,6 +345,7 @@ signals:
     void voiceStateUpdated(const VoiceState &event);
     void voiceServerUpdated(const VoiceServerUpdate &event);
     void streamEvent(const QString &type, const QJsonObject &data); // Qord: Go Live
+    void autocompleteResponse(const QJsonObject &data); // Qord: slash command option suggestions
     void relationshipAdded(const Relationship &event);
     void relationshipUpdated(const RelationshipPartial &event);
     void relationshipRemoved(const RelationshipPartial &event);

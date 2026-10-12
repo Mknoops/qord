@@ -193,6 +193,7 @@ Client::Client(const QString &token, const QString &gatewayUrl, const QString &b
     connect(gateway, &Gateway::gatewayVoiceStateUpdate, this, &Client::voiceStateUpdated);
     connect(gateway, &Gateway::gatewayVoiceServerUpdate, this, &Client::voiceServerUpdated);
     connect(gateway, &Gateway::gatewayStreamEvent, this, &Client::streamEvent); // Qord
+    connect(gateway, &Gateway::gatewayAutocompleteResponse, this, &Client::autocompleteResponse); // Qord
     connect(gateway, &Gateway::gatewayRelationshipAdd, this, &Client::relationshipAdded);
     connect(gateway, &Gateway::gatewayRelationshipUpdate, this, &Client::relationshipUpdated);
     connect(gateway, &Gateway::gatewayRelationshipRemove, this, &Client::relationshipRemoved);

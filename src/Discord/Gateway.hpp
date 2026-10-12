@@ -118,6 +118,8 @@ signals:
     void gatewayVoiceServerUpdate(const VoiceServerUpdate &data);
     // Qord: STREAM_CREATE, STREAM_SERVER_UPDATE, STREAM_UPDATE, STREAM_DELETE
     void gatewayStreamEvent(const QString &type, const QJsonObject &data);
+    // Qord: an app's suggestions for a slash command option
+    void gatewayAutocompleteResponse(const QJsonObject &data);
     void gatewayRelationshipAdd(const Relationship &data);
     void gatewayRelationshipUpdate(const RelationshipPartial &data);
     void gatewayRelationshipRemove(const RelationshipPartial &data);

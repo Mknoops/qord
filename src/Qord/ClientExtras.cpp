@@ -9,6 +9,8 @@
 #include "Proto/ProtoWriter.hpp"
 
 #include <QDateTime>
+#include <QUrlQuery>
+#include <QPointer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLocale>
@@ -294,6 +296,39 @@ void Client::sendGatewayOp(int op, const Core::OrderedJson &d)
 {
     if (gateway)
         gateway->sendOp(op, d);
+}
+
+void Client::fetchStickerPacks(ResultCallback<QList<StickerPack>> callback)
+{
+    if (stickerPacks) {
+        callback(Core::Result<QList<StickerPack>>::makeOk(*stickerPacks));
+        return;
+    }
+    const QPointer<Client> self(this);
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("locale"), QStringLiteral("en-US"));
+    httpClient->get(QStringLiteral("/sticker-packs"), query, [self, callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching sticker packs failed:" << response.error;
+            callback(Core::Result<QList<StickerPack>>::makeError(response.error));
+            return;
+        }
+        QList<StickerPack> packs;
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("sticker_packs")).toArray();
+        for (const auto &value : list) {
+            const QJsonObject obj = value.toObject();
+            StickerPack pack;
+            pack.id = Snowflake(obj.value(QStringLiteral("id")).toString().toULongLong());
+            pack.name = obj.value(QStringLiteral("name")).toString();
+            for (const auto &sticker : obj.value(QStringLiteral("stickers")).toArray())
+                pack.stickers.append(Sticker::fromJson(sticker.toObject()));
+            packs.append(pack);
+        }
+        if (self)
+            self->stickerPacks = packs;
+        callback(Core::Result<QList<StickerPack>>::makeOk(packs));
+    });
 }
 
 void Client::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,

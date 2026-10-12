@@ -11,6 +11,34 @@
 #include "Logging.hpp"
 #include "NetworkRequest.hpp"
 #include "Discord/CdnUrls.hpp"
+#ifdef ACHERON_HAVE_RLOTTIE
+#include "LottieDecoder.hpp"
+#endif
+
+namespace {
+// Qord: Lottie stickers have no still image on the CDN, only their JSON; a
+// picture of their first frame stands in (the sticker picker's packs)
+bool decodeStill(QPixmap &pixmap, const QByteArray &data, const QSize &size)
+{
+    if (pixmap.loadFromData(data))
+        return true;
+#ifdef ACHERON_HAVE_RLOTTIE
+    if (Acheron::Core::Lottie::looksLikeLottie(data)) {
+        if (auto animation = Acheron::Core::Lottie::Animation::fromJson(data)) {
+            const qreal dpr = qApp->devicePixelRatio();
+            const QImage frame = animation->render(0, QSize(qRound(size.width() * dpr), qRound(size.height() * dpr)));
+            if (!frame.isNull()) {
+                pixmap = QPixmap::fromImage(frame);
+                return true;
+            }
+        }
+    }
+#else
+    Q_UNUSED(size);
+#endif
+    return false;
+}
+} // namespace
 
 namespace Acheron {
 namespace Core {
@@ -128,7 +156,8 @@ QPixmap ImageManager::getImpl(const QUrl &url, const QSize &size, PinGroup pin, 
     QString path = getCachePath(url, size);
     if (QFile::exists(path)) {
         QPixmap pixmap;
-        if (pixmap.load(path)) {
+        QFile cached(path);
+        if (cached.open(QIODevice::ReadOnly) && decodeStill(pixmap, cached.readAll(), size)) {
             qreal dpr = qApp->devicePixelRatio();
 
             if (scalesToDevicePixels(url)) {
@@ -267,7 +296,7 @@ void ImageManager::fetchFromNetwork(const QUrl &url, const QSize &size, PinGroup
         const bool pixmapWanted = !downloadOnlyRequests.remove(k);
 
         QPixmap pixmap;
-        if (pixmapWanted && pixmap.loadFromData(data)) {
+        if (pixmapWanted && decodeStill(pixmap, data, size)) {
             if (deviceScaled) {
                 QSize physicalSize(qRound(size.width() * dpr), qRound(size.height() * dpr));
                 if (pixmap.size() != physicalSize)

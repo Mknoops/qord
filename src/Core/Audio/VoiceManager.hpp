@@ -61,6 +61,10 @@ public:
     [[nodiscard]] static bool videoSupported();
     // The call's connection (it lives on the voice thread), or null
     [[nodiscard]] Discord::Voice::VoiceClient *callClient() const { return voiceClient; }
+    // Qord: a watched stream's sound, mixed into the call's output (it
+    // follows deafen and the output volume)
+    void addStreamAudio(Discord::Voice::VoiceClient *stream);
+    void removeStreamAudio(Discord::Voice::VoiceClient *stream);
 
     void setInputGain(float gain);
     void setOutputVolume(float volume);
@@ -184,6 +188,13 @@ private:
     QSet<Snowflake> mutedUsers;
     QHash<Snowflake, Discord::VoiceState> knownVoiceStates;
     QString cachedPrivacyCode;
+
+    struct StreamAudioSource
+    {
+        QMetaObject::Connection connection;
+        std::shared_ptr<QSet<quint32>> keys; // touched on the voice thread only
+    };
+    QHash<Discord::Voice::VoiceClient *, StreamAudioSource> streamAudio;
 
     QThread *voiceThread = nullptr;
     Discord::Voice::VoiceClient *voiceClient = nullptr;

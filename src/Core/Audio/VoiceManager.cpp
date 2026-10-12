@@ -1,4 +1,6 @@
 #include "VoiceManager.hpp"
+
+#include <QRandomGenerator>
 #include "AudioPipeline.hpp"
 
 #include "Core/Logging.hpp"
@@ -459,6 +461,41 @@ bool VoiceManager::videoSupported()
     return qordVideoSupported;
 }
 
+void VoiceManager::addStreamAudio(Discord::Voice::VoiceClient *stream)
+{
+    if (!stream || !audioPipeline || streamAudio.contains(stream))
+        return;
+    // The stream's SSRCs come from another RTC server and could equal the
+    // call's: each stream gets its own key space
+    const quint32 salt = QRandomGenerator::global()->generate() | 0x80000000u;
+    auto keys = std::make_shared<QSet<quint32>>();
+    AudioPipeline *ap = audioPipeline;
+    StreamAudioSource source;
+    source.keys = keys;
+    source.connection = connect(stream, &Discord::Voice::VoiceClient::audioReceived, ap,
+                                [ap, salt, keys](quint32 ssrc, uint16_t sequence, uint32_t timestamp,
+                                                 const QByteArray &opus) {
+                                    const quint32 key = ssrc ^ salt;
+                                    keys->insert(key);
+                                    ap->onAudioReceived(key, sequence, timestamp, opus);
+                                });
+    streamAudio.insert(stream, source);
+}
+
+void VoiceManager::removeStreamAudio(Discord::Voice::VoiceClient *stream)
+{
+    const auto it = streamAudio.find(stream);
+    if (it == streamAudio.end())
+        return;
+    QObject::disconnect(it->connection);
+    if (audioPipeline)
+        QMetaObject::invokeMethod(audioPipeline, [ap = audioPipeline, keys = it->keys]() {
+            for (quint32 key : std::as_const(*keys))
+                ap->removeSsrc(key);
+        });
+    streamAudio.erase(it);
+}
+
 void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &token)
 {
     if (voiceSessionId.isEmpty()) {
@@ -609,6 +646,10 @@ void VoiceManager::stopVoiceThread()
         return;
 
     emit voiceClientStopping(voiceClient);
+    // The pipeline goes with the thread, and the stream connections with it
+    for (const auto &source : std::as_const(streamAudio))
+        QObject::disconnect(source.connection);
+    streamAudio.clear();
 
     voiceGeneration++;
     bool hadParticipants = !participants.isEmpty();

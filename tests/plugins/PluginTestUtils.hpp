@@ -129,6 +129,14 @@ public:
     QList<PermissionsView> permissionViews;
     void refreshAttachments(Id, Id, Id messageId) override { attachmentRefreshes.append(messageId); }
     void showServerInfo(const ServerInfoView &view) override { serverInfoViews.append(view); }
+    void cancelReply() override { ++replyCancels; }
+    void cancelEditing() override { ++editCancels; }
+    void focusMessageBox() override { ++focuses; }
+    void revealMessage(Id messageId) override { revealed.append(messageId); }
+    int replyCancels = 0;
+    int editCancels = 0;
+    int focuses = 0;
+    QList<Id> revealed;
     QList<ServerInfoView> serverInfoViews;
     QList<Id> attachmentRefreshes;
     QList<MemberPermissionsView> memberPermissionViews;

@@ -113,6 +113,19 @@ public:
     static std::function<void()> &lockScreenRefresher(); // set by the main window
     void refreshAttachments(Id accountId, Id channelId, Id messageId) override;
     void showServerInfo(const ServerInfoView &view) override;
+    void cancelReply() override;
+    void cancelEditing() override;
+    void focusMessageBox() override;
+    void revealMessage(Id messageId) override;
+    // Set by the main window, which owns the chat and the message box
+    struct ChatControls
+    {
+        std::function<void()> cancelReply;
+        std::function<void()> cancelEditing;
+        std::function<void()> focusMessageBox;
+        std::function<void(Id)> revealMessage;
+    };
+    static ChatControls &chatControls();
     void openUserProfile(Id accountId, Id guildId, Id userId) override;
     static std::function<void(const ServerInfoView &)> &serverInfoShower(); // set by the main window
     static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window

@@ -229,6 +229,36 @@ std::function<void(Id, Id, Id)> &QtUiService::profileOpener()
     return opener;
 }
 
+QtUiService::ChatControls &QtUiService::chatControls()
+{
+    static ChatControls controls;
+    return controls;
+}
+
+void QtUiService::cancelReply()
+{
+    if (chatControls().cancelReply)
+        chatControls().cancelReply();
+}
+
+void QtUiService::cancelEditing()
+{
+    if (chatControls().cancelEditing)
+        chatControls().cancelEditing();
+}
+
+void QtUiService::focusMessageBox()
+{
+    if (chatControls().focusMessageBox)
+        chatControls().focusMessageBox();
+}
+
+void QtUiService::revealMessage(Id messageId)
+{
+    if (chatControls().revealMessage)
+        chatControls().revealMessage(messageId);
+}
+
 void QtUiService::showServerInfo(const ServerInfoView &view)
 {
     if (serverInfoShower())

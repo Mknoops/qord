@@ -804,6 +804,18 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
 }
 
+bool PluginHost::dispatchShortcut(const ShortcutContext &shortcut)
+{
+    const auto &table = tables[hookIndex(Hook::KeyboardShortcuts)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        bool used = false;
+        guarded(tableIds[hookIndex(Hook::KeyboardShortcuts)][i], "onShortcut", [&] { used = table[i]->onShortcut(shortcut); });
+        if (used)
+            return true;
+    }
+    return false;
+}
+
 void PluginHost::dispatchUserMentionHovered(const MentionContext &mention)
 {
     const auto &table = tables[hookIndex(Hook::UnknownMentions)];

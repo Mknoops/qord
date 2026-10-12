@@ -84,6 +84,24 @@
 namespace Acheron {
 namespace UI {
 
+namespace {
+// Lets a callback see key presses first (QuickReply's shortcuts)
+class KeyFilter : public QObject
+{
+public:
+    KeyFilter(QObject *parent, std::function<bool(QKeyEvent *)> onKey) : QObject(parent), onKey(std::move(onKey)) {}
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::KeyPress && onKey(static_cast<QKeyEvent *>(event)))
+            return true;
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    std::function<bool(QKeyEvent *)> onKey;
+};
+} // namespace
+
 using Core::Snowflake;
 using Core::Theme::Token;
 
@@ -337,6 +355,55 @@ void MainWindow::setupQordFeatures()
             chatModel->refreshAttachments(Snowflake(messageId));
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
+
+    // QuickReply: Ctrl(+Shift)+Up/Down anywhere in this window go to
+    // plugins first, and the chat controls they use
+    Qord::Plugins::QtUiService::chatControls() = {
+        [this]() { messageInput->clearReplyTarget(); },
+        [this]() { chatView->stopEditingMessage(); },
+        [this]() { messageInput->editor()->setFocus(); },
+        [this](Qord::Plugins::Id messageId) {
+            const int row = chatModel->rowForMessage(Snowflake(messageId));
+            if (row < 0)
+                return;
+            const QModelIndex idx = chatModel->index(row, 0);
+            const QRect rect = chatView->visualRect(idx);
+            // Within 150 px of the edge, or out of view: bring it in (upstream's jumpIfOffScreen)
+            if (rect.isNull() || rect.bottom() < 150 || rect.top() - chatView->viewport()->height() >= -150)
+                chatView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        },
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::chatControls() = {}; });
+    qApp->installEventFilter(new KeyFilter(this, [this](QKeyEvent *event) {
+        if (event->key() != Qt::Key_Up && event->key() != Qt::Key_Down)
+            return false;
+        const auto mods = event->modifiers();
+#ifdef Q_OS_MACOS
+        const bool other = mods & Qt::AltModifier;
+#else
+        const bool other = (mods & Qt::AltModifier) || (mods & Qt::MetaModifier);
+#endif
+        if (!(mods & Qt::ControlModifier) || other || !isActiveWindow() || !currentInstance)
+            return false;
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host || !host->hasHook(Qord::Plugins::Hook::KeyboardShortcuts) || !chatModel->getActiveChannelId().isValid())
+            return false;
+        Qord::Plugins::ShortcutContext shortcut;
+        shortcut.accountId = quint64(currentInstance->accountId());
+        shortcut.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
+        shortcut.channelId = quint64(chatModel->getActiveChannelId());
+        shortcut.key = event->key() == Qt::Key_Up ? Qord::Plugins::ShortcutContext::Key::Up
+                                                  : Qord::Plugins::ShortcutContext::Key::Down;
+        shortcut.shift = mods & Qt::ShiftModifier;
+        shortcut.canSend = messageInput->isEnabled();
+        shortcut.replyingTo = Qord::Plugins::pluginId(messageInput->replyTargetMessageId());
+        shortcut.editing = Qord::Plugins::pluginId(chatView->editingMessageId());
+        const auto infos = chatModel->messageInfos();
+        for (int row = 0; row < infos.size(); ++row)
+            if (!chatView->isRowHidden(row)) // hidden by a plugin (NoBlockedMessages)
+                shortcut.messages.append(infos[row]);
+        return host->dispatchShortcut(shortcut);
+    }));
 
     // Mentions: clicking one opens the profile; hovering one shown as
     // "@unknown-user" lets ValidUser look the user up

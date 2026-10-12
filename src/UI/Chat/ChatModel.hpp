@@ -290,6 +290,8 @@ public:
     void toggleTextExpanded(Snowflake messageId, Snowflake attachmentId);
     // Re-asks plugins for the buttons on a message's text files
     void refreshAttachments(Snowflake messageId);
+    // Qord: the loaded messages as QuickReply sees them, oldest first
+    [[nodiscard]] QList<Qord::Plugins::ChatMessageInfo> messageInfos() const;
     // A text file as plugins see it (CopyFileContents)
     [[nodiscard]] Qord::Plugins::AttachmentContext attachmentContext(Snowflake messageId,
                                                                      const AttachmentData &attachment) const;

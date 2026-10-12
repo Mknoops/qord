@@ -108,6 +108,7 @@ qord_add_plugin(copyfilecontents utility SOURCES CopyFileContents.hpp CopyFileCo
 qord_add_plugin(serverinfo utility SOURCES ServerInfo.hpp ServerInfo.cpp)
 qord_add_plugin(typingindicator appearance SOURCES TypingIndicator.hpp TypingIndicator.cpp)
 qord_add_plugin(validuser chat SOURCES ValidUser.hpp ValidUser.cpp)
+qord_add_plugin(quickreply chat SOURCES QuickReply.hpp QuickReply.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

@@ -121,6 +121,13 @@ public:
         Q_UNUSED(channelId);
         Q_UNUSED(messageId);
     }
+    // The message box's reply and the message being edited, ended; the
+    // message box focused; a message scrolled into view if it is near the
+    // edge of the chat or out of it (QuickReply)
+    virtual void cancelReply() {}
+    virtual void cancelEditing() {}
+    virtual void focusMessageBox() {}
+    virtual void revealMessage(Id messageId) { Q_UNUSED(messageId); }
     // Starts editing one of your messages in the chat
     virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
     // Replies to a message. With no explicit `mention`, the client decides

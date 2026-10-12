@@ -78,11 +78,12 @@ enum class Hook : quint32 {
     AttachmentButtons = 1u << 24,
     ChannelTyping = 1u << 25,
     UnknownMentions = 1u << 26,
+    KeyboardShortcuts = 1u << 27,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 27;
+constexpr int HookCount = 28;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

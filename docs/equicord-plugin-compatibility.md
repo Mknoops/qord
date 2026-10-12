@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 332 |
+| Not Started | 331 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 37 |
+| Tested | 38 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -256,7 +256,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ProfileSets | `src/equicordplugins/profileSets` |  | Not Started |  |
 | Questify | `src/equicordplugins/questify` |  | Not Started |  |
 | QuickMention | `src/plugins/quickMention` |  | Not Started |  |
-| QuickReply | `src/plugins/quickReply` |  | Not Started |  |
+| QuickReply | `src/plugins/quickReply` | `plugins/chat/quickreply` | Tested | Ctrl+Up/Down (Cmd on macOS) moves the reply through the channel's messages, newest first, and Ctrl+Shift+Up/Down moves editing through your own; going past the newest ends the reply or edit. It starts from the reply or edit you already have, skips deleted messages kept on screen, ephemeral messages, message types Discord doesn't let you reply to, and (by default) blocked and ignored users, focuses the message box and scrolls a message near the edge of the chat into view. Nothing happens in a server channel you can't send in. wired; not yet verified in the running client. |
 | QuickThemeSwitcher | `src/equicordplugins/quickThemeSwitcher.discordDesktop` |  | Not Started |  |
 | Quoter | `src/equicordplugins/quoter` |  | Not Started |  |
 | RandomVoice | `src/equicordplugins/randomVoice` |  | Not Started |  |

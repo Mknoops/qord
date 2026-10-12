@@ -655,6 +655,32 @@ struct MentionContext
     Id userId = 0;
 };
 
+// A loaded message in the open channel, for keyboard navigation
+struct ChatMessageInfo
+{
+    Id id = 0;
+    Id authorId = 0;
+    int type = 0; // Discord's message type
+    quint64 flags = 0;
+    bool deleted = false; // kept on screen by a plugin (MessageLogger)
+};
+
+// Ctrl+Up/Down (Cmd on macOS), with or without Shift, in the main window
+// (QuickReply)
+struct ShortcutContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0;
+    enum class Key { Up, Down };
+    Key key = Key::Up;
+    bool shift = false;
+    bool canSend = true; // in the open channel
+    Id replyingTo = 0; // the message box's reply, if any
+    Id editing = 0; // the message being edited, if any
+    QList<ChatMessageInfo> messages; // oldest first, as shown
+};
+
 // One part of a text diff (see TextDiff.hpp).
 struct DiffPart
 {

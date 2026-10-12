@@ -165,6 +165,7 @@ inventory). All are off by default.
 | **PermissionsViewer** | "View Permissions" for members, channels and servers, and a member's permissions with the role granting each | add_ui_elements, read_server_permissions |
 | **PlatformIndicators** | Desktop, mobile and web indicators next to users | read_presences, modify_displayed_messages |
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
+| **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
 | **ReverseImageSearch** | "Search Image" in image context menus | add_ui_elements, open_links |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
@@ -184,7 +185,7 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** QuickReply and Translate.
+**Up next:** Translate.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

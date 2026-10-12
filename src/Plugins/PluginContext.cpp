@@ -142,6 +142,10 @@ public:
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
+    void cancelReply() override { inner->cancelReply(); }
+    void cancelEditing() override { inner->cancelEditing(); }
+    void focusMessageBox() override { inner->focusMessageBox(); }
+    void revealMessage(Id messageId) override { inner->revealMessage(messageId); }
     void showServerInfo(const ServerInfoView &view) override { inner->showServerInfo(view); }
     void openUserProfile(Id accountId, Id guildId, Id userId) override
     {

@@ -19,10 +19,13 @@
 #include <QSet>
 #include <QTimer>
 
+#include <memory>
+
 #include "Core/ProxyConfig.hpp"
 #include "Core/Snowflake.hpp"
 #include "Qord/Video/ScreenCapture.hpp"
 #include "Qord/Video/VideoCodec.hpp"
+#include "Qord/Video/VideoSender.hpp"
 
 class QThread;
 
@@ -42,41 +45,6 @@ class VoiceManager;
 
 namespace Qord {
 namespace Video {
-
-// Captures and encodes on its own thread
-class VideoSender : public QObject
-{
-    Q_OBJECT
-public:
-    VideoSender(const CaptureSource &source, const H264Encoder::Settings &settings);
-    ~VideoSender() override;
-
-public slots:
-    void begin();
-    void end();
-    void requestKeyframe();
-
-signals:
-    void frameEncoded(const QByteArray &annexB, quint32 timestamp);
-    void started(const QString &encoderName);
-    void failed(const QString &reason);
-
-private:
-    void tick();
-
-    CaptureSource source;
-    H264Encoder::Settings settings;
-    ScreenCapturer capturer;
-    H264Encoder encoder;
-    QTimer *timer = nullptr;
-    qint64 startMs = 0;
-    qint64 lastKeyframeMs = 0;
-    qint64 statStartMs = 0;
-    qint64 statFrames = 0;
-    qint64 statCaptureNs = 0;
-    qint64 statTotalNs = 0;
-    bool keyframeWanted = true;
-};
 
 // Decodes a watched stream on its connection's thread
 class VideoReceiver : public QObject

@@ -45,6 +45,7 @@
 #include "UI/VoiceStatusBar.hpp"
 #endif
 #ifdef QORD_HAVE_GO_LIVE
+#include "UI/Qord/CameraUi.hpp"
 #include "UI/Qord/GoLiveUi.hpp"
 #endif
 #include <QTimer>
@@ -167,7 +168,16 @@ void MainWindow::setupQordFeatures()
     ChannelDelegate::setLiveProvider([this](quint64 accountId, quint64 userId) {
         return goLiveUi && goLiveUi->isLive(accountId, userId);
     });
-    connect(this, &QObject::destroyed, []() { ChannelDelegate::setLiveProvider(nullptr); });
+    // Cameras: the call's connection asks for video from now on
+    Core::Audio::VoiceManager::setVideoSupported(true);
+    cameraUi = new CameraUi(session, voiceStatusBar, this);
+    ChannelDelegate::setCameraProvider([this](quint64 accountId, quint64 userId) {
+        return cameraUi && cameraUi->hasCamera(accountId, userId);
+    });
+    connect(this, &QObject::destroyed, []() {
+        ChannelDelegate::setLiveProvider(nullptr);
+        ChannelDelegate::setCameraProvider(nullptr);
+    });
 #endif
 #ifndef ACHERON_NO_VOICE
     // As in Discord: clicking a voice channel joins it, clicking someone who
@@ -191,6 +201,9 @@ void MainWindow::setupQordFeatures()
         if (node->type == ChannelNode::Type::VoiceParticipant && goLiveUi && node->id != instance->accountId() &&
             goLiveUi->isLive(quint64(instance->accountId()), quint64(node->id)))
             goLiveUi->watch(instance, node->id);
+        else if (node->type == ChannelNode::Type::VoiceParticipant && cameraUi && instance->isInVoice() &&
+                 cameraUi->hasCamera(quint64(instance->accountId()), quint64(node->id)))
+            cameraUi->showVideo(instance);
 #endif
     });
 #endif

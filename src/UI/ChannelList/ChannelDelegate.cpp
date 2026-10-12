@@ -22,6 +22,11 @@ ChannelDelegate::LiveProvider &liveProvider()
     static ChannelDelegate::LiveProvider provider;
     return provider;
 }
+ChannelDelegate::CameraProvider &cameraProvider()
+{
+    static ChannelDelegate::CameraProvider provider;
+    return provider;
+}
 } // namespace
 
 void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
@@ -32,6 +37,11 @@ void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
 void ChannelDelegate::setLiveProvider(LiveProvider provider)
 {
     liveProvider() = std::move(provider);
+}
+
+void ChannelDelegate::setCameraProvider(CameraProvider provider)
+{
+    cameraProvider() = std::move(provider);
 }
 
 bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
@@ -491,13 +501,33 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         constexpr int statusIconSize = 14;
         int iconCount = (muted ? 1 : 0) + (deafened ? 1 : 0);
         int rightReserve = iconCount > 0 ? (iconCount * (statusIconSize + 4) + 4) : 4;
-        // Qord: Go Live
+        // Qord: Go Live and cameras
         bool live = false;
-        if (liveProvider()) {
+        bool camera = false;
+        if (liveProvider() || cameraProvider()) {
             const ChannelNode *account = node;
             while (account && account->type != ChannelNode::Type::Account)
                 account = account->parent;
-            live = account && liveProvider()(quint64(account->id), quint64(node->id));
+            live = account && liveProvider() && liveProvider()(quint64(account->id), quint64(node->id));
+            camera = account && cameraProvider() && cameraProvider()(quint64(account->id), quint64(node->id));
+        }
+        constexpr int cameraWidth = 20;
+        if (camera) {
+            // Discord's video camera glyph, in the muted text colour
+            const QRectF body(contentOpt.rect.right() - rightReserve - cameraWidth + 3,
+                              contentOpt.rect.center().y() - 4.5, 9, 9);
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(QPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText), 1.4,
+                                 Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRoundedRect(body, 1.5, 1.5);
+            QPolygonF lens;
+            lens << QPointF(body.right(), body.center().y() - 1.5) << QPointF(body.right() + 4, body.top() + 0.5)
+                 << QPointF(body.right() + 4, body.bottom() - 0.5) << QPointF(body.right(), body.center().y() + 1.5);
+            painter->drawPolygon(lens);
+            painter->restore();
+            rightReserve += cameraWidth;
         }
         constexpr int liveWidth = 30;
         if (live) {

@@ -111,6 +111,11 @@ public:
     }
     ~ScopedUi() override { *alive = false; }
     void insertIntoMessageBox(const QString &text) override { inner->insertIntoMessageBox(text); }
+    bool confirm(Confirmation &confirmation) override { return inner->confirm(confirmation); }
+    void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override
+    {
+        inner->attachFile(fileName, data, mimeType);
+    }
     void openPluginSettings(const QString &pluginId) override { inner->openPluginSettings(pluginId); }
     void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                     std::function<void(const QString &)> done) override
@@ -184,6 +189,13 @@ private:
     std::shared_ptr<bool> alive;
 };
 } // namespace
+
+ExpressionService *PluginContext::expressions() const
+{
+    if (!granted.testFlag(Permission::ReadExpressions))
+        return nullptr;
+    return services.expressions;
+}
 
 ReactionService *PluginContext::reactions()
 {

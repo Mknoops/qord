@@ -34,6 +34,7 @@ enum class Permission : quint32 {
     ReadPresences = 1u << 17, // userDecorations
     ReadVoiceStates = 1u << 18, // voiceStates
     ReadReactions = 1u << 19, // reactionUsers, PluginContext::reactions()
+    ReadExpressions = 1u << 20, // PluginContext::expressions()
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)

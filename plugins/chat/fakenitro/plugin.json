@@ -1,0 +1,229 @@
+{
+  "id": "fakenitro",
+  "equicordName": "FakeNitro",
+  "equicordPath": "src/plugins/fakeNitro",
+  "name": "FakeNitro",
+  "description": "Allows you to send fake emojis/stickers, use nitro themes, and stream in nitro quality",
+  "categories": [
+    "chat"
+  ],
+  "tags": [
+    "Emotes",
+    "Appearance",
+    "Customisation",
+    "Chat"
+  ],
+  "authors": [
+    "Arjix",
+    "D3SOX",
+    "Ven",
+    "fawn",
+    "captain",
+    "Nuckyz",
+    "AutumnVN",
+    "sadan"
+  ],
+  "permissions": [
+    "modify_outgoing_messages",
+    "modify_displayed_messages",
+    "read_expressions",
+    "network",
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "onBeforeSend",
+    "onBeforeEdit",
+    "transformIncomingContent"
+  ],
+  "settings": [
+    {
+      "key": "enableEmojiBypass",
+      "type": "bool",
+      "default": true,
+      "label": "Emoji bypass",
+      "description": "Allows sending fake emojis (also bypasses missing permission to use custom emojis)"
+    },
+    {
+      "key": "emojiSize",
+      "type": "choice",
+      "default": "48",
+      "label": "Emoji size",
+      "description": "Size of the emojis when sending",
+      "choices": [
+        {
+          "value": "16",
+          "label": "16px"
+        },
+        {
+          "value": "32",
+          "label": "32px"
+        },
+        {
+          "value": "48",
+          "label": "48px"
+        },
+        {
+          "value": "56",
+          "label": "56px"
+        },
+        {
+          "value": "64",
+          "label": "64px"
+        },
+        {
+          "value": "96",
+          "label": "96px"
+        },
+        {
+          "value": "128",
+          "label": "128px"
+        },
+        {
+          "value": "160",
+          "label": "160px"
+        },
+        {
+          "value": "256",
+          "label": "256px"
+        },
+        {
+          "value": "512",
+          "label": "512px"
+        },
+        {
+          "value": "1024",
+          "label": "1024px"
+        }
+      ]
+    },
+    {
+      "key": "transformEmojis",
+      "type": "bool",
+      "default": true,
+      "label": "Transform emojis",
+      "description": "Whether to transform fake emojis into real ones"
+    },
+    {
+      "key": "enableStickerBypass",
+      "type": "bool",
+      "default": true,
+      "label": "Sticker bypass",
+      "description": "Allows sending fake stickers (also bypasses missing permission to use stickers)"
+    },
+    {
+      "key": "stickerSize",
+      "type": "choice",
+      "default": "160",
+      "label": "Sticker size",
+      "description": "Size of the stickers when sending",
+      "choices": [
+        {
+          "value": "16",
+          "label": "16px"
+        },
+        {
+          "value": "32",
+          "label": "32px"
+        },
+        {
+          "value": "48",
+          "label": "48px"
+        },
+        {
+          "value": "56",
+          "label": "56px"
+        },
+        {
+          "value": "64",
+          "label": "64px"
+        },
+        {
+          "value": "96",
+          "label": "96px"
+        },
+        {
+          "value": "128",
+          "label": "128px"
+        },
+        {
+          "value": "160",
+          "label": "160px"
+        },
+        {
+          "value": "256",
+          "label": "256px"
+        },
+        {
+          "value": "512",
+          "label": "512px"
+        },
+        {
+          "value": "1024",
+          "label": "1024px"
+        }
+      ]
+    },
+    {
+      "key": "transformStickers",
+      "type": "bool",
+      "default": true,
+      "label": "Transform stickers",
+      "description": "Whether to transform fake stickers into real ones"
+    },
+    {
+      "key": "transformCompoundSentence",
+      "type": "bool",
+      "default": false,
+      "label": "Transform compound sentences",
+      "description": "Whether to transform fake stickers and emojis in compound sentences (sentences with more content than just the fake emoji or sticker link)"
+    },
+    {
+      "key": "enableStreamQualityBypass",
+      "type": "bool",
+      "default": true,
+      "label": "Stream quality bypass",
+      "description": "Allow streaming in nitro quality"
+    },
+    {
+      "key": "useStickerHyperLinks",
+      "type": "bool",
+      "default": true,
+      "label": "Sticker hyperlinks",
+      "description": "Whether to use hyperlinks when sending fake stickers"
+    },
+    {
+      "key": "useEmojiHyperLinks",
+      "type": "bool",
+      "default": true,
+      "label": "Emoji hyperlinks",
+      "description": "Whether to use hyperlinks when sending fake emojis"
+    },
+    {
+      "key": "hyperLinkText",
+      "type": "string",
+      "default": "{{NAME}}",
+      "label": "Hyperlink text",
+      "description": "What text the hyperlink should use. {{NAME}} will be replaced with the emoji/sticker name."
+    },
+    {
+      "key": "disableEmbedPermissionCheck",
+      "type": "bool",
+      "default": false,
+      "label": "Disable embed permission check",
+      "description": "Whether to disable the embed permission check when sending fake emojis and stickers"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [
+    "Stream quality bypass: Qord cannot stream (Go Live) yet, so the setting has no effect.",
+    "Nitro client themes and app icons: Qord has its own themes and does not implement Discord's gradient client themes or app icons, which upstream unlocks and keeps from being overwritten by synced settings.",
+    "Soundboard: Qord has no soundboard, so upstream's unlocking of all soundboard sounds does not apply.",
+    "Popout notices: Qord has no emoji or sticker popouts, so the \"This is a FakeNitro emoji/sticker\" notice upstream adds there is not shown.",
+    "Discord's own sticker packs: Qord does not load them, so they are never treated as free standard stickers (they are not offered in the picker either).",
+    "Role subscription emojis: Qord cannot tell them apart, so upstream's check for unusable role subscription emojis is not made."
+  ],
+  "notes": "Emojis and stickers you can't use are sent as links ([name](url) by default); messages that are only such a link show the emoji or sticker instead, and the link's image embed is hidden. With the bypasses on, the emoji picker and autocomplete (for messages, not reactions) and the sticker picker offer every server's emojis and stickers. Animated (APNG) stickers are redrawn as a GIF and added to the message box, as upstream puts them in the upload queue; Qord's GIF writer keeps transparency by alpha where upstream's gifenc palette does not. The emoji link's base URL follows Discord's IconUtils.getEmojiURL as far as can be read from upstream (cdn.discordapp.com/emojis/<id>.webp?size=N, with animated=true for animated emojis); it cannot be checked against Discord's own code here. When an edit is cancelled at the embed permission prompt the edit is dropped, where Discord keeps the editor open. Received fake emojis are found with Qord's markdown link rules, outside code; with compound sentences on, links nested in formatting are transformed too, where upstream only transforms top-level ones."
+}

@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 340 |
+| Not Started | 339 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 29 |
+| Tested | 30 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -118,7 +118,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ExportMessages | `src/equicordplugins/exportMessages` |  | Not Started |  |
 | ExpressionCloner | `src/plugins/expressionCloner` |  | Not Started |  |
 | F8Break | `src/plugins/f8break` |  | Not Started |  |
-| FakeNitro | `src/plugins/fakeNitro` |  | Not Started |  |
+| FakeNitro | `src/plugins/fakeNitro` | `plugins/chat/fakenitro` | Tested | Emojis and stickers you can't use are sent as links ([name](url) by default); messages that are only such a link show the emoji or sticker instead, and the link's image embed is hidden. With the bypasses on, the emoji picker and autocomplete (for messages, not reactions) and the sticker picker offer every server's emojis and stickers. Animated (APNG) stickers are redrawn as a GIF and added to the message box, as upstream puts them in the upload queue; Qord's GIF writer keeps transparency by alpha where upstream's gifenc palette does not. The emoji link's base URL follows Discord's IconUtils.getEmojiURL as far as can be read from upstream (cdn.discordapp.com/emojis/<id>.webp?size=N, with animated=true for animated emojis); it cannot be checked against Discord's own code here. When an edit is cancelled at the embed permission prompt the edit is dropped, where Discord keeps the editor open. Received fake emojis are found with Qord's markdown link rules, outside code; with compound sentences on, links nested in formatting are transformed too, where upstream only transforms top-level ones. wired; not yet verified in the running client. gaps: Stream quality bypass: Qord cannot stream (Go Live) yet, so the setting has no effect.; Nitro client themes and app icons: Qord has its own themes and does not implement Discord's gradient client themes or app icons, which upstream unlocks and keeps from being overwritten by synced settings.; Soundboard: Qord has no soundboard, so upstream's unlocking of all soundboard sounds does not apply.; Popout notices: Qord has no emoji or sticker popouts, so the "This is a FakeNitro emoji/sticker" notice upstream adds there is not shown.; Discord's own sticker packs: Qord does not load them, so they are never treated as free standard stickers (they are not offered in the picker either).; Role subscription emojis: Qord cannot tell them apart, so upstream's check for unusable role subscription emojis is not made. |
 | FakeProfileThemes | `src/plugins/fakeProfileThemes` |  | Not Started |  |
 | FastDeleteChannels | `src/equicordplugins/fastDeleteChannels` |  | Not Started |  |
 | FavoriteEmojiFirst | `src/plugins/favEmojiFirst` |  | Not Started |  |

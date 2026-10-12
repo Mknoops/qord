@@ -97,6 +97,30 @@ public:
     virtual void openImage(const QUrl &url) { Q_UNUSED(url); }
     // A small dialog asking for one line of text. `done` gets the text when
     // the user saves; it is not called if they cancel.
+    // A modal question. Returns whether the user confirmed; with an empty
+    // cancelText it only informs. A checkbox is shown when checkboxText is
+    // set, and its state is written back.
+    struct Confirmation
+    {
+        QString title;
+        QString text;
+        QString confirmText;
+        QString cancelText;
+        QString checkboxText;
+        bool checkboxChecked = false;
+    };
+    virtual bool confirm(Confirmation &confirmation)
+    {
+        Q_UNUSED(confirmation);
+        return false;
+    }
+    // Adds a file to the message box's attachments; the user still sends it.
+    virtual void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType)
+    {
+        Q_UNUSED(fileName);
+        Q_UNUSED(data);
+        Q_UNUSED(mimeType);
+    }
     virtual void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                             std::function<void(const QString &text)> done)
     {
@@ -127,6 +151,25 @@ public:
     // Marks every unread channel, voice channel and joined thread in every
     // server as read, like Discord's "Mark As Read" on all servers at once.
     virtual void markAllServersRead(Id accountId) = 0;
+};
+
+// Emojis, stickers and what you may use where.
+class ExpressionService
+{
+public:
+    virtual ~ExpressionService() = default;
+    // Discord's premium_type: 0 none, 1 Nitro Classic, 2 Nitro, 3 Nitro Basic
+    [[nodiscard]] virtual int premiumType(Id accountId) const = 0;
+    [[nodiscard]] virtual std::optional<CustomEmojiInfo> customEmoji(Id accountId, Id emojiId) const = 0;
+    [[nodiscard]] virtual std::optional<StickerInfo> sticker(Id accountId, Id stickerId) const = 0;
+    // Your roles in a server
+    [[nodiscard]] virtual QList<Id> ownRoles(Id accountId, Id guildId) const = 0;
+    // Whether you have a permission (Discord's bit) in a channel; always
+    // true in DMs and group DMs
+    [[nodiscard]] virtual bool hasChannelPermission(Id accountId, Id channelId, quint64 permission) const = 0;
+    // Let the emoji picker and autocomplete (for messages, not reactions)
+    // and the sticker picker offer emojis and stickers Discord would lock
+    virtual void setChatBypass(bool emojis, bool stickers) = 0;
 };
 
 class ReactionService
@@ -198,6 +241,7 @@ struct Services
     DisplayOptionsService *displayOptions = nullptr;
     ReadStateService *readStates = nullptr;
     ReactionService *reactions = nullptr;
+    ExpressionService *expressions = nullptr;
 };
 
 } // namespace Plugins

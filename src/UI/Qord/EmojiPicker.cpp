@@ -208,7 +208,7 @@ void EmojiPicker::rebuild()
         return;
     const QString query = search->text().trimmed();
     if (!query.isEmpty()) {
-        const auto results = instance->emojis()->search(query, channelId, 120);
+        const auto results = instance->emojis()->search(query, channelId, 120, forReaction);
         addSection(results.isEmpty() ? tr("No emoji match") : tr("Search results"), results);
         if (!results.isEmpty())
             view->setCurrentIndex(model->index(1, 0));

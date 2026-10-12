@@ -161,7 +161,10 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
             return;
         txt = Core::UnicodeEmojiIndex::instance().translateNamesToSurrogates(txt);
         emit sendMessage(txt, attachmentPanel->attachments());
-        clear();
+        if (keepAfterSend)
+            keepAfterSend = false;
+        else
+            clear();
     });
 
     connect(textEdit, &ChatTextEdit::editLastMessageRequested, this, &MessageInput::editLastMessageRequested);
@@ -234,6 +237,11 @@ void MessageInput::clear()
     clearReplyTarget();
     attachmentPanel->clearAttachments();
     adjustHeight();
+}
+
+void MessageInput::attachData(const QString &fileName, const QByteArray &data, const QString &mimeType)
+{
+    attachmentPanel->addData(fileName, data, mimeType);
 }
 
 void MessageInput::queueAttachments(const QList<QUrl> &urls)

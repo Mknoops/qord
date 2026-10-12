@@ -340,6 +340,15 @@ def seed_messages() -> None:
         "- spoilers\n- timestamps\n- code blocks\nShips <t:%d:R> (<t:%d:F>), ping <@&500000000000000002> "
         "or @here. Run </build release:42>.\n```py\nprint('hi')\n```" % (NOW // 1000 + 7200, NOW // 1000 + 7200),
         1, mention_roles=["500000000000000002"])
+    # A FakeNitro emoji and sticker as other clients see them: links
+    fake_emoji = "https://cdn.discordapp.com/emojis/720000000000000002.webp?size=48&name=far_cat&lossless=true"
+    add(CH["dev"], "ava", f"[far_cat]({fake_emoji})", 0.6,
+        embeds=[{"type": "image", "url": fake_emoji,
+                 "thumbnail": {"url": fake_emoji, "proxy_url": fake_emoji, "width": 48, "height": 48}}])
+    fake_sticker = "https://media.discordapp.net/stickers/700000000000000003.png?size=160&name=Far+Dance&lossless=true"
+    add(CH["dev"], "ben", f"[Far Dance]({fake_sticker})", 0.5,
+        embeds=[{"type": "image", "url": fake_sticker,
+                 "thumbnail": {"url": fake_sticker, "proxy_url": fake_sticker, "width": 160, "height": 160}}])
 
     for i in range(60):
         who = ["ava", "ben", "cleo", "dan"][i % 4]
@@ -407,7 +416,19 @@ COMMAND_INDEX = {
     "version": "1",
 }
 
+# FakeNitro: the self user has no Nitro, so the second server's emojis and
+# stickers are sent as links from the first
+GUILD_EMOJIS = {
+    G1: [{"id": "720000000000000001", "name": "qord_heart", "animated": False, "available": True,
+          "managed": False, "roles": [], "require_colons": True}],
+    G2: [{"id": "720000000000000002", "name": "far_cat", "animated": False, "available": True,
+          "managed": False, "roles": [], "require_colons": True},
+         {"id": "720000000000000003", "name": "party_blob", "animated": True, "available": True,
+          "managed": False, "roles": [], "require_colons": True}],
+}
 GUILD_STICKERS = {
+    G2: [{"id": "700000000000000003", "name": "Far Dance", "tags": "dance", "description": None,
+          "format_type": 1, "available": True, "guild_id": G2, "type": 2}],
     G1: [{"id": "700000000000000001", "name": "Qord Wave", "tags": "wave", "description": "Hello!",
           "format_type": 1, "available": True, "guild_id": G1, "type": 2},
          {"id": "700000000000000002", "name": "Ship It", "tags": "ship", "description": None,
@@ -434,7 +455,8 @@ def gateway_guild(gid: str) -> dict:
             c["last_message_id"] = last_message_id(c["id"])
         chans.append(c)
     return {
-        "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": [], "stickers": [],
+        "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": GUILD_EMOJIS.get(gid, []),
+        "stickers": GUILD_STICKERS.get(gid, []),
         "threads": [], "members": [guild_member(gid, "self")], "member_count": len(MEMBERS[gid]),
         "joined_at": iso(NOW - 900 * HOUR), "lazy": True, "large": False, "premium_subscription_count":
         props["premium_subscription_count"], "data_mode": "full", "version": 1,

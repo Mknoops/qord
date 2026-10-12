@@ -99,6 +99,29 @@ public:
     // Set by the main window (chat and message box)
     static std::function<void(const MessageContext &)> &editStarter();
     static std::function<void(const MessageContext &, bool, std::optional<bool>)> &replyStarter();
+    bool confirm(Confirmation &confirmation) override;
+    void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
+    // Set by the main window, which owns the message box
+    static std::function<void(const QString &, const QByteArray &, const QString &)> &fileAttacher();
+};
+
+// Emojis, stickers, Nitro status and channel permissions from the session
+class SessionExpressions : public ExpressionService
+{
+public:
+    explicit SessionExpressions(Acheron::Core::Session *session)
+        : session(session)
+    {
+    }
+    [[nodiscard]] int premiumType(Id accountId) const override;
+    [[nodiscard]] std::optional<CustomEmojiInfo> customEmoji(Id accountId, Id emojiId) const override;
+    [[nodiscard]] std::optional<StickerInfo> sticker(Id accountId, Id stickerId) const override;
+    [[nodiscard]] QList<Id> ownRoles(Id accountId, Id guildId) const override;
+    [[nodiscard]] bool hasChannelPermission(Id accountId, Id channelId, quint64 permission) const override;
+    void setChatBypass(bool emojis, bool stickers) override;
+
+private:
+    Acheron::Core::Session *session;
 };
 
 class QtDisplayOptions : public DisplayOptionsService
@@ -174,6 +197,7 @@ private:
     SessionMessageActions messageActions;
     QtDisplayOptions displayOptions;
     QtReadStates readStates;
+    SessionExpressions expressions;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

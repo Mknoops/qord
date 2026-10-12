@@ -60,6 +60,10 @@ public:
 
     void queueAttachments(const QList<QUrl> &urls);
     void setMaxUploadSize(qint64 bytes);
+    // Qord: a file made in memory, and keeping the text and files when a
+    // send is cancelled (called from the sendMessage handler)
+    void attachData(const QString &fileName, const QByteArray &data, const QString &mimeType);
+    void keepContentsAfterSend() { keepAfterSend = true; }
 
     [[nodiscard]] EmojiAutocomplete *emojiAutocomplete() const { return autocomplete; }
 
@@ -92,6 +96,7 @@ private:
     Core::Snowflake replyMessageId;
     bool replyMention = true;
     bool sendBlocked = false;
+    bool keepAfterSend = false;
 
     void adjustHeight();
     void updateReplyMentionButton();

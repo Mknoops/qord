@@ -468,7 +468,11 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         }
 
         QList<AttachmentData> result;
+        int attachmentIndex = -1;
         for (const auto &att : *visible.attachments) {
+            // Qord: plugins may show an attachment as something else (FakeNitro stickers)
+            if (++attachmentIndex, &visible == &msg && msg.qordHiddenAttachments.contains(attachmentIndex))
+                continue;
             AttachmentData data;
             data.id = att.id;
             data.proxyUrl = QUrl(*att.proxyUrl);
@@ -538,13 +542,18 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     }
     case StickersRole: {
         const Discord::Message &visible = msg.contentMessage();
-        if (!visible.stickerItems.hasValue() || visible.stickerItems->isEmpty())
+        // Qord: plus stickers display plugins add (FakeNitro)
+        QList<Discord::StickerItem> stickers = visible.stickerItems.hasValue() ? *visible.stickerItems
+                                                                               : QList<Discord::StickerItem>();
+        if (&visible == &msg)
+            stickers += msg.qordAddedStickers;
+        if (stickers.isEmpty())
             return QVariant();
 
         const QSize displaySize(StickerData::DisplayPx, StickerData::DisplayPx);
         const int assetPx = Discord::Cdn::stickerAssetPx(StickerData::DisplayPx, qApp->devicePixelRatio());
         QList<StickerData> result;
-        for (const auto &sticker : *visible.stickerItems) {
+        for (const auto &sticker : std::as_const(stickers)) {
             StickerData data;
             data.id = sticker.id;
             data.name = sticker.name;
@@ -569,7 +578,11 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         // for handling the url-based embed image merging
         QMap<QString, int> urlToEmbedIndex;
 
+        int embedIndex = -1;
         for (const auto &embed : *visible.embeds) {
+            // Qord: plugins may hide an embed (FakeNitro's emoji and sticker links)
+            if (++embedIndex, &visible == &msg && msg.qordHiddenEmbeds.contains(embedIndex))
+                continue;
             QString embedUrl = embed.url.hasValue() ? *embed.url : QString();
 
             bool hasImage = embed.image.hasValue() && embed.image->proxyUrl.hasValue() &&

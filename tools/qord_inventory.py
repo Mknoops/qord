@@ -74,6 +74,7 @@ PERMISSIONS = {
     "read_presences",
     "read_voice_states",
     "read_reactions",
+    "read_expressions",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}

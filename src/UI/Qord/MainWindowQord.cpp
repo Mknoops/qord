@@ -296,11 +296,39 @@ void MainWindow::setupQordFeatures()
     connect(expressionPicker, &ExpressionPicker::stickerPicked, this, [this](Snowflake stickerId) {
         if (!currentInstance || !chatModel->getActiveChannelId().isValid())
             return;
+        const Snowflake channelId = chatModel->getActiveChannelId();
         const Snowflake replyTo = messageInput->replyTargetMessageId();
+        // Plugins see the sticker like any send (FakeNitro may turn it into a link)
+        QString content;
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (host && host->hasHook(Qord::Plugins::Hook::BeforeSend)) {
+            Qord::Plugins::OutgoingMessage out;
+            out.accountId = quint64(currentInstance->accountId());
+            out.channelId = Qord::Plugins::pluginId(channelId);
+            out.guildId = Qord::Plugins::pluginId(currentInstance->discord()->getGuildIdForChannel(channelId));
+            out.replyToMessageId = quint64(replyTo);
+            out.stickerIds = { quint64(stickerId) };
+            host->dispatchBeforeSend(out);
+            if (out.cancel)
+                return;
+            content = out.content;
+            if (out.stickerIds.isEmpty()) {
+                messageInput->clearReplyTarget();
+                if (!content.trimmed().isEmpty())
+                    currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
+                                                             messageInput->replyMentionEnabled(), false);
+                return;
+            }
+            stickerId = Snowflake(out.stickerIds.first());
+        }
         messageInput->clearReplyTarget();
-        currentInstance->discord()->sendSticker(chatModel->getActiveChannelId(), stickerId, replyTo,
-                                                [](const Core::Result<void> &) {});
+        currentInstance->discord()->sendSticker(channelId, stickerId, replyTo, [](const Core::Result<void> &) {},
+                                                content);
     });
+    Qord::Plugins::QtUiService::fileAttacher() = [this](const QString &fileName, const QByteArray &data,
+                                                        const QString &mimeType) {
+        messageInput->attachData(fileName, data, mimeType);
+    };
 
     // Desktop notifications for DMs and mentions
     notifier = new DesktopNotifier(this);
@@ -353,6 +381,7 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::imageOpener() = nullptr;
         Qord::Plugins::QtReadStates::allServersMarker() = nullptr;
         Qord::Plugins::QtUiService::editStarter() = nullptr;
+        Qord::Plugins::QtUiService::fileAttacher() = nullptr;
         Qord::Plugins::QtUiService::replyStarter() = nullptr;
     });
     Qord::Plugins::QtUiService::imageOpener() = [this](const QUrl &url) { openImageInViewer(url); };

@@ -338,6 +338,33 @@ void MainWindow::setupQordFeatures()
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
 
+    // Mentions: clicking one opens the profile; hovering one shown as
+    // "@unknown-user" lets ValidUser look the user up
+    connect(chatView, &ChatView::userMentionClicked, this, [this](Snowflake userId) {
+        if (currentInstance)
+            showUserProfile(currentInstance, userId, chatModel->getActiveGuildId());
+    });
+    connect(chatView, &ChatView::userMentionHovered, this, [this](Snowflake userId, Snowflake messageId) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!currentInstance || !host || !host->hasHook(Qord::Plugins::Hook::UnknownMentions))
+            return;
+        const QString unknown = QStringLiteral("acheron://user/%1\" class=\"mention\">@unknown-user").arg(quint64(userId));
+        for (int row = 0; row < chatModel->rowCount(); ++row) {
+            const QModelIndex idx = chatModel->index(row, 0);
+            if (Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()) != messageId)
+                continue;
+            if (idx.data(ChatModel::HtmlRole).toString().contains(unknown)) {
+                Qord::Plugins::MentionContext mention;
+                mention.accountId = quint64(currentInstance->accountId());
+                mention.channelId = quint64(chatModel->getActiveChannelId());
+                mention.messageId = quint64(messageId);
+                mention.userId = quint64(userId);
+                host->dispatchUserMentionHovered(mention);
+            }
+            break;
+        }
+    });
+
     // TypingIndicator: who is typing next to channels in the list. The
     // dots animate only while someone types and the plugin is on.
     channelTreeModel->setTypingSource({ [this](Snowflake accountId, Snowflake channelId) {

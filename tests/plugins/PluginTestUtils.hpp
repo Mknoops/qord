@@ -316,6 +316,22 @@ public:
     QList<QPair<Id, QList<Id>>> requested;
 };
 
+class FakeUsers : public UserLookupService
+{
+public:
+    bool isKnown(Id, Id userId) const override { return known.contains(userId); }
+    void fetchUser(Id, Id userId, Callback done) override { fetches.append({ userId, std::move(done) }); }
+    void refreshMessage(Id, Id, Id messageId) override { refreshed.append(messageId); }
+    struct Fetch
+    {
+        Id userId;
+        Callback done;
+    };
+    QSet<Id> known;
+    QList<Fetch> fetches;
+    QList<Id> refreshed;
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -338,6 +354,7 @@ struct SinglePluginHost
         services.reactions = &reactions;
         services.expressions = &expressions;
         services.guilds = &guilds;
+        services.users = &users;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -370,6 +387,7 @@ struct SinglePluginHost
     FakeReactions reactions;
     FakeExpressions expressions;
     FakeGuilds guilds;
+    FakeUsers users;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

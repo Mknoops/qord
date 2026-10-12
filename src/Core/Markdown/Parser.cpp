@@ -156,8 +156,9 @@ QString Parser::toHtmlInternal(const QList<AstNode> &nodes, bool jumboEmoji)
             else
                 displayName = node.content;
 
-            result += QString("<span class=\"mention\">@%1</span>")
-                              .arg(displayName.toHtmlEscaped());
+            // Qord: a link, so clicking a mention opens the profile, as in Discord
+            result += QString("<a href=\"acheron://user/%1\" class=\"mention\">@%2</a>")
+                              .arg(node.content.toHtmlEscaped(), displayName.toHtmlEscaped());
             continue;
         }
 

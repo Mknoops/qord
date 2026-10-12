@@ -157,6 +157,19 @@ private:
     Acheron::Core::Session *session;
 };
 
+// Users on Discord (ValidUser)
+class SessionUsers : public UserLookupService
+{
+public:
+    explicit SessionUsers(Acheron::Core::Session *session) : session(session) {}
+    [[nodiscard]] bool isKnown(Id accountId, Id userId) const override;
+    void fetchUser(Id accountId, Id userId, Callback done) override;
+    void refreshMessage(Id accountId, Id channelId, Id messageId) override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionExpressions : public ExpressionService
 {
 public:
@@ -251,6 +264,7 @@ private:
     SessionExpressions expressions;
     SessionReactions reactions;
     SessionGuilds guilds;
+    SessionUsers users;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

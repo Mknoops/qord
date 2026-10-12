@@ -59,6 +59,9 @@ public:
     [[nodiscard]] ExpressionService *expressions() const;
     // Null without the read_server_permissions permission.
     [[nodiscard]] GuildDirectory *guilds() const;
+    // Null without the fetch_users permission. Replies arriving after the
+    // plugin stopped are dropped.
+    [[nodiscard]] UserLookupService *users();
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -83,6 +86,7 @@ private:
     std::unique_ptr<ScopedNetwork> scopedNetwork;
     std::unique_ptr<UiService> scopedUi;
     std::unique_ptr<ReactionService> scopedReactions;
+    std::unique_ptr<UserLookupService> scopedUsers;
 };
 
 } // namespace Plugins

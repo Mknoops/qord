@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 333 |
+| Not Started | 332 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 36 |
+| Tested | 37 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -355,7 +355,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | UserVoiceShow | `src/plugins/userVoiceShow` |  | Not Started |  |
 | USRBG | `src/plugins/usrbg` |  | Not Started |  |
 | ValidReply | `src/plugins/validReply` |  | Not Started |  |
-| ValidUser | `src/plugins/validUser` |  | Not Started |  |
+| ValidUser | `src/plugins/validUser` | `plugins/chat/validuser` | Tested | Hovering an "@unknown-user" mention asks Discord for that user (GET /users/{id}), at most five waiting at a time, newest first, one every 300 ms, waiting out rate limits, and the message then shows their name; a mention of a user Qord already knows is fixed at once. Clicking a mention opens the profile. wired; not yet verified in the running client. gaps: Upstream also fills in the fetched user's profile badges (from their flags) for Discord's popout; Qord's profile loads the user's real profile instead. |
 | VcNarrator | `src/plugins/vcNarrator` |  | Not Started |  |
 | VCPanelSettings | `src/equicordplugins/vcPanelSettings` |  | Not Started |  |
 | ViewIcons | `src/plugins/viewIcons` | `plugins/media/viewicons` | Tested | Images open in Qord's image viewer (zoom, pan, Esc to close). Upstream's modal also links the 4096px original; the viewer loads the chosen size. wired; not yet verified in the running client. gaps: View Avatar Decoration: Qord does not read avatar decorations yet.; Clickable icons in a DM's or group DM's header: Qord's channel header shows no icon.; View Icon for group DMs without a custom icon: upstream opens Discord's built-in default group icon, which Qord does not have. |

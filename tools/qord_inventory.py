@@ -77,6 +77,7 @@ PERMISSIONS = {
     "read_expressions",
     "read_server_permissions",
     "show_hidden_channels",
+    "fetch_users",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -110,6 +111,7 @@ HOOK_DISPATCH = {
     "hiddenChannels": "dispatchHiddenChannelDisplay(",
     "attachmentButtons": "dispatchAttachmentButtons(",
     "channelTyping": "dispatchChannelTypingIndicator(",
+    "unknownMentions": "dispatchUserMentionHovered(",
 }
 
 MANIFEST_REQUIRED = {

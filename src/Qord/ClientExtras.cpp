@@ -331,6 +331,19 @@ void Client::fetchStickerPacks(ResultCallback<QList<StickerPack>> callback)
     });
 }
 
+void Client::fetchUser(Snowflake userId,
+                       std::function<void(const HttpResponse &, const std::optional<User> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/%1").arg(quint64(userId)), {}, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching a user failed:" << response.statusCode << response.error;
+            callback(response, std::nullopt);
+            return;
+        }
+        callback(response, User::fromJson(QJsonDocument::fromJson(response.body).object()));
+    });
+}
+
 void Client::fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
                                 ResultCallback<QList<User>> callback)
 {

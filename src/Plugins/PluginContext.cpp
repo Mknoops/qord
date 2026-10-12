@@ -226,6 +226,41 @@ ExpressionService *PluginContext::expressions() const
     return services.expressions;
 }
 
+namespace {
+class ScopedUsers : public UserLookupService
+{
+public:
+    explicit ScopedUsers(UserLookupService *inner) : inner(inner), alive(std::make_shared<bool>(true)) {}
+    ~ScopedUsers() override { *alive = false; }
+    bool isKnown(Id accountId, Id userId) const override { return inner->isKnown(accountId, userId); }
+    void fetchUser(Id accountId, Id userId, Callback done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->fetchUser(accountId, userId, [weak, done = std::move(done)](const Result &result) {
+            if (auto a = weak.lock(); a && *a)
+                done(result);
+        });
+    }
+    void refreshMessage(Id accountId, Id channelId, Id messageId) override
+    {
+        inner->refreshMessage(accountId, channelId, messageId);
+    }
+
+private:
+    UserLookupService *inner;
+    std::shared_ptr<bool> alive;
+};
+} // namespace
+
+UserLookupService *PluginContext::users()
+{
+    if (!granted.testFlag(Permission::FetchUsers) || !services.users)
+        return nullptr;
+    if (!scopedUsers)
+        scopedUsers = std::make_unique<ScopedUsers>(services.users);
+    return scopedUsers.get();
+}
+
 GuildDirectory *PluginContext::guilds() const
 {
     if (!granted.testFlag(Permission::ReadServerPermissions))

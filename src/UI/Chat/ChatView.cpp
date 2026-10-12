@@ -364,6 +364,19 @@ void ChatView::mouseMoveEvent(QMouseEvent *event)
 
     auto region = ChatLayout::hitTest(resolved, pos);
 
+    // Qord: hovering a user mention (ValidUser looks up unknown users)
+    if (region && region->kind == ChatLayout::HitRegion::Kind::TextLink &&
+        region->url.startsWith(QLatin1String("acheron://user/"))) {
+        const Core::Snowflake userId(region->url.mid(15).toULongLong());
+        const Core::Snowflake messageId(idx.data(ChatModel::MessageIdRole).toULongLong());
+        if (hoveredMention != qMakePair(messageId, userId)) {
+            hoveredMention = qMakePair(messageId, userId);
+            emit userMentionHovered(userId, messageId);
+        }
+    } else {
+        hoveredMention = {};
+    }
+
     video->updateHover(region ? MediaTargets::forRegion(resolved, *region) : MediaTarget(), pos);
 
     Qt::CursorShape shape = Qt::ArrowCursor;
@@ -403,6 +416,16 @@ void ChatView::openLink(const QString &url)
         const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
         if (auto *chat = qobject_cast<ChatModel *>(model()); chat && idx.isValid())
             chat->revealSpoilers(Core::Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()));
+        return;
+    }
+
+    // Qord: a user mention opens the profile
+    const QLatin1String userMention("acheron://user/");
+    if (url.startsWith(userMention)) {
+        bool ok = false;
+        const quint64 id = url.mid(userMention.size()).toULongLong(&ok);
+        if (ok)
+            emit userMentionClicked(Core::Snowflake(id));
         return;
     }
 

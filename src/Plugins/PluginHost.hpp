@@ -134,6 +134,12 @@ public:
     [[nodiscard]] std::optional<HiddenChannelDisplay> dispatchHiddenChannelDisplay();
     [[nodiscard]] std::optional<LockScreen> dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel);
     [[nodiscard]] QList<PluginButton> dispatchProfileRoleButtons(const UserContext &user);
+    // The first plugin with a layout decides it
+    [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
+    void dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId);
+    [[nodiscard]] QList<MenuItem> dispatchDmPinHeaderMenu(const QString &pluginId, Id accountId, const QString &headerId);
+    void dispatchDmPinHeaderMenuAction(const QString &pluginId, Id accountId, const QString &headerId,
+                                       const QString &itemId);
     struct PluginProfileTab
     {
         QString pluginId;
@@ -191,6 +197,8 @@ signals:
     void messageFiltersChanged();
     // How author names or typing are shown changed: re-render.
     void presentationChanged();
+    // How DM lists are grouped changed (PinDMs): ask dispatchDmPinLayout again
+    void dmListChanged();
 
 private:
     struct Entry

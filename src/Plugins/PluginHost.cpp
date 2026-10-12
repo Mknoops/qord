@@ -174,6 +174,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit displayTransformsChanged();
     if (hooks.testFlag(Hook::ChatBarButtons))
         emit chatBarChanged();
+    if (hooks.testFlag(Hook::DmPins))
+        emit dmListChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
@@ -212,6 +214,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context = std::make_unique<PluginContext>(m.id, s, entry.info.granted & m.permissions, services,
                                                     QDir(dataDir).filePath(m.id));
     entry.context->onChatBarChanged = [this] { emit chatBarChanged(); };
+    entry.context->onDmListChanged = [this] { emit dmListChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -924,6 +927,41 @@ void PluginHost::dispatchProfileRoleButtonClicked(const QString &pluginId, const
 {
     if (Plugin *plugin = tablePlugin(Hook::ProfileRoleButtons, pluginId))
         guarded(pluginId, "onProfileRoleButtonClicked", [&] { plugin->onProfileRoleButtonClicked(buttonId, user); });
+}
+
+std::optional<QPair<QString, DmPinLayout>> PluginHost::dispatchDmPinLayout(Id accountId)
+{
+    const auto &table = tables[hookIndex(Hook::DmPins)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::DmPins)][i];
+        std::optional<DmPinLayout> layout;
+        guarded(id, "dmPinLayout", [&] { layout = table[i]->dmPinLayout(accountId); });
+        if (layout)
+            return qMakePair(id, *layout);
+    }
+    return std::nullopt;
+}
+
+void PluginHost::dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "onDmPinHeaderClicked", [&] { plugin->onDmPinHeaderClicked(accountId, headerId); });
+}
+
+QList<MenuItem> PluginHost::dispatchDmPinHeaderMenu(const QString &pluginId, Id accountId, const QString &headerId)
+{
+    QList<MenuItem> out;
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "dmPinHeaderMenu", [&] { out = plugin->dmPinHeaderMenu(accountId, headerId); });
+    return out;
+}
+
+void PluginHost::dispatchDmPinHeaderMenuAction(const QString &pluginId, Id accountId, const QString &headerId,
+                                               const QString &itemId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "onDmPinHeaderMenuAction",
+                [&] { plugin->onDmPinHeaderMenuAction(accountId, headerId, itemId); });
 }
 
 QList<PluginHost::PluginProfileTab> PluginHost::dispatchProfileTabs(const UserContext &user)

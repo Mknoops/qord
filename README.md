@@ -165,6 +165,7 @@ inventory). All are off by default.
 | **NormalizeMessageLinks** | Strips canary/ptb from message links | modify_message_links |
 | **OnePingPerDM** | Only one notification sound per DM until you read it | control_notifications |
 | **PermissionsViewer** | "View Permissions" for members, channels and servers, and a member's permissions with the role granting each | add_ui_elements, read_server_permissions |
+| **PinDMs** | Pin DMs into colored, collapsible categories at the top of the DM list | add_ui_elements |
 | **PlatformIndicators** | Desktop, mobile and web indicators next to users | read_presences, modify_displayed_messages |
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
 | **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
@@ -190,7 +191,7 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** PinDMs, ImageZoom, FavoriteEmojiFirst, BetterFolders.
+**Up next:** ImageZoom, FavoriteEmojiFirst, BetterFolders.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

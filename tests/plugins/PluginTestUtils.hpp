@@ -157,6 +157,16 @@ public:
         formFields = fields;
         formChanged = std::move(changed);
     }
+    void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                        std::function<void(const QHash<QString, QString> &)> done) override
+    {
+        formTitle = title;
+        formFields = fields;
+        formConfirmText = confirmText;
+        formDone = std::move(done);
+    }
+    QString formConfirmText;
+    std::function<void(const QHash<QString, QString> &)> formDone;
     QString formTitle;
     QList<FormField> formFields;
     std::function<void(const QString &, const QString &)> formChanged;

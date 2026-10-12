@@ -502,6 +502,11 @@ void MainWindow::setupQordFeatures()
             out.append(quint64(id));
         return out;
     };
+    // PinDMs: regroup the DM lists when the plugin changes them
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::dmListChanged, channelTreeModel, &ChannelTreeModel::refreshDmPins);
+    connect(channelTreeModel, &ChannelTreeModel::dmPinsChanged, this, [this]() { channelFilterProxy->invalidate(); });
+
     // MutualGroupDMs: the DM list, and opening a group from a profile
     Qord::Plugins::QtPrivateChannels::provider() = [this](Qord::Plugins::Id accountId) {
         QList<Qord::Plugins::PrivateChannelInfo> out;
@@ -1371,6 +1376,10 @@ void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowfla
                     QMenu *sub = target->addMenu(item.label);
                     for (const auto &child : item.children)
                         addItem(sub, pluginId, child);
+                    return;
+                }
+                if (item.id.isEmpty() && item.label.isEmpty()) {
+                    target->addSeparator();
                     return;
                 }
                 QAction *action = target->addAction(item.label);

@@ -246,6 +246,32 @@ public:
         Q_UNUSED(message);
     }
 
+    // Hook::DmPins: how an account's DM list is grouped (nullopt: as Discord
+    // shows it), and its headers' clicks and menus. Category ids, or
+    // DmSectionHeaderId for "Direct Messages".
+    virtual std::optional<DmPinLayout> dmPinLayout(Id accountId)
+    {
+        Q_UNUSED(accountId);
+        return std::nullopt;
+    }
+    virtual void onDmPinHeaderClicked(Id accountId, const QString &headerId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+    }
+    virtual QList<MenuItem> dmPinHeaderMenu(Id accountId, const QString &headerId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+        return {};
+    }
+    virtual void onDmPinHeaderMenuAction(Id accountId, const QString &headerId, const QString &itemId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+        Q_UNUSED(itemId);
+    }
+
     // Hook::ProfileTabs: tabs added to a user's profile, and a click on one
     // of their rows
     virtual QList<ProfileTab> profileTabs(const UserContext &user)

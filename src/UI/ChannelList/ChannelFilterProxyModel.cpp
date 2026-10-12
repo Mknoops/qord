@@ -89,6 +89,21 @@ bool ChannelFilterProxyModel::lessThan(const QModelIndex &left, const QModelInde
         return leftPos < rightPos;
     }
 
+    // Qord: PinDMs' groups first, then the order inside each group
+    auto isDmRow = [](ChannelNode::Type t) {
+        return t == ChannelNode::Type::DMChannel || t == ChannelNode::Type::DMPinHeader;
+    };
+    if (isDmRow(leftType) && isDmRow(rightType)) {
+        const QPoint a = left.data(ChannelTreeModel::DmPinRankRole).toPoint();
+        const QPoint b = right.data(ChannelTreeModel::DmPinRankRole).toPoint();
+        if (a.x() != b.x())
+            return a.x() < b.x();
+        if (a.y() != b.y())
+            return a.y() < b.y();
+        if (leftType != ChannelNode::Type::DMChannel || rightType != ChannelNode::Type::DMChannel)
+            return left.row() < right.row();
+    }
+
     if (leftType == ChannelNode::Type::DMChannel && rightType == ChannelNode::Type::DMChannel) {
         quint64 leftMsgId = left.data(ChannelTreeModel::LastMessageIdRole).toULongLong();
         quint64 rightMsgId = right.data(ChannelTreeModel::LastMessageIdRole).toULongLong();
@@ -113,6 +128,12 @@ bool ChannelFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex 
     // voice participants are always visible when their parent voice channel is visible
     if (nodeType == ChannelNode::Type::VoiceParticipant)
         return true;
+
+    // Qord: PinDMs hides the DMs of collapsed groups
+    if (nodeType == ChannelNode::Type::DMChannel &&
+        !channelModel->dmPinShows(static_cast<const ChannelNode *>(index.internalPointer()), selectedAccountId,
+                                  selectedChannelId))
+        return false;
 
     if (nodeType == ChannelNode::Type::Thread)
         return true;

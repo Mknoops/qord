@@ -97,6 +97,8 @@ public:
     void openPluginSettings(const QString &pluginId) override;
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override;
+    void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                        std::function<void(const QHash<QString, QString> &)> done) override;
     void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                     std::function<void(const QString &)> done) override;
     static std::function<void(const QString &)> &pluginSettingsOpener();

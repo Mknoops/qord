@@ -52,6 +52,7 @@ public:
         CanViewRole = Qt::UserRole + 18,
         CanConnectRole = Qt::UserRole + 19,
         TypingIndicatorRole = Qt::UserRole + 20, // Qord: TypingIndicator (ChannelTyping)
+        DmPinRankRole = Qt::UserRole + 21, // Qord: PinDMs, QPoint(section, order) in the DM list
     };
 
     // Qord: who is typing next to a channel (TypingIndicator)
@@ -145,8 +146,21 @@ public:
     // Qord: the DM list's channels, newest message first (MutualGroupDMs)
     QList<const ChannelNode *> dmChannels(Snowflake accountId) const;
 
+    // Qord: PinDMs groups the DM list: header rows for its categories and
+    // "Direct Messages", pinned DMs under them. Asks the plugins again.
+    void refreshDmPins();
+    // Whether a DM row shows (collapsed categories hide theirs, except the
+    // open one); whether DM rows sort by their last message within a group
+    [[nodiscard]] bool dmPinShows(const ChannelNode *node, Snowflake selectedAccountId,
+                                  Snowflake selectedChannelId) const;
+    [[nodiscard]] bool dmPinsSortByLastMessage(const ChannelNode *node) const;
+    // The plugin that groups the account's DMs (empty: none)
+    [[nodiscard]] QString dmPinPlugin(Snowflake accountId) const;
+    [[nodiscard]] Snowflake accountIdFor(const ChannelNode *node) const;
+
 signals:
     void totalMentionCountChanged(int count, int previousCount);
+    void dmPinsChanged(); // Qord: re-sort and re-filter the DM list
 
 private:
     static void collectMarkableChannelIds(ChannelNode *node, QList<Snowflake> &out);
@@ -184,6 +198,22 @@ private:
 
     Snowflake temporaryThreadId;
     Snowflake temporaryThreadAccount;
+
+    // Qord: PinDMs, per account
+    struct DmPins
+    {
+        QString pluginId;
+        bool sortByLastMessage = true;
+        bool sectionCollapsible = false;
+        bool sectionCollapsed = false;
+        int categoryCount = 0;
+        QSet<QString> collapsed; // category ids
+        QHash<Snowflake, QPair<int, int>> pinned; // channel -> (category, position)
+        QHash<Snowflake, QString> categoryOf;
+    };
+    QHash<Snowflake, DmPins> dmPins;
+    void applyDmPins(Snowflake accountId);
+    [[nodiscard]] QPoint dmPinRank(const ChannelNode *node) const;
 };
 } // namespace UI
 } // namespace Acheron

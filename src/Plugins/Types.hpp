@@ -199,6 +199,26 @@ struct ProfileTab
     QString emptyText; // shown when there are no rows
 };
 
+// PinDMs: categories of DMs shown above the others in the DM list. The rest
+// follow under a "Direct Messages" header.
+struct DmPinLayout
+{
+    struct Category
+    {
+        QString id;
+        QString name;
+        quint32 color = 0; // 0xRRGGBB
+        bool collapsed = false; // only the open DM stays visible
+        QList<Id> channelIds; // display order
+    };
+    QList<Category> categories;
+    bool sortByLastMessage = true; // in each category; false: channelIds' order
+    bool dmSectionCollapsible = false; // clicking "Direct Messages" collapses the rest
+    bool dmSectionCollapsed = false;
+};
+// The "Direct Messages" header's id in the DM pin hooks
+inline const char *const DmSectionHeaderId = "dm-section";
+
 // A DM or group DM, as the DM list shows it.
 struct PrivateChannelInfo
 {
@@ -347,7 +367,8 @@ struct ChatBarButton
     QString popupTooltip;
 };
 
-// A menu entry; one with children is shown as a submenu.
+// A menu entry; one with children is shown as a submenu. One with neither id
+// nor label is a separator (channel and DM list header menus).
 struct MenuItem
 {
     QString id;

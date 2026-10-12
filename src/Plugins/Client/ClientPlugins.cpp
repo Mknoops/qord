@@ -24,6 +24,7 @@
 #include <QCheckBox>
 #include <QMessageBox>
 #include <QClipboard>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QCompleter>
 #include <QDateTimeEdit>
@@ -544,6 +545,112 @@ void QtUiService::showForm(const QString &title, const QList<FormField> &fields,
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
     layout->addWidget(buttons);
+    dialog->open();
+}
+
+void QtUiService::showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                                 std::function<void(const QHash<QString, QString> &)> done)
+{
+    auto *dialog = new QDialog(QApplication::activeWindow());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(title);
+    dialog->setMinimumWidth(380);
+    auto *layout = new QVBoxLayout(dialog);
+    auto values = std::make_shared<QHash<QString, QString>>();
+    auto buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, dialog);
+    QPushButton *confirm = buttons->addButton(confirmText.isEmpty() ? QObject::tr("Save") : confirmText,
+                                              QDialogButtonBox::AcceptRole);
+    auto required = std::make_shared<QStringList>();
+    auto refresh = [values, confirm, required]() {
+        bool ok = true;
+        for (const QString &key : *required)
+            ok = ok && !values->value(key).trimmed().isEmpty();
+        confirm->setEnabled(ok);
+    };
+    for (const auto &field : fields) {
+        values->insert(field.key, field.value);
+        auto *caption = new QLabel(field.label, dialog);
+        caption->setStyleSheet(QStringLiteral("font-weight: bold;"));
+        if (field.kind == FormField::Kind::Text) {
+            layout->addWidget(caption);
+            auto *edit = new QLineEdit(field.value, dialog);
+            required->append(field.key);
+            QObject::connect(edit, &QLineEdit::textChanged, dialog, [values, refresh, key = field.key](const QString &text) {
+                values->insert(key, text);
+                refresh();
+            });
+            layout->addWidget(edit);
+        } else if (field.kind == FormField::Kind::Color) {
+            layout->addWidget(caption);
+            // Swatches like Discord's color picker, plus a custom color
+            auto *row = new QHBoxLayout;
+            row->setSpacing(4);
+            auto *group = new QList<QPushButton *>;
+            QObject::connect(dialog, &QObject::destroyed, [group]() { delete group; });
+            auto style = [](QColor color, bool selected) {
+                return QStringLiteral("QPushButton { background-color: %1; border-radius: 4px; border: 2px solid %2; }")
+                        .arg(color.name(), selected ? QStringLiteral("white") : QStringLiteral("transparent"));
+            };
+            auto select = [values, group, style, key = field.key](quint32 rgb) {
+                values->insert(key, QString::number(rgb));
+                for (QPushButton *b : *group)
+                    b->setStyleSheet(style(QColor::fromRgb(b->property("rgb").toUInt()),
+                                           b->property("rgb").toUInt() == rgb));
+            };
+            for (quint32 rgb : field.colors) {
+                auto *swatch = new QPushButton(dialog);
+                swatch->setFixedSize(20, 20);
+                swatch->setCursor(Qt::PointingHandCursor);
+                swatch->setProperty("rgb", rgb);
+                swatch->setToolTip(QColor::fromRgb(rgb).name());
+                group->append(swatch);
+                QObject::connect(swatch, &QPushButton::clicked, dialog, [select, rgb]() { select(rgb); });
+                row->addWidget(swatch);
+            }
+            auto *custom = new QPushButton(QObject::tr("Custom..."), dialog);
+            QObject::connect(custom, &QPushButton::clicked, dialog, [dialog, values, select, key = field.key]() {
+                const QColor color = QColorDialog::getColor(QColor::fromRgb(values->value(key).toUInt()), dialog);
+                if (color.isValid())
+                    select(color.rgb() & 0xffffff);
+            });
+            row->addWidget(custom);
+            row->addStretch();
+            layout->addLayout(row);
+            select(field.value.toUInt());
+        } else if (field.choices.isEmpty()) {
+            delete caption;
+            auto *box = new QCheckBox(field.label, dialog);
+            box->setChecked(field.value == QLatin1String("true"));
+            QObject::connect(box, &QCheckBox::toggled, dialog, [values, key = field.key](bool on) {
+                values->insert(key, on ? QStringLiteral("true") : QStringLiteral("false"));
+            });
+            layout->addWidget(box);
+        } else {
+            layout->addWidget(caption);
+            auto *combo = new QComboBox(dialog);
+            for (const auto &choice : field.choices)
+                combo->addItem(choice.second, choice.first);
+            combo->setCurrentIndex(combo->findData(field.value));
+            QObject::connect(combo, qOverload<int>(&QComboBox::activated), dialog, [combo, values, key = field.key](int i) {
+                values->insert(key, combo->itemData(i).toString());
+            });
+            layout->addWidget(combo);
+        }
+        if (!field.description.isEmpty()) {
+            auto *help = new QLabel(field.description, dialog);
+            help->setWordWrap(true);
+            help->setStyleSheet(QStringLiteral("color: #949ba4;"));
+            layout->addWidget(help);
+        }
+        layout->addSpacing(8);
+    }
+    layout->addWidget(buttons);
+    refresh();
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, dialog, [dialog, values, done]() {
+        dialog->accept();
+        done(*values);
+    });
     dialog->open();
 }
 

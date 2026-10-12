@@ -117,6 +117,7 @@ HOOK_DISPATCH = {
     "keyboardShortcuts": "dispatchShortcut(",
     "messageAccessories": "dispatchMessageAccessories(",
     "profileTabs": "dispatchProfileTabs(",
+    "dmPins": "dispatchDmPinLayout(",
 }
 
 MANIFEST_REQUIRED = {

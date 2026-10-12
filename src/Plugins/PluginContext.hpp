@@ -74,6 +74,13 @@ public:
             onChatBarChanged();
     }
     std::function<void()> onChatBarChanged; // set by the host
+    // Asks the client to re-query the DM list's grouping (Hook::DmPins)
+    void refreshDmList() const
+    {
+        if (onDmListChanged)
+            onDmListChanged();
+    }
+    std::function<void()> onDmListChanged; // set by the host
 
     // Private writable directory for caches (created on demand).
     [[nodiscard]] QString dataDirectory() const;

@@ -155,6 +155,16 @@ public:
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
+    void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                        std::function<void(const QHash<QString, QString> &)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->showFormDialog(title, fields, confirmText,
+                              [weak, done = std::move(done)](const QHash<QString, QString> &values) {
+                                  if (auto a = weak.lock(); a && *a)
+                                      done(values);
+                              });
+    }
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override
     {

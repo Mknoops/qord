@@ -466,6 +466,34 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     QStyleOptionViewItem contentOpt = option;
     contentOpt.rect = option.rect.adjusted(pillMargin + indentWidth(node, indentScopes), 0, 0, 0);
 
+    // Qord: PinDMs' headers, in the category's color, with a chevron that
+    // points down while open
+    if (node->type == ChannelNode::Type::DMPinHeader) {
+        const QColor color = node->pinColor ? QColor::fromRgb(node->pinColor)
+                                            : Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText);
+        QFont f = painter->font();
+        f.setPixelSize(12);
+        f.setWeight(QFont::DemiBold);
+        f.setCapitalization(QFont::AllUppercase);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 0.2);
+        painter->setFont(f);
+        painter->setPen(color);
+        QRect textRect = contentOpt.rect.adjusted(4, 0, -24, 0);
+        const QString name = QFontMetrics(f).elidedText(node->name, Qt::ElideRight, textRect.width());
+        painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, name);
+        if (node->pinCollapsible) {
+            const int textWidth = QFontMetrics(f).horizontalAdvance(name);
+            QRect chevron = contentOpt.rect;
+            chevron.setLeft(textRect.left() + textWidth - 2);
+            drawLucideIcon(painter, chevron,
+                           node->collapsed ? Core::Theme::Icons::Name::ChevronRight
+                                           : Core::Theme::Icons::Name::ChevronDown,
+                           color);
+        }
+        painter->restore();
+        return;
+    }
+
     if (node->type == ChannelNode::Type::Account) {
         QRect textRect = contentOpt.rect.adjusted(iconSize, 0, -iconSize, 0);
         painter->fillRect(contentOpt.rect, option.palette.alternateBase().color());

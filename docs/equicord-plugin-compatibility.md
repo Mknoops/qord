@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 326 |
+| Not Started | 325 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 43 |
+| Tested | 44 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -245,7 +245,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PermissionsViewer | `src/plugins/permissionsViewer` | `plugins/utility/permissionsviewer` | Tested | "View Permissions" is in the user menu (server members), the channel menu and the server menu, and a shield button next to Roles in a member's profile shows their permissions with the role granting each (hover for "Granted by"), the sort order toggle and Role Details. Members named in channel overwrites that Qord hasn't loaded are requested from Discord. wired; not yet verified in the running client. gaps: Right-clicking a role in the list offers Copy Role ID only; BetterRoleContext's extra items and View As Role are not ported; Discord's newest permission (Use Clyde AI, bit 47) has no name in Qord's role settings, so it isn't listed. |
 | PetPet | `src/plugins/petpet` |  | Not Started |  |
 | PictureInPicture | `src/plugins/pictureInPicture` |  | Not Started |  |
-| PinDMs | `src/plugins/pinDms` |  | Not Started |  |
+| PinDMs | `src/plugins/pinDms` | `plugins/chat/pindms` | Tested | Right-click a DM or group DM for "Pin DMs": Add Category (a new category with that DM, named and colored in a small window with Discord's swatches or any color), pin it to an existing category, or, once pinned, Unpin DM and (with the custom order) Move Up or Down. Categories show above your other DMs under their colored header, which collapses on click (the open DM stays visible) and has Edit, Move Up, Move Down and Delete Category on right-click; the rest follow under "Direct Messages", which collapses too with "Can Collapse DM Section". Pinned DMs are ordered by most recent message or by hand. Categories are kept per account, as upstream keeps them per user. wired; not yet verified in the running client. gaps: Pinned DMs aren't moved to the front of Discord's quick switcher or keyboard navigation order (Qord has neither). |
 | PingNotifications | `src/equicordplugins/pingNotifications` |  | Not Started |  |
 | PinIcon | `src/equicordplugins/pinIcon` |  | Not Started |  |
 | PlainFolderIcon | `src/plugins/plainFolderIcon` |  | Not Started |  |

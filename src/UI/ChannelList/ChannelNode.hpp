@@ -27,6 +27,7 @@ struct ChannelNode
         VoiceChannel,
         VoiceParticipant,
         DMChannel,
+        DMPinHeader, // Qord: a PinDMs category, or the "Direct Messages" header after them
     };
 
     Core::Snowflake id;
@@ -59,6 +60,9 @@ struct ChannelNode
     int userLimit = 0;
     int forumBadgeCount = 0;
     bool forumBadgeIsNew = false;
+    QString pinHeaderId; // DMPinHeader: the plugin's category id
+    quint32 pinColor = 0; // DMPinHeader: 0xRRGGBB, 0 for the muted header color
+    bool pinCollapsible = true; // DMPinHeader: shows a chevron and collapses on click
 
     std::vector<std::unique_ptr<ChannelNode>> children;
     ChannelNode *parent = nullptr;

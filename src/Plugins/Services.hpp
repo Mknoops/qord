@@ -3,6 +3,7 @@
 #include "Types.hpp"
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QUrl>
@@ -126,6 +127,11 @@ public:
         QString description;
         QList<QPair<QString, QString>> choices; // value, label; empty: a switch
         QString value; // the chosen value, or "true"/"false"
+        // showFormDialog only: a line of text, or a color (value: 0xRRGGBB
+        // as a decimal number) picked from swatches or freely
+        enum class Kind { Auto, Text, Color };
+        Kind kind = Kind::Auto;
+        QList<quint32> colors; // Color: the swatches
     };
     virtual void showForm(const QString &title, const QList<FormField> &fields,
                           std::function<void(const QString &key, const QString &value)> changed)
@@ -133,6 +139,17 @@ public:
         Q_UNUSED(title);
         Q_UNUSED(fields);
         Q_UNUSED(changed);
+    }
+    // A dialog with a confirm button (PinDMs' New Category): `done` gets
+    // every field's value when it is confirmed (disabled while a text field
+    // is empty), and isn't called on cancel.
+    virtual void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                                std::function<void(const QHash<QString, QString> &values)> done)
+    {
+        Q_UNUSED(title);
+        Q_UNUSED(fields);
+        Q_UNUSED(confirmText);
+        Q_UNUSED(done);
     }
     // Re-renders the lock screen of a hidden channel, if it is showing
     virtual void refreshLockScreen() {}

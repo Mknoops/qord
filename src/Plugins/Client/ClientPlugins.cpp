@@ -9,6 +9,7 @@
 #include "Core/NetworkRequest.hpp"
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
+#include "Core/Audio/VolumeLimit.hpp"
 #include "Core/OwnerCrown.hpp"
 #include "Core/RoleColors.hpp"
 #include "Core/Session.hpp"
@@ -248,6 +249,16 @@ void QtUiService::openChannel(Id accountId, Id channelId)
 {
     if (channelOpener())
         channelOpener()(accountId, channelId);
+}
+
+void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
+{
+    multiplier = qBound(1.0, multiplier, 5.0);
+    if (qFuzzyCompare(Acheron::Core::Audio::userVolumeMultiplier(), multiplier))
+        return;
+    Acheron::Core::Audio::userVolumeMultiplier() = multiplier;
+    if (host)
+        emit host->presentationChanged();
 }
 
 std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
@@ -1088,10 +1099,12 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.guilds = &guilds;
     services.users = &users;
     services.privateChannels = &privateChannels;
+    services.audio = &audio;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();
     displayOptions.host = pluginHost.get();
+    audio.host = pluginHost.get();
     pluginHost->load();
     PluginHost::setInstance(pluginHost.get());
 

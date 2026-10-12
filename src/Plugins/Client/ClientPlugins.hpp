@@ -178,6 +178,13 @@ private:
 };
 
 // Users on Discord (ValidUser)
+class QtAudioOptions : public AudioOptionsService
+{
+public:
+    void setUserVolumeMultiplier(double multiplier) override;
+    PluginHost *host = nullptr;
+};
+
 // The DM list, as the main window's channel list has it
 class QtPrivateChannels : public PrivateChannelDirectory
 {
@@ -296,6 +303,7 @@ private:
     SessionGuilds guilds;
     SessionUsers users;
     QtPrivateChannels privateChannels;
+    QtAudioOptions audio;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

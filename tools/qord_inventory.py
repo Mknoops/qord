@@ -79,6 +79,7 @@ PERMISSIONS = {
     "show_hidden_channels",
     "fetch_users",
     "read_dms",
+    "control_audio",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}

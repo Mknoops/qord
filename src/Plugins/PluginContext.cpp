@@ -287,6 +287,13 @@ UserLookupService *PluginContext::users()
     return scopedUsers.get();
 }
 
+AudioOptionsService *PluginContext::audio() const
+{
+    if (!granted.testFlag(Permission::ControlAudio))
+        return nullptr;
+    return services.audio;
+}
+
 const PrivateChannelDirectory *PluginContext::privateChannels() const
 {
     if (!granted.testFlag(Permission::ReadDms))

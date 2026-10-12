@@ -210,6 +210,8 @@ public:
     // Avatar status dots show the phone shape for users on mobile whatever
     // their status, instead of only when they are online
     virtual void setMobileIndicatorForAnyStatus(bool any) { Q_UNUSED(any); }
+    // The member list shows the server owner's crown even in large servers
+    virtual void setForceOwnerCrown(bool force) { Q_UNUSED(force); }
 };
 
 class ReadStateService

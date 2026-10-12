@@ -155,6 +155,7 @@ inventory). All are off by default.
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
 | **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
+| **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
 | **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |
@@ -186,8 +187,8 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** PinDMs, RoleColorEverywhere, ImageZoom, FavoriteEmojiFirst, ForceOwnerCrown,
-MutualGroupDMs, BetterFolders, VolumeBooster.
+**Up next:** PinDMs, RoleColorEverywhere, ImageZoom, FavoriteEmojiFirst, MutualGroupDMs,
+BetterFolders, VolumeBooster.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

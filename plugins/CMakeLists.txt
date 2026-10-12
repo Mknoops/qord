@@ -110,6 +110,7 @@ qord_add_plugin(typingindicator appearance SOURCES TypingIndicator.hpp TypingInd
 qord_add_plugin(validuser chat SOURCES ValidUser.hpp ValidUser.cpp)
 qord_add_plugin(quickreply chat SOURCES QuickReply.hpp QuickReply.cpp)
 qord_add_plugin(translate utility SOURCES Translate.hpp Translate.cpp Languages.cpp)
+qord_add_plugin(forceownercrown appearance SOURCES ForceOwnerCrown.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

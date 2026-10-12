@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 330 |
+| Not Started | 329 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 39 |
+| Tested | 40 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -133,7 +133,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FixYoutubeEmbeds | `src/plugins/fixYoutubeEmbeds.desktop` |  | Not Started |  |
 | FollowVoiceUser | `src/equicordplugins/followVoiceUser` |  | Not Started |  |
 | FontLoader | `src/equicordplugins/fontLoader` |  | Not Started |  |
-| ForceOwnerCrown | `src/plugins/forceOwnerCrown` |  | Not Started |  |
+| ForceOwnerCrown | `src/plugins/forceOwnerCrown` | `plugins/appearance/forceownercrown` | Tested | Qord's member list shows a crown ("Server Owner") next to the server's owner, and leaves it out in servers of 1,000 members or more; with this plugin the crown shows in every server. wired; not yet verified in the running client. gaps: Discord's exact rule for hiding the crown isn't documented; Qord's 1,000-member limit is its own reading, and the crown isn't hidden when the owner is listed under a separately shown role. |
 | FrequentQuickSwitcher | `src/equicordplugins/frequentQuickSwitcher` |  | Not Started |  |
 | FriendCodes | `src/equicordplugins/friendCodes` |  | Not Started |  |
 | FriendInvites | `src/plugins/friendInvites` |  | Not Started |  |

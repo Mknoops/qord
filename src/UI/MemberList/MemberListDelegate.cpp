@@ -187,6 +187,14 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
                                         Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),
                                         NameDecorations::Place::MemberList, dpr);
     }
+    // Qord: Discord's crown for the server owner, before plugin icons
+    if (index.data(MemberListModel::OwnerCrownRole).toBool()) {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        constexpr int CrownSize = 14;
+        decorations.prepend({ Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::Crown, CrownSize,
+                                                          QColor(0xf0, 0xb2, 0x32), dpr),
+                              QSize(CrownSize, CrownSize), tr("Server Owner") });
+    }
     const int decorationWidth = qMin(NameDecorations::width(decorations), textWidth / 2);
     QString elidedName = fm.elidedText(displayName, Qt::ElideRight, textWidth - decorationWidth);
     auto paintDecorations = [&](int lineTop, int lineHeight) {

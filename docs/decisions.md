@@ -97,6 +97,8 @@ and why, so it can be revisited deliberately.
 
 62. **Testing video without Discord.** The mock server has a voice gateway and a UDP media server. It relays packets like an SFU, decrypts Qord's stream itself (AES-GCM with Windows' BCrypt), reassembles it with a separate RFC 6184 implementation and writes it to a file that ffmpeg decodes; and it streams an ffmpeg test picture as "Ava" for Qord to watch. Both directions work there. What the mock cannot show is whether Discord's servers accept the stream: DAVE, the exact Identify/op 12 fields and RTCP handling are only checked against Discord's documented behaviour and other clients' implementations, not against Discord itself.
 
+63. **Click to join, click to watch.** As in Discord, a plain left click on a voice channel joins it (unless already in it) as well as opening its chat, and clicking a participant who is live opens their stream. The right-click menu entries stay. Acheron opened its Voice Settings window on every connect; Discord shows nothing extra, so in Qord that window opens only from the voice panel.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

@@ -49,6 +49,10 @@ public:
     void requestForumUnreads(Core::Snowflake guildId, Core::Snowflake forumId,
                              const QList<QPair<Core::Snowflake, Core::Snowflake>> &threads);
     void sendVoiceStateUpdate(Core::Snowflake guildId, Core::Snowflake channelId, bool selfMute, bool selfDeaf);
+    // Qord: the camera flag (self_video). Every voice state update carries it,
+    // so muting doesn't turn the camera off for others; changing it resends
+    // the last voice state.
+    void setSelfVideo(bool on);
     // Qord: any opcode (Go Live's STREAM_CREATE/DELETE/WATCH/SET_PAUSED)
     void sendOp(int op, const Core::OrderedJson &d);
     // Qord: op 3, with an optional custom-status activity
@@ -126,6 +130,13 @@ signals:
 private:
     void sendPayload(const Core::OrderedJson &obj);
     void sendPayload(const QByteArray &data);
+
+    // Qord: the last voice state sent, for setSelfVideo
+    Core::Snowflake voiceGuildId;
+    Core::Snowflake voiceChannelId;
+    bool voiceSelfMute = false;
+    bool voiceSelfDeaf = false;
+    bool voiceSelfVideo = false;
 
     // this function is called by the network thread
     void onPayloadReceived(const QJsonObject &root);

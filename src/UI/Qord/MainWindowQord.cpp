@@ -37,6 +37,7 @@
 #include "UI/Qord/UserPanel.hpp"
 #include "UI/Qord/Toast.hpp"
 #include "UI/Qord/PermissionsView.hpp"
+#include "UI/Qord/HiddenChannelScreen.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -302,6 +303,24 @@ void MainWindow::setupQordFeatures()
         Toast::show(active ? active : this, text, Toast::Type(int(type)));
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
+
+    // ShowHiddenChannels: the list follows the plugin, and its lock screen
+    // loads avatars and can be re-rendered by the plugin
+    hiddenChannelScreen->setImageLoader([this](const QUrl &url, QObject *context,
+                                               std::function<void(const QPixmap &)> done) {
+        session->getImageManager()->fetch(url, hiddenChannelAccountId, context, [done](const QByteArray &data) {
+            QPixmap pixmap;
+            if (pixmap.loadFromData(data))
+                done(pixmap);
+        });
+    });
+    Qord::Plugins::QtUiService::lockScreenRefresher() = [this]() { refreshHiddenChannelScreen(); };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::lockScreenRefresher() = nullptr; });
+    if (auto *host = Qord::Plugins::PluginHost::instance()) {
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() { applyHiddenChannelDisplay(); });
+        connect(host, &Qord::Plugins::PluginHost::pluginStateChanged, this, [this]() { applyHiddenChannelDisplay(); });
+    }
+    applyHiddenChannelDisplay();
 
     // PermissionsViewer: its dialog (with role icons and avatars) and the
     // member popout, shown at the mouse
@@ -1293,6 +1312,104 @@ void MainWindow::openMentionsInbox()
         }
         guard->setMessages(*result.value, tr("You're all caught up! No recent mentions."));
     });
+}
+
+void MainWindow::applyHiddenChannelDisplay()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const auto display = host ? host->dispatchHiddenChannelDisplay() : std::nullopt;
+    using Style = Qord::Plugins::HiddenChannelDisplay::Style;
+    using Icon = Qord::Plugins::HiddenChannelDisplay::Icon;
+    ChannelTreeModel::HiddenChannelOptions options;
+    options.show = display.has_value();
+    if (display) {
+        options.icon = display->icon == Icon::LockRight  ? ChannelTreeModel::HiddenChannelOptions::Icon::LockRight
+                       : display->icon == Icon::EyeRight ? ChannelTreeModel::HiddenChannelOptions::Icon::EyeRight
+                                                         : ChannelTreeModel::HiddenChannelOptions::Icon::Lock;
+        options.muted = display->style == Style::Muted || display->style == Style::MutedUnread;
+    }
+    const bool unreads = display && (display->style == Style::Unread || display->style == Style::MutedUnread);
+
+    auto &current = ChannelTreeModel::hiddenChannelOptions();
+    const bool listChanged = current.show != options.show;
+    const bool unreadsChanged = Core::ReadStateManager::showHiddenUnreads() != unreads;
+    current = options;
+    Core::ReadStateManager::showHiddenUnreads() = unreads;
+    if (unreadsChanged)
+        channelTreeModel->refreshAllReadStates();
+    if (listChanged)
+        channelFilterProxy->invalidate();
+    channelTree->viewport()->update();
+    if (viewMode == ViewMode::HiddenChannel)
+        refreshHiddenChannelScreen();
+}
+
+bool MainWindow::openHiddenChannel(ClientInstance *instance, ChannelNode *node, ChannelNode *accountNode, bool joining)
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !node || !accountNode || !ChannelTreeModel::hiddenChannelOptions().show)
+        return false;
+    const bool voice = node->type == ChannelNode::Type::VoiceChannel;
+    if (node->type != ChannelNode::Type::Channel && node->type != ChannelNode::Type::Forum && !voice)
+        return false;
+    auto *perms = instance->permissions();
+    if (!perms)
+        return false;
+    const bool canView = perms->hasChannelPermission(accountNode->id, node->id, Discord::Permission::VIEW_CHANNEL);
+    const bool canConnect = !voice || perms->hasChannelPermission(accountNode->id, node->id, Discord::Permission::CONNECT);
+    if (canView && (!joining || canConnect))
+        return false;
+
+    ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
+    Qord::Plugins::HiddenChannelContext context;
+    context.accountId = quint64(accountNode->id);
+    context.guildId = guildNode ? quint64(guildNode->id) : 0;
+    context.channelId = quint64(node->id);
+    context.canView = canView;
+    const auto screen = host->dispatchHiddenChannelLockScreen(context);
+    if (!screen)
+        return false;
+
+    hiddenChannelAccountId = accountNode->id;
+    hiddenChannelGuildId = guildNode ? guildNode->id : Snowflake::Invalid;
+    hiddenChannelId = node->id;
+    hiddenChannelCanView = canView;
+    if (joining) {
+        // Select it, so the lock screen and the list agree
+        channelFilterProxy->setSelectedChannel(node->id, accountNode->id);
+        channelTree->viewport()->update();
+        if (instance != currentInstance)
+            switchActiveInstance(instance);
+    }
+
+    // Only the header: no messages, pins, threads or members
+    hideFriendsPage();
+    channelToolbar->setVisible(true);
+    channelNameLabel->setText((voice ? QString() : QStringLiteral("# ")) + node->name);
+    showChannelTopic(instance, node->id);
+    setThreadBrowserTarget(Snowflake::Invalid);
+    pinsButton->setEnabled(false);
+    setViewMode(ViewMode::HiddenChannel);
+    setMemberListVisible(false);
+    hiddenChannelScreen->showScreen(*screen);
+    tabBar->updateCurrentTab(makeTabEntry(node, accountNode));
+    return true;
+}
+
+void MainWindow::refreshHiddenChannelScreen()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (viewMode != ViewMode::HiddenChannel || !host)
+        return;
+    Qord::Plugins::HiddenChannelContext context;
+    context.accountId = quint64(hiddenChannelAccountId);
+    context.guildId = quint64(hiddenChannelGuildId);
+    context.channelId = quint64(hiddenChannelId);
+    context.canView = hiddenChannelCanView;
+    if (const auto screen = host->dispatchHiddenChannelLockScreen(context))
+        hiddenChannelScreen->showScreen(*screen);
+    else
+        hiddenChannelScreen->setWidget(new QWidget); // the plugin was turned off
 }
 
 } // namespace UI

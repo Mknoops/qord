@@ -215,6 +215,15 @@ public:
         return std::nullopt;
     }
 
+    // Hook::HiddenChannels: show channels you can't see (nullopt: don't), and
+    // what selecting one shows instead of its messages
+    virtual std::optional<HiddenChannelDisplay> hiddenChannelDisplay() { return std::nullopt; }
+    virtual std::optional<LockScreen> hiddenChannelLockScreen(const HiddenChannelContext &channel)
+    {
+        Q_UNUSED(channel);
+        return std::nullopt;
+    }
+
     // Hook::ProfileRoleButtons: small buttons next to "Roles" in a server
     // member's profile (`user.guildId` is set)
     virtual QList<ChatBarButton> profileRoleButtons(const UserContext &user)

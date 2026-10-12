@@ -27,6 +27,8 @@
 #include <QDialogButtonBox>
 #include <QFontDatabase>
 #include <QLabel>
+#include <QJsonObject>
+#include <QJsonDocument>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
@@ -188,6 +190,18 @@ std::function<void(const MemberPermissionsView &)> &QtUiService::memberPermissio
 {
     static std::function<void(const MemberPermissionsView &)> shower;
     return shower;
+}
+
+std::function<void()> &QtUiService::lockScreenRefresher()
+{
+    static std::function<void()> refresher;
+    return refresher;
+}
+
+void QtUiService::refreshLockScreen()
+{
+    if (lockScreenRefresher())
+        lockScreenRefresher()();
 }
 
 void QtUiService::showPermissions(const PermissionsView &view)
@@ -492,6 +506,35 @@ std::optional<ChannelInfo> SessionGuilds::channel(Id accountId, Id channelId) co
             out.overwrites.append(info);
         }
     }
+    out.type = channel->type.hasValue() ? int(channel->type.get()) : 0;
+    out.topic = channel->topic.valueOr();
+    out.lastMessageId = channel->lastMessageId.hasValue() && channel->lastMessageId.get().isValid()
+                                ? quint64(channel->lastMessageId.get())
+                                : 0;
+    out.rateLimitPerUser = channel->rateLimitPerUser.valueOr(0);
+    if (channel->defaultSortOrder.hasValue())
+        out.defaultSortOrder = channel->defaultSortOrder.get();
+    out.flags = channel->flags.hasValue() ? quint64(channel->flags.get().toInt()) : 0;
+    if (channel->availableTags.hasValue())
+        for (const auto &tag : channel->availableTags.get())
+            out.availableTags.append(tag.name.get());
+    const QJsonObject extra = QJsonDocument::fromJson(channel->extraJson.toUtf8()).object();
+    out.nsfw = extra.value(QStringLiteral("nsfw")).toBool();
+    if (extra.value(QStringLiteral("bitrate")).isDouble())
+        out.bitrate = extra.value(QStringLiteral("bitrate")).toInt();
+    out.hasRtcRegion = extra.contains(QStringLiteral("rtc_region"));
+    out.rtcRegion = extra.value(QStringLiteral("rtc_region")).toString();
+    if (extra.value(QStringLiteral("video_quality_mode")).isDouble())
+        out.videoQualityMode = extra.value(QStringLiteral("video_quality_mode")).toInt();
+    out.defaultAutoArchiveDuration = extra.value(QStringLiteral("default_auto_archive_duration")).toInt();
+    out.defaultThreadRateLimitPerUser = extra.value(QStringLiteral("default_thread_rate_limit_per_user")).toInt();
+    if (extra.value(QStringLiteral("default_forum_layout")).isDouble())
+        out.defaultForumLayout = extra.value(QStringLiteral("default_forum_layout")).toInt();
+    const QJsonObject reaction = extra.value(QStringLiteral("default_reaction_emoji")).toObject();
+    out.defaultReactionEmojiName = reaction.value(QStringLiteral("emoji_name")).toString();
+    out.defaultReactionEmojiId = reaction.value(QStringLiteral("emoji_id")).toString().toULongLong();
+    out.lastPinTimestamp = QDateTime::fromString(extra.value(QStringLiteral("last_pin_timestamp")).toString(),
+                                                 Qt::ISODateWithMs);
     return out;
 }
 

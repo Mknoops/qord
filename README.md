@@ -167,6 +167,7 @@ inventory). All are off by default.
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
 | **ReverseImageSearch** | "Search Image" in image context menus | add_ui_elements, open_links |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
+| **ShowHiddenChannels** | Shows channels you can't see, with a lock screen listing their settings and who can see them | show_hidden_channels, read_server_permissions, add_ui_elements |
 | **ShowMeYourName** | Shows any combination of nicknames, display names and usernames | modify_displayed_messages, add_ui_elements |
 | **SilentMessageToggle** | Chat-bar toggle for sending silent messages | modify_outgoing_messages, add_ui_elements |
 | **SilentTyping** | Hides that you're typing | control_typing, add_ui_elements |
@@ -179,7 +180,7 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** ShowHiddenChannels, CopyFileContents,
+**Up next:** CopyFileContents,
 ServerInfo, TypingIndicator, ValidUser, QuickReply and Translate.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or

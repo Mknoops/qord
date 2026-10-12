@@ -103,6 +103,7 @@ target_link_libraries(qord_plugin_fakenitro PUBLIC Qt::Gui) # QImage/QPainter fo
 
 # Batch 8
 qord_add_plugin(permissionsviewer utility SOURCES PermissionsViewer.hpp PermissionsViewer.cpp)
+qord_add_plugin(showhiddenchannels utility SOURCES ShowHiddenChannels.hpp ShowHiddenChannels.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

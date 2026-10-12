@@ -97,6 +97,8 @@ public:
     // popout at the mouse
     virtual void showPermissions(const PermissionsView &view) { Q_UNUSED(view); }
     virtual void showMemberPermissions(const MemberPermissionsView &view) { Q_UNUSED(view); }
+    // Re-renders the lock screen of a hidden channel, if it is showing
+    virtual void refreshLockScreen() {}
     // Starts editing one of your messages in the chat
     virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
     // Replies to a message. With no explicit `mention`, the client decides

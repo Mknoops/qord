@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 337 |
+| Not Started | 336 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 32 |
+| Tested | 33 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -293,7 +293,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ShowAllMessageButtons | `src/plugins/showAllMessageButtons` |  | Not Started |  |
 | ShowBadgesInChat | `src/equicordplugins/showBadgesInChat` |  | Not Started |  |
 | ShowConnections | `src/plugins/showConnections` |  | Not Started |  |
-| ShowHiddenChannels | `src/plugins/showHiddenChannels` |  | Not Started |  |
+| ShowHiddenChannels | `src/plugins/showHiddenChannels` | `plugins/utility/showhiddenchannels` | Tested | Hidden channels appear in the channel list where Discord would put them, marked as the show mode says. Selecting one shows the lock screen (what kind of channel it is, its settings, the roles and users that can see it, and Permission Details) instead of loading messages, and clicking a voice channel you can't see or join shows it instead of connecting. Hidden channels never become the channel a server opens on, and Qord never asks Discord for their messages. "Show Unreads" marks a hidden channel unread in the list without counting it toward the server. wired; not yet verified in the running client. gaps: Discord's "View Allowed Users and Roles" header is drawn by Qord: roles and users with access, without Discord's member-count overflow; A custom default reaction emoji on a forum shows as "a custom emoji" (the plugin doesn't read your servers' emojis); Qord has no keyboard channel switching or #channel autocomplete yet, so upstream's patches for those have nothing to change; a mention of a hidden channel opens its lock screen. |
 | ShowHiddenThings | `src/plugins/showHiddenThings` |  | Not Started |  |
 | ShowMessageEmbeds | `src/equicordplugins/showMessageEmbeds` |  | Not Started |  |
 | ShowMeYourName | `src/plugins/showMeYourName` | `plugins/chat/showmeyourname` | Tested | Qord has no Streamer Mode, so upstream's truncateAllNamesWithStreamerMode has nothing to do. Custom nicknames are kept in the plugin's settings instead of upstream's DataStore. wired; not yet verified in the running client. gaps: Names in mentions, the typing indicator, the member list, DMs and friends lists, autocomplete, profiles, voice channels and reaction tooltips: Qord has no name surface there yet (upstream settings mentions, typingIndicator, memberList, searchAutocomplete, profilePopout, voiceChannels, reactions).; Per-name colours and Nitro display-name styles (upstream's colour, font, effect, gradient and style* settings): Qord draws the whole name in the author's role colour.; hideDefaultAtSign: Qord's reply previews show names without an @. |

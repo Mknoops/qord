@@ -178,7 +178,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
         hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
-        hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers))
+        hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers) ||
+        hooks.testFlag(Hook::HiddenChannels))
         emit presentationChanged();
 }
 
@@ -800,6 +801,32 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
 {
     if (Plugin *plugin = tablePlugin(Hook::UserContextMenu, pluginId))
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
+}
+
+std::optional<HiddenChannelDisplay> PluginHost::dispatchHiddenChannelDisplay()
+{
+    const auto &table = tables[hookIndex(Hook::HiddenChannels)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<HiddenChannelDisplay> out;
+        guarded(tableIds[hookIndex(Hook::HiddenChannels)][i], "hiddenChannelDisplay",
+                [&] { out = table[i]->hiddenChannelDisplay(); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
+}
+
+std::optional<LockScreen> PluginHost::dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel)
+{
+    const auto &table = tables[hookIndex(Hook::HiddenChannels)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<LockScreen> out;
+        guarded(tableIds[hookIndex(Hook::HiddenChannels)][i], "hiddenChannelLockScreen",
+                [&] { out = table[i]->hiddenChannelLockScreen(channel); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
 }
 
 QList<PluginHost::PluginButton> PluginHost::dispatchProfileRoleButtons(const UserContext &user)

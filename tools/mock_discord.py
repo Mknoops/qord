@@ -159,6 +159,7 @@ CH = {
     "g2_text": "410000000000000001",
     "g2_general": "410000000000000002",
     "staff": "410000000000000003",
+    "staff_voice": "410000000000000005",
     "g2_voice": "410000000000000004",
     # DMs
     "dm_ava": "420000000000000001",
@@ -204,8 +205,15 @@ GUILD_CHANNELS = {
         channel(CH["g2_general"], G2, 0, "general", 0, CH["g2_text"], "Welcome to Second Server"),
         channel(CH["staff"], G2, 0, "staff-only", 1, CH["g2_text"], "Hidden from regular members",
                 overwrites=[{"id": G2, "type": 0, "allow": "0", "deny": str(VIEW)},
-                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"}]),
+                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"},
+                            {"id": U["fay"], "type": 1, "allow": str(VIEW), "deny": "0"}],
+                nsfw=True, rate_limit_per_user=3605, default_auto_archive_duration=1440),
         channel(CH["g2_voice"], G2, 2, "Hangout", 1, CH["g2_text"], bitrate=64000, user_limit=0),
+        # Hidden from the tester too (ShowHiddenChannels)
+        channel(CH["staff_voice"], G2, 2, "Staff Voice", 2, CH["g2_text"], bitrate=96000, user_limit=0,
+                rtc_region="rotterdam", video_quality_mode=2,
+                overwrites=[{"id": G2, "type": 0, "allow": "0", "deny": str(VIEW)},
+                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"}]),
     ],
 }
 

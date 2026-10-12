@@ -44,6 +44,7 @@ public:
 
 private:
     mutable QHash<const void *, QPair<QRect, QString>> voiceLabelTips;
+    mutable QHash<const void *, QPair<QRect, QString>> hiddenIconTips; // Qord: ShowHiddenChannels
     QAbstractProxyModel *proxyModel;
     ChannelIndent::Scopes indentScopes;
 };

@@ -36,6 +36,7 @@ enum class Permission : quint32 {
     ReadReactions = 1u << 19, // reactionUsers, PluginContext::reactions()
     ReadExpressions = 1u << 20, // PluginContext::expressions()
     ReadServerPermissions = 1u << 21, // PluginContext::guilds()
+    ShowHiddenChannels = 1u << 22, // hiddenChannels
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -72,11 +73,12 @@ enum class Hook : quint32 {
     MessageClicks = 1u << 20,
     ReactionUsers = 1u << 21,
     ProfileRoleButtons = 1u << 22,
+    HiddenChannels = 1u << 23,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 23;
+constexpr int HookCount = 24;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

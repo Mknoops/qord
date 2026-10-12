@@ -141,6 +141,7 @@ public:
         inner->showTextDialog(title, sections);
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
+    void refreshLockScreen() override { inner->refreshLockScreen(); }
     // The popout's buttons may be clicked after the plugin stopped
     void showMemberPermissions(const MemberPermissionsView &view) override
     {

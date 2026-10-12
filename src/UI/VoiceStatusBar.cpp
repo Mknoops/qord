@@ -211,9 +211,10 @@ void VoiceStatusBar::updateConnectionState()
 
     setVisible(active);
 
+    // Qord: like Discord, joining does not pop up a window; clicking the
+    // voice panel opens it
     if (active && wasDisconnected) {
         closeTimer.stop();
-        showVoiceWindow();
         if (voiceWindow)
             voiceWindow->refreshDevices();
     } else if (active) {

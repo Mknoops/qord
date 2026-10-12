@@ -175,9 +175,10 @@ inventory). All are off by default.
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
 | **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
+| **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** WhoReacted, PermissionsViewer, ShowHiddenChannels, CopyFileContents,
+**Up next:** PermissionsViewer, ShowHiddenChannels, CopyFileContents,
 ServerInfo, TypingIndicator, ValidUser, QuickReply and Translate.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or

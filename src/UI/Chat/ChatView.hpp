@@ -130,6 +130,8 @@ signals:
     // Qord: suggestedName is the start of the message, as Discord prefills it
     void createThreadRequested(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
     void openThreadRequested(Core::Snowflake threadId);
+    // Qord: an avatar on a reaction (WhoReacted)
+    void reactionUserClicked(Core::Snowflake userId);
     void replyToMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void addReactionRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void cancelUploadRequested(Core::Snowflake channelId, Core::Snowflake messageId);

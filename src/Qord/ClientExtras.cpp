@@ -331,6 +331,29 @@ void Client::fetchStickerPacks(ResultCallback<QList<StickerPack>> callback)
     });
 }
 
+void Client::fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
+                                ResultCallback<QList<User>> callback)
+{
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("limit"), QStringLiteral("100"));
+    query.addQueryItem(QStringLiteral("type"), QString::number(type));
+    const QString endpoint = QStringLiteral("/channels/%1/messages/%2/reactions/%3")
+                                     .arg(quint64(channelId))
+                                     .arg(quint64(messageId))
+                                     .arg(QString::fromLatin1(QUrl::toPercentEncoding(emoji, ":")));
+    httpClient->get(endpoint, query, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching reaction users failed:" << response.error;
+            callback(Core::Result<QList<User>>::makeError(response.error));
+            return;
+        }
+        QList<User> users;
+        for (const auto &u : QJsonDocument::fromJson(response.body).array())
+            users.append(User::fromJson(u.toObject()));
+        callback(Core::Result<QList<User>>::makeOk(users));
+    });
+}
+
 void Client::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,
                                      ThreadCallback callback)
 {

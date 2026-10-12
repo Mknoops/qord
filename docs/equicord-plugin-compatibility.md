@@ -381,7 +381,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | WebScreenShare | `src/plugins/webScreenShare.browser` |  | Not Started |  |
 | WebScreenShareFixes | `src/plugins/webScreenShareFixes.web` |  | Not Started |  |
 | WhitelistedEmojis | `src/equicordplugins/whitelistedEmojis` |  | Not Started |  |
-| WhoReacted | `src/plugins/whoReacted` |  | Not Started |  |
+| WhoReacted | `src/plugins/whoReacted` | `plugins/chat/whoreacted` | Tested | Up to five avatars and "+N" in each reaction pill, fetched once per reaction (newest first, 250 ms apart) and kept live from gateway reaction events; messages with more than 10 reactions are skipped, and users NoBlockedMessages hides are left out. Clicking an avatar opens the profile (setting). Checked against the mock. gaps: upstream's scroll-anchor fix is not needed (Qord keeps its own scroll position). |
 | WhosWatching | `src/equicordplugins/whosWatching` |  | Not Started |  |
 | WigglyText | `src/equicordplugins/wigglyText` |  | Not Started |  |
 | WriteUpperCase | `src/equicordplugins/writeUpperCase` | `plugins/chat/writeuppercase` | Tested | An empty blocked-words list capitalizes everything; upstream treats it as one empty word that blocks every sentence. wired; not yet verified in the running client. |

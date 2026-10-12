@@ -109,6 +109,22 @@ public:
 };
 
 // Emojis, stickers, Nitro status and channel permissions from the session
+// Reaction users from Discord (WhoReacted); the users are kept for names
+// and avatars
+class SessionReactions : public ReactionService
+{
+public:
+    explicit SessionReactions(Acheron::Core::Session *session) : session(session) {}
+    void fetchReactionUsers(Id accountId, Id channelId, Id messageId, const QString &emojiKey, int type,
+                            Callback done) override;
+    void reactionUsersChanged(Id accountId, Id channelId, Id messageId) override;
+    // Set by the main window, which re-renders the message
+    static std::function<void(Id accountId, Id channelId, Id messageId)> &onChanged();
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionExpressions : public ExpressionService
 {
 public:
@@ -201,6 +217,7 @@ private:
     QtDisplayOptions displayOptions;
     QtReadStates readStates;
     SessionExpressions expressions;
+    SessionReactions reactions;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

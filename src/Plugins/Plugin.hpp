@@ -189,7 +189,7 @@ public:
 
     // Hook::ReactionUsers: the users to show on a reaction (nullopt shows none),
     // and live reaction changes
-    virtual std::optional<QList<Id>> reactionUsers(const ReactionContext &reaction)
+    virtual std::optional<ReactionUsers> reactionUsers(const ReactionContext &reaction)
     {
         Q_UNUSED(reaction);
         return std::nullopt;

@@ -1,4 +1,5 @@
 #include "ClientPlugins.hpp"
+#include <QPointer>
 
 #include "Core/ClientInstance.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
@@ -539,13 +540,49 @@ void SessionMessageService::refreshFilters()
         host->requestMessageFilterRefresh();
 }
 
+void SessionReactions::fetchReactionUsers(Id accountId, Id channelId, Id messageId, const QString &emojiKey, int type,
+                                          Callback done)
+{
+    QPointer<Acheron::Core::ClientInstance> instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    instance->discord()->fetchReactionUsers(
+            Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId), emojiKey, type,
+            [instance, done](const Acheron::Core::Result<QList<Acheron::Discord::User>> &result) {
+                if (!result.success() || !instance) {
+                    done(false, {});
+                    return;
+                }
+                instance->users()->saveUsers(*result.value);
+                QList<Id> ids;
+                for (const auto &user : *result.value)
+                    ids.append(quint64(user.id.get()));
+                done(true, ids);
+            });
+}
+
+std::function<void(Id, Id, Id)> &SessionReactions::onChanged()
+{
+    static std::function<void(Id, Id, Id)> changed;
+    return changed;
+}
+
+void SessionReactions::reactionUsersChanged(Id accountId, Id channelId, Id messageId)
+{
+    if (onChanged())
+        onChanged()(accountId, channelId, messageId);
+}
+
 static QString pluginDataDirectory()
 {
     return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(QStringLiteral("plugins"));
 }
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
-    : members(session), relationships(session), messages(session), messageActions(session), expressions(session)
+    : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
+      reactions(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -564,6 +601,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.displayOptions = &displayOptions;
     services.readStates = &readStates;
     services.expressions = &expressions;
+    services.reactions = &reactions;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

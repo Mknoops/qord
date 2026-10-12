@@ -948,7 +948,15 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
             const auto &reaction = ctx.reactions[i];
 
             int countTextWidth = reactionFm.horizontalAdvance(QString::number(reaction.count));
-            int pillWidth = reactionPillPadding() + reactionEmojiSize() + 4 + countTextWidth + reactionPillPadding();
+            // Qord: avatars of who reacted, overlapping, then "+N"
+            constexpr int AvatarPx = 16;
+            constexpr int AvatarStep = 12;
+            const int avatars = int(reaction.userAvatars.size());
+            const QString more = reaction.moreUsers > 0 ? QStringLiteral("+%1").arg(reaction.moreUsers) : QString();
+            const int moreWidth = more.isEmpty() ? 0 : reactionFm.horizontalAdvance(more) + 4;
+            const int avatarsWidth = avatars ? 6 + AvatarPx + (avatars - 1) * AvatarStep + moreWidth : 0;
+            int pillWidth = reactionPillPadding() + reactionEmojiSize() + 4 + countTextWidth + avatarsWidth +
+                            reactionPillPadding();
 
             // wrap to next row if needed
             if (currentX + pillWidth > maxX && currentX > textLeft) {
@@ -970,6 +978,11 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
             rl.pillRect = pillRect;
             rl.emojiRect = emojiRect;
             rl.countRect = countRect;
+            for (int a = 0; a < avatars; ++a)
+                rl.avatarRects.append(QRect(countRect.right() + 1 + 6 + a * AvatarStep,
+                                            currentY + (rowHeight - AvatarPx) / 2, AvatarPx, AvatarPx));
+            if (!more.isEmpty())
+                rl.moreRect = QRect(rl.avatarRects.last().right() + 4, currentY, moreWidth - 4, rowHeight);
             layout.reactionLayouts.append(rl);
 
             currentX += pillWidth + reactionSpacing();
@@ -1051,8 +1064,13 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
     for (const auto &sl : layout.stickerLayouts)
         layout.hitRegions.append({ HitRegion::Kind::Sticker, sl.rect, sl.stickerIndex, -1, {} });
 
-    for (const auto &rl : layout.reactionLayouts)
+    for (const auto &rl : layout.reactionLayouts) {
+        // Avatars first, so a click on one finds it before the pill
+        if (rl.reactionIndex < ctx.reactions.size() && ctx.reactions[rl.reactionIndex].usersClickable)
+            for (int a = int(rl.avatarRects.size()) - 1; a >= 0; --a)
+                layout.hitRegions.append({ HitRegion::Kind::ReactionUser, rl.avatarRects[a], rl.reactionIndex, a, {} });
         layout.hitRegions.append({ HitRegion::Kind::Reaction, rl.pillRect, rl.reactionIndex, -1, {} });
+    }
 
     return layout;
 }

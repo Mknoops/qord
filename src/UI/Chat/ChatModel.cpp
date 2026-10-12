@@ -1,5 +1,7 @@
 #include "ChatModel.hpp"
 
+#include "Plugins/PluginHost.hpp"
+
 #include <QImageReader>
 
 #include <algorithm>
@@ -86,6 +88,13 @@ ChatModel::ChatModel(Core::ImageManager *imageManager, QObject *parent)
                     if (index.isValid())
                         emit dataChanged(index, index, { Qt::DecorationRole });
                 });
+
+                // Qord: reaction users' avatars (WhoReacted)
+                if (reactionAvatarUrls.remove(url)) {
+                    for (int row = 0; row < messages.size(); ++row)
+                        if (messages[row].reactions.hasValue() && !messages[row].reactions->isEmpty())
+                            emit dataChanged(index(row, 0), index(row, 0), { ReactionsRole });
+                }
 
                 if (Discord::Cdn::isEmojiUrl(url)) {
                     const QString srcPrefix = url.toString(QUrl::RemoveQuery);
@@ -220,6 +229,17 @@ void ChatModel::refreshRowsShowingSticker(const QUrl &stickerUrl)
         if (shown) {
             const QModelIndex idx = index(row, 0);
             emit dataChanged(idx, idx, { StickersRole });
+        }
+    }
+}
+
+void ChatModel::refreshReactions(Snowflake messageId)
+{
+    for (int row = 0; row < messages.size(); ++row) {
+        if (messages[row].id.get() == messageId) {
+            sizeCache.remove(messageId);
+            emit dataChanged(index(row, 0), index(row, 0), { ReactionsRole, CachedSizeRole });
+            return;
         }
     }
 }
@@ -871,6 +891,48 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                 data.emojiPixmap = emojiPixmap;
                 data.isLoading = isLoading;
                 result.append(data);
+            }
+        }
+
+        // Qord: who reacted, from a plugin (WhoReacted); users that message
+        // filters hide (NoBlockedMessages) are left out, as upstream does
+        auto *plugins = Qord::Plugins::PluginHost::instance();
+        if (plugins && plugins->hasHook(Qord::Plugins::Hook::ReactionUsers)) {
+            const bool filtering = plugins->hasHook(Qord::Plugins::Hook::MessageFilter);
+            for (auto &data : result) {
+                Qord::Plugins::ReactionContext ctx;
+                ctx.accountId = quint64(currentAccountId);
+                ctx.guildId = quint64(currentGuildId);
+                ctx.channelId = msg.channelId.hasValue() ? quint64(msg.channelId.get()) : 0;
+                ctx.messageId = quint64(msg.id.get());
+                ctx.emojiName = data.emojiName;
+                ctx.emojiId = data.emojiId.isValid() ? quint64(data.emojiId) : 0; // 0: Unicode
+                ctx.type = data.isBurst ? 1 : 0;
+                ctx.reactionsOnMessage = int(msg.reactions->size());
+                const auto users = plugins->dispatchReactionUsers(ctx);
+                if (!users)
+                    continue;
+                data.usersClickable = users->clickable;
+                for (const auto id : users->users) {
+                    if (filtering) {
+                        Qord::Plugins::MessageContext author;
+                        author.accountId = ctx.accountId;
+                        author.channelId = ctx.channelId;
+                        author.guildId = ctx.guildId;
+                        author.authorId = id;
+                        if (plugins->dispatchShouldHideMessage(author))
+                            continue;
+                    }
+                    data.userIds.append(Core::Snowflake(id));
+                }
+                data.moreUsers = qMax(0, int(data.userIds.size()) - ReactionAvatarMax);
+                for (int i = 0; i < qMin(int(data.userIds.size()), ReactionAvatarMax); ++i) {
+                    const QUrl url = userAvatarResolver ? userAvatarResolver(data.userIds[i], currentGuildId) : QUrl();
+                    const QSize size(32, 32);
+                    if (url.isValid() && !imageManager->isCached(url, size))
+                        reactionAvatarUrls.insert(url);
+                    data.userAvatars.append(url.isValid() ? imageManager->get(url, size, currentAccountId) : QPixmap());
+                }
             }
         }
 

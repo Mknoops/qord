@@ -480,6 +480,16 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
         break;
     }
 
+    case Kind::ReactionUser: {
+        // Qord: an avatar on a reaction opens that user's profile
+        if (hasTextSelection() || region->index < 0 || region->index >= resolved.ctx.reactions.size())
+            break;
+        const ReactionData &r = resolved.ctx.reactions[region->index];
+        if (region->subIndex >= 0 && region->subIndex < r.userIds.size())
+            emit reactionUserClicked(r.userIds[region->subIndex]);
+        break;
+    }
+
     case Kind::AttachmentVideo:
     case Kind::AttachmentAudio: {
         const auto target = MediaTargets::forRegion(resolved, *region);

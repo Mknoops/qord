@@ -10,6 +10,7 @@
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/OwnerCrown.hpp"
+#include "Core/RoleColors.hpp"
 #include "Core/Session.hpp"
 #include "Core/TokenStore.hpp"
 #include "Qord/DevMock.hpp"
@@ -414,6 +415,19 @@ void QtDisplayOptions::setForceOwnerCrown(bool force)
     Acheron::Core::forceOwnerCrown() = force;
     if (host)
         emit host->presentationChanged();
+}
+
+void QtDisplayOptions::setRoleColors(const RoleColors &colors)
+{
+    auto &options = Acheron::Core::roleColorOptions();
+    const bool mentionsChanged = options.mentions != colors.mentions;
+    options = { colors.mentions, colors.memberListHeaders, colors.voiceUsers, colors.messages,
+                colors.messageSaturation };
+    if (!host)
+        return;
+    if (mentionsChanged)
+        emit host->displayTransformsChanged(); // mentions are in the rendered text
+    emit host->presentationChanged();
 }
 
 void QtUiService::openPluginSettings(const QString &pluginId)

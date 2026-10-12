@@ -519,6 +519,9 @@ void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
     typingTracker->setUserManager(currentInstance->users());
     typingTracker->setCurrentUserId(currentInstance->accountId());
 
+    // Qord: RoleColorEverywhere colors mentions with the member's role color
+    msgs->setMentionColorResolver(
+            [this](Snowflake userId, Snowflake guildId) { return resolveRoleColor(userId, guildId); });
     connect(msgs, &MessageManager::messagesReceived, chatModel, &ChatModel::handleIncomingMessages);
     connect(msgs, &MessageManager::messageErrored, chatModel, &ChatModel::handleMessageErrored);
     connect(msgs, &MessageManager::messageDeleted, chatModel, &ChatModel::handleMessageDeleted);

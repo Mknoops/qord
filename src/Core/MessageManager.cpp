@@ -1,4 +1,5 @@
 #include "MessageManager.hpp"
+#include "RoleColors.hpp"
 
 #include <QDateTime>
 #include <QImageReader>
@@ -217,6 +218,16 @@ QString MessageManager::accessoryHtml(const QString &pluginId, const Qord::Plugi
         html += QStringLiteral("<br><span style=\"font-size: small;\">(") + footer + QStringLiteral(")</span>");
     }
     return html + QStringLiteral("</div>");
+}
+
+void MessageManager::setMentionColorResolver(std::function<QColor(Snowflake userId, Snowflake guildId)> resolver)
+{
+    parser->setUserColorResolver([this, resolver = std::move(resolver)](Snowflake userId, Snowflake sourceChannelId) {
+        if (!roleColorOptions().mentions || !resolver)
+            return QColor();
+        const Snowflake guildId = client->getGuildIdForChannel(sourceChannelId);
+        return guildId.isValid() ? resolver(userId, guildId) : QColor();
+    });
 }
 
 void MessageManager::setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver)

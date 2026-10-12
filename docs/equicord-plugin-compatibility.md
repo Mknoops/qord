@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 329 |
+| Not Started | 328 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 40 |
+| Tested | 41 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -275,7 +275,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReviewDB | `src/plugins/reviewDB` |  | Not Started |  |
 | RichMagnetLinks | `src/equicordplugins/richMagnetLinks` |  | Not Started |  |
 | RichPresence | `src/equicordplugins/richPresence` |  | Not Started |  |
-| RoleColorEverywhere | `src/plugins/roleColorEverywhere` |  | Not Started |  |
+| RoleColorEverywhere | `src/plugins/roleColorEverywhere` | `plugins/appearance/rolecoloreverywhere` | Tested | User mentions in messages show in the member's top role color on a 10% background of it, member list role headers in their role's color, people in voice channels in their role color, and, with "Color chat messages", message text mixed with the author's role color (CSS color-mix in oklab, at the saturation setting; not failed sends). Changes apply at once, where upstream needs a restart. wired; not yet verified in the running client. gaps: Mentions typed in the message box aren't colored (Qord's message box shows them as text).; Qord has no reactors list or poll voter list, so those two settings do nothing yet.; Thread member lists aren't covered (Qord shows the channel's member list in threads).; CustomUserColors' colors aren't used, as that plugin isn't ported. |
 | RPCEditor | `src/equicordplugins/rpcEditor` |  | Not Started |  |
 | SaveFavoriteGIFs | `src/equicordplugins/saveFavoriteGIFs` |  | Not Started |  |
 | ScheduledMessages | `src/equicordplugins/scheduledMessages` |  | Not Started |  |

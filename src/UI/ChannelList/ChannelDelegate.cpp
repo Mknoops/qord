@@ -4,6 +4,7 @@
 #include "ChannelTreeModel.hpp"
 #include "ChannelFilterProxyModel.hpp"
 
+#include "Core/RoleColors.hpp"
 #include "Core/Theme/Icons.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "UI/StatusIndicator.hpp"
@@ -27,7 +28,17 @@ ChannelDelegate::CameraProvider &cameraProvider()
     static ChannelDelegate::CameraProvider provider;
     return provider;
 }
+ChannelDelegate::NameColorProvider &nameColorProvider()
+{
+    static ChannelDelegate::NameColorProvider provider;
+    return provider;
+}
 } // namespace
+
+void ChannelDelegate::setNameColorProvider(NameColorProvider provider)
+{
+    nameColorProvider() = std::move(provider);
+}
 
 void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
 {
@@ -569,6 +580,18 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
                                                         : 16;
 
         QColor textColor = option.palette.text().color();
+        if (Core::roleColorOptions().voiceUsers && nameColorProvider()) {
+            const ChannelNode *account = node;
+            while (account && account->type != ChannelNode::Type::Account)
+                account = account->parent;
+            const ChannelNode *guild = ChannelTreeModel::findGuildNode(const_cast<ChannelNode *>(node));
+            if (account && guild) {
+                const QColor roleColor =
+                        nameColorProvider()(quint64(account->id), quint64(guild->id), quint64(node->id));
+                if (roleColor.isValid())
+                    textColor = roleColor;
+            }
+        }
         QRect textRect =
                 contentOpt.rect.adjusted(participantIndent + avatarSize + 6, 0, -rightReserve - labelWidth, 0);
         painter->setPen(textColor);

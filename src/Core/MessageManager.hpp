@@ -44,6 +44,8 @@ public:
     ~MessageManager() override;
 
     void setChannelResolver(std::function<QString(Snowflake)> resolver);
+    // Qord: a member's role color, for user mentions (RoleColorEverywhere)
+    void setMentionColorResolver(std::function<QColor(Snowflake userId, Snowflake guildId)> resolver);
     // Qord: parent (category or thread parent) of a channel, for plugins
     void setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver);
     // Qord: re-render a cached message (a plugin's view of it changed)

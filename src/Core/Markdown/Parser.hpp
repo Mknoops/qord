@@ -56,6 +56,8 @@ struct MarkdownRule
 };
 
 using UserResolverFn = std::function<QString(Snowflake userId, Snowflake sourceChannelId)>;
+// Qord: a user mention's color (RoleColorEverywhere); invalid for the default
+using UserColorResolverFn = std::function<QColor(Snowflake userId, Snowflake sourceChannelId)>;
 using ChannelResolverFn = std::function<QString(const QString &channelId)>;
 
 struct ChannelLinkRef
@@ -101,6 +103,7 @@ public:
     QString toHtml(const QList<AstNode> &nodes, bool jumboEmoji = false);
 
     void setUserResolver(UserResolverFn resolver);
+    void setUserColorResolver(UserColorResolverFn resolver) { userColorResolver = std::move(resolver); }
     void setChannelResolver(ChannelResolverFn resolver);
     void setChannelLinkResolver(ChannelLinkResolverFn resolver);
     void setRoleResolver(RoleResolverFn resolver);
@@ -119,6 +122,7 @@ private:
     QList<MarkdownRule> rules;
     QMap<QString, MarkdownRule *> ruleMap;
     UserResolverFn userResolver;
+    UserColorResolverFn userColorResolver;
     ChannelResolverFn channelResolver;
     ChannelLinkResolverFn channelLinkResolver;
     RoleResolverFn roleResolver;

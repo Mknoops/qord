@@ -154,8 +154,8 @@ inventory). All are off by default.
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
-| **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
 | **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
+| **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
 | **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |

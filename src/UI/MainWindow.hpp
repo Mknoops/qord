@@ -300,6 +300,7 @@ private:
     class CameraUi *cameraUi = nullptr;
     void addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Core::Snowflake userId);
     // Qord: Create Thread on messages: text and announcement channels, with permission
+    bool isSystemDm(Core::ClientInstance *instance, Core::Snowflake channelId) const;
     bool canCreateThreadsIn(Core::ClientInstance *instance, Core::Snowflake channelId) const;
     void createThreadFromMessage(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
     UserPanel *userPanel = nullptr;

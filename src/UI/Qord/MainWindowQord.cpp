@@ -162,6 +162,22 @@ void MainWindow::addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Sno
 #endif
 }
 
+bool MainWindow::isSystemDm(Core::ClientInstance *instance, Snowflake channelId) const
+{
+    const auto channel = instance ? instance->getChannel(channelId) : std::nullopt;
+    if (!channel)
+        return false;
+    if (channel->recipients.hasValue())
+        for (const auto &user : channel->recipients.get())
+            if (user.isSystem())
+                return true;
+    if (channel->recipientIds.hasValue())
+        for (const Snowflake id : channel->recipientIds.get())
+            if (quint64(id) == Discord::User::SystemUserId)
+                return true;
+    return false;
+}
+
 bool MainWindow::canCreateThreadsIn(Core::ClientInstance *instance, Snowflake channelId) const
 {
     if (!instance)

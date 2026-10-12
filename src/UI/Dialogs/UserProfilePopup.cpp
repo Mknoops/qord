@@ -730,6 +730,8 @@ void UserProfilePopup::renderFromCachedData()
     displayNameLabel->setText(name.toHtmlEscaped());
     handleLabel->setText(tagHandle().toHtmlEscaped());
     botBadgeLabel->setVisible(isBot());
+    if (auto u = cachedUser(); u && u->isSystem()) // Qord
+        botBadgeLabel->setText(QStringLiteral("\u2713 SYSTEM"));
 
     int color = resolvedAccentColor();
     if (color != 0) {

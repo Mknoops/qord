@@ -161,6 +161,7 @@ inventory). All are off by default.
 | **NoReplyMention** | Turns reply pings off by default | reply_mentions, read_guild_members |
 | **NormalizeMessageLinks** | Strips canary/ptb from message links | modify_message_links |
 | **OnePingPerDM** | Only one notification sound per DM until you read it | control_notifications |
+| **PermissionsViewer** | "View Permissions" for members, channels and servers, and a member's permissions with the role granting each | add_ui_elements, read_server_permissions |
 | **PlatformIndicators** | Desktop, mobile and web indicators next to users | read_presences, modify_displayed_messages |
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
@@ -178,7 +179,7 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** PermissionsViewer, ShowHiddenChannels, CopyFileContents,
+**Up next:** ShowHiddenChannels, CopyFileContents,
 ServerInfo, TypingIndicator, ValidUser, QuickReply and Translate.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or

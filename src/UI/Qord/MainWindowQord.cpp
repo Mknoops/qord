@@ -19,6 +19,7 @@
 #include "UI/Qord/ExpressionPicker.hpp"
 #include "UI/Qord/SlashCommandPopup.hpp"
 #include <QJsonDocument>
+#include <QCursor>
 #include <QToolTip>
 #include "UI/Qord/FriendsPage.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
@@ -29,11 +30,13 @@
 #include "Plugins/Client/MessageContexts.hpp"
 #include "UI/TypingIndicator.hpp"
 #include "Core/TypingTracker.hpp"
+#include "Core/ImageManager.hpp"
 #include "UI/Qord/AddServerDialog.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
 #include "UI/Qord/UserPanel.hpp"
 #include "UI/Qord/Toast.hpp"
+#include "UI/Qord/PermissionsView.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -299,6 +302,27 @@ void MainWindow::setupQordFeatures()
         Toast::show(active ? active : this, text, Toast::Type(int(type)));
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
+
+    // PermissionsViewer: its dialog (with role icons and avatars) and the
+    // member popout, shown at the mouse
+    Qord::Plugins::QtUiService::permissionsShower() = [this](const Qord::Plugins::PermissionsView &view) {
+        const Snowflake accountId(view.accountId);
+        PermissionsView::showDialog(view, [this, accountId](const QUrl &url, QObject *context,
+                                                            std::function<void(const QPixmap &)> done) {
+            session->getImageManager()->fetch(url, accountId, context, [done](const QByteArray &data) {
+                QPixmap pixmap;
+                if (pixmap.loadFromData(data))
+                    done(pixmap);
+            });
+        });
+    };
+    Qord::Plugins::QtUiService::memberPermissionsShower() = [](const Qord::Plugins::MemberPermissionsView &view) {
+        PermissionsView::showMemberPopout(view, QCursor::pos());
+    };
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::permissionsShower() = nullptr;
+        Qord::Plugins::QtUiService::memberPermissionsShower() = nullptr;
+    });
 
     // WhoReacted: avatars by user id, re-rendering a message whose reaction
     // users arrived, and an avatar click opening the profile

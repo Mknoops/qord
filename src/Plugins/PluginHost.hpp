@@ -115,6 +115,9 @@ public:
     [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
+    [[nodiscard]] QList<PluginButton> dispatchProfileRoleButtons(const UserContext &user);
+    void dispatchProfileRoleButtonClicked(const QString &pluginId, const QString &buttonId, const UserContext &user);
+
     // Any plugin saying no wins (default: send / show).
     [[nodiscard]] bool dispatchShouldSendTyping(const TypingContext &typing);
     [[nodiscard]] bool dispatchShouldShowTypers(const ChatContext &chat);

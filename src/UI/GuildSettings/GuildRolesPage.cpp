@@ -283,6 +283,19 @@ const PermissionInfo PermissionCatalog[] = {
                                           "access to all private channels). This is a dangerous permission to grant.") },
 };
 
+} // namespace
+
+QList<PermissionText> permissionTexts()
+{
+    QList<PermissionText> out;
+    for (const PermissionInfo &info : PermissionCatalog)
+        out.append({ quint64(info.permission), QCoreApplication::translate("GuildRolesPage", info.title),
+                     QCoreApplication::translate("GuildRolesPage", info.description) });
+    return out;
+}
+
+namespace {
+
 bool gateOpen(PermissionGate gate, const std::optional<Discord::Guild> &guild)
 {
     switch (gate) {

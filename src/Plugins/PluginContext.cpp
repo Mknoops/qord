@@ -140,6 +140,24 @@ public:
     {
         inner->showTextDialog(title, sections);
     }
+    void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
+    // The popout's buttons may be clicked after the plugin stopped
+    void showMemberPermissions(const MemberPermissionsView &view) override
+    {
+        MemberPermissionsView guardedView = view;
+        std::weak_ptr<bool> weak = alive;
+        auto guard = [weak](std::function<void()> f) -> std::function<void()> {
+            if (!f)
+                return {};
+            return [weak, f = std::move(f)]() {
+                if (auto a = weak.lock(); a && *a)
+                    f();
+            };
+        };
+        guardedView.toggleSort = guard(view.toggleSort);
+        guardedView.showRoleDetails = guard(view.showRoleDetails);
+        inner->showMemberPermissions(guardedView);
+    }
     void startEditing(const MessageContext &message) override { inner->startEditing(message); }
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
     {
@@ -196,6 +214,13 @@ ExpressionService *PluginContext::expressions() const
     if (!granted.testFlag(Permission::ReadExpressions))
         return nullptr;
     return services.expressions;
+}
+
+GuildDirectory *PluginContext::guilds() const
+{
+    if (!granted.testFlag(Permission::ReadServerPermissions))
+        return nullptr;
+    return services.guilds;
 }
 
 ReactionService *PluginContext::reactions()

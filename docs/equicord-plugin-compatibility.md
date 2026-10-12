@@ -242,7 +242,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PartyMode | `src/equicordplugins/partyMode` |  | Not Started |  |
 | PauseInvitesForever | `src/plugins/pauseInvitesForever` |  | Not Started |  |
 | PermissionFreeWill | `src/plugins/permissionFreeWill` |  | Not Started |  |
-| PermissionsViewer | `src/plugins/permissionsViewer` |  | Not Started |  |
+| PermissionsViewer | `src/plugins/permissionsViewer` | `plugins/utility/permissionsviewer` | Tested | "View Permissions" in the user (server members), channel and server menus opens Discord's permissions dialog: roles (or a channel's role and member overwrites) on the left, what the selected one allows and denies on the right, with descriptions as tooltips and Copy Role/User ID on right-click. A shield next to Roles in a member's profile shows their permissions with the granting role, the sort order toggle and Role Details. Checked against the mock. gaps: BetterRoleContext's role menu items and View As Role are not ported; Use Clyde AI (bit 47) has no name in Qord and isn't listed. |
 | PetPet | `src/plugins/petpet` |  | Not Started |  |
 | PictureInPicture | `src/plugins/pictureInPicture` |  | Not Started |  |
 | PinDMs | `src/plugins/pinDms` |  | Not Started |  |

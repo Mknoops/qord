@@ -91,6 +91,12 @@ public:
     virtual void pickTimestamp(std::function<void(const QString &markup)> done) { Q_UNUSED(done); }
     // Opens the Plugins settings page at this plugin.
     virtual void openPluginSettings(const QString &pluginId) { Q_UNUSED(pluginId); }
+    // PermissionsViewer's views: a list of roles, members and the owner with
+    // the permissions each grants or (for overwrites) allows and denies, and
+    // a member's permissions with the role that grants each, shown as a
+    // popout at the mouse
+    virtual void showPermissions(const PermissionsView &view) { Q_UNUSED(view); }
+    virtual void showMemberPermissions(const MemberPermissionsView &view) { Q_UNUSED(view); }
     // Starts editing one of your messages in the chat
     virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
     // Replies to a message. With no explicit `mention`, the client decides
@@ -160,6 +166,21 @@ public:
     // Marks every unread channel, voice channel and joined thread in every
     // server as read, like Discord's "Mark As Read" on all servers at once.
     virtual void markAllServersRead(Id accountId) = 0;
+};
+
+// Servers' roles, owners and channel permission overwrites, and members
+// (PermissionsViewer); everything comes from the client's cache.
+class GuildDirectory
+{
+public:
+    virtual ~GuildDirectory() = default;
+    [[nodiscard]] virtual std::optional<GuildInfo> guild(Id accountId, Id guildId) const = 0;
+    [[nodiscard]] virtual std::optional<ChannelInfo> channel(Id accountId, Id channelId) const = 0;
+    // nullopt when the user isn't known; isMember says whether they are in
+    // the server
+    [[nodiscard]] virtual std::optional<MemberInfo> member(Id accountId, Id guildId, Id userId) const = 0;
+    // Asks Discord for members the cache lacks (op 8); they arrive later
+    virtual void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) = 0;
 };
 
 // Emojis, stickers and what you may use where.
@@ -251,6 +272,7 @@ struct Services
     ReadStateService *readStates = nullptr;
     ReactionService *reactions = nullptr;
     ExpressionService *expressions = nullptr;
+    GuildDirectory *guilds = nullptr;
 };
 
 } // namespace Plugins

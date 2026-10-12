@@ -1,0 +1,29 @@
+{
+  "id": "permissionsviewer",
+  "equicordName": "PermissionsViewer",
+  "equicordPath": "src/plugins/permissionsViewer",
+  "name": "PermissionsViewer",
+  "description": "View the permissions a user or channel has, and the roles of a server",
+  "categories": ["utility"],
+  "tags": ["Servers", "Roles", "Utility"],
+  "authors": ["Nuckyz", "Ven"],
+  "permissions": ["add_ui_elements", "read_server_permissions"],
+  "hooks": ["userContextMenu", "channelContextMenu", "profileRoleButtons"],
+  "settings": [
+    { "key": "permissionsSortOrder", "type": "choice", "default": "highestRole", "label": "Permissions sort order",
+      "description": "The sort method used for defining which role grants an user a certain permission",
+      "choices": [
+        { "value": "highestRole", "label": "Highest Role" },
+        { "value": "lowestRole", "label": "Lowest Role" }
+      ] }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "\"View Permissions\" is in the user menu (server members), the channel menu and the server menu, and a shield button next to Roles in a member's profile shows their permissions with the role granting each (hover for \"Granted by\"), the sort order toggle and Role Details. Members named in channel overwrites that Qord hasn't loaded are requested from Discord.",
+  "gaps": [
+    "Right-clicking a role in the list offers Copy Role ID only; BetterRoleContext's extra items and View As Role are not ported",
+    "Discord's newest permission (Use Clyde AI, bit 47) has no name in Qord's role settings, so it isn't listed"
+  ]
+}

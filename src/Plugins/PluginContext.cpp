@@ -111,6 +111,7 @@ public:
     }
     ~ScopedUi() override { *alive = false; }
     void insertIntoMessageBox(const QString &text) override { inner->insertIntoMessageBox(text); }
+    void showToast(const QString &text, ToastType type) override { inner->showToast(text, type); }
     bool confirm(Confirmation &confirmation) override { return inner->confirm(confirmation); }
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override
     {

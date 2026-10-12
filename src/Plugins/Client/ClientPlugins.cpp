@@ -163,7 +163,12 @@ void QtUiService::showTextDialog(const QString &title, const QList<TextSection> 
             text->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
         layout->addWidget(text, 1);
         const QString value = section.text;
-        QObject::connect(copy, &QPushButton::clicked, dialog, [value] { QGuiApplication::clipboard()->setText(value); });
+        const QString toast = section.copiedToast;
+        QObject::connect(copy, &QPushButton::clicked, dialog, [value, toast] {
+            QGuiApplication::clipboard()->setText(value);
+            if (!toast.isEmpty() && toastShower())
+                toastShower()(toast, ToastType::Success);
+        });
     }
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::close);
@@ -174,6 +179,18 @@ void QtUiService::showTextDialog(const QString &title, const QList<TextSection> 
 void QtUiService::openUrl(const QUrl &url)
 {
     QDesktopServices::openUrl(url);
+}
+
+std::function<void(const QString &, UiService::ToastType)> &QtUiService::toastShower()
+{
+    static std::function<void(const QString &, ToastType)> shower;
+    return shower;
+}
+
+void QtUiService::showToast(const QString &text, ToastType type)
+{
+    if (toastShower())
+        toastShower()(text, type);
 }
 
 std::function<void(const QString &)> &QtUiService::messageBoxInserter()

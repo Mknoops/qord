@@ -113,6 +113,8 @@ public:
         ++dialogs;
     }
     void openUrl(const QUrl &url) override { opened.append(url); }
+    void showToast(const QString &text, ToastType type) override { toasts.append({ text, type }); }
+    QList<QPair<QString, ToastType>> toasts;
     void openImage(const QUrl &url) override { images.append(url); }
     void startEditing(const MessageContext &message) override { edits.append(message.messageId); }
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override

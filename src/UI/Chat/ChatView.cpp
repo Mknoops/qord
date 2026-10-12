@@ -1,5 +1,7 @@
 #include "ChatView.hpp"
 
+#include <QRegularExpression>
+
 #include <QMenu>
 #include <QTextDocument>
 #include <QTextCursor>
@@ -1185,6 +1187,33 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
         connect(pinAction, &QAction::triggered, this, [this, channelId, messageId]() {
             emit pinMessageRequested(channelId, messageId);
         });
+    }
+
+    // Qord: threads from messages, as in Discord
+    if (!keptDeleted && menuMessage && !index.data(ChatModel::IsPendingRole).toBool()) {
+        const bool hasThread = menuMessage->flags.hasValue() &&
+                               menuMessage->flags->testFlag(Discord::MessageFlag::HAS_THREAD);
+        if (hasThread) {
+            // A thread started from a message has the message's id
+            QAction *openThread = menu.addAction(tr("Open Thread"));
+            connect(openThread, &QAction::triggered, this, [this, messageId]() { emit openThreadRequested(messageId); });
+        } else if (canCreateThreads && !index.data(ChatModel::IsSystemMessageRole).toBool()) {
+            QString suggested = menuMessage->contentMessage().content.hasValue()
+                    ? menuMessage->contentMessage().content.get()
+                    : QString();
+            // Mentions and custom emojis are markup, not words: drop them
+            // (emojis keep their :name:)
+            static const QRegularExpression mentions(QStringLiteral("<(@[!&]?|#)\\d+>"));
+            static const QRegularExpression emojis(QStringLiteral("<a?(:\\w+:)\\d+>"));
+            suggested.replace(mentions, QString()).replace(emojis, QStringLiteral("\\1"));
+            suggested = suggested.simplified();
+            if (suggested.isEmpty() && menuMessage->author.hasValue())
+                suggested = menuMessage->author->username.hasValue() ? menuMessage->author->username.get() : QString();
+            QAction *createThread = menu.addAction(tr("Create Thread"));
+            connect(createThread, &QAction::triggered, this, [this, channelId, messageId, suggested]() {
+                emit createThreadRequested(channelId, messageId, suggested.left(100));
+            });
+        }
     }
 
     if (!keptDeleted) {

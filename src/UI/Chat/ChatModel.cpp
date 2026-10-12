@@ -436,7 +436,12 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                                    " style=\"vertical-align: middle\">"
                                    " %2</a>")
                             .arg(QString::number(static_cast<quint64>(msg.id.get())),
-                                 tr("View Thread"));
+                                 // Qord: the thread's name and size, as Discord shows them
+                                 msg.threadName.isEmpty() ? tr("View Thread")
+                                 : msg.threadMessageCount >= 0
+                                         ? tr("%1 · %n Messages", nullptr, msg.threadMessageCount)
+                                                   .arg(msg.threadName.toHtmlEscaped())
+                                         : msg.threadName.toHtmlEscaped());
         }
 
         if (revealedSpoilerMessages.contains(msg.id.get()))

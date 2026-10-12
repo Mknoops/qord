@@ -94,6 +94,8 @@ public:
 
     void setCurrentUserId(Core::Snowflake userId);
     void setCanPinMessages(bool canPin);
+    // Qord: Create Thread on messages (a text channel, with permission)
+    void setCanCreateThreads(bool canCreate) { canCreateThreads = canCreate; }
     void setCanManageMessages(bool canManage);
 
 protected:
@@ -125,6 +127,9 @@ signals:
     void editMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId, const QString &currentContent);
     void deleteMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void pinMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
+    // Qord: suggestedName is the start of the message, as Discord prefills it
+    void createThreadRequested(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
+    void openThreadRequested(Core::Snowflake threadId);
     void replyToMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void addReactionRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void cancelUploadRequested(Core::Snowflake channelId, Core::Snowflake messageId);
@@ -221,6 +226,7 @@ private:
 
     Core::Snowflake currentUserId = Core::Snowflake::Invalid;
     bool canPinMessages = false;
+    bool canCreateThreads = false;
     bool canManageMessages = false;
 };
 } // namespace UI

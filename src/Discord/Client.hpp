@@ -98,6 +98,11 @@ public:
     using ForumPostDataCallback = std::function<void(const Core::Result<QHash<Snowflake, Message>> &)>;
     void fetchForumPostData(Snowflake forumId, const QList<Snowflake> &threadIds, ForumPostDataCallback callback);
 
+    // Qord: a thread started from a message (Create Thread); the result is
+    // the new thread channel
+    using ThreadCallback = std::function<void(const Core::Result<Channel> &)>;
+    void createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,
+                                 ThreadCallback callback);
     void joinThread(Snowflake threadId);
     void leaveThread(Snowflake threadId);
 

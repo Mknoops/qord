@@ -33,6 +33,7 @@
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
 #include "UI/Qord/UserPanel.hpp"
+#include "UI/Qord/Toast.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -290,6 +291,14 @@ void MainWindow::setupQordFeatures()
 #endif
     });
 #endif
+    // Toasts, for plugins (Vencord's showToast) and the client: over the
+    // window in front, so one opened from a dialog shows on the dialog
+    Qord::Plugins::QtUiService::toastShower() = [this](const QString &text, Qord::Plugins::UiService::ToastType type) {
+        QWidget *active = QApplication::activeWindow();
+        Toast::show(active ? active : this, text, Toast::Type(int(type)));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
+
     // Threads from messages
     connect(chatView, &ChatView::createThreadRequested, this, &MainWindow::createThreadFromMessage);
     connect(chatView, &ChatView::openThreadRequested, this, &MainWindow::navigateToChannel);

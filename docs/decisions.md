@@ -111,6 +111,10 @@ and why, so it can be revisited deliberately.
 
 69. **Threads from messages.** "Create Thread" in a message's menu (text and announcement channels, with Create Public Threads) asks for a name, prefilled with the message's text (mentions dropped, custom emojis as `:name:`, at most 100 characters, as in Discord), and posts `/channels/{channel}/messages/{message}/threads` with a one-day auto-archive. The new thread opens once THREAD_CREATE has added it (it can come before or after the reply). A message that has a thread offers "Open Thread" instead, and its link shows the thread's name and message count when the message carries its `thread` object (otherwise "View Thread", as before). Checked against the mock (which now implements the endpoint, THREAD_CREATE and the MESSAGE_UPDATE that follows), not against Discord.
 
+70. **Discord's system account.** Discord's own account (`system: true`, or its fixed id 643945264868098049, since cached users may lack the flag) shows "✓ SYSTEM" where bots show APP, in messages and the profile popup. Its DM takes no replies: the message box is disabled with Discord's "This thread is reserved for official Discord notifications." Checked against the mock, which now has such a DM.
+
+71. **Toasts.** Plugins get Vencord's `showToast` as `UiService::showToast(text, Message|Success|Failure)`, available to every plugin (it only shows text over the window, like a dialog); text dialogs can name the toast their Copy buttons show. The toast is a dark pill above the message box with Discord's green check or red cross, over whichever window is in front, replaced by the next one and faded out after about three seconds. ViewRaw now toasts as upstream does ("Copied to clipboard!", "Content copied to clipboard!", "Message data copied to clipboard!"); the copy-user plugins don't, because upstream copies silently there. Seen in the mock client.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

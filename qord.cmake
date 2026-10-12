@@ -28,6 +28,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Core/Markdown/QordRules.cpp
     src/UI/Qord/UserPanel.hpp
     src/UI/Qord/UserPanel.cpp
+    src/UI/Qord/Toast.hpp
+    src/UI/Qord/Toast.cpp
     src/UI/Qord/MessageListPopup.hpp
     src/UI/Qord/MessageListPopup.cpp
     src/UI/Qord/MainWindowQord.cpp

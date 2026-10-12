@@ -26,8 +26,12 @@ QList<MenuItem> ViewRawPlugin::messageContextMenuItems(const MessageContext &mes
 void ViewRawPlugin::onMessageContextMenuAction(const QString &id, const MessageContext &message)
 {
     if (id == CopyItem) {
-        if (ClipboardService *clipboard = context->clipboard())
+        if (ClipboardService *clipboard = context->clipboard()) {
             clipboard->setText(message.content);
+            // upstream: copyWithToast(msg.content)
+            if (UiService *ui = context->ui())
+                ui->showToast(QStringLiteral("Copied to clipboard!"), UiService::ToastType::Success);
+        }
         return;
     }
     if (id != ViewItem)
@@ -37,8 +41,10 @@ void ViewRawPlugin::onMessageContextMenuAction(const QString &id, const MessageC
         return;
     QList<UiService::TextSection> sections;
     if (!message.content.isEmpty())
-        sections.append({ QStringLiteral("Message Content"), message.content, true });
-    sections.append({ QStringLiteral("Message Data"), message.rawJson, true });
+        sections.append({ QStringLiteral("Message Content"), message.content, true,
+                          QStringLiteral("Content copied to clipboard!") });
+    sections.append({ QStringLiteral("Message Data"), message.rawJson, true,
+                      QStringLiteral("Message data copied to clipboard!") });
     ui->showTextDialog(QStringLiteral("Raw Message Data"), sections);
 }
 

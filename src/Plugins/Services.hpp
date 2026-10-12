@@ -63,17 +63,26 @@ public:
 class UiService
 {
 public:
+    // Discord's toasts (Vencord's showToast / Toasts.Type)
+    enum class ToastType { Message, Success, Failure };
     struct TextSection
     {
         QString title;
         QString text;
         bool monospace = false;
+        QString copiedToast; // shown (as a success toast) when Copy is used
     };
     virtual ~UiService() = default;
     // A read-only dialog with copyable sections.
     virtual void showTextDialog(const QString &title, const QList<TextSection> &sections) = 0;
     // Needs the open_links permission (PluginContext enforces it).
     virtual void openUrl(const QUrl &url) = 0;
+    // A short message at the bottom of the window that goes away by itself
+    virtual void showToast(const QString &text, ToastType type = ToastType::Message)
+    {
+        Q_UNUSED(text);
+        Q_UNUSED(type);
+    }
     // Inserts text at the cursor in the message box.
     virtual void insertIntoMessageBox(const QString &text) { Q_UNUSED(text); }
     // Discord's timestamp picker: date, time and format, with a preview.

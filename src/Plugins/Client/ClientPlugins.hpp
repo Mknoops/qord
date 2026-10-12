@@ -84,6 +84,9 @@ public:
     void showTextDialog(const QString &title, const QList<TextSection> &sections) override;
     void openUrl(const QUrl &url) override;
     void insertIntoMessageBox(const QString &text) override;
+    void showToast(const QString &text, ToastType type) override;
+    // Set by the main window
+    static std::function<void(const QString &, ToastType)> &toastShower();
     void pickTimestamp(std::function<void(const QString &)> done) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &)> &messageBoxInserter();

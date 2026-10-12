@@ -99,6 +99,7 @@ const HookInfo hookTable[] = {
     { Hook::AttachmentButtons, "attachmentButtons", Permission::AddUiElements },
     { Hook::ChannelTyping, "channelTyping", Permission::AddUiElements },
     { Hook::UnknownMentions, "unknownMentions", Permission::FetchUsers },
+    { Hook::KeyboardShortcuts, "keyboardShortcuts", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

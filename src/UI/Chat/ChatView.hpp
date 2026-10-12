@@ -86,6 +86,8 @@ public:
     // Qord: the selected text (MessageClickActions' quotes), and editing a message by id
     QString selectedChatText() const;
     bool startEditingMessage(Core::Snowflake messageId);
+    [[nodiscard]] Core::Snowflake editingMessageId() const { return currentEditingMessageId; }
+    void stopEditingMessage() { cancelInlineEdit(); }
 
     ChatCursor selectionStart() const;
     ChatCursor selectionEnd() const;

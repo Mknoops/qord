@@ -116,6 +116,8 @@ public:
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
     void dispatchUserMentionHovered(const MentionContext &mention);
+    // True when a plugin used the key (later plugins don't see it)
+    [[nodiscard]] bool dispatchShortcut(const ShortcutContext &shortcut);
     // The first plugin with an indicator wins
     [[nodiscard]] std::optional<TypingIndicator> dispatchChannelTypingIndicator(const ChannelTypingContext &channel);
     [[nodiscard]] QList<PluginButton> dispatchAttachmentButtons(const AttachmentContext &attachment);

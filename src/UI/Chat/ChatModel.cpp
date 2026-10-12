@@ -297,6 +297,26 @@ void ChatModel::loadTextPreview(Snowflake messageId, AttachmentData &data) const
             data.textButtons.append({ entry.pluginId, entry.button.id, entry.button.tooltip, entry.button.svg });
 }
 
+QList<Qord::Plugins::ChatMessageInfo> ChatModel::messageInfos() const
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const bool annotations = host && host->hasHook(Qord::Plugins::Hook::MessageHistory);
+    QList<Qord::Plugins::ChatMessageInfo> out;
+    for (const Discord::Message &msg : messages) {
+        Qord::Plugins::ChatMessageInfo info;
+        info.id = quint64(msg.id.get());
+        info.authorId = msg.author.hasValue() ? quint64(msg.author->id.get()) : 0;
+        info.type = msg.type.hasValue() ? int(msg.type.get()) : 0;
+        info.flags = msg.flags.hasValue() ? quint64(msg.flags.get().toInt()) : 0;
+        if (annotations)
+            if (const auto annotation = host->dispatchAnnotateMessage(Qord::Plugins::toMessageContext(
+                        msg, quint64(currentAccountId), Qord::Plugins::pluginId(currentGuildId))))
+                info.deleted = annotation->deleted;
+        out.append(info);
+    }
+    return out;
+}
+
 Qord::Plugins::AttachmentContext ChatModel::attachmentContext(Snowflake messageId, const AttachmentData &attachment) const
 {
     Qord::Plugins::AttachmentContext context;

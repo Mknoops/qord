@@ -215,6 +215,13 @@ public:
         return std::nullopt;
     }
 
+    // Hook::KeyboardShortcuts: return true when the key was used
+    virtual bool onShortcut(const ShortcutContext &shortcut)
+    {
+        Q_UNUSED(shortcut);
+        return false;
+    }
+
     // Hook::UnknownMentions: the mouse entered a user mention
     virtual void onUserMentionHovered(const MentionContext &mention) { Q_UNUSED(mention); }
 

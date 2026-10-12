@@ -112,6 +112,7 @@ HOOK_DISPATCH = {
     "attachmentButtons": "dispatchAttachmentButtons(",
     "channelTyping": "dispatchChannelTypingIndicator(",
     "unknownMentions": "dispatchUserMentionHovered(",
+    "keyboardShortcuts": "dispatchShortcut(",
 }
 
 MANIFEST_REQUIRED = {

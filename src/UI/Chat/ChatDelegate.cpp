@@ -1,4 +1,5 @@
 #include "ChatDelegate.hpp"
+#include "Core/RoleColors.hpp"
 
 #include <QLocale>
 #include <QPainterPath>
@@ -61,8 +62,17 @@ static QColor bodyTextColor(const QStyleOptionViewItem &option, const QModelInde
         color.setAlpha(140);
         return color;
     }
-    return (option.state & QStyle::State_Selected) ? option.palette.highlightedText().color()
-                                                   : option.palette.text().color();
+    const QColor text = (option.state & QStyle::State_Selected) ? option.palette.highlightedText().color()
+                                                                 : option.palette.text().color();
+    // Qord: RoleColorEverywhere tints the text with the author's role color
+    // (not for failed sends, which would no longer stand out)
+    const auto &roleColors = Core::roleColorOptions();
+    if (roleColors.messages && roleColors.messageSaturation > 0) {
+        const QColor author = index.data(ChatModel::UsernameColorRole).value<QColor>();
+        if (author.isValid())
+            return Core::mixOklab(author, roleColors.messageSaturation, text);
+    }
+    return text;
 }
 
 static void applyTextSelection(QAbstractTextDocumentLayout::PaintContext &paintCtx, const ChatView *view,

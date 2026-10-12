@@ -47,6 +47,9 @@ public:
     // Qord: whether a voice participant has their camera on: a camera icon
     using CameraProvider = std::function<bool(quint64 accountId, quint64 userId)>;
     static void setCameraProvider(CameraProvider provider);
+    // Qord: a voice participant's role color (RoleColorEverywhere)
+    using NameColorProvider = std::function<QColor(quint64 accountId, quint64 guildId, quint64 userId)>;
+    static void setNameColorProvider(NameColorProvider provider);
     bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
                    const QModelIndex &index) override;
 

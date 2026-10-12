@@ -212,6 +212,7 @@ public:
     void setRelativeTimeRoundsDown(bool floor) override;
     void setMobileIndicatorForAnyStatus(bool any) override;
     void setForceOwnerCrown(bool force) override;
+    void setRoleColors(const RoleColors &colors) override;
     PluginHost *host = nullptr;
 };
 

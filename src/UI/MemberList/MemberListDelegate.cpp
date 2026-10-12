@@ -1,4 +1,5 @@
 #include "MemberListDelegate.hpp"
+#include "Core/RoleColors.hpp"
 
 #include <QAbstractItemView>
 #include <QHelpEvent>
@@ -104,7 +105,11 @@ void MemberListDelegate::paintGroup(QPainter *painter, const QStyleOptionViewIte
     font.setLetterSpacing(QFont::AbsoluteSpacing, 0.3);
     painter->setFont(font);
 
-    painter->setPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
+    // Qord: RoleColorEverywhere shows a role header in the role's color
+    const QColor roleColor = index.data(MemberListModel::GroupColorRole).value<QColor>();
+    painter->setPen(Core::roleColorOptions().memberListHeaders && roleColor.isValid() && roleColor != QColor(Qt::black)
+                            ? roleColor
+                            : Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
 
     QRect textRect = option.rect.adjusted(HorizontalPadding, 0, -HorizontalPadding, 0);
     textRect.setTop(textRect.top() + 6);

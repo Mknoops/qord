@@ -169,6 +169,7 @@ inventory). All are off by default.
 | **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
 | **ReverseImageSearch** | "Search Image" in image context menus | add_ui_elements, open_links |
+| **RoleColorEverywhere** | Role colors in mentions, member list headers, voice users and (optionally) message text | modify_displayed_messages |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
 | **ServerInfo** | A server's details, and your friends, mutual users, blocked and ignored users in it | add_ui_elements, read_server_permissions, read_relationships |
 | **ShowHiddenChannels** | Shows channels you can't see, with a lock screen listing their settings and who can see them | show_hidden_channels, read_server_permissions, add_ui_elements |
@@ -187,8 +188,8 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** PinDMs, RoleColorEverywhere, ImageZoom, FavoriteEmojiFirst, MutualGroupDMs,
-BetterFolders, VolumeBooster.
+**Up next:** PinDMs, ImageZoom, FavoriteEmojiFirst, MutualGroupDMs, BetterFolders,
+VolumeBooster.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

@@ -291,6 +291,13 @@ void MainWindow::setupQordFeatures()
         ChannelDelegate::setCameraProvider(nullptr);
     });
 #endif
+    // RoleColorEverywhere: voice participants in their role color
+    ChannelDelegate::setNameColorProvider([this](quint64 accountId, quint64 guildId, quint64 userId) {
+        if (!currentInstance || quint64(currentInstance->accountId()) != accountId)
+            return QColor();
+        return resolveRoleColor(Snowflake(userId), Snowflake(guildId));
+    });
+    connect(this, &QObject::destroyed, []() { ChannelDelegate::setNameColorProvider(nullptr); });
 #ifndef ACHERON_NO_VOICE
     // As in Discord: clicking a voice channel joins it, clicking someone who
     // is live opens their stream

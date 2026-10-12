@@ -265,6 +265,9 @@ public:
     void setRelativeTimeRoundsDown(bool floor) override { roundsDown = floor; }
     void setMobileIndicatorForAnyStatus(bool any) override { mobileAnyStatus = any; }
     void setForceOwnerCrown(bool force) override { ownerCrown = force; }
+    void setRoleColors(const RoleColors &colors) override { roleColors = colors; ++roleColorUpdates; }
+    RoleColors roleColors;
+    int roleColorUpdates = 0;
     bool roundsDown = false;
     bool ownerCrown = false;
     bool mobileAnyStatus = false;

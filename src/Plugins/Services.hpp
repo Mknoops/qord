@@ -212,6 +212,9 @@ public:
     virtual void setMobileIndicatorForAnyStatus(bool any) { Q_UNUSED(any); }
     // The member list shows the server owner's crown even in large servers
     virtual void setForceOwnerCrown(bool force) { Q_UNUSED(force); }
+    // Role colors in mentions, member list headers, voice users and message
+    // text (all off by default)
+    virtual void setRoleColors(const RoleColors &colors) { Q_UNUSED(colors); }
 };
 
 class ReadStateService

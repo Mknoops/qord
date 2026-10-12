@@ -701,6 +701,16 @@ struct DiffPart
     bool operator==(const DiffPart &o) const { return kind == o.kind && text == o.text; }
 };
 
+// Where RoleColorEverywhere shows role colors.
+struct RoleColors
+{
+    bool mentions = false;
+    bool memberListHeaders = false;
+    bool voiceUsers = false;
+    bool messages = false;
+    int messageSaturation = 30; // percent
+};
+
 // Shown under a message's text (Translate's translation).
 struct MessageAccessory
 {

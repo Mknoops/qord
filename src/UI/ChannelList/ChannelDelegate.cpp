@@ -17,11 +17,21 @@ ChannelDelegate::VoiceLabelProvider &voiceLabelProvider()
     static ChannelDelegate::VoiceLabelProvider provider;
     return provider;
 }
+ChannelDelegate::LiveProvider &liveProvider()
+{
+    static ChannelDelegate::LiveProvider provider;
+    return provider;
+}
 } // namespace
 
 void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
 {
     voiceLabelProvider() = std::move(provider);
+}
+
+void ChannelDelegate::setLiveProvider(LiveProvider provider)
+{
+    liveProvider() = std::move(provider);
 }
 
 bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
@@ -481,6 +491,32 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         constexpr int statusIconSize = 14;
         int iconCount = (muted ? 1 : 0) + (deafened ? 1 : 0);
         int rightReserve = iconCount > 0 ? (iconCount * (statusIconSize + 4) + 4) : 4;
+        // Qord: Go Live
+        bool live = false;
+        if (liveProvider()) {
+            const ChannelNode *account = node;
+            while (account && account->type != ChannelNode::Type::Account)
+                account = account->parent;
+            live = account && liveProvider()(quint64(account->id), quint64(node->id));
+        }
+        constexpr int liveWidth = 30;
+        if (live) {
+            const QRect liveRect(contentOpt.rect.right() - rightReserve - liveWidth + 2,
+                                 contentOpt.rect.center().y() - 7, liveWidth - 4, 14);
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(0xED, 0x42, 0x45));
+            painter->drawRoundedRect(liveRect, 7, 7);
+            QFont liveFont = painter->font();
+            liveFont.setPixelSize(9);
+            liveFont.setBold(true);
+            painter->setFont(liveFont);
+            painter->setPen(Qt::white);
+            painter->drawText(liveRect, Qt::AlignCenter, QStringLiteral("LIVE"));
+            painter->restore();
+            rightReserve += liveWidth;
+        }
 
         // Qord: plugin label (CallTimer)
         std::optional<VoiceLabel> voiceLabel;

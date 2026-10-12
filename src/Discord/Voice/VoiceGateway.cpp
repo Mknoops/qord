@@ -76,8 +76,54 @@ void VoiceGateway::sendSelectProtocol(const QString &address, int port, const QS
     data.port = port;
     data.mode = mode;
     data.codecs = { opus };
+    if (!videoStreamType.isEmpty()) {
+        // Qord: H.264 video, as Discord's clients offer it
+        Codec h264;
+        h264.name = "H264";
+        h264.payloadType = 101;
+        h264.priority = 1000;
+        h264.type = "video";
+        h264.rtxPayloadType = 102;
+        h264.encode = true;
+        h264.decode = true;
+        data.codecs = { opus, h264 };
+    }
 
     sendPayload(VoiceOpCode::SELECT_PROTOCOL, data.toJson());
+}
+
+void VoiceGateway::sendVideo(quint32 audioSsrc, quint32 videoSsrc, quint32 rtxSsrc, bool active, int width,
+                             int height, int fps, int maxBitrate)
+{
+    Core::OrderedJson resolution;
+    resolution.insert("type", QStringLiteral("fixed"));
+    resolution.insert("width", width);
+    resolution.insert("height", height);
+
+    Core::OrderedJson stream;
+    stream.insert("type", QStringLiteral("video"));
+    stream.insert("rid", QStringLiteral("100"));
+    stream.insert("ssrc", static_cast<qint64>(videoSsrc));
+    stream.insert("active", active);
+    stream.insert("quality", 100);
+    stream.insert("rtx_ssrc", static_cast<qint64>(rtxSsrc));
+    stream.insert("max_bitrate", maxBitrate);
+    stream.insert("max_framerate", fps);
+    stream.insert("max_resolution", resolution);
+
+    Core::OrderedJson d;
+    d.insert("audio_ssrc", static_cast<qint64>(audioSsrc));
+    d.insert("video_ssrc", static_cast<qint64>(active ? videoSsrc : 0));
+    d.insert("rtx_ssrc", static_cast<qint64>(active ? rtxSsrc : 0));
+    d.insert("streams", Core::OrderedJson::Array().append(stream));
+    sendPayload(VoiceOpCode::VIDEO, d);
+}
+
+void VoiceGateway::sendMediaSinkWants(int quality)
+{
+    Core::OrderedJson d;
+    d.insert("any", quality);
+    sendPayload(VoiceOpCode::MEDIA_SINK_WANTS, d);
 }
 
 void VoiceGateway::sendSpeaking(int flags, int delay, quint32 ssrc)
@@ -177,6 +223,9 @@ void VoiceGateway::onPayloadReceived(const QJsonObject &root)
         break;
     case VoiceOpCode::DAVE_PROTOCOL_PREPARE_EPOCH:
         handleDavePrepareEpoch(d.toObject());
+        break;
+    case VoiceOpCode::VIDEO:
+        emit videoReceived(d.toObject()); // Qord
         break;
     default:
         qCDebug(LogVoice) << "Unhandled voice opcode:" << op;
@@ -301,7 +350,17 @@ void VoiceGateway::identify()
     id.userId = userId;
     id.sessionId = sessionId;
     id.token = token;
-    sendPayload(VoiceOpCode::IDENTIFY, id.toJson());
+    Core::OrderedJson identify = id.toJson();
+    if (!videoStreamType.isEmpty()) {
+        // Qord: ask for a video stream (its SSRCs come back in Ready)
+        Core::OrderedJson stream;
+        stream.insert("type", videoStreamType);
+        stream.insert("rid", QStringLiteral("100"));
+        stream.insert("quality", 100);
+        identify.insert("video", true);
+        identify.insert("streams", Core::OrderedJson::Array().append(stream));
+    }
+    sendPayload(VoiceOpCode::IDENTIFY, identify);
 }
 
 void VoiceGateway::resume()
@@ -342,6 +401,9 @@ void VoiceGateway::networkLoop()
         QString connectUrl = QStringLiteral("wss://%1/?v=%2")
                                      .arg(endpoint)
                                      .arg(VOICE_GATEWAY_VERSION);
+        // Qord: the local mock server's voice gateway is plain ws://
+        if (endpoint.startsWith(QLatin1String("ws://")))
+            connectUrl = QStringLiteral("%1/?v=%2").arg(endpoint).arg(VOICE_GATEWAY_VERSION);
 
         curl = curl_easy_init();
         if (!curl) {

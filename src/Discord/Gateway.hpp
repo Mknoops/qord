@@ -49,6 +49,8 @@ public:
     void requestForumUnreads(Core::Snowflake guildId, Core::Snowflake forumId,
                              const QList<QPair<Core::Snowflake, Core::Snowflake>> &threads);
     void sendVoiceStateUpdate(Core::Snowflake guildId, Core::Snowflake channelId, bool selfMute, bool selfDeaf);
+    // Qord: any opcode (Go Live's STREAM_CREATE/DELETE/WATCH/SET_PAUSED)
+    void sendOp(int op, const Core::OrderedJson &d);
     // Qord: op 3, with an optional custom-status activity
     void sendPresenceUpdate(const QString &status, const QJsonArray &activities);
 
@@ -110,6 +112,8 @@ signals:
     void gatewayGuildMemberListUpdate(const GuildMemberListUpdate &data);
     void gatewayVoiceStateUpdate(const VoiceState &data);
     void gatewayVoiceServerUpdate(const VoiceServerUpdate &data);
+    // Qord: STREAM_CREATE, STREAM_SERVER_UPDATE, STREAM_UPDATE, STREAM_DELETE
+    void gatewayStreamEvent(const QString &type, const QJsonObject &data);
     void gatewayRelationshipAdd(const Relationship &data);
     void gatewayRelationshipUpdate(const RelationshipPartial &data);
     void gatewayRelationshipRemove(const RelationshipPartial &data);

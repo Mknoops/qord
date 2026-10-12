@@ -165,8 +165,10 @@ void UserPanel::setInstance(Core::ClientInstance *newInstance)
                     refreshAvatar();
                 }));
 #ifndef ACHERON_NO_VOICE
+        // Joining already sends mute/deafen; re-sending here would answer every
+        // voice state Discord echoes with another one
         instanceConnections.append(connect(instance, &Core::ClientInstance::voiceStateChanged, this,
-                                           [this](Core::Snowflake, Core::Snowflake) { applyVoiceFlags(); }));
+                                           [this](Core::Snowflake, Core::Snowflake) { applyLocalVoiceFlags(); }));
 #endif
     }
     refresh();
@@ -239,6 +241,15 @@ void UserPanel::applyVoiceFlags()
         return;
     instance->discord()->sendVoiceStateUpdate(instance->voiceGuildId(), instance->voiceChannelId(), selfMute(),
                                               selfDeaf());
+#endif
+    applyLocalVoiceFlags();
+}
+
+void UserPanel::applyLocalVoiceFlags()
+{
+#ifndef ACHERON_NO_VOICE
+    if (!instance || !instance->isInVoice())
+        return;
     instance->voice()->setInputGain(selfMute() ? 0.0f : 1.0f);
     instance->voice()->setOutputVolume(selfDeaf() ? 0.0f : 1.0f);
 #endif

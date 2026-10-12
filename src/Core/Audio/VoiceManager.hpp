@@ -52,6 +52,9 @@ public:
     [[nodiscard]] Discord::Voice::VoiceClient::State clientState() const;
     [[nodiscard]] Snowflake currentChannelId() const { return channelId; }
     [[nodiscard]] Snowflake currentGuildId() const { return guildId; }
+    // Qord: for Go Live's stream connections
+    [[nodiscard]] const QString &sessionId() const { return voiceSessionId; }
+    [[nodiscard]] const ProxyConfig &proxyConfig() const { return proxy; }
 
     void setInputGain(float gain);
     void setOutputVolume(float volume);

@@ -38,6 +38,16 @@ public:
     void sendDaveReadyForTransition(int transitionId);
     void sendDaveInvalidCommitWelcome(int transitionId);
 
+    // Qord: video. `streamType` ("screen" for Go Live, "video" for cameras)
+    // asks for video streams in Identify; set before start().
+    void setVideoStreamType(const QString &streamType) { videoStreamType = streamType; }
+    [[nodiscard]] const QString &streamType() const { return videoStreamType; }
+    // Op 12: our video stream, active with its limits or inactive
+    void sendVideo(quint32 audioSsrc, quint32 videoSsrc, quint32 rtxSsrc, bool active, int width, int height,
+                   int fps, int maxBitrate);
+    // Op 15: which video to receive (quality 0-100 for any stream)
+    void sendMediaSinkWants(int quality);
+
     [[nodiscard]] uint64_t currentGeneration() const { return generation.load(); }
 
 signals:
@@ -61,6 +71,9 @@ signals:
     void daveTransitionExecute(int transitionId);
     void daveEpochPrepare(int protocolVersion, int epoch);
 
+    // Qord: op 12 from the server, another user's video streams
+    void videoReceived(const QJsonObject &data);
+
 private:
     void sendPayload(VoiceOpCode op, const Core::OrderedJson &d);
     void sendPayload(const QByteArray &data);
@@ -78,6 +91,8 @@ private:
     void handleDavePrepareTransition(const QJsonObject &data);
     void handleDaveExecuteTransition(const QJsonObject &data);
     void handleDavePrepareEpoch(const QJsonObject &data);
+
+    QString videoStreamType; // Qord
 
     void identify();
     void resume();

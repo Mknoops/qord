@@ -2794,6 +2794,7 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         menu.addAction(headerAction);
         menu.addSeparator();
     }
+    addGoLiveItems(&menu, instance, userId); // Qord: Watch Stream
 
     QAction *profileAction = menu.addAction(tr("Profile"));
     connect(profileAction, &QAction::triggered, this, [this, instanceGuard, userId, guildId]() {

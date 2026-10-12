@@ -22,15 +22,21 @@ namespace {
 
 const QByteArray PngSignature("\x89PNG\r\n\x1a\n", 8);
 
+// Raw bytes: QByteArray's operator[] is ambiguous with 64-bit indexes on Qt 5
+quint8 byteAt(const QByteArray &b, qsizetype off)
+{
+    return reinterpret_cast<const quint8 *>(b.constData())[off];
+}
+
 quint32 readDWord(const QByteArray &b, qsizetype off)
 {
-    return (quint32(quint8(b[off])) << 24) | (quint32(quint8(b[off + 1])) << 16) |
-           (quint32(quint8(b[off + 2])) << 8) | quint32(quint8(b[off + 3]));
+    return (quint32(byteAt(b, off)) << 24) | (quint32(byteAt(b, off + 1)) << 16) | (quint32(byteAt(b, off + 2)) << 8) |
+           quint32(byteAt(b, off + 3));
 }
 
 quint16 readWord(const QByteArray &b, qsizetype off)
 {
-    return quint16((quint8(b[off]) << 8) | quint8(b[off + 1]));
+    return quint16((byteAt(b, off) << 8) | byteAt(b, off + 1));
 }
 
 void appendDWord(QByteArray &out, quint32 v)
@@ -171,9 +177,9 @@ QByteArray lzw(const QByteArray &indices, int minCodeSize)
     if (indices.isEmpty()) {
         write(clearCode + 1, codeSize);
     } else {
-        int current = quint8(indices[0]);
+        int current = byteAt(indices, 0);
         for (qsizetype i = 1; i < indices.size(); ++i) {
-            const int next = quint8(indices[i]);
+            const int next = byteAt(indices, i);
             const quint32 key = (quint32(current) << 8) | quint32(next);
             const auto found = dictionary.constFind(key);
             if (found != dictionary.constEnd()) {
@@ -267,8 +273,8 @@ Animation parse(const QByteArray &png)
             f.frame.delayMs = 1000.0 * delayN / delayD;
             if (f.frame.delayMs <= 10)
                 f.frame.delayMs = 100;
-            f.frame.disposeOp = quint8(png[data + 24]);
-            f.frame.blendOp = quint8(png[data + 25]);
+            f.frame.disposeOp = byteAt(png, data + 24);
+            f.frame.blendOp = byteAt(png, data + 25);
             raw.append(f);
         } else if (c.type == "fdAT") {
             if (!raw.isEmpty() && c.length >= 4)

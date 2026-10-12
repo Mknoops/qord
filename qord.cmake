@@ -50,8 +50,27 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Qord/EmojiPickerData.cpp
     src/Qord/SlashCommands.hpp
     src/Qord/SlashCommands.cpp
+    src/Qord/Video/H264Rtp.hpp
+    src/Qord/Video/H264Rtp.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
+# Video (Go Live, cameras) needs ffmpeg's H.264 encoders and decoder, and voice
+if(TARGET ffmpeg AND ENABLE_VOICE)
+    target_sources(${PROJECT_NAME} PRIVATE
+        src/Qord/Video/VideoCodec.hpp
+        src/Qord/Video/VideoCodec.cpp
+        src/Qord/Video/ScreenCapture.hpp
+        src/Qord/Video/ScreenCapture.cpp
+        src/Qord/Video/GoLive.hpp
+        src/Qord/Video/GoLive.cpp
+        src/UI/Qord/GoLiveUi.hpp
+        src/UI/Qord/GoLiveUi.cpp)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_HAVE_GO_LIVE)
+    if(WIN32)
+        target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp)
+        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp)
+    endif()
+endif()
 
 if(BUILD_TESTS)
     # ImageManager builds requests through Core::networkRequest, which honours mock mode
@@ -82,5 +101,20 @@ if(BUILD_TESTS)
         target_compile_options(TestSlashCommands PRIVATE /utf-8)
     endif()
     add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
+
+    qt_add_executable(TestH264Rtp tests/qord/tst_h264_rtp.cpp src/Qord/Video/H264Rtp.cpp)
+    target_link_libraries(TestH264Rtp PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestH264Rtp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestH264Rtp PROPERTIES AUTOMOC ON)
+    add_test(NAME QordH264RtpTests COMMAND TestH264Rtp)
+
+    if(TARGET ffmpeg)
+        qt_add_executable(TestVideoCodec tests/qord/tst_video_codec.cpp src/Qord/Video/VideoCodec.cpp
+            src/Qord/Video/H264Rtp.cpp)
+        target_link_libraries(TestVideoCodec PRIVATE Qt::Core Qt::Gui Qt::Test ffmpeg)
+        target_include_directories(TestVideoCodec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        set_target_properties(TestVideoCodec PROPERTIES AUTOMOC ON)
+        add_test(NAME QordVideoCodecTests COMMAND TestVideoCodec)
+    endif()
     add_subdirectory(tests/plugins)
 endif()

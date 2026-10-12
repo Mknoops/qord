@@ -32,6 +32,7 @@ struct VoiceReady : Core::JsonUtils::JsonObject
     Field<QString> ip;
     Field<int> port;
     Field<QStringList> modes;
+    QJsonArray streams; // Qord: video streams (ssrc, rtx_ssrc, rid, ...) when video was asked for
 
     static VoiceReady fromJson(const QJsonObject &obj)
     {
@@ -40,6 +41,7 @@ struct VoiceReady : Core::JsonUtils::JsonObject
         get(obj, "ip", ready.ip);
         get(obj, "port", ready.port);
         get(obj, "modes", ready.modes);
+        ready.streams = obj.value(QStringLiteral("streams")).toArray();
         return ready;
     }
 };

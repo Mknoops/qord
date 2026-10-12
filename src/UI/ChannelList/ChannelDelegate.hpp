@@ -33,6 +33,9 @@ public:
     using VoiceLabelProvider = std::function<std::optional<VoiceLabel>(
             quint64 accountId, quint64 guildId, quint64 channelId, quint64 userId)>;
     static void setVoiceLabelProvider(VoiceLabelProvider provider);
+    // Qord: whether a voice participant is streaming (Go Live): a red LIVE badge
+    using LiveProvider = std::function<bool(quint64 accountId, quint64 userId)>;
+    static void setLiveProvider(LiveProvider provider);
     bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
                    const QModelIndex &index) override;
 

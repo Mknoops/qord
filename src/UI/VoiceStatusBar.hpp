@@ -46,6 +46,8 @@ public:
     void updateConnectionState();
     // Qord: text after the channel name (CallTimer's connection timer)
     void setExtraText(const QString &text);
+    // Qord: a button before the disconnect button (Go Live)
+    void insertActionButton(QWidget *button);
 
 signals:
     void disconnectRequested();

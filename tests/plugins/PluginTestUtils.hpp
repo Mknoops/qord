@@ -202,6 +202,25 @@ public:
     QList<Id> markedAccounts;
 };
 
+class FakeReactions : public ReactionService
+{
+public:
+    void fetchReactionUsers(Id, Id, Id messageId, const QString &emojiKey, int type, Callback done) override
+    {
+        fetches.append({ messageId, emojiKey, type, std::move(done) });
+    }
+    void reactionUsersChanged(Id, Id, Id messageId) override { changed.append(messageId); }
+    struct Fetch
+    {
+        Id messageId;
+        QString emojiKey;
+        int type;
+        Callback done;
+    };
+    QList<Fetch> fetches;
+    QList<Id> changed;
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -221,6 +240,7 @@ struct SinglePluginHost
         services.messageActions = &messageActions;
         services.displayOptions = &displayOptions;
         services.readStates = &readStates;
+        services.reactions = &reactions;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -250,6 +270,7 @@ struct SinglePluginHost
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;
+    FakeReactions reactions;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

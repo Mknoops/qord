@@ -158,6 +158,42 @@ private:
 };
 } // namespace
 
+namespace {
+class ScopedReactions : public ReactionService
+{
+public:
+    explicit ScopedReactions(ReactionService *inner) : inner(inner), alive(std::make_shared<bool>(true)) {}
+    ~ScopedReactions() override { *alive = false; }
+    void fetchReactionUsers(Id accountId, Id channelId, Id messageId, const QString &emojiKey, int type,
+                            Callback done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->fetchReactionUsers(accountId, channelId, messageId, emojiKey, type,
+                                  [weak, done = std::move(done)](bool ok, const QList<Id> &users) {
+                                      if (auto a = weak.lock(); a && *a)
+                                          done(ok, users);
+                                  });
+    }
+    void reactionUsersChanged(Id accountId, Id channelId, Id messageId) override
+    {
+        inner->reactionUsersChanged(accountId, channelId, messageId);
+    }
+
+private:
+    ReactionService *inner;
+    std::shared_ptr<bool> alive;
+};
+} // namespace
+
+ReactionService *PluginContext::reactions()
+{
+    if (!granted.testFlag(Permission::ReadReactions) || !services.reactions)
+        return nullptr;
+    if (!scopedReactions)
+        scopedReactions = std::make_unique<ScopedReactions>(services.reactions);
+    return scopedReactions.get();
+}
+
 UiService *PluginContext::ui()
 {
     if (!granted.testFlag(Permission::AddUiElements) || !services.ui)

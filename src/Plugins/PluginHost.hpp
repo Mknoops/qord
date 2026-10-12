@@ -142,6 +142,9 @@ public:
     [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
     void dispatchVoiceStateChanged(const VoiceStateChange &change);
     void dispatchChatMouseDown(qint64 timeMs);
+    // First plugin with users wins
+    [[nodiscard]] std::optional<QList<Id>> dispatchReactionUsers(const ReactionContext &reaction);
+    void dispatchReactionChanged(const ReactionChange &change);
     void dispatchMessageClicked(const MessageClickContext &click);
     // First plugin with a label/text wins.
     [[nodiscard]] std::optional<VoiceLabel> dispatchVoiceParticipantLabel(const VoiceParticipantContext &participant);

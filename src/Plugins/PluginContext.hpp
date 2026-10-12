@@ -52,6 +52,9 @@ public:
     [[nodiscard]] DisplayOptionsService *displayOptions() const;
     // Null without the mark_read permission.
     [[nodiscard]] ReadStateService *readStates() const;
+    // Null without the read_reactions permission. Replies arriving after the
+    // plugin stopped are dropped.
+    [[nodiscard]] ReactionService *reactions();
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -75,6 +78,7 @@ private:
     QString dataDir;
     std::unique_ptr<ScopedNetwork> scopedNetwork;
     std::unique_ptr<UiService> scopedUi;
+    std::unique_ptr<ReactionService> scopedReactions;
 };
 
 } // namespace Plugins

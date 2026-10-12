@@ -320,6 +320,34 @@ struct MessageClickContext
     QString selectedText;
 };
 
+// A reaction on a message, for showing who reacted.
+struct ReactionContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0;
+    Id messageId = 0;
+    QString emojiName;
+    Id emojiId = 0; // 0 for Unicode emoji
+    int type = 0; // 0 normal, 1 burst (super reaction)
+    int reactionsOnMessage = 0; // how many different reactions the message has
+    // Users the client hides (NoBlockedMessages' blocked/ignored users), if any
+    QList<Id> hiddenUsers;
+};
+
+// Someone added or removed a reaction (MESSAGE_REACTION_ADD/REMOVE).
+struct ReactionChange
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    Id messageId = 0;
+    QString emojiName;
+    Id emojiId = 0;
+    int type = 0;
+    Id userId = 0;
+    bool added = true;
+};
+
 // One part of a text diff (see TextDiff.hpp).
 struct DiffPart
 {

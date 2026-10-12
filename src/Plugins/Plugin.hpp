@@ -187,6 +187,15 @@ public:
         return false;
     }
 
+    // Hook::ReactionUsers: the users to show on a reaction (nullopt shows none),
+    // and live reaction changes
+    virtual std::optional<QList<Id>> reactionUsers(const ReactionContext &reaction)
+    {
+        Q_UNUSED(reaction);
+        return std::nullopt;
+    }
+    virtual void onReactionChanged(const ReactionChange &change) { Q_UNUSED(change); }
+
     // Hook::MessageClicks: every mouse press in the chat, then the click on a
     // message (with its click count and the keys held)
     virtual void onChatMouseDown(qint64 timeMs) { Q_UNUSED(timeMs); }

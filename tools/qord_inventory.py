@@ -75,6 +75,7 @@ PERMISSIONS = {
     "read_voice_states",
     "read_reactions",
     "read_expressions",
+    "read_server_permissions",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -104,6 +105,7 @@ HOOK_DISPATCH = {
     "voiceStates": "dispatchVoiceStateChanged(",
     "messageClicks": "dispatchMessageClicked(",
     "reactionUsers": "dispatchReactionUsers(",
+    "profileRoleButtons": "dispatchProfileRoleButtons(",
 }
 
 MANIFEST_REQUIRED = {

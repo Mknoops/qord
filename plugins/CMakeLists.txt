@@ -101,6 +101,9 @@ qord_add_plugin(messageclickactions chat SOURCES MessageClickActions.hpp Message
 qord_add_plugin(fakenitro chat SOURCES FakeNitro.hpp FakeNitro.cpp ApngToGif.hpp ApngToGif.cpp)
 target_link_libraries(qord_plugin_fakenitro PUBLIC Qt::Gui) # QImage/QPainter for animated stickers
 
+# Batch 8
+qord_add_plugin(permissionsviewer utility SOURCES PermissionsViewer.hpp PermissionsViewer.cpp)
+
 # --- Generated registration -------------------------------------------------
 set(_decls "")
 set(_calls "")

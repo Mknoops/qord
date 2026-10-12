@@ -215,6 +215,19 @@ public:
         return std::nullopt;
     }
 
+    // Hook::ProfileRoleButtons: small buttons next to "Roles" in a server
+    // member's profile (`user.guildId` is set)
+    virtual QList<ChatBarButton> profileRoleButtons(const UserContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+    virtual void onProfileRoleButtonClicked(const QString &id, const UserContext &user)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(user);
+    }
+
     // Hook::UserContextMenu
     virtual QList<MenuItem> userContextMenuItems(const UserContext &user)
     {

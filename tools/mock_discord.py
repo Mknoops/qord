@@ -170,7 +170,8 @@ ROLES = {
     G1: [
         role(G1, "@everyone", 0, 0, EVERYONE_PERMS),
         role("500000000000000001", "Admin", 0xE91E63, 3, 8, hoist=True),
-        role("500000000000000002", "Moderator", 0x3498DB, 2, EVERYONE_PERMS | (1 << 13), hoist=True),
+        dict(role("500000000000000002", "Moderator", 0x3498DB, 2, EVERYONE_PERMS | (1 << 13) | (1 << 1), hoist=True),
+             unicode_emoji="🛡️"),
         role("500000000000000003", "Bots", 0x9B59B6, 1, EVERYONE_PERMS, hoist=True),
     ],
     G2: [
@@ -182,7 +183,10 @@ ROLES = {
 GUILD_CHANNELS = {
     G1: [
         channel(CH["g1_info"], G1, 4, "Information", 0),
-        channel(CH["rules"], G1, 0, "rules", 0, CH["g1_info"], "Read these first."),
+        channel(CH["rules"], G1, 0, "rules", 0, CH["g1_info"], "Read these first.",
+                overwrites=[{"id": G1, "type": 0, "allow": "0", "deny": str(SEND)},
+                            {"id": "500000000000000002", "type": 0, "allow": str(SEND | (1 << 13)), "deny": "0"},
+                            {"id": U["ben"], "type": 1, "allow": str(1 << 6), "deny": "0"}]),
         channel(CH["announcements"], G1, 5, "announcements", 1, CH["g1_info"], "News about the project"),
         channel(CH["g1_text"], G1, 4, "Text Channels", 1),
         channel(CH["general"], G1, 0, "general", 0, CH["g1_text"],

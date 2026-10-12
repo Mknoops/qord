@@ -802,5 +802,26 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
 }
 
+QList<PluginHost::PluginButton> PluginHost::dispatchProfileRoleButtons(const UserContext &user)
+{
+    QList<PluginButton> out;
+    const auto &table = tables[hookIndex(Hook::ProfileRoleButtons)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::ProfileRoleButtons)][i];
+        guarded(id, "profileRoleButtons", [&] {
+            for (const auto &button : table[i]->profileRoleButtons(user))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchProfileRoleButtonClicked(const QString &pluginId, const QString &buttonId,
+                                                  const UserContext &user)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ProfileRoleButtons, pluginId))
+        guarded(pluginId, "onProfileRoleButtonClicked", [&] { plugin->onProfileRoleButtonClicked(buttonId, user); });
+}
+
 } // namespace Plugins
 } // namespace Qord

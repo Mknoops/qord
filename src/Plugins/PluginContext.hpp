@@ -57,6 +57,8 @@ public:
     [[nodiscard]] ReactionService *reactions();
     // Null without the read_expressions permission.
     [[nodiscard]] ExpressionService *expressions() const;
+    // Null without the read_server_permissions permission.
+    [[nodiscard]] GuildDirectory *guilds() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const

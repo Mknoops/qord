@@ -12,6 +12,7 @@
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
 #include "Core/Markdown/Parser.hpp"
+#include "Discord/CdnUrls.hpp"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -175,6 +176,30 @@ void QtUiService::showTextDialog(const QString &title, const QList<TextSection> 
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::close);
     layout->addWidget(buttons);
     dialog->show();
+}
+
+std::function<void(const PermissionsView &)> &QtUiService::permissionsShower()
+{
+    static std::function<void(const PermissionsView &)> shower;
+    return shower;
+}
+
+std::function<void(const MemberPermissionsView &)> &QtUiService::memberPermissionsShower()
+{
+    static std::function<void(const MemberPermissionsView &)> shower;
+    return shower;
+}
+
+void QtUiService::showPermissions(const PermissionsView &view)
+{
+    if (permissionsShower())
+        permissionsShower()(view);
+}
+
+void QtUiService::showMemberPermissions(const MemberPermissionsView &view)
+{
+    if (memberPermissionsShower())
+        memberPermissionsShower()(view);
 }
 
 void QtUiService::openUrl(const QUrl &url)
@@ -410,6 +435,111 @@ void SessionExpressions::setChatBypass(bool emojis, bool stickers)
     Acheron::Core::expressionBypass() = { emojis, stickers };
 }
 
+std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !guildId)
+        return std::nullopt;
+    const auto guild = instance->getGuild(Acheron::Core::Snowflake(guildId));
+    if (!guild)
+        return std::nullopt;
+    GuildInfo out;
+    out.id = guildId;
+    out.name = guild->name.get();
+    out.ownerId = guild->ownerId.hasValue() ? quint64(guild->ownerId.get()) : 0;
+    auto roles = instance->getRolesForGuild(Acheron::Core::Snowflake(guildId));
+    // Discord's order: highest position first, the older role first on ties
+    std::sort(roles.begin(), roles.end(), [](const Acheron::Discord::Role &a, const Acheron::Discord::Role &b) {
+        if (a.position.get() != b.position.get())
+            return a.position.get() > b.position.get();
+        return quint64(a.id.get()) < quint64(b.id.get());
+    });
+    for (const auto &role : roles) {
+        RoleInfo info;
+        info.id = quint64(role.id.get());
+        info.name = role.name.get();
+        info.color = role.hasColor() ? quint32(role.color.get()) : 0;
+        info.position = role.position.get();
+        info.permissions = role.permissions.get().toInt();
+        info.iconUrl = Acheron::Discord::Cdn::roleIcon(role.id.get(), role.icon.valueOr(), 32).toString();
+        info.unicodeEmoji = role.unicodeEmoji.valueOr();
+        out.roles.append(info);
+    }
+    return out;
+}
+
+std::optional<ChannelInfo> SessionGuilds::channel(Id accountId, Id channelId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !channelId)
+        return std::nullopt;
+    const auto channel = instance->getChannel(Acheron::Core::Snowflake(channelId));
+    if (!channel)
+        return std::nullopt;
+    ChannelInfo out;
+    out.id = channelId;
+    out.guildId = channel->guildId.hasValue() ? quint64(channel->guildId.get()) : 0;
+    out.name = channel->name.hasValue() ? channel->name.get() : QString();
+    if (channel->permissionOverwrites.hasValue()) {
+        for (const auto &overwrite : channel->permissionOverwrites.get()) {
+            PermissionOverwriteInfo info;
+            info.type = overwrite.type.get() == Acheron::Discord::PermissionOverwrite::Type::Member
+                                ? PermissionOverwriteInfo::Type::Member
+                                : PermissionOverwriteInfo::Type::Role;
+            info.id = quint64(overwrite.id.get());
+            info.allow = overwrite.allow.get().toInt();
+            info.deny = overwrite.deny.get().toInt();
+            out.overwrites.append(info);
+        }
+    }
+    return out;
+}
+
+std::optional<MemberInfo> SessionGuilds::member(Id accountId, Id guildId, Id userId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->users())
+        return std::nullopt;
+    const Acheron::Core::Snowflake user(userId);
+    const auto member = guildId ? instance->users()->getMember(Acheron::Core::Snowflake(guildId), user) : std::nullopt;
+    auto known = instance->users()->getUser(user);
+    if (!known && member && member->user.hasValue())
+        known = member->user.get();
+    if (!known)
+        return std::nullopt;
+    MemberInfo out;
+    out.userId = userId;
+    out.username = known->username.get();
+    out.globalName = known->globalName.valueOr();
+    out.avatarUrl = Acheron::Discord::Cdn::userAvatar(user, known->avatar.valueOr(), 64).toString();
+    if (member) {
+        out.isMember = true;
+        out.nick = member->nick.valueOr();
+        if (member->roles.hasValue())
+            for (const auto &role : member->roles.get())
+                out.roles.append(quint64(role));
+    }
+    return out;
+}
+
+void SessionGuilds::requestMembers(Id accountId, Id guildId, const QList<Id> &userIds)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !guildId || userIds.isEmpty())
+        return;
+    // Discord takes at most 100 user ids per request
+    QList<Acheron::Core::Snowflake> ids;
+    for (Id id : userIds) {
+        ids.append(Acheron::Core::Snowflake(id));
+        if (ids.size() == 100) {
+            instance->discord()->requestGuildMembers(Acheron::Core::Snowflake(guildId), ids, false);
+            ids.clear();
+        }
+    }
+    if (!ids.isEmpty())
+        instance->discord()->requestGuildMembers(Acheron::Core::Snowflake(guildId), ids, false);
+}
+
 void QtUiService::insertIntoMessageBox(const QString &text)
 {
     if (messageBoxInserter())
@@ -582,7 +712,7 @@ static QString pluginDataDirectory()
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session)
+      reactions(session), guilds(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -602,6 +732,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.readStates = &readStates;
     services.expressions = &expressions;
     services.reactions = &reactions;
+    services.guilds = &guilds;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

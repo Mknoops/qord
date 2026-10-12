@@ -115,6 +115,10 @@ public:
     void openUrl(const QUrl &url) override { opened.append(url); }
     void showToast(const QString &text, ToastType type) override { toasts.append({ text, type }); }
     QList<QPair<QString, ToastType>> toasts;
+    void showPermissions(const PermissionsView &view) override { permissionViews.append(view); }
+    void showMemberPermissions(const MemberPermissionsView &view) override { memberPermissionViews.append(view); }
+    QList<PermissionsView> permissionViews;
+    QList<MemberPermissionsView> memberPermissionViews;
     void openImage(const QUrl &url) override { images.append(url); }
     void startEditing(const MessageContext &message) override { edits.append(message.messageId); }
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
@@ -272,6 +276,29 @@ public:
     std::pair<bool, bool> bypass { false, false };
 };
 
+class FakeGuilds : public GuildDirectory
+{
+public:
+    std::optional<GuildInfo> guild(Id, Id guildId) const override
+    {
+        return guilds.contains(guildId) ? std::optional<GuildInfo>(guilds.value(guildId)) : std::nullopt;
+    }
+    std::optional<ChannelInfo> channel(Id, Id channelId) const override
+    {
+        return channels.contains(channelId) ? std::optional<ChannelInfo>(channels.value(channelId)) : std::nullopt;
+    }
+    std::optional<MemberInfo> member(Id, Id, Id userId) const override
+    {
+        return members.contains(userId) ? std::optional<MemberInfo>(members.value(userId)) : std::nullopt;
+    }
+    void requestMembers(Id, Id guildId, const QList<Id> &userIds) override { requested.append({ guildId, userIds }); }
+
+    QHash<Id, GuildInfo> guilds;
+    QHash<Id, ChannelInfo> channels;
+    QHash<Id, MemberInfo> members;
+    QList<QPair<Id, QList<Id>>> requested;
+};
+
 using RegisterFn = void (*)(Registry &);
 
 // Owns a host with one registered plugin.
@@ -293,6 +320,7 @@ struct SinglePluginHost
         services.readStates = &readStates;
         services.reactions = &reactions;
         services.expressions = &expressions;
+        services.guilds = &guilds;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -324,6 +352,7 @@ struct SinglePluginHost
     FakeReadStates readStates;
     FakeReactions reactions;
     FakeExpressions expressions;
+    FakeGuilds guilds;
     std::unique_ptr<PluginHost> host;
     QString id;
 };

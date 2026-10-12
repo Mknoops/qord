@@ -8,6 +8,9 @@
 #include <QStringList>
 #include <QtGlobal>
 
+#include <functional>
+#include <optional>
+
 namespace Qord {
 namespace Plugins {
 
@@ -405,6 +408,98 @@ struct ReactionChange
     int type = 0;
     Id userId = 0;
     bool added = true;
+};
+
+// A server role as plugins see it (PermissionsViewer)
+struct RoleInfo
+{
+    Id id = 0; // the guild's id for @everyone
+    QString name;
+    quint32 color = 0; // 0 when the role has no colour
+    int position = 0;
+    quint64 permissions = 0;
+    QString iconUrl; // a custom role icon, if any
+    QString unicodeEmoji; // a Unicode role icon, if any
+};
+
+// A channel's permission overwrite for a role or a member
+struct PermissionOverwriteInfo
+{
+    enum class Type { Role = 0, Member = 1 };
+    Type type = Type::Role;
+    Id id = 0;
+    quint64 allow = 0;
+    quint64 deny = 0;
+};
+
+struct GuildInfo
+{
+    Id id = 0;
+    QString name;
+    Id ownerId = 0;
+    QList<RoleInfo> roles; // highest position first, as Discord sorts them
+};
+
+struct ChannelInfo
+{
+    Id id = 0;
+    Id guildId = 0;
+    QString name;
+    QList<PermissionOverwriteInfo> overwrites; // in Discord's order
+};
+
+// A user, and their membership of a server if they are a member
+struct MemberInfo
+{
+    Id userId = 0;
+    QString username;
+    QString globalName;
+    QString avatarUrl;
+    bool isMember = false;
+    QString nick;
+    QList<Id> roles;
+};
+
+// One row of a permissions view: a role, a member (a channel overwrite) or
+// the server owner. A role or the owner has `permissions`; an overwrite has
+// `allow` and `deny`.
+struct PermissionsEntry
+{
+    enum class Kind { Role, Member, Owner };
+    Kind kind = Kind::Role;
+    Id id = 0;
+    QString name;
+    quint32 color = 0;
+    QString imageUrl; // role icon or user avatar
+    QString emoji; // Unicode role icon
+    std::optional<quint64> permissions;
+    quint64 allow = 0;
+    quint64 deny = 0;
+};
+
+struct PermissionsView
+{
+    QString title; // e.g. "general Permissions"
+    Id accountId = 0;
+    Id guildId = 0;
+    QList<PermissionsEntry> entries;
+};
+
+// A member's permissions and the role granting each (the profile's
+// "View Permissions" popout)
+struct GrantedPermission
+{
+    quint64 bit = 0; // 0: Server Owner
+    QString roleName;
+    quint32 roleColor = 0;
+};
+
+struct MemberPermissionsView
+{
+    QList<GrantedPermission> permissions;
+    bool lowestFirst = false; // the sort order, for the toggle's arrow
+    std::function<void()> toggleSort;
+    std::function<void()> showRoleDetails;
 };
 
 // One part of a text diff (see TextDiff.hpp).

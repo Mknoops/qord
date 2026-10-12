@@ -103,6 +103,11 @@ public:
     static std::function<void(const MessageContext &)> &editStarter();
     static std::function<void(const MessageContext &, bool, std::optional<bool>)> &replyStarter();
     bool confirm(Confirmation &confirmation) override;
+    void showPermissions(const PermissionsView &view) override;
+    void showMemberPermissions(const MemberPermissionsView &view) override;
+    // Set by the main window, which can load images
+    static std::function<void(const PermissionsView &)> &permissionsShower();
+    static std::function<void(const MemberPermissionsView &)> &memberPermissionsShower();
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &, const QByteArray &, const QString &)> &fileAttacher();
@@ -120,6 +125,20 @@ public:
     void reactionUsersChanged(Id accountId, Id channelId, Id messageId) override;
     // Set by the main window, which re-renders the message
     static std::function<void(Id accountId, Id channelId, Id messageId)> &onChanged();
+
+private:
+    Acheron::Core::Session *session;
+};
+
+// Roles, owners, channel overwrites and members from the session's cache
+class SessionGuilds : public GuildDirectory
+{
+public:
+    explicit SessionGuilds(Acheron::Core::Session *session) : session(session) {}
+    [[nodiscard]] std::optional<GuildInfo> guild(Id accountId, Id guildId) const override;
+    [[nodiscard]] std::optional<ChannelInfo> channel(Id accountId, Id channelId) const override;
+    [[nodiscard]] std::optional<MemberInfo> member(Id accountId, Id guildId, Id userId) const override;
+    void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) override;
 
 private:
     Acheron::Core::Session *session;
@@ -218,6 +237,7 @@ private:
     QtReadStates readStates;
     SessionExpressions expressions;
     SessionReactions reactions;
+    SessionGuilds guilds;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

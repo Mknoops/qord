@@ -14,7 +14,9 @@
 #include <QScrollArea>
 #include <QSet>
 #include <QTabWidget>
+#include <QSvgRenderer>
 #include <QTextEdit>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -448,7 +450,17 @@ QWidget *UserProfilePopup::buildBody()
     auto *rolesHeading = new QLabel(rolesSection);
     rolesHeading->setText(sectionHeading(tr("Roles"), headingColor));
     rolesHeading->setTextFormat(Qt::RichText);
-    rolesLayout->addWidget(rolesHeading);
+    // Plugin buttons (PermissionsViewer) sit next to the heading
+    auto *rolesHeader = new QHBoxLayout;
+    rolesHeader->setContentsMargins(0, 0, 0, 0);
+    rolesHeader->setSpacing(2);
+    rolesHeader->addWidget(rolesHeading);
+    rolesButtons = new QHBoxLayout;
+    rolesButtons->setContentsMargins(0, 0, 0, 0);
+    rolesButtons->setSpacing(2);
+    rolesHeader->addLayout(rolesButtons);
+    rolesHeader->addStretch(1);
+    rolesLayout->addLayout(rolesHeader);
     rolesLabel = new QLabel(rolesSection);
     rolesLabel->setTextFormat(Qt::RichText);
     rolesLabel->setWordWrap(true);
@@ -972,6 +984,46 @@ void UserProfilePopup::renderMutualFriends()
     mutualFriendsLayout->addStretch(1);
 }
 
+void UserProfilePopup::rebuildRoleButtons()
+{
+    while (QLayoutItem *item = rolesButtons->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::ProfileRoleButtons))
+        return;
+    Qord::Plugins::UserContext user;
+    user.accountId = quint64(instance->accountId());
+    user.guildId = quint64(guildId);
+    user.userId = quint64(userId);
+    const QColor color = palette().color(QPalette::Text);
+    for (const auto &entry : host->dispatchProfileRoleButtons(user)) {
+        QByteArray svg = entry.button.svg;
+        svg.replace("currentColor", color.name().toLatin1());
+        QSvgRenderer renderer(svg);
+        const qreal dpr = devicePixelRatioF();
+        QPixmap pixmap(QSize(16, 16) * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        if (renderer.isValid()) {
+            QPainter painter(&pixmap);
+            renderer.render(&painter, QRectF(0, 0, 16, 16));
+        }
+        auto *button = new QToolButton(rolesSection);
+        button->setAutoRaise(true);
+        button->setIcon(QIcon(pixmap));
+        button->setIconSize(QSize(16, 16));
+        button->setToolTip(entry.button.tooltip);
+        button->setCursor(Qt::PointingHandCursor);
+        connect(button, &QToolButton::clicked, this, [pluginId = entry.pluginId, id = entry.button.id, user]() {
+            if (auto *h = Qord::Plugins::PluginHost::instance())
+                h->dispatchProfileRoleButtonClicked(pluginId, id, user);
+        });
+        rolesButtons->addWidget(button);
+    }
+}
+
 void UserProfilePopup::applyView()
 {
     const bool canGuildView = guildId.isValid();
@@ -989,6 +1041,7 @@ void UserProfilePopup::applyView()
         rolesSection->setVisible(false);
         return;
     }
+    rebuildRoleButtons();
 
     QList<Discord::Role> memberRoles = instance->getMemberRolesSorted(guildId, userId);
     if (memberRoles.isEmpty() && hasProfile && profile.guildMember.hasValue() && profile.guildMember.get().roles.hasValue()) {

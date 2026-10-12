@@ -9,7 +9,9 @@
 
 #include <QApplication>
 #include <QCloseEvent>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QSettings>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
@@ -104,6 +106,18 @@ ScreenSharePicker::ScreenSharePicker(const QList<GoLive::Quality> &allowed, QWid
     frameRate = new QComboBox(this);
     quality->addWidget(frameRate);
     quality->addStretch();
+    // Sound: on Windows only the shared program (or everything but Qord);
+    // elsewhere everything the computer plays, this call included, so off
+    // unless you turned it on before
+    sound = new QCheckBox(tr("Share sound"), this);
+    sound->setVisible(Qord::Audio::StreamAudio::isSupported());
+    sound->setChecked(QSettings().value(QStringLiteral("qord/goLive/sound"),
+                                        Qord::Audio::StreamAudio::excludesOwnAudio()).toBool());
+    if (!Qord::Audio::StreamAudio::excludesOwnAudio())
+        sound->setToolTip(tr("Shares everything this computer plays, including this call"));
+    connect(sound, &QCheckBox::toggled, this,
+            [](bool on) { QSettings().setValue(QStringLiteral("qord/goLive/sound"), on); });
+    quality->addWidget(sound);
     layout->addLayout(quality);
 
     auto *buttons = new QHBoxLayout;
@@ -216,6 +230,11 @@ CaptureSource ScreenSharePicker::source() const
 {
     const QListWidgetItem *item = list->currentItem();
     return item ? sources.value(item->data(Qt::UserRole).toInt()) : CaptureSource();
+}
+
+bool ScreenSharePicker::shareSound() const
+{
+    return !sound->isHidden() && sound->isChecked();
 }
 
 GoLive::Quality ScreenSharePicker::quality() const
@@ -378,7 +397,7 @@ void GoLiveUi::toggleSharing()
     const CaptureSource source = picker.source();
     if (source.name.isEmpty())
         return;
-    live->startStreaming(source, picker.quality());
+    live->startStreaming(source, picker.quality(), picker.shareSound());
     updateButton();
 }
 

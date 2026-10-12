@@ -300,6 +300,10 @@ void VoiceClient::sendAudio(const QByteArray &opusData)
     // snap rtp timestamp back to wall clock after a period of silence
     // otherwise its a little behind and it will be played back delayed by discord
     auto now = std::chrono::steady_clock::now();
+    // Qord: a pause in sending (Go Live audio skips silent frames) is a new
+    // talkspurt too, or the timestamps fall behind the clock
+    if (now - lastAudioSendTime > std::chrono::milliseconds(200))
+        newTalkspurt = true;
     if (newTalkspurt) {
         auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - rtpEpoch);
         rtpTimestamp = static_cast<uint32_t>(static_cast<uint64_t>(elapsed.count()) * 48 / 1000);
@@ -509,8 +513,10 @@ void VoiceClient::setVideoActive(bool active, int width, int height, int fps, in
     if (!gateway || !localVideoSsrc)
         return;
     gateway->sendVideo(localSsrc, localVideoSsrc, localRtxSsrc, active, width, height, fps, maxBitrate);
-    // Discord's clients mark themselves speaking while sending media
-    gateway->sendSpeaking(active ? static_cast<int>(SpeakingFlag::MICROPHONE) : 0, 0, localSsrc);
+    // Discord's clients mark a stream connection speaking while it sends
+    // media; on the call's own connection the microphone decides that
+    if (videoStreamType == QLatin1String("screen"))
+        gateway->sendSpeaking(active ? static_cast<int>(SpeakingFlag::MICROPHONE) : 0, 0, localSsrc);
 }
 
 void VoiceClient::requestVideo(int quality)

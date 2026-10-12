@@ -15,6 +15,7 @@
 #include "Core/Snowflake.hpp"
 #include "Qord/Video/GoLive.hpp"
 
+class QCheckBox;
 class QComboBox;
 class QLabel;
 class QListWidget;
@@ -39,6 +40,7 @@ public:
 
     [[nodiscard]] Qord::Video::CaptureSource source() const;
     [[nodiscard]] Qord::Video::GoLive::Quality quality() const;
+    [[nodiscard]] bool shareSound() const;
 
 private:
     void showSources();
@@ -52,6 +54,7 @@ private:
     QLabel *status;
     QComboBox *resolution;
     QComboBox *frameRate;
+    QCheckBox *sound;
     QPushButton *goLive;
 };
 

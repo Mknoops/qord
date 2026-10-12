@@ -85,7 +85,11 @@ private slots:
         Depacketizer d;
         uint16_t seq = 65530; // wraps around
         QList<Depacketizer::Frame> frames;
-        for (const Packet &p : packets(key, seq, 3000) + packets(delta, seq, 6000))
+        // Two statements: both calls advance seq, and the operands of + may
+        // be evaluated in either order (GCC does the right one first)
+        QList<Packet> all = packets(key, seq, 3000);
+        all += packets(delta, seq, 6000);
+        for (const Packet &p : all)
             if (auto f = d.push(p.sequence, p.timestamp, p.marker, p.payload))
                 frames.append(*f);
         QCOMPARE(frames.size(), 2);

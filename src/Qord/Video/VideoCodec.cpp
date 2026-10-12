@@ -55,10 +55,12 @@ H264Encoder::~H264Encoder()
 
 QStringList H264Encoder::defaultEncoders()
 {
-    // Media Foundation last: it may not honour forced keyframes (the
-    // periodic ones still come), so receivers that lost packets wait longer
+    // Media Foundation after OpenH264: it may not honour forced keyframes
+    // (the periodic ones still come), so receivers that lost packets wait
+    // longer. x264 last, for Linux distributions whose ffmpeg has it but
+    // not OpenH264 (both are GPL-compatible, like Qord).
     return { QStringLiteral("h264_nvenc"), QStringLiteral("h264_amf"), QStringLiteral("h264_qsv"),
-             QStringLiteral("libopenh264"), QStringLiteral("h264_mf") };
+             QStringLiteral("libopenh264"), QStringLiteral("h264_mf"), QStringLiteral("libx264") };
 }
 
 void H264Encoder::close()
@@ -146,6 +148,13 @@ bool H264Encoder::openWith(const QString &encoder)
     } else if (encoder == QLatin1String("libopenh264")) {
         setOption(context, "profile", "constrained_baseline");
         setOption(context, "allow_skip_frames", "0");
+    } else if (encoder == QLatin1String("libx264")) {
+        setOption(context, "preset", "veryfast");
+        setOption(context, "tune", "zerolatency");
+        setOption(context, "profile", "baseline");
+        setOption(context, "forced-idr", "1");
+        // Parameter sets in the stream, not only in extradata
+        setOption(context, "x264-params", "repeat-headers=1");
     }
 
     if (avcodec_open2(context, codec, nullptr) < 0)

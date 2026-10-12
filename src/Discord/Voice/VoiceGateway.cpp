@@ -1,5 +1,7 @@
 #include "VoiceGateway.hpp"
 
+#include "Core/LogRedaction.hpp"
+
 #include "Discord/CurlUtils.hpp"
 #include "Core/Logging.hpp"
 
@@ -168,7 +170,7 @@ void VoiceGateway::sendPayload(VoiceOpCode op, const Core::OrderedJson &d)
     obj.insert("d", d);
 
     QByteArray json = obj.toBytes();
-    qCDebug(LogVoice) << "Voice >>>" << json;
+    qCDebug(LogVoice) << "Voice >>>" << Core::redactSecrets(json); // Qord: no tokens in logs
     sendPayload(json);
 }
 
@@ -179,7 +181,7 @@ void VoiceGateway::sendPayload(const QByteArray &data)
 
 void VoiceGateway::onPayloadReceived(const QJsonObject &root)
 {
-    qCDebug(LogVoice) << "Voice <<<" << QJsonDocument(root).toJson(QJsonDocument::Compact);
+    qCDebug(LogVoice) << "Voice <<<" << QJsonDocument(Core::redactSecrets(root)).toJson(QJsonDocument::Compact);
 
     if (root.contains("seq") && !root["seq"].isNull())
         lastReceivedSeq = root["seq"].toInt();

@@ -627,6 +627,12 @@ struct Channel : Core::JsonUtils::JsonObject
 
     // available_tags persistence
     QString availableTagsJson;
+    // Qord: settings only a few views show (ShowHiddenChannels' lock screen),
+    // kept as Discord sent them: nsfw, bitrate, rtc_region,
+    // video_quality_mode, default_auto_archive_duration,
+    // default_thread_rate_limit_per_user, default_forum_layout,
+    // default_reaction_emoji, last_pin_timestamp
+    QString extraJson;
 
     static Channel fromJson(const QJsonObject &obj)
     {
@@ -662,6 +668,16 @@ struct Channel : Core::JsonUtils::JsonObject
             QJsonDocument doc(obj.value("available_tags").toArray());
             channel.availableTagsJson = QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
         }
+        static const char *const extraKeys[] = { "nsfw", "bitrate", "rtc_region", "video_quality_mode",
+                                                 "default_auto_archive_duration",
+                                                 "default_thread_rate_limit_per_user", "default_forum_layout",
+                                                 "default_reaction_emoji", "last_pin_timestamp" };
+        QJsonObject extra;
+        for (const char *key : extraKeys)
+            if (obj.contains(QLatin1String(key)))
+                extra.insert(QLatin1String(key), obj.value(QLatin1String(key)));
+        if (!extra.isEmpty())
+            channel.extraJson = QString::fromUtf8(QJsonDocument(extra).toJson(QJsonDocument::Compact));
 
         return channel;
     }

@@ -194,6 +194,10 @@ bool ChannelFilterProxyModel::hasChannelViewPermission(const QModelIndex &source
     if (!perms)
         return true;
 
+    // Qord: ShowHiddenChannels lists them anyway
+    if (ChannelTreeModel::hiddenChannelOptions().show)
+        return true;
+
     Core::Snowflake channelId =
             Core::Snowflake(sourceIndex.data(ChannelTreeModel::IdRole).toULongLong());
     return perms->hasChannelPermission(userId, channelId, Discord::Permission::VIEW_CHANNEL);

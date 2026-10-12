@@ -48,7 +48,25 @@ public:
         OwnerIdRole = Qt::UserRole + 15,
         PresenceBadgeRole = Qt::UserRole + 16,
         OwnMentionCountRole = Qt::UserRole + 17,
+        // Qord: false for channels (and voice channels) you can't see or join
+        CanViewRole = Qt::UserRole + 18,
+        CanConnectRole = Qt::UserRole + 19,
     };
+
+    // Qord: how ShowHiddenChannels shows channels you can't see; when
+    // `show` is off they stay out of the list, as in Discord
+    struct HiddenChannelOptions
+    {
+        bool show = false;
+        enum class Icon { Lock, LockRight, EyeRight };
+        Icon icon = Icon::Lock;
+        bool muted = false; // drawn like a muted channel
+    };
+    static HiddenChannelOptions &hiddenChannelOptions()
+    {
+        static HiddenChannelOptions options;
+        return options;
+    }
 
     QModelIndex index(int row, int column, const QModelIndex &parentIndex) const override;
     QModelIndex parent(const QModelIndex &childIndex) const override;
@@ -81,6 +99,9 @@ public:
     void promoteTemporaryThread(Snowflake threadId);
     void invalidateGuildData(Snowflake guildId);
     void updateReadState(Snowflake channelId, Snowflake accountId);
+    // Qord: recomputes every channel's read state (ShowHiddenChannels'
+    // unread styles changed)
+    void refreshAllReadStates();
     void updatePresence(Snowflake accountId, const QList<Snowflake> &userIds);
     void updateForumBadge(Snowflake forumId, Snowflake accountId);
     void updateForumThreads(Snowflake forumId, Snowflake accountId);

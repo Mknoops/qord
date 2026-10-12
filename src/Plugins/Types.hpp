@@ -446,6 +446,25 @@ struct ChannelInfo
     Id guildId = 0;
     QString name;
     QList<PermissionOverwriteInfo> overwrites; // in Discord's order
+    // Settings, as Discord sent them (ShowHiddenChannels' lock screen)
+    int type = 0; // Discord's channel type
+    QString topic;
+    bool nsfw = false;
+    Id lastMessageId = 0;
+    QDateTime lastPinTimestamp;
+    int rateLimitPerUser = 0; // seconds
+    int defaultThreadRateLimitPerUser = 0; // seconds
+    std::optional<int> bitrate;
+    bool hasRtcRegion = false; // voice channels have the key (null: automatic)
+    QString rtcRegion;
+    std::optional<int> videoQualityMode;
+    int defaultAutoArchiveDuration = 0; // minutes
+    std::optional<int> defaultForumLayout;
+    std::optional<int> defaultSortOrder;
+    QString defaultReactionEmojiName; // a Unicode emoji
+    Id defaultReactionEmojiId = 0; // or a custom one
+    quint64 flags = 0;
+    QStringList availableTags;
 };
 
 // A user, and their membership of a server if they are a member
@@ -500,6 +519,44 @@ struct MemberPermissionsView
     bool lowestFirst = false; // the sort order, for the toggle's arrow
     std::function<void()> toggleSort;
     std::function<void()> showRoleDetails;
+};
+
+// How hidden channels are shown in the channel list (ShowHiddenChannels)
+struct HiddenChannelDisplay
+{
+    enum class Icon { Lock, LockRight, EyeRight }; // Lock replaces the channel's icon
+    enum class Style { Classic, Muted, Unread, MutedUnread };
+    Icon icon = Icon::Lock;
+    Style style = Style::Classic;
+};
+
+// A channel you can't see (or, for voice, can't join), selected in the list
+struct HiddenChannelContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id channelId = 0;
+    bool canView = false; // false: hidden; true: a locked voice channel
+};
+
+// What the lock screen shows instead of the channel
+struct LockScreen
+{
+    QString heading; // "This is a hidden text channel"
+    bool nsfw = false;
+    QString subheading;
+    QString topic; // a forum's guidelines (markdown)
+    struct Detail
+    {
+        QString text;
+        QDateTime time; // shown after the text when valid
+    };
+    QList<Detail> details;
+    QStringList tags; // a forum's tags
+    QList<PermissionsEntry> allowed; // roles and members who can see it
+    bool allowedExpanded = true;
+    std::function<void()> toggleAllowed;
+    std::function<void()> showPermissionDetails;
 };
 
 // One part of a text diff (see TextDiff.hpp).

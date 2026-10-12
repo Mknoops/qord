@@ -117,8 +117,13 @@ ChannelReadState ReadStateManager::computeChannelReadState(Snowflake channelId, 
 {
     ChannelReadState result;
     result.isMuted = isChannelMuted(channelId);
-    if (!canTrackUnreads(channelId))
+    if (!canTrackUnreads(channelId)) {
+        // Qord: ShowHiddenChannels' "Show Unreads" marks a hidden channel's
+        // row unread; it never counts toward the server's unread state
+        if (showHiddenUnreads() && !resourceChannels.contains(channelId))
+            result.isUnread = isChannelUnread(channelId, getChannelLastMessageId(channelId), guildId);
         return result;
+    }
 
     Snowflake lastMessageId = getChannelLastMessageId(channelId);
     bool canReadHistory = permissionManager->hasChannelPermission(accountId, channelId, Discord::Permission::READ_MESSAGE_HISTORY);

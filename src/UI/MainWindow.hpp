@@ -31,6 +31,7 @@ class ChatView;
 class PluginChatButtons;
 class ChatModel;
 class ForumBrowser;
+class HiddenChannelScreen;
 class ForumPostModel;
 class ThreadBrowserPopup;
 class ChannelTreeModel;
@@ -143,7 +144,8 @@ private:
     enum class ViewMode { TextChannel,
                           ForumBrowse,
                           ForumSplit,
-                          ThreadPopout };
+                          ThreadPopout,
+                          HiddenChannel }; // Qord: ShowHiddenChannels' lock screen
     void setViewMode(ViewMode mode);
     void setMemberListVisible(bool visible);
     void updateMemberListVisibility();
@@ -172,6 +174,7 @@ private:
     QPushButton *popOutButton = nullptr;
     QPushButton *closeThreadButton = nullptr;
     ForumBrowser *forumBrowser = nullptr;
+    HiddenChannelScreen *hiddenChannelScreen = nullptr; // Qord
     ForumPostModel *forumModel = nullptr;
     Core::Snowflake currentForumId;
     Core::Snowflake currentForumGuildId;
@@ -304,6 +307,16 @@ private:
     // Qord: Create Thread on messages: text and announcement channels, with permission
     bool isSystemDm(Core::ClientInstance *instance, Core::Snowflake channelId) const;
     bool canCreateThreadsIn(Core::ClientInstance *instance, Core::Snowflake channelId) const;
+    // Qord: ShowHiddenChannels. Shows the lock screen instead of a channel
+    // you can't see (or, when joining, a voice channel you can't join);
+    // false when the channel opens normally.
+    bool openHiddenChannel(Core::ClientInstance *instance, ChannelNode *node, ChannelNode *accountNode, bool joining);
+    void applyHiddenChannelDisplay();
+    void refreshHiddenChannelScreen();
+    Core::Snowflake hiddenChannelAccountId;
+    Core::Snowflake hiddenChannelGuildId;
+    Core::Snowflake hiddenChannelId;
+    bool hiddenChannelCanView = false;
     void createThreadFromMessage(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
     UserPanel *userPanel = nullptr;
     QLabel *channelNameLabel = nullptr;

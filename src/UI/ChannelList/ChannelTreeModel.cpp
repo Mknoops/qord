@@ -5,6 +5,7 @@
 
 #include <Core/ClientInstance.hpp>
 #include <Core/ForumManager.hpp>
+#include <Core/PermissionManager.hpp>
 #include <Core/Presence/PresenceBadge.hpp>
 #include <Core/ReadStateManager.hpp>
 #include <Core/Logging.hpp>
@@ -219,6 +220,21 @@ QVariant ChannelTreeModel::data(const QModelIndex &index, int role) const
     }
     if (role == OwnerIdRole)
         return static_cast<quint64>(node->ownerId);
+
+    if (role == CanViewRole || role == CanConnectRole) {
+        const bool voice = node->type == ChannelNode::Type::VoiceChannel;
+        if (node->type != ChannelNode::Type::Channel && !voice && node->type != ChannelNode::Type::Forum)
+            return true;
+        if (role == CanConnectRole && !voice)
+            return true;
+        ChannelNode *accNode = getAccountNodeFor(node);
+        auto *instance = accNode ? session->client(accNode->id) : nullptr;
+        if (!instance || !instance->permissions())
+            return true;
+        return instance->permissions()->hasChannelPermission(
+                accNode->id, node->id,
+                role == CanViewRole ? Discord::Permission::VIEW_CHANNEL : Discord::Permission::CONNECT);
+    }
 
     if (role == PresenceBadgeRole) {
         if ((node->type != ChannelNode::Type::DMChannel &&
@@ -1678,6 +1694,13 @@ void ChannelTreeModel::aggregateChildren(ChannelNode *node)
     if (node->type == ChannelNode::Type::Server || node->type == ChannelNode::Type::Folder ||
         node->type == ChannelNode::Type::DMHeader)
         node->isUnread = node->countsForGuildUnread;
+}
+
+void ChannelTreeModel::refreshAllReadStates()
+{
+    for (auto it = accountNodes.cbegin(); it != accountNodes.cend(); ++it)
+        if (auto *instance = session->client(it.key()))
+            refreshReadStates(it.value(), instance);
 }
 
 void ChannelTreeModel::refreshReadStates(ChannelNode *node, Core::ClientInstance *instance)

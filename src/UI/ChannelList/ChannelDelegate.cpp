@@ -50,10 +50,12 @@ bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, cons
     if (event && index.isValid()) {
         QModelIndex source = proxyModel ? proxyModel->mapToSource(index) : index;
         const void *node = source.internalPointer();
-        auto it = voiceLabelTips.constFind(node);
-        if (it != voiceLabelTips.constEnd() && it->first.contains(event->pos())) {
-            QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
-            return true;
+        for (const auto *tips : { &voiceLabelTips, &hiddenIconTips }) {
+            auto it = tips->constFind(node);
+            if (it != tips->constEnd() && it->first.contains(event->pos())) {
+                QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
+                return true;
+            }
         }
     }
     return QStyledItemDelegate::helpEvent(event, view, option, index);
@@ -718,7 +720,16 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
             textColor = option.palette.text().color();
     }
 
-    if (node->type == ChannelNode::Type::Channel) {
+    // Qord: ShowHiddenChannels' channels you can't see
+    const auto &hiddenOptions = ChannelTreeModel::hiddenChannelOptions();
+    const bool hidden = hiddenOptions.show && !index.data(ChannelTreeModel::CanViewRole).toBool();
+    if (hidden && hiddenOptions.muted)
+        textColor = option.palette.text().color().darker(150);
+    const bool lockReplacesIcon = hidden && hiddenOptions.icon == ChannelTreeModel::HiddenChannelOptions::Icon::Lock;
+
+    if (lockReplacesIcon) {
+        drawLucideIcon(painter, contentOpt.rect, Core::Theme::Icons::Name::Lock, textColor);
+    } else if (node->type == ChannelNode::Type::Channel) {
         const ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
         if (guildNode && guildNode->rulesChannelId == node->id)
             drawLucideIcon(painter, contentOpt.rect, Core::Theme::Icons::Name::BookCheck, textColor);
@@ -760,6 +771,21 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         rightReserve = painter->fontMetrics().horizontalAdvance(forumBadgeText) + 12;
     }
 
+    hiddenIconTips.remove(node);
+    if (hidden && !lockReplacesIcon) {
+        // The lock or crossed-out eye on the right, before any badge
+        constexpr int hiddenIconSize = 16;
+        const QRect hiddenIcon(contentOpt.rect.right() - rightReserve - hiddenIconSize + 4,
+                               contentOpt.rect.top() + (contentOpt.rect.height() - hiddenIconSize) / 2, hiddenIconSize,
+                               hiddenIconSize);
+        const bool eye = hiddenOptions.icon == ChannelTreeModel::HiddenChannelOptions::Icon::EyeRight;
+        painter->drawPixmap(hiddenIcon, Core::Theme::Icons::pixmap(eye ? Core::Theme::Icons::Name::EyeOff
+                                                                       : Core::Theme::Icons::Name::Lock,
+                                                                   hiddenIconSize, textColor, painter->device()->devicePixelRatioF()));
+        hiddenIconTips.insert(node, { hiddenIcon.adjusted(-2, -2, 2, 2), ChannelDelegate::tr("Hidden Channel") });
+        rightReserve += hiddenIconSize + 4;
+    }
+
     QRect textRect = contentOpt.rect.adjusted(iconSize, 0, -rightReserve, 0);
     painter->setPen(textColor);
     QString elidedName = painter->fontMetrics().elidedText(
@@ -772,7 +798,7 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
 
     // unread pill for channels and servers (draws in the left margin)
     if ((node->opensChat() || node->type == ChannelNode::Type::Server) && node->isUnread &&
-        !node->isMuted)
+        !node->isMuted && !(hidden && hiddenOptions.muted))
         drawUnreadPill(painter, option);
 
     if (showUserLimit) {

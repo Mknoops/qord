@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "UI/Qord/HiddenChannelScreen.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -295,6 +296,10 @@ void MainWindow::onChannelSelectionChanged(const QModelIndex &current, const QMo
 
     channelTreeModel->clearTemporaryThread(node->id);
 
+    // Qord: a channel you can't see shows ShowHiddenChannels' lock screen
+    if (openHiddenChannel(selectedInstance, node, accountNode, false))
+        return;
+
     ChannelNode *forumNode = node->type == ChannelNode::Type::Thread ? node->parent : node;
 
     if (forumNode && forumNode->type == ChannelNode::Type::Forum) {
@@ -355,6 +360,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     showChannelTopic(instance, channelId);
     hideFriendsPage();
     channelToolbar->setVisible(true);
+    pinsButton->setEnabled(true); // Qord: off on a hidden channel's lock screen
     channelNameLabel->setText((isDm ? QStringLiteral("@ ") : (isThread ? QString() : QStringLiteral("# "))) + name);
     membersButton->setVisible(guildId.isValid());
 
@@ -585,7 +591,14 @@ void MainWindow::setViewMode(ViewMode mode)
         threadHeader->setVisible(true);
         popOutButton->setText(tr("Back to forum"));
         break;
+    case ViewMode::HiddenChannel:
+        forumBrowser->setVisible(false);
+        threadPane->setVisible(false);
+        threadHeader->setVisible(false);
+        break;
     }
+    if (hiddenChannelScreen)
+        hiddenChannelScreen->setVisible(mode == ViewMode::HiddenChannel);
 
     updateMemberListVisibility();
 }
@@ -1269,6 +1282,9 @@ void MainWindow::setupUi()
     centerSplitter = new QSplitter(Qt::Horizontal, rightSideWidget);
     centerSplitter->addWidget(forumBrowser);
     centerSplitter->addWidget(threadPane);
+    hiddenChannelScreen = new HiddenChannelScreen(rightSideWidget); // Qord: ShowHiddenChannels
+    hiddenChannelScreen->setVisible(false);
+    centerSplitter->addWidget(hiddenChannelScreen);
     centerSplitter->setStretchFactor(0, 1);
     centerSplitter->setStretchFactor(1, 1);
     centerSplitter->setSizes({ 350, 550 });
@@ -1676,6 +1692,11 @@ void MainWindow::setupUi()
 
                 ClientInstance *instance = session->client(accountNode->id);
                 if (!instance)
+                    return;
+
+                // Qord: ShowHiddenChannels shows a voice channel you can't
+                // join instead of trying to
+                if (isVoice && openHiddenChannel(instance, node, accountNode, true))
                     return;
 
                 if (!instance->discord()->getProxy().canRelayUdp()) {

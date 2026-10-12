@@ -198,6 +198,7 @@ void DatabaseManager::setupCacheTables(const QString &connName)
 	        "default_sort_order" INTEGER,
 	        "flags" INTEGER,
 	        "topic" TEXT,
+	        "extra" TEXT,
 	        PRIMARY KEY("id")
         );
     )");

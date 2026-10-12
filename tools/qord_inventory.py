@@ -76,6 +76,7 @@ PERMISSIONS = {
     "read_reactions",
     "read_expressions",
     "read_server_permissions",
+    "show_hidden_channels",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -106,6 +107,7 @@ HOOK_DISPATCH = {
     "messageClicks": "dispatchMessageClicked(",
     "reactionUsers": "dispatchReactionUsers(",
     "profileRoleButtons": "dispatchProfileRoleButtons(",
+    "hiddenChannels": "dispatchHiddenChannelDisplay(",
 }
 
 MANIFEST_REQUIRED = {

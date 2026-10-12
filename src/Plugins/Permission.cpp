@@ -58,6 +58,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See your servers' emojis and stickers, your Nitro status and channel permissions") },
     { Permission::ReadServerPermissions, "read_server_permissions",
       QT_TRANSLATE_NOOP("Qord::Plugins", "See servers' roles, owners and channel permission settings") },
+    { Permission::ShowHiddenChannels, "show_hidden_channels",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Show channels you can't see in the channel list") },
 };
 
 struct HookInfo
@@ -91,6 +93,7 @@ const HookInfo hookTable[] = {
     { Hook::MessageClicks, "messageClicks", Permission::AddUiElements },
     { Hook::ReactionUsers, "reactionUsers", Permission::ReadReactions },
     { Hook::ProfileRoleButtons, "profileRoleButtons", Permission::AddUiElements },
+    { Hook::HiddenChannels, "hiddenChannels", Permission::ShowHiddenChannels },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

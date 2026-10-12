@@ -296,6 +296,12 @@ void Client::sendGatewayOp(int op, const Core::OrderedJson &d)
         gateway->sendOp(op, d);
 }
 
+void Client::setSelfVideo(bool on)
+{
+    if (gateway)
+        gateway->setSelfVideo(on);
+}
+
 QString Client::gatewaySessionId() const
 {
     return gateway ? gateway->currentSessionId() : QString();

@@ -766,8 +766,25 @@ void Gateway::sendVoiceStateUpdate(Core::Snowflake guildId, Core::Snowflake chan
         msg.channelId = nullptr;
     msg.selfMute = selfMute;
     msg.selfDeaf = selfDeaf;
+    // Qord: keep the camera on across mute/deafen; leaving turns it off
+    voiceGuildId = guildId;
+    voiceChannelId = channelId;
+    voiceSelfMute = selfMute;
+    voiceSelfDeaf = selfDeaf;
+    if (!channelId.isValid())
+        voiceSelfVideo = false;
+    msg.selfVideo = voiceSelfVideo;
 
     sendPayload(msg.toJson());
+}
+
+void Gateway::setSelfVideo(bool on)
+{
+    if (voiceSelfVideo == on)
+        return;
+    voiceSelfVideo = on;
+    if (voiceChannelId.isValid())
+        sendVoiceStateUpdate(voiceGuildId, voiceChannelId, voiceSelfMute, voiceSelfDeaf);
 }
 
 void Gateway::sendOp(int op, const Core::OrderedJson &d)

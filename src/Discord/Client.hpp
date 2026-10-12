@@ -143,6 +143,8 @@ public:
     void sendVoiceStateUpdate(Snowflake guildId, Snowflake channelId, bool selfMute, bool selfDeaf);
     // Qord: Go Live
     void sendGatewayOp(int op, const Core::OrderedJson &d);
+    // Qord: camera on/off in the voice state (self_video)
+    void setSelfVideo(bool on);
     void setVoiceConnected(bool connected);
 
     void restoreHeartbeatSession(const std::optional<HeartbeatSession> &stored);

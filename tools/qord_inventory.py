@@ -73,6 +73,7 @@ PERMISSIONS = {
     "mark_read",
     "read_presences",
     "read_voice_states",
+    "read_reactions",
 }
 
 SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
@@ -101,6 +102,7 @@ HOOK_DISPATCH = {
     "profileImages": "dispatchProfileImageClicked(",
     "voiceStates": "dispatchVoiceStateChanged(",
     "messageClicks": "dispatchMessageClicked(",
+    "reactionUsers": "dispatchReactionUsers(",
 }
 
 MANIFEST_REQUIRED = {

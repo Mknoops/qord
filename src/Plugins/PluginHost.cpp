@@ -178,7 +178,7 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
         hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
-        hooks.testFlag(Hook::VoiceStates))
+        hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers))
         emit presentationChanged();
 }
 
@@ -730,6 +730,25 @@ bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
             return true;
     }
     return false;
+}
+
+std::optional<QList<Id>> PluginHost::dispatchReactionUsers(const ReactionContext &reaction)
+{
+    const int h = hookIndex(Hook::ReactionUsers);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<QList<Id>> users;
+        guarded(tableIds[h][i], "reactionUsers", [&] { users = tables[h][i]->reactionUsers(reaction); });
+        if (users)
+            return users;
+    }
+    return std::nullopt;
+}
+
+void PluginHost::dispatchReactionChanged(const ReactionChange &change)
+{
+    const int h = hookIndex(Hook::ReactionUsers);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onReactionChanged", [&] { tables[h][i]->onReactionChanged(change); });
 }
 
 void PluginHost::dispatchChatMouseDown(qint64 timeMs)

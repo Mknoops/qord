@@ -129,6 +129,19 @@ public:
     virtual void markAllServersRead(Id accountId) = 0;
 };
 
+class ReactionService
+{
+public:
+    using Callback = std::function<void(bool ok, const QList<Id> &userIds)>;
+    virtual ~ReactionService() = default;
+    // GET the first 100 users of a reaction (type 0 normal, 1 burst). The
+    // client stores the users it gets, for names and avatars.
+    virtual void fetchReactionUsers(Id accountId, Id channelId, Id messageId, const QString &emojiKey, int type,
+                                    Callback done) = 0;
+    // Re-render a message whose reaction users changed
+    virtual void reactionUsersChanged(Id accountId, Id channelId, Id messageId) = 0;
+};
+
 class MessageActionService
 {
 public:
@@ -184,6 +197,7 @@ struct Services
     MessageActionService *messageActions = nullptr;
     DisplayOptionsService *displayOptions = nullptr;
     ReadStateService *readStates = nullptr;
+    ReactionService *reactions = nullptr;
 };
 
 } // namespace Plugins

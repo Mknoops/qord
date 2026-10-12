@@ -568,13 +568,15 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         const int lineCenter = layout.headerRect.top() + headerFm.height() / 2;
         const Snowflake headerMessageId = index.data(ChatModel::MessageIdRole).toULongLong();
         const Discord::Message *headerMessage = chatModel ? chatModel->messageAt(index.row()) : nullptr;
-        const bool isBot = headerMessage && headerMessage->author.hasValue() &&
-                           headerMessage->author->bot.hasValue() && headerMessage->author->bot.get();
+        const bool isSystemUser = headerMessage && headerMessage->author.hasValue() && headerMessage->author->isSystem();
+        const bool isBot = isSystemUser || (headerMessage && headerMessage->author.hasValue() &&
+                                            headerMessage->author->bot.hasValue() && headerMessage->author->bot.get());
         if (isBot) {
             QFont tagFont = option.font;
             tagFont.setPixelSize(10);
             tagFont.setBold(true);
-            const QString tag = QStringLiteral("APP");
+            // Discord's own account says SYSTEM, with the verified check
+            const QString tag = isSystemUser ? QStringLiteral("\u2713 SYSTEM") : QStringLiteral("APP");
             const QFontMetrics tagFm(tagFont);
             const QRect tagRect(afterName + 4, lineCenter - 8, tagFm.horizontalAdvance(tag) + 8, 15);
             painter->save();

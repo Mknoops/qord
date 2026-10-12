@@ -95,6 +95,8 @@ USERS = {
     "eve": user("200000000000000005", "eve_blocked", "Eve", "a5"),
     "bot": user("200000000000000006", "Qordbot", None, "a6", bot=True),
     "fay": user("200000000000000007", "fay", "Fay", "a7"),
+    # Discord's own account: official notices, no replies
+    "system": dict(user("643945264868098049", "discord", "Discord", None), system=True),
 }
 U = {k: v["id"] for k, v in USERS.items()}
 
@@ -160,6 +162,7 @@ CH = {
     "g2_voice": "410000000000000004",
     # DMs
     "dm_ava": "420000000000000001",
+    "dm_system": "420000000000000009",
     "group": "420000000000000002",
 }
 
@@ -234,6 +237,7 @@ GUILDS = {
 
 PRIVATE_CHANNELS = [
     {"id": CH["dm_ava"], "type": 1, "recipient_ids": [U["ava"]], "last_message_id": None, "flags": 0},
+    {"id": CH["dm_system"], "type": 1, "recipient_ids": [U["system"]], "last_message_id": None, "flags": 0},
     {"id": CH["group"], "type": 3, "recipient_ids": [U["ben"], U["cleo"]], "name": "weekend plans",
      "icon": None, "owner_id": SELF_ID, "last_message_id": None, "flags": 0},
 ]
@@ -366,6 +370,8 @@ def seed_messages() -> None:
     add(CH["dm_ava"], "ava", "hey, are you around later?", 60 * 6)
     add(CH["dm_ava"], "self", "yep, after 6", 60 * 6 - 3)
     add(CH["dm_ava"], "ava", "cool, ping me", 12)
+    add(CH["dm_system"], "system", "Your account's security settings were updated. If this wasn't you, "
+                                   "reset your password.", 60 * 30)
     add(CH["group"], "ben", "saturday or sunday?", 60 * 20)
     add(CH["group"], "cleo", "sunday works for me", 60 * 19)
 

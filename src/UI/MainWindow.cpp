@@ -359,9 +359,12 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     membersButton->setVisible(guildId.isValid());
 
     if (isDm) {
-        messageInput->setEnabled(true);
+        // Qord: Discord's system DM takes no replies
+        const bool systemDm = isSystemDm(instance, channelId);
+        messageInput->setEnabled(!systemDm);
         messageInput->setSendBlocked(false);
-        messageInput->setPlaceholder("Message @" + name);
+        messageInput->setPlaceholder(systemDm ? tr("This thread is reserved for official Discord notifications.")
+                                              : "Message @" + name);
         chatView->setCanPinMessages(true);
         chatView->setCanManageMessages(false);
         chatView->setCanCreateThreads(false);

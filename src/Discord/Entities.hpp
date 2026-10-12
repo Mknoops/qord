@@ -27,6 +27,7 @@ struct User : Core::JsonUtils::JsonObject
     Field<QString, false, true> globalName;
     Field<QString, false, true> avatar;
     Field<bool, true> bot;
+    bool system = false; // Qord: Discord's own account (official notices)
     Field<QString, true, true> banner;
     Field<int, true, true> accentColor;
     Field<int, true> publicFlags;
@@ -42,6 +43,7 @@ struct User : Core::JsonUtils::JsonObject
         get(obj, "global_name", user.globalName);
         get(obj, "avatar", user.avatar);
         get(obj, "bot", user.bot);
+        user.system = obj.value(QStringLiteral("system")).toBool();
         get(obj, "banner", user.banner);
         get(obj, "accent_color", user.accentColor);
         get(obj, "public_flags", user.publicFlags);
@@ -50,6 +52,11 @@ struct User : Core::JsonUtils::JsonObject
         get(obj, "mfa_enabled", user.mfaEnabled);
         return user;
     }
+
+    // Qord: Discord's system account, which sends official notices. Its id
+    // is fixed, and cached users may not carry the flag.
+    static constexpr quint64 SystemUserId = 643945264868098049ull;
+    [[nodiscard]] bool isSystem() const { return system || (id.hasValue() && quint64(id.get()) == SystemUserId); }
 
     QString tag() const
     {

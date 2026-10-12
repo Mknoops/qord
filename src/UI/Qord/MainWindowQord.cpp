@@ -168,16 +168,30 @@ void MainWindow::setupQordFeatures()
         return goLiveUi && goLiveUi->isLive(accountId, userId);
     });
     connect(this, &QObject::destroyed, []() { ChannelDelegate::setLiveProvider(nullptr); });
-    // Double-clicking someone who is live opens their stream, as clicking does in Discord
-    connect(channelTree, &QAbstractItemView::doubleClicked, this, [this](const QModelIndex &proxyIndex) {
+#endif
+#ifndef ACHERON_NO_VOICE
+    // As in Discord: clicking a voice channel joins it, clicking someone who
+    // is live opens their stream
+    connect(channelTree, &QAbstractItemView::clicked, this, [this](const QModelIndex &proxyIndex) {
+        if (QGuiApplication::keyboardModifiers() != Qt::NoModifier)
+            return;
         auto *node = channelTreeModel->nodeFromIndex(channelFilterProxy->mapToSource(proxyIndex));
-        if (!node || node->type != ChannelNode::Type::VoiceParticipant)
+        if (!node)
             return;
         ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
         Core::ClientInstance *instance = accountNode ? session->client(accountNode->id) : nullptr;
-        if (instance && goLiveUi->isLive(quint64(instance->accountId()), quint64(node->id)) &&
-            node->id != instance->accountId())
+        if (!instance)
+            return;
+        if (node->type == ChannelNode::Type::VoiceChannel) {
+            if (instance->voiceChannelId() != node->id)
+                emit channelTree->joinVoiceChannelRequested(proxyIndex);
+            return;
+        }
+#ifdef QORD_HAVE_GO_LIVE
+        if (node->type == ChannelNode::Type::VoiceParticipant && goLiveUi && node->id != instance->accountId() &&
+            goLiveUi->isLive(quint64(instance->accountId()), quint64(node->id)))
             goLiveUi->watch(instance, node->id);
+#endif
     });
 #endif
     // Hover highlights on channel rows, like Discord

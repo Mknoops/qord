@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QElapsedTimer>
 #include <QTimer>
 
 #include <atomic>
@@ -13,6 +14,7 @@
 
 #include "Core/ProxyConfig.hpp"
 #include "Qord/Video/H264Rtp.hpp"
+#include "Qord/Video/Pacer.hpp"
 #include "Core/Snowflake.hpp"
 #include "VoiceEnums.hpp"
 #include "VoiceEntities.hpp"
@@ -166,6 +168,11 @@ private:
     bool videoCodecAssigned = false;
     QHash<quint32, Qord::Video::Depacketizer> depacketizers;
     QHash<quint32, qint64> lastPliMs;
+    // Video packets leave through the pacer, not in one burst per frame
+    Qord::Video::Pacer pacer;
+    QTimer *pacerTimer = nullptr;
+    QElapsedTimer pacerClock;
+    void pumpPacer();
 };
 
 } // namespace Voice

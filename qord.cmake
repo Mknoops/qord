@@ -54,6 +54,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Qord/SlashCommands.cpp
     src/Qord/Video/H264Rtp.hpp
     src/Qord/Video/H264Rtp.cpp
+    src/Qord/Video/Pacer.hpp
+    src/Qord/Video/Pacer.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
 # Video (Go Live, cameras) needs ffmpeg's H.264 encoders and decoder, and voice
@@ -121,6 +123,12 @@ if(BUILD_TESTS)
     target_include_directories(TestLogRedaction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     set_target_properties(TestLogRedaction PROPERTIES AUTOMOC ON)
     add_test(NAME QordLogRedactionTests COMMAND TestLogRedaction)
+
+    qt_add_executable(TestPacer tests/qord/tst_pacer.cpp src/Qord/Video/Pacer.cpp)
+    target_link_libraries(TestPacer PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestPacer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestPacer PROPERTIES AUTOMOC ON)
+    add_test(NAME QordPacerTests COMMAND TestPacer)
 
     qt_add_executable(TestH264Rtp tests/qord/tst_h264_rtp.cpp src/Qord/Video/H264Rtp.cpp)
     target_link_libraries(TestH264Rtp PRIVATE Qt::Core Qt::Test)

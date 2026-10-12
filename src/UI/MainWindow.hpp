@@ -277,6 +277,8 @@ private:
     QString slashScopeKey() const;
     const Qord::SlashCommands::Index *slashIndex();
     bool trySendSlashCommand(const QString &text);
+    void requestAutocomplete(const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                             std::function<void(const QList<QPair<QString, QJsonValue>> &)> done);
     class FriendsPage *friendsPage = nullptr;
     QPushButton *friendsButton = nullptr;
     void showFriendsPage();

@@ -421,9 +421,17 @@ COMMAND_INDEX = {
         {"id": "800000000000000003", "application_id": U["bot"], "version": "1", "type": 1, "name": "echo",
          "description": "Repeat some text", "options": [
              {"type": 3, "name": "text", "description": "What to say", "required": True}]},
+        # An autocomplete option (the bot suggests cities) and static choices
+        {"id": "800000000000000004", "application_id": U["bot"], "version": "1", "type": 1, "name": "weather",
+         "description": "Today's weather", "options": [
+             {"type": 3, "name": "city", "description": "Which city", "required": True, "autocomplete": True},
+             {"type": 3, "name": "units", "description": "Units", "required": False,
+              "choices": [{"name": "Celsius", "value": "c"}, {"name": "Fahrenheit", "value": "f"}]}]},
     ],
     "version": "1",
 }
+CITIES = [("Paris", "fr-75"), ("Pretoria", "za-pt"), ("Amsterdam", "nl-ams"), ("Berlin", "de-be"),
+          ("Barcelona", "es-bcn"), ("Portland", "us-pdx")]
 
 # FakeNitro: the self user has no Nitro, so the second server's emojis and
 # stickers are sent as links from the first
@@ -1074,7 +1082,20 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             return out
         args = flat(data.get("options"))
         name = data.get("name")
-        if name == "ping":
+        if j.get("type") == 4:
+            # Autocomplete: the focused option's suggestions, over the gateway
+            focused = next((o for o in data.get("options", []) if o.get("focused")), {})
+            typed = str(focused.get("value", "")).lower()
+            choices = [{"name": c, "value": v} for c, v in CITIES if typed in c.lower()][:25]
+            await broadcast("APPLICATION_COMMAND_AUTOCOMPLETE_RESPONSE", {"nonce": j.get("nonce"), "choices": choices})
+            log(f"rest: autocomplete {focused.get('name')}={typed!r} -> {[c['name'] for c in choices]}")
+            return 204, None, "json"
+        if name == "weather":
+            city = next((c for c, v in CITIES if v == args.get("city")), None)
+            units = {"c": "°C", "f": "°F"}.get(args.get("units", "c"), "°C")
+            reply = (f"☀️ {city}: 21{units}" if city
+                     else f"I don't know a city called {args.get('city')!r} (pick one from the list)")
+        elif name == "ping":
             reply = "Pong! 🏓"
         elif name == "roll":
             reply = f"🎲 You rolled {random.randint(1, int(args.get('sides', 6) or 6))}"

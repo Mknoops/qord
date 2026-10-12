@@ -20,6 +20,7 @@ Option parseOption(const QJsonObject &o)
     opt.name = o.value(QStringLiteral("name")).toString();
     opt.description = o.value(QStringLiteral("description")).toString();
     opt.required = o.value(QStringLiteral("required")).toBool();
+    opt.autocomplete = o.value(QStringLiteral("autocomplete")).toBool();
     for (const auto &c : o.value(QStringLiteral("choices")).toArray())
         opt.choices.append({ c.toObject().value(QStringLiteral("name")).toString(), c.toObject().value(QStringLiteral("value")) });
     for (const auto &sub : o.value(QStringLiteral("options")).toArray())
@@ -236,90 +237,85 @@ QString usage(const Command &command, const QString &text)
     return out;
 }
 
-Built build(const Index &index, const QString &text)
+namespace {
+struct Mark
 {
-    Built built;
-    const Command *command = find(index, text);
-    if (!command) {
-        built.error = QStringLiteral("Unknown command");
-        return built;
-    }
-    built.command = command;
-    const QString rest = text.mid(1 + commandName(text).size());
-    const Path path = resolvePath(*command, rest);
-    for (const auto &o : *path.options) {
-        if (isSub(o)) {
-            built.error = QStringLiteral("Choose a subcommand: ") + usage(*command, text);
-            return built;
-        }
-    }
+    int start;
+    int valueStart;
+    const Option *option;
+};
 
-    // "name:value" pairs for the options at this level
-    const QString args = rest.mid(path.consumed);
-    struct Mark
-    {
-        int start;
-        int valueStart;
-        const Option *option;
-    };
+// The command, its subcommand path and the "name:value" marks of `text`
+struct Parsed
+{
+    const Command *command = nullptr;
+    Path path;
+    QString args; // the text after the command and its subcommands
+    int argsOffset = 0; // where `args` starts in the text
     QList<Mark> marks;
+    bool loneValue = false; // a value without "name:", for a single-option command
+};
+
+Parsed parse(const Index &index, const QString &text)
+{
+    Parsed p;
+    p.command = find(index, text);
+    if (!p.command)
+        return p;
+    const int restOffset = 1 + int(commandName(text).size());
+    const QString rest = text.mid(restOffset);
+    p.path = resolvePath(*p.command, rest);
+    p.args = rest.mid(p.path.consumed);
+    p.argsOffset = restOffset + p.path.consumed;
     static const QRegularExpression key(QStringLiteral("(?:^|\\s)([^\\s:]+):"));
-    auto it = key.globalMatch(args);
+    auto it = key.globalMatch(p.args);
     while (it.hasNext()) {
         const auto m = it.next();
-        for (const auto &o : *path.options) {
-            if (o.name.compare(m.captured(1), Qt::CaseInsensitive) == 0) {
-                marks.append({ int(m.capturedStart(0)), int(m.capturedEnd(0)), &o });
+        for (const auto &o : *p.path.options) {
+            if (!isSub(o) && o.name.compare(m.captured(1), Qt::CaseInsensitive) == 0) {
+                p.marks.append({ int(m.capturedStart(0)), int(m.capturedEnd(0)), &o });
                 break;
             }
         }
     }
-    if (marks.isEmpty() && !args.trimmed().isEmpty()) {
+    if (p.marks.isEmpty() && !p.args.trimmed().isEmpty()) {
         // A lone value for a command with a single option, like Discord fills the first field
         const Option *only = nullptr;
         int count = 0;
-        for (const auto &o : *path.options) {
+        for (const auto &o : *p.path.options) {
             only = &o;
             ++count;
         }
-        if (count == 1)
-            marks.append({ 0, 0, only });
-        else {
-            built.error = QStringLiteral("Write options as name:value — ") + usage(*command, text);
-            return built;
+        if (count == 1 && !isSub(*only)) {
+            const int lead = int(p.args.size() - p.args.trimmed().size() == 0 ? 0 : p.args.indexOf(p.args.trimmed()));
+            p.marks.append({ 0, qMax(0, lead), only });
+            p.loneValue = true;
         }
     }
+    return p;
+}
 
-    QJsonArray options;
-    QSet<QString> given;
-    for (int i = 0; i < marks.size(); ++i) {
-        const int end = i + 1 < marks.size() ? marks[i + 1].start : int(args.size());
-        const QString raw = args.mid(marks[i].valueStart, end - marks[i].valueStart);
-        if (raw.trimmed().isEmpty())
-            continue;
-        QJsonValue value;
-        const QString error = convert(*marks[i].option, raw, value);
-        if (!error.isEmpty()) {
-            built.error = error;
-            return built;
-        }
-        if (given.contains(marks[i].option->name))
-            continue;
-        given.insert(marks[i].option->name);
-        options.append(QJsonObject { { QStringLiteral("type"), marks[i].option->type },
-                                     { QStringLiteral("name"), marks[i].option->name },
-                                     { QStringLiteral("value"), value } });
-    }
-    for (const auto &o : *path.options) {
-        if (o.required && !given.contains(o.name)) {
-            built.error = QStringLiteral("Missing %1 — %2").arg(o.name, usage(*command, text));
-            return built;
-        }
-    }
+QString rawValue(const Parsed &p, int i)
+{
+    const int end = i + 1 < p.marks.size() ? p.marks[i + 1].start : int(p.args.size());
+    return p.args.mid(p.marks[i].valueStart, end - p.marks[i].valueStart);
+}
 
+// A picked choice stands for its value while the text still shows its name
+bool pickedValue(const Picks &picks, const Option &option, const QString &raw, QJsonValue &out)
+{
+    const auto it = picks.constFind(option.name);
+    if (it == picks.constEnd() || it->first.compare(raw.trimmed(), Qt::CaseInsensitive) != 0)
+        return false;
+    out = it->second;
+    return true;
+}
+
+QJsonObject commandData(const Command &command, const Path &path, const QJsonArray &options)
+{
     // Wrap in the subcommand path, innermost first
     QJsonArray wrapped = options;
-    const QList<Option> *level = &command->options;
+    const QList<Option> *level = &command.options;
     QList<const Option *> chain;
     for (const auto &n : path.names) {
         const Option *sub = child(*level, n);
@@ -331,18 +327,125 @@ Built build(const Index &index, const QString &text)
                           { QStringLiteral("options"), wrapped } };
         wrapped = QJsonArray { sub };
     }
-
-    built.data = QJsonObject {
-        { QStringLiteral("version"), command->version },
-        { QStringLiteral("id"), command->id },
-        { QStringLiteral("name"), command->name },
+    return QJsonObject {
+        { QStringLiteral("version"), command.version },
+        { QStringLiteral("id"), command.id },
+        { QStringLiteral("name"), command.name },
         { QStringLiteral("type"), ChatInput },
         { QStringLiteral("options"), wrapped },
-        { QStringLiteral("application_command"), command->raw },
+        { QStringLiteral("application_command"), command.raw },
         { QStringLiteral("attachments"), QJsonArray() },
     };
+}
+} // namespace
+
+Built build(const Index &index, const QString &text, const Picks &picks)
+{
+    Built built;
+    const Parsed p = parse(index, text);
+    if (!p.command) {
+        built.error = QStringLiteral("Unknown command");
+        return built;
+    }
+    built.command = p.command;
+    for (const auto &o : *p.path.options) {
+        if (isSub(o)) {
+            built.error = QStringLiteral("Choose a subcommand: ") + usage(*p.command, text);
+            return built;
+        }
+    }
+    if (p.marks.isEmpty() && !p.args.trimmed().isEmpty()) {
+        built.error = QStringLiteral("Write options as name:value — ") + usage(*p.command, text);
+        return built;
+    }
+
+    QJsonArray options;
+    QSet<QString> given;
+    for (int i = 0; i < p.marks.size(); ++i) {
+        const QString raw = rawValue(p, i);
+        if (raw.trimmed().isEmpty())
+            continue;
+        const Option &option = *p.marks[i].option;
+        QJsonValue value;
+        if (!pickedValue(picks, option, raw, value)) {
+            const QString error = convert(option, raw, value);
+            if (!error.isEmpty()) {
+                built.error = error;
+                return built;
+            }
+        }
+        if (given.contains(option.name))
+            continue;
+        given.insert(option.name);
+        options.append(QJsonObject { { QStringLiteral("type"), option.type },
+                                     { QStringLiteral("name"), option.name },
+                                     { QStringLiteral("value"), value } });
+    }
+    for (const auto &o : *p.path.options) {
+        if (o.required && !given.contains(o.name)) {
+            built.error = QStringLiteral("Missing %1 — %2").arg(o.name, usage(*p.command, text));
+            return built;
+        }
+    }
+    built.data = commandData(*p.command, p.path, options);
     built.ok = true;
     return built;
+}
+
+std::optional<Focus> focus(const Index &index, const QString &text, const Picks &picks)
+{
+    const Parsed p = parse(index, text);
+    if (!p.command || p.marks.isEmpty())
+        return std::nullopt;
+    const int last = int(p.marks.size()) - 1;
+    Focus f;
+    f.command = p.command;
+    f.option = p.marks[last].option;
+    f.valueStart = p.argsOffset + p.marks[last].valueStart;
+    f.typed = text.mid(f.valueStart);
+    if (!f.option->autocomplete)
+        return f;
+
+    // Discord's autocomplete request: the options so far (as far as they
+    // convert), then the focused one with what was typed, as a string
+    QJsonArray options;
+    QSet<QString> given;
+    for (int i = 0; i < last; ++i) {
+        const Option &option = *p.marks[i].option;
+        const QString raw = rawValue(p, i);
+        QJsonValue value;
+        if (raw.trimmed().isEmpty() || given.contains(option.name))
+            continue;
+        if (!pickedValue(picks, option, raw, value) && !convert(option, raw, value).isEmpty())
+            continue;
+        given.insert(option.name);
+        options.append(QJsonObject { { QStringLiteral("type"), option.type },
+                                     { QStringLiteral("name"), option.name },
+                                     { QStringLiteral("value"), value } });
+    }
+    options.append(QJsonObject { { QStringLiteral("type"), f.option->type },
+                                 { QStringLiteral("name"), f.option->name },
+                                 { QStringLiteral("value"), f.typed.trimmed() },
+                                 { QStringLiteral("focused"), true } });
+    f.autocompleteData = commandData(*p.command, p.path, options);
+    return f;
+}
+
+QList<QPair<QString, QJsonValue>> matchingChoices(const Option &option, const QString &typed, int limit)
+{
+    QList<QPair<QString, QJsonValue>> starts;
+    QList<QPair<QString, QJsonValue>> contains;
+    const QString needle = typed.trimmed();
+    for (const auto &choice : option.choices) {
+        if (choice.first.startsWith(needle, Qt::CaseInsensitive))
+            starts.append(choice);
+        else if (choice.first.contains(needle, Qt::CaseInsensitive))
+            contains.append(choice);
+    }
+    auto out = starts + contains;
+    if (out.size() > limit)
+        out = out.mid(0, limit);
+    return out;
 }
 
 } // namespace SlashCommands

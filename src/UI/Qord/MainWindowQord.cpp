@@ -65,6 +65,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QMenu>
 #include "Core/ReadStateManager.hpp"
@@ -434,7 +435,12 @@ void MainWindow::setupQordFeatures()
     };
 
     // Slash commands
-    slashPopup = new SlashCommandPopup(messageInput->editor(), messageInput, [this]() { return slashIndex(); });
+    slashPopup = new SlashCommandPopup(
+            messageInput->editor(), messageInput, [this]() { return slashIndex(); },
+            [this](const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                   std::function<void(const SlashCommandPopup::Choices &)> done) {
+                requestAutocomplete(command, data, std::move(done));
+            });
 
     // GIF and sticker pickers
     expressionPicker = new ExpressionPicker(session->getImageManager(), this);
@@ -708,6 +714,45 @@ const Qord::SlashCommands::Index *MainWindow::slashIndex()
     return nullptr;
 }
 
+void MainWindow::requestAutocomplete(const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                                     std::function<void(const QList<QPair<QString, QJsonValue>> &)> done)
+{
+    if (!currentInstance)
+        return;
+    Discord::Client *client = currentInstance->discord();
+    // An autocomplete interaction (type 4); the app's choices come back over
+    // the gateway with the same nonce
+    const QString nonce = QString::number(quint64(Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch())));
+    QJsonObject payload {
+        { QStringLiteral("type"), 4 },
+        { QStringLiteral("application_id"), command.applicationId },
+        { QStringLiteral("channel_id"), QString::number(quint64(chatModel->getActiveChannelId())) },
+        { QStringLiteral("session_id"), client->gatewaySessionId() },
+        { QStringLiteral("data"), data },
+        { QStringLiteral("nonce"), nonce },
+    };
+    if (chatModel->getActiveGuildId().isValid())
+        payload.insert(QStringLiteral("guild_id"), QString::number(quint64(chatModel->getActiveGuildId())));
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &Discord::Client::autocompleteResponse, this,
+                          [connection, nonce, done](const QJsonObject &response) {
+                              if (response.value(QStringLiteral("nonce")).toString() != nonce)
+                                  return;
+                              disconnect(*connection);
+                              QList<QPair<QString, QJsonValue>> choices;
+                              for (const auto &c : response.value(QStringLiteral("choices")).toArray())
+                                  choices.append({ c.toObject().value(QStringLiteral("name")).toString(),
+                                                   c.toObject().value(QStringLiteral("value")) });
+                              done(choices);
+                          });
+    // An app that never answers doesn't keep the connection forever
+    QTimer::singleShot(10000, this, [connection]() { disconnect(*connection); });
+    client->sendInteraction(payload, [connection](const Core::Result<void> &result) {
+        if (!result.success())
+            disconnect(*connection);
+    });
+}
+
 bool MainWindow::trySendSlashCommand(const QString &text)
 {
     if (!text.startsWith(QLatin1Char('/')) || !currentInstance)
@@ -715,7 +760,8 @@ bool MainWindow::trySendSlashCommand(const QString &text)
     const Qord::SlashCommands::Index *index = slashIndex();
     if (!index || !Qord::SlashCommands::find(*index, text))
         return false; // not a command here: send it as a message, like Discord
-    const Qord::SlashCommands::Built built = Qord::SlashCommands::build(*index, text);
+    const Qord::SlashCommands::Built built =
+            Qord::SlashCommands::build(*index, text, slashPopup ? slashPopup->picks() : Qord::SlashCommands::Picks());
     if (!built.ok) {
         // Keep what was typed and say what is wrong
         messageInput->insertText(text);
@@ -733,6 +779,8 @@ bool MainWindow::trySendSlashCommand(const QString &text)
     };
     if (chatModel->getActiveGuildId().isValid())
         payload.insert(QStringLiteral("guild_id"), QString::number(quint64(chatModel->getActiveGuildId())));
+    if (slashPopup)
+        slashPopup->clearPicks();
     const QPointer<MainWindow> guard(this);
     currentInstance->discord()->sendInteraction(payload, [guard, text](const Core::Result<void> &result) {
         if (!guard || result.success())

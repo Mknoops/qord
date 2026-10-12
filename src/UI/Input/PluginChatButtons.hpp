@@ -30,6 +30,7 @@ private:
     ContextProvider contextProvider;
     QHBoxLayout *layout;
     bool rebuildPending = false;
+    bool popupShown = false;
 };
 
 } // namespace UI

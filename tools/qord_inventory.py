@@ -113,6 +113,7 @@ HOOK_DISPATCH = {
     "channelTyping": "dispatchChannelTypingIndicator(",
     "unknownMentions": "dispatchUserMentionHovered(",
     "keyboardShortcuts": "dispatchShortcut(",
+    "messageAccessories": "dispatchMessageAccessories(",
 }
 
 MANIFEST_REQUIRED = {

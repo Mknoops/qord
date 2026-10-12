@@ -33,6 +33,10 @@ public:
     // Asynchronous GET. The callback runs on the main thread unless the
     // request was cancelled.
     virtual Handle get(const QUrl &url, Callback callback) = 0;
+    // Asynchronous HTTPS POST. Headers may carry an API key: they are sent
+    // as given and never logged. Unlike get(), a failed reply keeps its body.
+    using Headers = QList<QPair<QByteArray, QByteArray>>;
+    virtual Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) = 0;
     virtual void cancel(Handle handle) = 0;
 };
 
@@ -111,6 +115,24 @@ public:
         Q_UNUSED(accountId);
         Q_UNUSED(guildId);
         Q_UNUSED(userId);
+    }
+    // A dialog of searchable choices and switches (Translate's languages).
+    // Each change is reported right away through `changed` with the field's
+    // key and its new value (choice value, or "true"/"false" for a switch).
+    struct FormField
+    {
+        QString key;
+        QString label;
+        QString description;
+        QList<QPair<QString, QString>> choices; // value, label; empty: a switch
+        QString value; // the chosen value, or "true"/"false"
+    };
+    virtual void showForm(const QString &title, const QList<FormField> &fields,
+                          std::function<void(const QString &key, const QString &value)> changed)
+    {
+        Q_UNUSED(title);
+        Q_UNUSED(fields);
+        Q_UNUSED(changed);
     }
     // Re-renders the lock screen of a hidden channel, if it is showing
     virtual void refreshLockScreen() {}

@@ -392,6 +392,7 @@ def seed_messages() -> None:
     add(CH["media"], "ava", "screenshot of the new layout", 90, attachments=[attachment("layout.png", 480, 270)])
     add(CH["media"], "ben", "", 80, attachments=[attachment("diagram.png", 320, 320)])
     add(CH["media"], "ava", f"ask <@{STRANGER['id']}> about the render farm", 78)
+    add(CH["media"], "cleo", "¿Alguien quiere probar la nueva versión esta noche?", 77)  # Translate
     add(CH["dev"], "ben", "here's the build log", 75, attachments=[text_attachment("build.log")])
     add(CH["dev"], "cleo", "and my (long) notes", 74, attachments=[text_attachment("notes-big.txt")])
     add(CH["rules"], "self", "1. Be kind\n2. No spam\n3. Have fun", 60 * 400)
@@ -1271,6 +1272,35 @@ def cdn(path: str) -> tuple[int, bytes, str]:
     return 200, png(64, 64, colour_for(key.split("/")[4] if key.count("/") > 4 else key)), "image/png"
 
 
+# Translate plugin: fake Google / DeepL / Kagi answers (no real service)
+SPANISH = {"¿Alguien quiere probar la nueva versión esta noche?":
+           "Does anyone want to try the new version tonight?"}
+
+
+def fake_translation(text: str, to: str) -> tuple[str, str]:
+    if text in SPANISH and to.lower().startswith("en"):
+        return SPANISH[text], "es"
+    return f"[{to}] {text}", "en"
+
+
+def mock_translate(path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
+    if path.startswith("/cdn/translate-pa.googleapis.com/"):
+        text, source = fake_translation(query.get("query.text", [""])[0], query.get("query.targetLanguage", ["en"])[0])
+        return 200, json.dumps({"translation": text, "sourceLanguage": source}).encode(), "application/json"
+    req = json.loads(body or b"{}")
+    if "deepl.com/" in path:
+        if headers.get("authorization", "") != "DeepL-Auth-Key mock-key":
+            return 403, b"Forbidden", "text/plain"
+        text, source = fake_translation(req["text"][0], req.get("target_lang", "en"))
+        return 200, json.dumps({"translations": [{"detected_source_language": source.upper(),
+                                                  "text": text}]}).encode(), "application/json"
+    if "kagi_session=mock-session" not in headers.get("cookie", ""):
+        return 401, b"{}", "application/json"
+    text, source = fake_translation(req["text"], req.get("to", "en"))
+    return 200, json.dumps({"translation": text, "detected_language": {"label": "Spanish" if source == "es" else
+                                                                       "English"}}).encode(), "application/json"
+
+
 # ---------------------------------------------------------------------------
 # HTTP server
 # ---------------------------------------------------------------------------
@@ -1324,7 +1354,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             url = urlsplit(target)
             query = parse_qs(url.query)
-            if url.path.startswith("/cdn/"):
+            if url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
+                                    "/cdn/api.deepl.com/", "/cdn/translate.kagi.com/")):
+                status, data, ctype = mock_translate(url.path, query, body, headers)
+            elif url.path.startswith("/cdn/"):
                 status, data, ctype = cdn(url.path)
             elif url.path == "/mock/dispatch" and method == "POST":
                 ev = json.loads(body)
@@ -1339,7 +1372,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 status, obj, _ = await handle_rest(method, url.path, query, body, headers)
                 data = b"" if obj is None else json.dumps(obj).encode()
                 ctype = "application/json"
-            reason = {200: "OK", 201: "Created", 204: "No Content", 404: "Not Found", 400: "Bad Request"}.get(status, "OK")
+            reason = {200: "OK", 201: "Created", 204: "No Content", 404: "Not Found", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 456: "Quota Exceeded"}.get(status, "OK")
             head = (f"HTTP/1.1 {status} {reason}\r\nContent-Type: {ctype}\r\n"
                     f"Content-Length: {len(data)}\r\nConnection: keep-alive\r\n\r\n")
             writer.write(head.encode() + data)

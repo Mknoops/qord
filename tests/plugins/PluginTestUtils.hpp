@@ -27,6 +27,14 @@ public:
         urls.append(url);
         return h;
     }
+    Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override
+    {
+        const Handle h = ++next;
+        requests.insert(h, { url, std::move(callback) });
+        urls.append(url);
+        posts.append({ url, headers, body });
+        return h;
+    }
     void cancel(Handle handle) override
     {
         if (requests.remove(handle))
@@ -57,6 +65,13 @@ public:
         QUrl url;
         Callback callback;
     };
+    struct Post
+    {
+        QUrl url;
+        Headers headers;
+        QByteArray body;
+    };
+    QList<Post> posts;
     QHash<Handle, Pending> requests;
     QList<QUrl> urls;
     int cancelled = 0;
@@ -133,6 +148,16 @@ public:
     void cancelEditing() override { ++editCancels; }
     void focusMessageBox() override { ++focuses; }
     void revealMessage(Id messageId) override { revealed.append(messageId); }
+    void showForm(const QString &title, const QList<FormField> &fields,
+                  std::function<void(const QString &, const QString &)> changed) override
+    {
+        formTitle = title;
+        formFields = fields;
+        formChanged = std::move(changed);
+    }
+    QString formTitle;
+    QList<FormField> formFields;
+    std::function<void(const QString &, const QString &)> formChanged;
     int replyCancels = 0;
     int editCancels = 0;
     int focuses = 0;

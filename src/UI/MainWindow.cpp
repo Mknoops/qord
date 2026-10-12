@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QPointer>
 #include <QGuiApplication>
 #include <QMessageBox>
 #include <QPointer>
@@ -1456,10 +1457,28 @@ void MainWindow::setupUi()
         Snowflake replyTo = messageInput->replyTargetMessageId();
         if (!chatModel->isAtLatest())
             chatView->jumpToPresent();
-        if (!currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments,
-                                                      messageInput->replyMentionEnabled())) {
+        using SendResult = Core::MessageManager::SendResult;
+        QPointer<MessageInput> input(messageInput);
+        const SendResult result = currentInstance->messages()->sendMessage(
+                channelId, text, replyTo, attachments, messageInput->replyMentionEnabled(), true,
+                [this, input, channelId](bool sent) {
+                    if (!input)
+                        return;
+                    input->setSending(false);
+                    // Cleared only if still showing that channel's draft
+                    if (sent && chatModel->getActiveChannelId() == channelId)
+                        input->clear();
+                });
+        if (result == SendResult::Cancelled) {
             // Qord: a plugin stopped the send; the text stays, like Discord
             messageInput->keepContentsAfterSend();
+            return;
+        }
+        if (result == SendResult::Deferred) {
+            // Qord: a plugin (auto-translate) finishes the send later; the box
+            // keeps the text, locked, until then
+            messageInput->keepContentsAfterSend();
+            messageInput->setSending(true);
             return;
         }
 

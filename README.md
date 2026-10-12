@@ -176,6 +176,7 @@ inventory). All are off by default.
 | **SilentTyping** | Hides that you're typing | control_typing, add_ui_elements |
 | **TalkInReverse** | Reverses your message before sending | modify_outgoing_messages, add_ui_elements |
 | **TextReplace** | Find-and-replace rules (plain text and regex) for your messages | modify_outgoing_messages, modify_displayed_messages |
+| **Translate** | Translate messages (shown under them) and, optionally, your own before sending, with Google, DeepL or Kagi | add_ui_elements, network, modify_outgoing_messages, modify_displayed_messages |
 | **TypingIndicator** | Who is typing, next to channels in the channel list | add_ui_elements, read_relationships, read_server_permissions |
 | **Unindent** | Trims leading indentation from code blocks | modify_outgoing_messages, modify_displayed_messages |
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |

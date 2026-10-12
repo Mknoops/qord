@@ -62,6 +62,12 @@ struct OutgoingMessage
     QList<Id> stickerIds; // a sticker being sent (new messages only)
     // Set by a hook to stop the send or edit; the text stays in the message box
     bool cancel = false;
+    // New messages only: set by a hook that needs the network first
+    // (Translate's auto-translate). The send waits, with the message box
+    // locked, until `done` is called with the final content; done(nullopt)
+    // gives up and leaves the text in the box. Only one hook may defer.
+    using DeferredDone = std::function<void(std::optional<QString> content)>;
+    std::function<void(const QString &content, DeferredDone done)> deferred;
 };
 
 // A received message about to be rendered. Hooks may rewrite `content`; the
@@ -116,6 +122,7 @@ struct ChatContext
     // on left, middle and right clicks)
     enum class Click { Left, Middle, Right };
     Click click = Click::Left;
+    bool shift = false; // Shift was held (Translate toggles auto-translate)
 };
 
 // About to tell Discord the user is typing.
@@ -306,6 +313,9 @@ struct ChatBarButton
     QString tooltip;
     QByteArray svg;
     bool active = false;
+    // Chat bar only: shown as a tooltip right away, without hovering, while
+    // set (Translate's "Auto Translate Enabled")
+    QString popupTooltip;
 };
 
 // A menu entry; one with children is shown as a submenu.
@@ -331,6 +341,7 @@ struct MessageContext
     quint64 flags = 0; // Discord message flags
     Id referencedAuthorId = 0; // author of the replied-to message, if known
     QString content;
+    QString snapshotContent; // a forwarded message's content
     QDateTime timestamp;
     QDateTime editedTimestamp;
     bool deleted = false; // kept on screen by a plugin after deletion
@@ -689,6 +700,17 @@ struct DiffPart
     QString text;
     bool operator==(const DiffPart &o) const { return kind == o.kind && text == o.text; }
 };
+
+// Shown under a message's text (Translate's translation).
+struct MessageAccessory
+{
+    QString content; // markdown, rendered like message text
+    QString footer; // small text under it, e.g. "translated from Spanish"
+    // Links after the footer ("Dismiss"); a click calls onMessageAccessoryAction
+    QList<MenuItem> links;
+};
+// How the chat links to an accessory's links: <href><plugin id>/<link id>
+inline constexpr const char *MessageAccessoryHref = "acheron://accessory/";
 
 // Extra state a plugin attaches to a message for rendering.
 struct MessageAnnotation

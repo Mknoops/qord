@@ -740,8 +740,8 @@ void MainWindow::setupQordFeatures()
             if (out.stickerIds.isEmpty()) {
                 messageInput->clearReplyTarget();
                 if (!content.trimmed().isEmpty())
-                    currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
-                                                             messageInput->replyMentionEnabled(), false);
+                    (void)currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
+                                                                   messageInput->replyMentionEnabled(), false);
                 return;
             }
             stickerId = Snowflake(out.stickerIds.first());

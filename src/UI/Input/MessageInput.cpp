@@ -154,7 +154,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     setFocusProxy(textEdit);
 
     connect(textEdit, &ChatTextEdit::returnPressed, [this]() {
-        if (sendBlocked)
+        if (sendBlocked || sending)
             return;
         QString txt = textEdit->toPlainText().trimmed();
         if (txt.isEmpty() && !attachmentPanel->hasAttachments())
@@ -229,6 +229,12 @@ void MessageInput::setPlaceholder(const QString &name)
 void MessageInput::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
+}
+
+void MessageInput::setSending(bool value)
+{
+    sending = value;
+    textEdit->setReadOnly(value);
 }
 
 void MessageInput::clear()

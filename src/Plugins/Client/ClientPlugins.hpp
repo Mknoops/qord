@@ -37,9 +37,12 @@ public:
     ~QtNetworkService() override;
 
     Handle get(const QUrl &url, Callback callback) override;
+    Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override;
     void cancel(Handle handle) override;
 
 private:
+    Handle send(const QUrl &url, const Headers &headers, const QByteArray *body, Callback callback);
+
     QNetworkAccessManager *nam = nullptr;
     QHash<Handle, QPointer<QNetworkReply>> replies;
     Handle next = 0;
@@ -92,6 +95,8 @@ public:
     // Set by the main window, which owns the message box
     static std::function<void(const QString &)> &messageBoxInserter();
     void openPluginSettings(const QString &pluginId) override;
+    void showForm(const QString &title, const QList<FormField> &fields,
+                  std::function<void(const QString &, const QString &)> changed) override;
     void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                     std::function<void(const QString &)> done) override;
     static std::function<void(const QString &)> &pluginSettingsOpener();

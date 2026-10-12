@@ -92,5 +92,62 @@ bool TokenStore::deleteToken(Snowflake accountId)
     return true;
 }
 
+Result<QString> TokenStore::loadSecret(const QString &key)
+{
+    QKeychain::ReadPasswordJob job(SERVICE_NAME);
+    job.setAutoDelete(false);
+    job.setKey(key);
+
+    QEventLoop loop;
+    QObject::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+    job.start();
+    loop.exec();
+
+    if (job.error() == QKeychain::EntryNotFound)
+        return Result<QString>::makeOk(QString());
+    if (job.error() != QKeychain::NoError) {
+        qCWarning(LogCore) << "TokenStore: Failed to load secret" << key << ":" << job.errorString();
+        return Result<QString>::makeError(describeKeychainFailure(job.errorString()));
+    }
+    return Result<QString>::makeOk(job.textData());
+}
+
+bool TokenStore::saveSecret(const QString &key, const QString &value)
+{
+    QKeychain::WritePasswordJob job(SERVICE_NAME);
+    job.setAutoDelete(false);
+    job.setKey(key);
+    job.setTextData(value);
+
+    QEventLoop loop;
+    QObject::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+    job.start();
+    loop.exec();
+
+    if (job.error() != QKeychain::NoError) {
+        qCWarning(LogCore) << "TokenStore: Failed to save secret" << key << ":" << job.errorString();
+        return false;
+    }
+    return true;
+}
+
+bool TokenStore::deleteSecret(const QString &key)
+{
+    QKeychain::DeletePasswordJob job(SERVICE_NAME);
+    job.setAutoDelete(false);
+    job.setKey(key);
+
+    QEventLoop loop;
+    QObject::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+    job.start();
+    loop.exec();
+
+    if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
+        qCWarning(LogCore) << "TokenStore: Failed to delete secret" << key << ":" << job.errorString();
+        return false;
+    }
+    return true;
+}
+
 } // namespace Core
 } // namespace Acheron

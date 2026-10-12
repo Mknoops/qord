@@ -61,6 +61,9 @@
 #include "Core/MemberListManager.hpp"
 
 #include <QDateTime>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QInputDialog>
 #include <QJsonObject>
 #include <QMenu>
 #include "Core/ReadStateManager.hpp"
@@ -159,6 +162,70 @@ void MainWindow::addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Sno
 #endif
 }
 
+bool MainWindow::canCreateThreadsIn(Core::ClientInstance *instance, Snowflake channelId) const
+{
+    if (!instance)
+        return false;
+    const auto channel = instance->getChannel(channelId);
+    if (!channel || channel->isThread() || !channel->type.hasValue())
+        return false;
+    const auto type = channel->type.get();
+    if (type != Discord::ChannelType::GUILD_TEXT && type != Discord::ChannelType::GUILD_NEWS)
+        return false;
+    return instance->permissions()->hasChannelPermission(instance->accountId(), channelId,
+                                                         Discord::Permission::CREATE_PUBLIC_THREADS);
+}
+
+void MainWindow::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &suggestedName)
+{
+    if (!currentInstance)
+        return;
+    QInputDialog dialog(this);
+    dialog.setWindowTitle(tr("Create Thread"));
+    dialog.setLabelText(tr("Thread name"));
+    dialog.setTextValue(suggestedName);
+    if (auto *edit = dialog.findChild<QLineEdit *>()) {
+        edit->setMaxLength(100); // Discord's limit
+        edit->setMinimumWidth(400);
+    }
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    const QString name = dialog.textValue().trimmed();
+    if (name.isEmpty())
+        return;
+    const QPointer<Core::ClientInstance> instance(currentInstance);
+    const QPointer<MainWindow> self(this);
+    currentInstance->discord()->createThreadFromMessage(
+            channelId, messageId, name, [self, instance](const Core::Result<Discord::Channel> &result) {
+                if (!self || !instance)
+                    return;
+                if (!result.success()) {
+                    QMessageBox::warning(self, tr("Create Thread"), tr("Couldn't create the thread: %1").arg(result.error));
+                    return;
+                }
+                const Snowflake threadId = result.value->id.get();
+                // THREAD_CREATE brings the thread into the channel list; it may
+                // come before or after this reply
+                if (instance->getChannel(threadId)) {
+                    self->navigateToChannel(threadId);
+                    return;
+                }
+                auto connection = std::make_shared<QMetaObject::Connection>();
+                *connection = connect(instance->discord(), &Discord::Client::threadCreated, self,
+                                      [self, threadId, connection](const Discord::ChannelCreate &event) {
+                                          if (event.channel->id.get() != threadId)
+                                              return;
+                                          disconnect(*connection);
+                                          QTimer::singleShot(0, self, [self, threadId]() {
+                                              if (self)
+                                                  self->navigateToChannel(threadId);
+                                          });
+                                      });
+                // Don't wait forever for an event that may never come
+                QTimer::singleShot(10000, self, [connection]() { disconnect(*connection); });
+            });
+}
+
 void MainWindow::setupQordFeatures()
 {
     applyQordSurfaces();
@@ -207,6 +274,10 @@ void MainWindow::setupQordFeatures()
 #endif
     });
 #endif
+    // Threads from messages
+    connect(chatView, &ChatView::createThreadRequested, this, &MainWindow::createThreadFromMessage);
+    connect(chatView, &ChatView::openThreadRequested, this, &MainWindow::navigateToChannel);
+
     // Hover highlights on channel rows, like Discord
     channelTree->setMouseTracking(true);
     channelTree->viewport()->setAttribute(Qt::WA_Hover);

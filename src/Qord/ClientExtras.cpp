@@ -296,6 +296,27 @@ void Client::sendGatewayOp(int op, const Core::OrderedJson &d)
         gateway->sendOp(op, d);
 }
 
+void Client::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,
+                                     ThreadCallback callback)
+{
+    QJsonObject body;
+    body["name"] = name.left(100);
+    body["auto_archive_duration"] = 1440; // a day, Discord's default
+    const QString endpoint = QStringLiteral("/channels/%1/messages/%2/threads")
+                                     .arg(quint64(channelId))
+                                     .arg(quint64(messageId));
+    httpClient->post(endpoint, body, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Failed to create a thread:" << response.error;
+            if (callback)
+                callback(Core::Result<Channel>::makeError(response.error));
+            return;
+        }
+        if (callback)
+            callback(Core::Result<Channel>::makeOk(Channel::fromJson(QJsonDocument::fromJson(response.body).object())));
+    });
+}
+
 void Client::setSelfVideo(bool on)
 {
     if (gateway)

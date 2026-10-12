@@ -364,6 +364,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
         messageInput->setPlaceholder("Message @" + name);
         chatView->setCanPinMessages(true);
         chatView->setCanManageMessages(false);
+        chatView->setCanCreateThreads(false);
         slowModeIndicator->setSlowMode(channelId, 0, false);
         setMemberListVisible(false);
         instance->memberList()->clear();
@@ -387,6 +388,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     messageInput->setSendBlocked(onCooldown);
     chatView->setCanPinMessages(canPin);
     chatView->setCanManageMessages(canManage);
+    chatView->setCanCreateThreads(canCreateThreadsIn(instance, channelId));
 
     if (archived)
         messageInput->setPlaceholder("This thread is archived");
@@ -715,6 +717,7 @@ void MainWindow::openForumPost(Core::Snowflake threadId, Core::Snowflake guildId
                                          : tr("You do not have permission to send messages"));
     chatView->setCanPinMessages(false);
     chatView->setCanManageMessages(false);
+    chatView->setCanCreateThreads(false);
 
     switchChatChannel(threadId, guildId);
     Snowflake lastMsgId = currentInstance->readState()->getChannelLastMessageId(threadId);
@@ -2668,6 +2671,7 @@ void MainWindow::onChannelPermissionsChanged(Core::Snowflake channelId)
     messageInput->setSendBlocked(onCooldown);
     chatView->setCanPinMessages(canPin);
     chatView->setCanManageMessages(canManage);
+    chatView->setCanCreateThreads(canCreateThreadsIn(currentInstance, channelId));
 
     if (voiceLocked) {
         messageInput->setPlaceholder("You do not have permission to connect to this channel");

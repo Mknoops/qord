@@ -1282,6 +1282,9 @@ struct Message : Core::JsonUtils::JsonObject
     QString interactionUserName;
     Core::Snowflake interactionUserId;
     bool pinned = false; // Qord
+    // Qord: the thread started from this message (HAS_THREAD), when known
+    QString threadName;
+    int threadMessageCount = -1;
 
     std::shared_ptr<Message> snapshotMessage;
 
@@ -1355,6 +1358,9 @@ struct Message : Core::JsonUtils::JsonObject
                 message.interactionUserName = user.value(QStringLiteral("username")).toString();
             message.interactionUserId = Core::Snowflake(user.value(QStringLiteral("id")).toString().toULongLong());
             message.pinned = obj.value(QStringLiteral("pinned")).toBool();
+            const QJsonObject thread = obj.value(QStringLiteral("thread")).toObject();
+            message.threadName = thread.value(QStringLiteral("name")).toString();
+            message.threadMessageCount = thread.value(QStringLiteral("message_count")).toInt(-1);
         }
         get(obj, "channel_id", message.channelId);
         get(obj, "author", message.author);
@@ -1413,6 +1419,10 @@ struct Message : Core::JsonUtils::JsonObject
             type = update.type;
         if (present.contains(QStringLiteral("flags")))
             flags = update.flags;
+        if (present.contains(QStringLiteral("thread"))) { // Qord
+            threadName = update.threadName;
+            threadMessageCount = update.threadMessageCount;
+        }
         if (present.contains(QStringLiteral("mentions")))
             mentions = update.mentions;
         if (present.contains(QStringLiteral("mention_roles")))

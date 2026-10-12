@@ -854,6 +854,33 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
                 f"allowed_mentions={j.get('allowed_mentions')}")
             await broadcast("MESSAGE_CREATE", m)
             return 200, m, "json"
+        if len(rest) == 3 and rest[0] == "messages" and rest[2] == "threads" and method == "POST":
+            # A thread started from a message: it takes the message's id
+            m = find_message(cid, rest[1])
+            if not m:
+                return 404, {"message": "Unknown Message", "code": 10008}, "json"
+            if m.get("flags", 0) & 32:
+                return 400, {"message": "A thread has already been created for this message", "code": 160004}, "json"
+            gid = GUILD_OF.get(cid)
+            name = (j.get("name") or "").strip()[:100]
+            if not name:
+                return 400, {"message": "Invalid Form Body", "code": 50035}, "json"
+            thread = {"id": m["id"], "type": 11, "guild_id": gid, "parent_id": cid, "name": name,
+                      "owner_id": SELF_ID, "last_message_id": None, "message_count": 0, "member_count": 1,
+                      "rate_limit_per_user": 0, "flags": 0, "total_message_sent": 0,
+                      "thread_metadata": {"archived": False, "locked": False,
+                                          "auto_archive_duration": j.get("auto_archive_duration", 1440),
+                                          "archive_timestamp": iso(int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))},
+                      "member": {"id": m["id"], "user_id": SELF_ID, "flags": 1,
+                                 "join_timestamp": iso(int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))}}
+            MESSAGES.setdefault(thread["id"], [])
+            GUILD_OF[thread["id"]] = gid
+            await broadcast("THREAD_CREATE", dict(thread, newly_created=True))
+            m["flags"] = m.get("flags", 0) | 32  # HAS_THREAD
+            m["thread"] = thread
+            await broadcast("MESSAGE_UPDATE", m)
+            log(f"rest: thread {name!r} created from message {m['id']} in {cid}")
+            return 201, thread, "json"
         if len(rest) == 2 and rest[0] == "messages":
             mid = rest[1]
             m = find_message(cid, mid)

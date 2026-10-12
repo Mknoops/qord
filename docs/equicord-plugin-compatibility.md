@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 339 |
+| Not Started | 337 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 30 |
+| Tested | 32 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -242,7 +242,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PartyMode | `src/equicordplugins/partyMode` |  | Not Started |  |
 | PauseInvitesForever | `src/plugins/pauseInvitesForever` |  | Not Started |  |
 | PermissionFreeWill | `src/plugins/permissionFreeWill` |  | Not Started |  |
-| PermissionsViewer | `src/plugins/permissionsViewer` | `plugins/utility/permissionsviewer` | Tested | "View Permissions" in the user (server members), channel and server menus opens Discord's permissions dialog: roles (or a channel's role and member overwrites) on the left, what the selected one allows and denies on the right, with descriptions as tooltips and Copy Role/User ID on right-click. A shield next to Roles in a member's profile shows their permissions with the granting role, the sort order toggle and Role Details. Checked against the mock. gaps: BetterRoleContext's role menu items and View As Role are not ported; Use Clyde AI (bit 47) has no name in Qord and isn't listed. |
+| PermissionsViewer | `src/plugins/permissionsViewer` | `plugins/utility/permissionsviewer` | Tested | "View Permissions" is in the user menu (server members), the channel menu and the server menu, and a shield button next to Roles in a member's profile shows their permissions with the role granting each (hover for "Granted by"), the sort order toggle and Role Details. Members named in channel overwrites that Qord hasn't loaded are requested from Discord. wired; not yet verified in the running client. gaps: Right-clicking a role in the list offers Copy Role ID only; BetterRoleContext's extra items and View As Role are not ported; Discord's newest permission (Use Clyde AI, bit 47) has no name in Qord's role settings, so it isn't listed. |
 | PetPet | `src/plugins/petpet` |  | Not Started |  |
 | PictureInPicture | `src/plugins/pictureInPicture` |  | Not Started |  |
 | PinDMs | `src/plugins/pinDms` |  | Not Started |  |
@@ -381,7 +381,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | WebScreenShare | `src/plugins/webScreenShare.browser` |  | Not Started |  |
 | WebScreenShareFixes | `src/plugins/webScreenShareFixes.web` |  | Not Started |  |
 | WhitelistedEmojis | `src/equicordplugins/whitelistedEmojis` |  | Not Started |  |
-| WhoReacted | `src/plugins/whoReacted` | `plugins/chat/whoreacted` | Tested | Up to five avatars and "+N" in each reaction pill, fetched once per reaction (newest first, 250 ms apart) and kept live from gateway reaction events; messages with more than 10 reactions are skipped, and users NoBlockedMessages hides are left out. Clicking an avatar opens the profile (setting). Checked against the mock. gaps: upstream's scroll-anchor fix is not needed (Qord keeps its own scroll position). |
+| WhoReacted | `src/plugins/whoReacted` | `plugins/chat/whoreacted` | Tested | Up to five avatars and "+N" next to each reaction's count, on messages with at most ten reactions, as upstream. Reactions are fetched one at a time, newest first, 250 ms apart, and kept up to date as people react; users NoBlockedMessages hides are left out. The setting applies at once (upstream needs a restart). wired; not yet verified in the running client. |
 | WhosWatching | `src/equicordplugins/whosWatching` |  | Not Started |  |
 | WigglyText | `src/equicordplugins/wigglyText` |  | Not Started |  |
 | WriteUpperCase | `src/equicordplugins/writeUpperCase` | `plugins/chat/writeuppercase` | Tested | An empty blocked-words list capitalizes everything; upstream treats it as one empty word that blocks every sentence. wired; not yet verified in the running client. |

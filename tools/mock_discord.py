@@ -299,6 +299,20 @@ def attachment(name: str, w: int, h: int) -> dict:
             "width": w, "height": h, "content_type": "image/png"}
 
 
+# Text files (Discord's text preview, CopyFileContents)
+BUILD_LOG = "".join(f"[{i:02d}] step {i}: compiling module_{i}.cpp ... ok\n" for i in range(1, 31)).encode()
+BIG_TEXT = "".join(f"line {i:05d}: " + "lorem ipsum dolor sit amet " * 2 + "\n" for i in range(1, 1100)).encode()
+TEXT_FILES = {"build.log": BUILD_LOG, "notes-big.txt": BIG_TEXT}
+
+
+def text_attachment(name: str) -> dict:
+    aid = snowflake()
+    url = f"https://cdn.discordapp.com/attachments/{CH['dev']}/{aid}/{name}"
+    return {"id": aid, "filename": name, "size": len(TEXT_FILES[name]), "url": url,
+            "proxy_url": url.replace("cdn.discordapp.com", "media.discordapp.net"),
+            "content_type": "text/plain; charset=utf-8"}
+
+
 def message(cid: str, author: str, content: str, at_ms: int, **extra) -> dict:
     mid = snowflake(at_ms)
     ch_guild = next((g for g, chans in GUILD_CHANNELS.items() if any(c["id"] == cid for c in chans)), None)
@@ -375,6 +389,8 @@ def seed_messages() -> None:
 
     add(CH["media"], "ava", "screenshot of the new layout", 90, attachments=[attachment("layout.png", 480, 270)])
     add(CH["media"], "ben", "", 80, attachments=[attachment("diagram.png", 320, 320)])
+    add(CH["dev"], "ben", "here's the build log", 75, attachments=[text_attachment("build.log")])
+    add(CH["dev"], "cleo", "and my (long) notes", 74, attachments=[text_attachment("notes-big.txt")])
     add(CH["rules"], "self", "1. Be kind\n2. No spam\n3. Have fun", 60 * 400)
     add(CH["announcements"], "self", "**Qord 0.1** is out! 🎉", 60 * 100)
     add(CH["g2_general"], "ava", "welcome to the second server", 60 * 5)
@@ -1237,6 +1253,8 @@ def cdn(path: str) -> tuple[int, bytes, str]:
     key = path
     if "/attachments/" in path:
         name = path.rsplit("/", 1)[-1]
+        if name in TEXT_FILES:
+            return 200, TEXT_FILES[name], "text/plain; charset=utf-8"
         if name.startswith("diagram"):
             return 200, png(320, 320, (88, 101, 242), gradient=True), "image/png"
         return 200, png(480, 270, (235, 69, 158), gradient=True), "image/png"

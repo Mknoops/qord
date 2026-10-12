@@ -21,6 +21,9 @@
 #include <QJsonDocument>
 #include <QCursor>
 #include <QToolTip>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 #include "UI/Qord/FriendsPage.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -31,6 +34,7 @@
 #include "UI/TypingIndicator.hpp"
 #include "Core/TypingTracker.hpp"
 #include "Core/ImageManager.hpp"
+#include "Core/NetworkRequest.hpp"
 #include "UI/Qord/AddServerDialog.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
@@ -303,6 +307,35 @@ void MainWindow::setupQordFeatures()
         Toast::show(active ? active : this, text, Toast::Type(int(type)));
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
+
+    // Text file previews: the start of the file (a Range request, so a large
+    // file isn't downloaded), and plugin buttons on them (CopyFileContents)
+    chatModel->setTextLoader([this](const QUrl &url, QObject *context,
+                                    std::function<void(bool, const QByteArray &)> done) {
+        QNetworkAccessManager *network =
+                session->getImageManager()->networkManagerFor(currentInstance ? currentInstance->accountId() : Snowflake());
+        if (!network || !url.isValid()) {
+            done(false, {});
+            return;
+        }
+        QNetworkRequest request = Core::networkRequest(url); // the mock's CDN in mock mode
+        request.setRawHeader("Range", "bytes=0-" + QByteArray::number(ChatModel::TextPreviewBytes - 1));
+        QNetworkReply *reply = network->get(request);
+        connect(reply, &QNetworkReply::finished, context, [reply, done]() {
+            reply->deleteLater();
+            const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            const bool ok = reply->error() == QNetworkReply::NoError && (status == 200 || status == 206);
+            done(ok, ok ? reply->read(ChatModel::TextPreviewBytes) : QByteArray());
+        });
+    });
+    Qord::Plugins::QtUiService::attachmentRefresher() = [this](Qord::Plugins::Id accountId,
+                                                               Qord::Plugins::Id channelId,
+                                                               Qord::Plugins::Id messageId) {
+        if (currentInstance && quint64(currentInstance->accountId()) == accountId &&
+            quint64(chatModel->getActiveChannelId()) == channelId)
+            chatModel->refreshAttachments(Snowflake(messageId));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
 
     // ShowHiddenChannels: the list follows the plugin, and its lock screen
     // loads avatars and can be re-rendered by the plugin

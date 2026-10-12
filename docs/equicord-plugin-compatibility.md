@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 336 |
+| Not Started | 335 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 33 |
+| Tested | 34 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -79,7 +79,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ConsoleShortcuts | `src/plugins/consoleShortcuts` |  | Not Started |  |
 | ContentWarning | `src/equicordplugins/contentWarning` |  | Not Started |  |
 | CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` |  | Not Started |  |
-| CopyFileContents | `src/plugins/copyFileContents` |  | Not Started |  |
+| CopyFileContents | `src/plugins/copyFileContents` | `plugins/utility/copyfilecontents` | Tested | The copy button sits in a text file's preview and in its "View whole file" window. It copies with a "Copied to clipboard!" toast and shows a check mark for two seconds; a file Qord loaded only the start of (over 50,000 bytes) can't be copied, as upstream says, "File too large to copy". wired; not yet verified in the running client. |
 | CopyProfileColors | `src/equicordplugins/copyProfileColors` |  | Not Started |  |
 | CopyStatusUrls | `src/equicordplugins/copyStatusUrls` |  | Not Started |  |
 | CopyStickerLinks | `src/plugins/copyStickerLinks` |  | Not Started |  |

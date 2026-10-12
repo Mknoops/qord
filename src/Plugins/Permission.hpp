@@ -74,11 +74,12 @@ enum class Hook : quint32 {
     ReactionUsers = 1u << 21,
     ProfileRoleButtons = 1u << 22,
     HiddenChannels = 1u << 23,
+    AttachmentButtons = 1u << 24,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 24;
+constexpr int HookCount = 25;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

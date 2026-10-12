@@ -4,6 +4,7 @@
 #include <QStyledItemDelegate>
 
 namespace Acheron {
+struct AttachmentData;
 namespace Core {
 class ImageManager;
 } // namespace Core
@@ -31,6 +32,9 @@ public:
     };
     [[nodiscard]] QList<HeaderTip> headerTips(quint64 messageId) const { return lastHeaderTips.value(messageId); }
 
+    // Qord: a text file's preview (ChatLayout::textPreviewButtons)
+    void paintTextPreview(QPainter *painter, const QStyleOptionViewItem &option, const QRect &box,
+                          const Acheron::AttachmentData &att) const;
     // Qord: Discord's header timestamp ("Today at 3:45 PM")
     static QString headerTimestamp(const QDateTime &timestamp);
 

@@ -1,5 +1,6 @@
 #include "ChatModel.hpp"
 
+#include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
 
 #include <QImageReader>
@@ -229,6 +230,102 @@ void ChatModel::refreshRowsShowingSticker(const QUrl &stickerUrl)
         if (shown) {
             const QModelIndex idx = index(row, 0);
             emit dataChanged(idx, idx, { StickersRole });
+        }
+    }
+}
+
+bool ChatModel::isTextFile(const QString &filename, const QString &contentType)
+{
+    static const QSet<QString> extensions = {
+        QStringLiteral("txt"),  QStringLiteral("md"),   QStringLiteral("log"),  QStringLiteral("json"),
+        QStringLiteral("xml"),  QStringLiteral("yml"),  QStringLiteral("yaml"), QStringLiteral("toml"),
+        QStringLiteral("ini"),  QStringLiteral("cfg"),  QStringLiteral("conf"), QStringLiteral("csv"),
+        QStringLiteral("tsv"),  QStringLiteral("js"),   QStringLiteral("mjs"),  QStringLiteral("ts"),
+        QStringLiteral("jsx"),  QStringLiteral("tsx"),  QStringLiteral("py"),   QStringLiteral("c"),
+        QStringLiteral("h"),    QStringLiteral("cpp"),  QStringLiteral("hpp"),  QStringLiteral("cc"),
+        QStringLiteral("cs"),   QStringLiteral("java"), QStringLiteral("kt"),   QStringLiteral("go"),
+        QStringLiteral("rs"),   QStringLiteral("rb"),   QStringLiteral("php"),  QStringLiteral("sh"),
+        QStringLiteral("bash"), QStringLiteral("ps1"),  QStringLiteral("bat"),  QStringLiteral("lua"),
+        QStringLiteral("sql"),  QStringLiteral("html"), QStringLiteral("css"),  QStringLiteral("scss"),
+        QStringLiteral("diff"), QStringLiteral("patch"), QStringLiteral("swift"), QStringLiteral("dart"),
+        QStringLiteral("vue"),  QStringLiteral("cmake"), QStringLiteral("gradle"), QStringLiteral("properties"),
+    };
+    const QString type = contentType.section(QLatin1Char(';'), 0, 0).trimmed().toLower();
+    if (type == QLatin1String("image/svg+xml"))
+        return false;
+    if (type.startsWith(QLatin1String("text/")) || type == QLatin1String("application/json") ||
+        type == QLatin1String("application/xml") || type == QLatin1String("application/javascript"))
+        return true;
+    const int dot = filename.lastIndexOf(QLatin1Char('.'));
+    return dot > 0 && extensions.contains(filename.mid(dot + 1).toLower());
+}
+
+void ChatModel::loadTextPreview(Snowflake messageId, AttachmentData &data) const
+{
+    auto it = textPreviews.constFind(data.id);
+    if (it == textPreviews.constEnd()) {
+        if (!textLoader || suppressImageFetch)
+            return;
+        textPreviews.insert(data.id, {}); // loading
+        const Snowflake attachmentId = data.id;
+        const qint64 size = data.fileSizeBytes;
+        auto *self = const_cast<ChatModel *>(this);
+        textLoader(data.originalUrl, self, [self, messageId, attachmentId, size](bool ok, const QByteArray &bytes) {
+            TextPreview preview;
+            preview.loaded = ok;
+            if (ok) {
+                const QByteArray start = bytes.left(TextPreviewBytes);
+                preview.text = QString::fromUtf8(start);
+                preview.bytesLeft = qMax<qint64>(0, size - start.size());
+                // A character cut in two at the end of what was loaded
+                if (preview.bytesLeft > 0 && preview.text.endsWith(QChar::ReplacementCharacter))
+                    preview.text.chop(1);
+            }
+            self->textPreviews.insert(attachmentId, preview);
+            self->refreshAttachments(messageId);
+        });
+        return;
+    }
+    if (!it->loaded)
+        return;
+    data.textLoaded = true;
+    data.textPreview = it->text;
+    data.textBytesLeft = it->bytesLeft;
+    data.textExpanded = expandedTexts.contains(data.id);
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::AttachmentButtons))
+        for (const auto &entry : host->dispatchAttachmentButtons(attachmentContext(messageId, data)))
+            data.textButtons.append({ entry.pluginId, entry.button.id, entry.button.tooltip, entry.button.svg });
+}
+
+Qord::Plugins::AttachmentContext ChatModel::attachmentContext(Snowflake messageId, const AttachmentData &attachment) const
+{
+    Qord::Plugins::AttachmentContext context;
+    context.accountId = quint64(currentAccountId);
+    context.channelId = Qord::Plugins::pluginId(getActiveChannelId());
+    context.messageId = quint64(messageId);
+    context.attachmentId = quint64(attachment.id);
+    context.filename = attachment.filename;
+    context.contentType = attachment.contentType;
+    context.size = attachment.fileSizeBytes;
+    context.text = attachment.textPreview;
+    context.bytesLeft = attachment.textBytesLeft;
+    return context;
+}
+
+void ChatModel::toggleTextExpanded(Snowflake messageId, Snowflake attachmentId)
+{
+    if (!expandedTexts.remove(attachmentId))
+        expandedTexts.insert(attachmentId);
+    refreshAttachments(messageId);
+}
+
+void ChatModel::refreshAttachments(Snowflake messageId)
+{
+    for (int row = 0; row < messages.size(); ++row) {
+        if (messages[row].id.get() == messageId) {
+            sizeCache.remove(messageId);
+            emit dataChanged(index(row, 0), index(row, 0), { AttachmentsRole, CachedSizeRole });
+            return;
         }
     }
 }
@@ -546,6 +643,12 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             } else {
                 data.displaySize = QSize();
                 data.isLoading = false;
+                // Qord: Discord's text file preview
+                if (!data.isAudio && data.fileSizeBytes > 0 && !data.originalUrl.isLocalFile() &&
+                    isTextFile(data.filename, data.contentType)) {
+                    data.isText = true;
+                    loadTextPreview(msg.id.get(), data);
+                }
             }
 
             result.append(data);

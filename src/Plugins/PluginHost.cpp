@@ -179,7 +179,7 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
         hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
         hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers) ||
-        hooks.testFlag(Hook::HiddenChannels))
+        hooks.testFlag(Hook::HiddenChannels) || hooks.testFlag(Hook::AttachmentButtons))
         emit presentationChanged();
 }
 
@@ -801,6 +801,27 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
 {
     if (Plugin *plugin = tablePlugin(Hook::UserContextMenu, pluginId))
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
+}
+
+QList<PluginHost::PluginButton> PluginHost::dispatchAttachmentButtons(const AttachmentContext &attachment)
+{
+    QList<PluginButton> out;
+    const auto &table = tables[hookIndex(Hook::AttachmentButtons)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::AttachmentButtons)][i];
+        guarded(id, "attachmentButtons", [&] {
+            for (const auto &button : table[i]->attachmentButtons(attachment))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
+                                                 const AttachmentContext &attachment)
+{
+    if (Plugin *plugin = tablePlugin(Hook::AttachmentButtons, pluginId))
+        guarded(pluginId, "onAttachmentButtonClicked", [&] { plugin->onAttachmentButtonClicked(buttonId, attachment); });
 }
 
 std::optional<HiddenChannelDisplay> PluginHost::dispatchHiddenChannelDisplay()

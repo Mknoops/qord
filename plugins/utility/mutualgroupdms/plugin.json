@@ -1,0 +1,21 @@
+{
+  "id": "mutualgroupdms",
+  "equicordName": "MutualGroupDMs",
+  "equicordPath": "src/plugins/mutualGroupDMs",
+  "name": "MutualGroupDMs",
+  "description": "Shows mutual group dms in profiles",
+  "categories": ["utility"],
+  "tags": ["Friends", "Appearance"],
+  "authors": ["amia"],
+  "permissions": ["add_ui_elements", "read_dms"],
+  "hooks": ["profileTabs"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Profiles get a \"Mutual Groups\" tab (\"No Mutual Groups\", \"1 Mutual Group\", \"3 Mutual Groups\") listing the group DMs you share with that user, newest first as in the DM list, with their icon, name and member count; clicking one closes the profile and opens the group. Not shown for bots or yourself.",
+  "gaps": [
+    "Upstream also lists mutual groups in the DM sidebar profile; Qord has no DM profile sidebar."
+  ]
+}

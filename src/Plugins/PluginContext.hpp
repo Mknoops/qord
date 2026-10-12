@@ -62,6 +62,8 @@ public:
     // Null without the fetch_users permission. Replies arriving after the
     // plugin stopped are dropped.
     [[nodiscard]] UserLookupService *users();
+    // Null without the read_dms permission.
+    [[nodiscard]] const PrivateChannelDirectory *privateChannels() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const

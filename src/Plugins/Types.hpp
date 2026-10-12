@@ -178,6 +178,35 @@ struct UserContext
     // server avatar, empty if they have none.
     QString avatarUrl;
     QString memberAvatarUrl;
+    bool isBot = false;
+};
+
+// A tab a plugin adds to user profiles (MutualGroupDMs): a list of rows,
+// each clickable
+struct ProfileTab
+{
+    QString id;
+    QString title;
+    struct Row
+    {
+        QString id;
+        QString title;
+        QString subtitle;
+        QString iconUrl; // CDN image; empty: iconText on a plain circle
+        QString iconText;
+    };
+    QList<Row> rows;
+    QString emptyText; // shown when there are no rows
+};
+
+// A DM or group DM, as the DM list shows it.
+struct PrivateChannelInfo
+{
+    Id channelId = 0;
+    bool isGroup = false;
+    QString name; // the group's name, or its members' names
+    QString iconUrl; // a group's icon, empty if it has none
+    QList<Id> recipientIds; // without you
 };
 
 // An image in a user profile that was clicked.

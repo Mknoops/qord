@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPushButton>
@@ -21,6 +22,7 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <functional>
 
 #include <QDateTime>
 #include <QTimer>
@@ -86,6 +88,21 @@ QString formatDate(const QDateTime &dt)
         return QStringLiteral("—");
     return QLocale::system().toString(dt.toLocalTime().date(), QStringLiteral("MMM d, yyyy"));
 }
+
+// Qord: a row in a plugin's profile tab
+class ClickableRow : public QWidget
+{
+public:
+    using QWidget::QWidget;
+    std::function<void()> onClick;
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        if (event->button() == Qt::LeftButton && rect().contains(event->pos()) && onClick)
+            onClick();
+    }
+};
 
 QString sectionHeading(const QString &text, const QColor &color)
 {
@@ -549,6 +566,7 @@ QWidget *UserProfilePopup::buildBody()
     rightTabs->addTab(mutualServersTab, tr("Mutual Servers"));
     if (!isBot())
         rightTabs->addTab(mutualFriendsTab, tr("Mutual Friends"));
+    addPluginTabs();
 
     rightCol->addWidget(rightTabs);
     rightCol->addStretch(1);
@@ -968,6 +986,72 @@ void UserProfilePopup::renderMutualServers()
         mutualServersLayout->addWidget(row);
     }
     mutualServersLayout->addStretch(1);
+}
+
+void UserProfilePopup::addPluginTabs()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::ProfileTabs))
+        return;
+    Qord::Plugins::UserContext user;
+    user.accountId = quint64(instance->accountId());
+    user.guildId = quint64(guildId);
+    user.userId = quint64(userId);
+    user.isBot = isBot();
+    constexpr int IconSize = 32;
+    for (const auto &entry : host->dispatchProfileTabs(user)) {
+        auto *scroll = new QScrollArea(rightTabs);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setWidgetResizable(true);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        auto *content = new QWidget;
+        auto *layout = new QVBoxLayout(content);
+        layout->setContentsMargins(8, 8, 8, 8);
+        layout->setSpacing(4);
+        scroll->setWidget(content);
+        if (entry.tab.rows.isEmpty()) {
+            auto *empty = new QLabel(entry.tab.emptyText.toHtmlEscaped(), content);
+            empty->setWordWrap(true);
+            empty->setAlignment(Qt::AlignCenter);
+            empty->setStyleSheet(QStringLiteral("font-size: 12px; color: palette(placeholder-text);"));
+            layout->addWidget(empty);
+        }
+        for (const auto &row : entry.tab.rows) {
+            auto *rowWidget = new ClickableRow(content);
+            rowWidget->setCursor(Qt::PointingHandCursor);
+            auto *rl = new QHBoxLayout(rowWidget);
+            rl->setContentsMargins(0, 2, 0, 2);
+            rl->setSpacing(8);
+            auto *icon = new QLabel(rowWidget);
+            icon->setFixedSize(IconSize, IconSize);
+            icon->setAlignment(Qt::AlignCenter);
+            icon->setStyleSheet(QStringLiteral("background-color: palette(button); border-radius: %1px; "
+                                               "color: palette(text); font-weight: bold;")
+                                        .arg(IconSize / 2));
+            if (!row.iconUrl.isEmpty())
+                images->assign(icon, QUrl(row.iconUrl), QSize(IconSize, IconSize), accountId());
+            else
+                icon->setText(row.iconText);
+            rl->addWidget(icon);
+            auto *text = new QLabel(QStringLiteral("<div style=\"font-size: 13px;\">%1</div>"
+                                                   "<div style=\"font-size: 11px; color: palette(placeholder-text);\">%2</div>")
+                                            .arg(row.title.toHtmlEscaped(), row.subtitle.toHtmlEscaped()),
+                                    rowWidget);
+            text->setTextFormat(Qt::RichText);
+            rl->addWidget(text, 1);
+            rowWidget->onClick = [this, pluginId = entry.pluginId, tabId = entry.tab.id, rowId = row.id, user]() {
+                close(); // like upstream, the profile closes first
+                if (auto *h = Qord::Plugins::PluginHost::instance())
+                    h->dispatchProfileTabRowClicked(pluginId, tabId, rowId, user);
+            };
+            layout->addWidget(rowWidget);
+        }
+        layout->addStretch(1);
+        rightTabs->addTab(scroll, entry.tab.title);
+        // As upstream does, tighter tabs so the plugin's tab fits beside Discord's
+        rightTabs->setStyleSheet(rightTabs->styleSheet().replace(QStringLiteral("padding: 5px 10px;"),
+                                                                 QStringLiteral("padding: 5px 5px;")));
+    }
 }
 
 void UserProfilePopup::renderMutualFriends()

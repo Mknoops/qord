@@ -62,6 +62,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Show channels you can't see in the channel list") },
     { Permission::FetchUsers, "fetch_users",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Look up users on Discord") },
+    { Permission::ReadDms, "read_dms",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See your DMs and group DMs") },
 };
 
 struct HookInfo
@@ -101,6 +103,7 @@ const HookInfo hookTable[] = {
     { Hook::UnknownMentions, "unknownMentions", Permission::FetchUsers },
     { Hook::KeyboardShortcuts, "keyboardShortcuts", Permission::AddUiElements },
     { Hook::MessageAccessories, "messageAccessories", Permission::ModifyDisplayedMessages },
+    { Hook::ProfileTabs, "profileTabs", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

@@ -136,6 +136,12 @@ public:
     }
     // Re-renders the lock screen of a hidden channel, if it is showing
     virtual void refreshLockScreen() {}
+    // Opens a channel or DM of the account you are viewing
+    virtual void openChannel(Id accountId, Id channelId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+    }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {
@@ -348,6 +354,14 @@ public:
     virtual void refreshFilters() = 0;
 };
 
+// Your DMs and group DMs, newest first (Discord's sorted private channels).
+class PrivateChannelDirectory
+{
+public:
+    virtual ~PrivateChannelDirectory() = default;
+    [[nodiscard]] virtual QList<PrivateChannelInfo> privateChannels(Id accountId) const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -363,6 +377,7 @@ struct Services
     ExpressionService *expressions = nullptr;
     GuildDirectory *guilds = nullptr;
     UserLookupService *users = nullptr;
+    PrivateChannelDirectory *privateChannels = nullptr;
 };
 
 } // namespace Plugins

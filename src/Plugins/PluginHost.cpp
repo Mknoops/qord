@@ -926,5 +926,26 @@ void PluginHost::dispatchProfileRoleButtonClicked(const QString &pluginId, const
         guarded(pluginId, "onProfileRoleButtonClicked", [&] { plugin->onProfileRoleButtonClicked(buttonId, user); });
 }
 
+QList<PluginHost::PluginProfileTab> PluginHost::dispatchProfileTabs(const UserContext &user)
+{
+    QList<PluginProfileTab> out;
+    const auto &table = tables[hookIndex(Hook::ProfileTabs)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::ProfileTabs)][i];
+        guarded(id, "profileTabs", [&] {
+            for (const auto &tab : table[i]->profileTabs(user))
+                out.append({ id, tab });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchProfileTabRowClicked(const QString &pluginId, const QString &tabId, const QString &rowId,
+                                              const UserContext &user)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ProfileTabs, pluginId))
+        guarded(pluginId, "onProfileTabRowClicked", [&] { plugin->onProfileTabRowClicked(tabId, rowId, user); });
+}
+
 } // namespace Plugins
 } // namespace Qord

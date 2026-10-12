@@ -142,6 +142,8 @@ public:
     QModelIndex dmHeaderIndex(Snowflake accountId);
     // Qord: every server of the account, folders included
     QList<Snowflake> guildIds(Snowflake accountId) const;
+    // Qord: the DM list's channels, newest message first (MutualGroupDMs)
+    QList<const ChannelNode *> dmChannels(Snowflake accountId) const;
 
 signals:
     void totalMentionCountChanged(int count, int previousCount);

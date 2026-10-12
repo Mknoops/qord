@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 328 |
+| Not Started | 327 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 41 |
+| Tested | 42 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -209,7 +209,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Moyai | `src/equicordplugins/moyai` |  | Not Started |  |
 | MusicControls | `src/equicordplugins/musicControls` |  | Not Started |  |
 | MusicRichPresence | `src/plugins/musicRichPresence` |  | Not Started |  |
-| MutualGroupDMs | `src/plugins/mutualGroupDMs` |  | Not Started |  |
+| MutualGroupDMs | `src/plugins/mutualGroupDMs` | `plugins/utility/mutualgroupdms` | Tested | Profiles get a "Mutual Groups" tab ("No Mutual Groups", "1 Mutual Group", "3 Mutual Groups") listing the group DMs you share with that user, newest first as in the DM list, with their icon, name and member count; clicking one closes the profile and opens the group. Not shown for bots or yourself. wired; not yet verified in the running client. gaps: Upstream also lists mutual groups in the DM sidebar profile; Qord has no DM profile sidebar. |
 | NeverPausePreviews | `src/equicordplugins/neverPausePreviews` |  | Not Started |  |
 | NewGuildSettings | `src/plugins/newGuildSettings` |  | Not Started |  |
 | NewPluginsManager | `src/equicordplugins/newPluginsManager` |  | Not Started |  |

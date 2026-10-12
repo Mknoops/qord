@@ -732,11 +732,11 @@ bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
     return false;
 }
 
-std::optional<QList<Id>> PluginHost::dispatchReactionUsers(const ReactionContext &reaction)
+std::optional<ReactionUsers> PluginHost::dispatchReactionUsers(const ReactionContext &reaction)
 {
     const int h = hookIndex(Hook::ReactionUsers);
     for (size_t i = 0; i < tables[h].size(); ++i) {
-        std::optional<QList<Id>> users;
+        std::optional<ReactionUsers> users;
         guarded(tableIds[h][i], "reactionUsers", [&] { users = tables[h][i]->reactionUsers(reaction); });
         if (users)
             return users;

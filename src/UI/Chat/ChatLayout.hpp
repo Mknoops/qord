@@ -189,6 +189,8 @@ struct ReactionLayout
     QRect pillRect;
     QRect emojiRect;
     QRect countRect;
+    QList<QRect> avatarRects; // Qord: who reacted (WhoReacted)
+    QRect moreRect; // "+N" past the avatars
 };
 
 struct AttachmentLayout
@@ -222,6 +224,7 @@ struct HitRegion
         EmbedFieldName,
         EmbedFieldValue,
         Reaction,
+        ReactionUser, // Qord: an avatar on a reaction (index: reaction, subIndex: user)
         Sticker,
 
         TextLink,

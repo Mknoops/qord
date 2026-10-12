@@ -470,6 +470,8 @@ LOTTIE_STICKER = json.dumps({
                      "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}}]}]}],
 }).encode()
 
+REACTORS: dict[tuple[str, str], list[dict]] = {}  # (message id, emoji name) -> users
+
 GUILD_STICKERS = {
     G2: [{"id": "700000000000000003", "name": "Far Dance", "tags": "dance", "description": None,
           "format_type": 1, "available": True, "guild_id": G2, "type": 2}],
@@ -946,6 +948,20 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             m = find_message(cid, mid)
             if not m:
                 return 404, {"message": "Unknown Message", "code": 10008}, "json"
+            # Who reacted (WhoReacted): seeded from the count, then kept up
+            name = emoji.split(":")[0]
+            r0 = next((r for r in m["reactions"] if r["emoji"]["name"] == name), None)
+            who = REACTORS.setdefault((mid, name), [
+                *[USERS[k] for k in ("ben", "cleo", "dan", "fay", "ava")][:max(0, (r0 or {}).get("count", 0)
+                                                                               - (1 if (r0 or {}).get("me") else 0))],
+                *([USERS["self"]] if (r0 or {}).get("me") else [])])
+            if method == "GET" and len(rest) == 4:
+                log(f"rest: reaction users {name} on {mid} -> {[u['username'] for u in who]}")
+                return 200, who, "json"
+            if method == "PUT" and USERS["self"] not in who:
+                who.append(USERS["self"])
+            if method == "DELETE" and USERS["self"] in who:
+                who.remove(USERS["self"])
             ev = {"user_id": SELF_ID, "channel_id": cid, "message_id": mid, "guild_id": m.get("guild_id"),
                   "emoji": {"id": None, "name": emoji}, "burst": False, "type": 0}
             r = next((r for r in m["reactions"] if r["emoji"]["name"] == emoji), None)

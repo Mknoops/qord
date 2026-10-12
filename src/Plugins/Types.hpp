@@ -387,6 +387,13 @@ struct ReactionContext
     QList<Id> hiddenUsers;
 };
 
+// The users a plugin shows on a reaction (WhoReacted)
+struct ReactionUsers
+{
+    QList<Id> users;
+    bool clickable = true; // clicking an avatar opens the profile (else it reacts)
+};
+
 // Someone added or removed a reaction (MESSAGE_REACTION_ADD/REMOVE).
 struct ReactionChange
 {

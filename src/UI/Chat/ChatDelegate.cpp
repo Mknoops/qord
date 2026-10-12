@@ -1,5 +1,7 @@
 #include "ChatDelegate.hpp"
 
+#include <QPainterPath>
+
 #include "ChatModel.hpp"
 #include "ChatLayout.hpp"
 #include "ChatView.hpp"
@@ -1127,6 +1129,37 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(countColor);
         painter->drawText(reactionLayout.countRect, Qt::AlignLeft | Qt::AlignVCenter,
                           QString::number(reaction.count));
+
+        // Qord: who reacted (WhoReacted): round avatars, each ringed in the
+        // pill's colour so the overlaps stay apart, then "+N"
+        if (!reactionLayout.avatarRects.isEmpty()) {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing, true);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+            const QColor ring = option.palette.alternateBase().color();
+            for (int a = 0; a < reactionLayout.avatarRects.size() && a < reaction.userAvatars.size(); ++a) {
+                const QRectF r = reactionLayout.avatarRects[a];
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(ring);
+                painter->drawEllipse(r.adjusted(-1.5, -1.5, 1.5, 1.5));
+                QPainterPath clip;
+                clip.addEllipse(r);
+                painter->setClipPath(clip);
+                const QPixmap &avatar = reaction.userAvatars[a];
+                if (avatar.isNull())
+                    painter->fillRect(r, option.palette.mid());
+                else
+                    painter->drawPixmap(r, avatar, QRectF(avatar.rect()));
+                painter->setClipping(false);
+            }
+            if (reactionLayout.moreRect.isValid()) {
+                painter->setFont(countFont);
+                painter->setPen(option.palette.text().color());
+                painter->drawText(reactionLayout.moreRect, Qt::AlignLeft | Qt::AlignVCenter,
+                                  QStringLiteral("+%1").arg(reaction.moreUsers));
+            }
+            painter->restore();
+        }
     }
 
     if (animator)

@@ -143,7 +143,7 @@ public:
     void dispatchVoiceStateChanged(const VoiceStateChange &change);
     void dispatchChatMouseDown(qint64 timeMs);
     // First plugin with users wins
-    [[nodiscard]] std::optional<QList<Id>> dispatchReactionUsers(const ReactionContext &reaction);
+    [[nodiscard]] std::optional<ReactionUsers> dispatchReactionUsers(const ReactionContext &reaction);
     void dispatchReactionChanged(const ReactionChange &change);
     void dispatchMessageClicked(const MessageClickContext &click);
     // First plugin with a label/text wins.

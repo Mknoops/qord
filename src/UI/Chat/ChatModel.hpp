@@ -110,7 +110,13 @@ struct ReactionData
     QPixmap emojiPixmap;
     bool isLoading = false;
     QColor burstTintColor;
+    // Qord: who reacted (WhoReacted), at most ReactionAvatarMax avatars
+    QList<Core::Snowflake> userIds;
+    QList<QPixmap> userAvatars;
+    int moreUsers = 0; // users beyond the avatars shown
+    bool usersClickable = true;
 };
+inline constexpr int ReactionAvatarMax = 5;
 
 struct StickerData
 {
@@ -251,6 +257,11 @@ public:
 
     using AvatarUrlResolver = std::function<QUrl(const Discord::User &author, Snowflake guildId)>;
     void setAvatarUrlResolver(AvatarUrlResolver resolver);
+    // Qord: an avatar by user id (reaction users, who aren't message authors)
+    using UserAvatarResolver = std::function<QUrl(Snowflake userId, Snowflake guildId)>;
+    void setUserAvatarResolver(UserAvatarResolver resolver) { userAvatarResolver = std::move(resolver); }
+    // Qord: re-render a message whose reaction users changed (WhoReacted)
+    void refreshReactions(Snowflake messageId);
 
     using DisplayNameResolver = std::function<QString(const Discord::User &author, Snowflake guildId)>;
     void setDisplayNameResolver(DisplayNameResolver resolver);
@@ -345,6 +356,8 @@ private:
     bool atLatest = true;
 
     AvatarUrlResolver avatarUrlResolver;
+    UserAvatarResolver userAvatarResolver;
+    mutable QSet<QUrl> reactionAvatarUrls; // to refresh when they arrive
     DisplayNameResolver displayNameResolver;
     RoleColorResolver roleColorResolver;
     ChannelNameResolver channelNameResolver;

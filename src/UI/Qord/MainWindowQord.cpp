@@ -300,6 +300,26 @@ void MainWindow::setupQordFeatures()
     };
     connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
 
+    // WhoReacted: avatars by user id, re-rendering a message whose reaction
+    // users arrived, and an avatar click opening the profile
+    chatModel->setUserAvatarResolver([this](Snowflake userId, Snowflake guildId) -> QUrl {
+        if (!currentInstance)
+            return {};
+        const auto user = currentInstance->users()->getUser(userId);
+        return user ? currentInstance->users()->getAvatarUrl(*user, guildId, 64) : QUrl();
+    });
+    Qord::Plugins::SessionReactions::onChanged() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId,
+                                                          Qord::Plugins::Id messageId) {
+        if (currentInstance && quint64(currentInstance->accountId()) == accountId &&
+            quint64(chatModel->getActiveChannelId()) == channelId)
+            chatModel->refreshReactions(Snowflake(messageId));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::SessionReactions::onChanged() = nullptr; });
+    connect(chatView, &ChatView::reactionUserClicked, this, [this](Snowflake userId) {
+        if (currentInstance)
+            showUserProfile(currentInstance, userId, chatModel->getActiveGuildId());
+    });
+
     // Threads from messages
     connect(chatView, &ChatView::createThreadRequested, this, &MainWindow::createThreadFromMessage);
     connect(chatView, &ChatView::openThreadRequested, this, &MainWindow::navigateToChannel);
@@ -869,6 +889,33 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
     const QPointer<Core::ClientInstance> guard(instance);
     if (nameDecorations)
         nameDecorations->watch(instance);
+    // WhoReacted: reactions coming and going, for the users shown on them
+    const auto reactionChanged = [guard](Snowflake channelId, Snowflake messageId, const Discord::Emoji &emoji,
+                                         int type, Snowflake userId, bool added) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!guard || !host || !host->hasHook(Qord::Plugins::Hook::ReactionUsers))
+            return;
+        Qord::Plugins::ReactionChange change;
+        change.accountId = quint64(guard->accountId());
+        change.channelId = quint64(channelId);
+        change.messageId = quint64(messageId);
+        change.emojiName = emoji.name.hasValue() ? emoji.name.get() : QString();
+        change.emojiId = emoji.id.hasValue() && emoji.id.get().isValid() ? quint64(emoji.id.get()) : 0;
+        change.type = type;
+        change.userId = quint64(userId);
+        change.added = added;
+        host->dispatchReactionChanged(change);
+    };
+    connect(instance->discord(), &Discord::Client::messageReactionAdd, this,
+            [reactionChanged](const Discord::MessageReactionAdd &e) {
+                reactionChanged(e.channelId.get(), e.messageId.get(), e.emoji.get(), e.type.hasValue() ? e.type.get() : 0,
+                                e.userId.get(), true);
+            });
+    connect(instance->discord(), &Discord::Client::messageReactionRemove, this,
+            [reactionChanged](const Discord::MessageReactionRemove &e) {
+                reactionChanged(e.channelId.get(), e.messageId.get(), e.emoji.get(), e.type.hasValue() ? e.type.get() : 0,
+                                e.userId.get(), false);
+            });
     // MemberCount: new numbers from Discord, people joining or leaving voice
     connect(instance->memberList(), &Core::MemberListManager::countsChanged, this, [this, guard](Snowflake guildId) {
         if (guard && guard == currentInstance && guildId == chatModel->getActiveGuildId())

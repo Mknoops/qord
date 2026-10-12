@@ -249,6 +249,10 @@ public:
         QList<Sticker> stickers;
     };
     void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
+    // Qord: the first 100 users of a reaction (emoji: "name" or "name:id";
+    // type 0 normal, 1 burst)
+    void fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
+                            ResultCallback<QList<User>> callback);
     void createGuildSticker(Snowflake guildId, const QString &name, const QString &tags, const QString &description,
                             const FileUpload &file, const QByteArray &originalMd5, ResultCallback<Sticker> callback);
     void modifyGuildSticker(Snowflake guildId, Snowflake stickerId, const QString &name, const QString &tags,

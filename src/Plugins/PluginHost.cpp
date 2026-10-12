@@ -170,7 +170,7 @@ void PluginHost::onSettingChanged(Entry &entry, const QString &key)
 
 void PluginHost::notifyHooksChanged(Hooks hooks)
 {
-    if (hooks.testFlag(Hook::TransformIncomingContent))
+    if (hooks.testFlag(Hook::TransformIncomingContent) || hooks.testFlag(Hook::MessageAccessories))
         emit displayTransformsChanged();
     if (hooks.testFlag(Hook::ChatBarButtons))
         emit chatBarChanged();
@@ -835,6 +835,27 @@ std::optional<TypingIndicator> PluginHost::dispatchChannelTypingIndicator(const 
             return out;
     }
     return std::nullopt;
+}
+
+QList<PluginHost::PluginAccessory> PluginHost::dispatchMessageAccessories(const MessageContext &message)
+{
+    QList<PluginAccessory> out;
+    const auto &table = tables[hookIndex(Hook::MessageAccessories)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::MessageAccessories)][i];
+        guarded(id, "messageAccessory", [&] {
+            if (auto accessory = table[i]->messageAccessory(message))
+                out.append({ id, *accessory });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchMessageAccessoryAction(const QString &pluginId, const QString &actionId,
+                                                const MessageContext &message)
+{
+    if (Plugin *plugin = tablePlugin(Hook::MessageAccessories, pluginId))
+        guarded(pluginId, "onMessageAccessoryAction", [&] { plugin->onMessageAccessoryAction(actionId, message); });
 }
 
 QList<PluginHost::PluginButton> PluginHost::dispatchAttachmentButtons(const AttachmentContext &attachment)

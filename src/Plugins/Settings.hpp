@@ -44,6 +44,9 @@ struct SettingSpec
     std::optional<qint64> maximum; // Int only
     bool multiline = false; // String only
     bool hidden = false; // internal state; no editor is generated
+    // String only: an API key or session token. Kept in the system keychain
+    // (SecretStore), never in the settings file, and edited as a password.
+    bool secret = false;
 
     // Returns an error message, or an empty string if `value` is acceptable.
     [[nodiscard]] QString validate(const QJsonValue &value) const;
@@ -85,6 +88,35 @@ private:
     QString dir;
 };
 
+// Where secret settings live: the system keychain in the app. Reads and
+// writes are synchronous. Never log what passes through here.
+class SecretStore
+{
+public:
+    virtual ~SecretStore() = default;
+    [[nodiscard]] virtual QString read(const QString &key) const = 0;
+    virtual bool write(const QString &key, const QString &value) = 0;
+    virtual bool remove(const QString &key) = 0;
+};
+
+// Keeps secrets for this run only (tests, the mock server)
+class MemorySecretStore : public SecretStore
+{
+public:
+    [[nodiscard]] QString read(const QString &key) const override { return data.value(key); }
+    bool write(const QString &key, const QString &value) override
+    {
+        data.insert(key, value);
+        return true;
+    }
+    bool remove(const QString &key) override
+    {
+        data.remove(key);
+        return true;
+    }
+    QHash<QString, QString> data;
+};
+
 // Typed, schema-validated settings of one plugin, persisted as JSON.
 class PluginSettings
 {
@@ -111,11 +143,16 @@ public:
     void load();
     bool save() const;
 
+    // The store for secret settings; a MemorySecretStore unless the app sets one
+    static SecretStore *&secretStore();
+    [[nodiscard]] QString secretKey(const QString &key) const;
+
 private:
     QString id;
     SettingsSchema specs;
     Storage *storage;
     QJsonObject values;
+    mutable QHash<QString, QString> secrets; // read once from the SecretStore
     ChangeCallback onChange;
 };
 

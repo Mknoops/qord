@@ -7,7 +7,12 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <QMouseEvent>
+#include <QPointer>
+#include <QTimer>
 #include <QToolButton>
+#include <QToolTip>
+
+#include <algorithm>
 
 #include <functional>
 
@@ -16,26 +21,27 @@ class ClickButton : public QToolButton
 {
 public:
     using QToolButton::QToolButton;
-    std::function<void(Qord::Plugins::ChatContext::Click)> onClick;
+    std::function<void(Qord::Plugins::ChatContext::Click, bool shift)> onClick;
 
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override
     {
         const bool inside = rect().contains(event->pos());
+        const bool shift = event->modifiers().testFlag(Qt::ShiftModifier);
         if (inside && onClick) {
             if (event->button() == Qt::MiddleButton) {
-                onClick(Qord::Plugins::ChatContext::Click::Middle);
+                onClick(Qord::Plugins::ChatContext::Click::Middle, shift);
                 return;
             }
             if (event->button() == Qt::RightButton) {
-                onClick(Qord::Plugins::ChatContext::Click::Right);
+                onClick(Qord::Plugins::ChatContext::Click::Right, shift);
                 return;
             }
         }
         const bool wasDown = isDown();
         QToolButton::mouseReleaseEvent(event);
         if (inside && wasDown && event->button() == Qt::LeftButton && onClick)
-            onClick(Qord::Plugins::ChatContext::Click::Left);
+            onClick(Qord::Plugins::ChatContext::Click::Left, shift);
     }
     void contextMenuEvent(QContextMenuEvent *event) override { event->accept(); }
 };
@@ -115,14 +121,29 @@ void PluginChatButtons::rebuild()
         const QString pluginId = pb.pluginId;
         const QString buttonId = pb.button.id;
         // Left, middle and right clicks all reach the plugin (SilentTyping maps each to an action)
-        button->onClick = [this, pluginId, buttonId](Qord::Plugins::ChatContext::Click click) {
+        button->onClick = [this, pluginId, buttonId](Qord::Plugins::ChatContext::Click click, bool shift) {
             Qord::Plugins::ChatContext chat = contextProvider();
             chat.click = click;
+            chat.shift = shift;
             if (auto *h = Qord::Plugins::PluginHost::instance())
                 h->dispatchChatBarButtonClicked(pluginId, buttonId, chat);
         };
         layout->addWidget(button);
+        if (!pb.button.popupTooltip.isEmpty()) {
+            // Once laid out: above the button, like Discord's forced tooltip
+            QPointer<QToolButton> target(button);
+            QTimer::singleShot(0, this, [target, text = pb.button.popupTooltip] {
+                if (target && target->isVisible())
+                    QToolTip::showText(target->mapToGlobal(QPoint(0, -target->height())), text, target);
+            });
+        }
     }
+    // A popup tooltip that is no longer asked for goes away
+    const bool popup = std::any_of(buttons.begin(), buttons.end(),
+                                   [](const auto &pb) { return !pb.button.popupTooltip.isEmpty(); });
+    if (popupShown && !popup)
+        QToolTip::hideText();
+    popupShown = popup;
     setVisible(!buttons.isEmpty());
 }
 

@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 331 |
+| Not Started | 330 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 38 |
+| Tested | 39 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -336,7 +336,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ToastNotifications | `src/equicordplugins/toastNotifications` |  | Not Started |  |
 | ToggleVideoBind | `src/equicordplugins/toggleVideoBind` |  | Not Started |  |
 | ToneIndicators | `src/equicordplugins/toneIndicators` |  | Not Started |  |
-| Translate | `src/plugins/translate` |  | Not Started |  |
+| Translate | `src/plugins/translate` | `plugins/utility/translate` | Tested | "Translate" in a message's menu shows the translation under it ("translated from X - Dismiss"). The chat bar button opens the languages window (searchable lists for the received and sent languages, and Auto Translate); Shift+click or right-click toggles auto-translate, with upstream's notice the first time. With auto-translate on, a message waits in the locked message box until it is translated, with "Auto Translate Enabled" over the button for two seconds. Google needs no key; DeepL (free or pro, falling back to Google when the quota runs out) and Kagi take an API key or session token, which Qord keeps in the system keychain instead of the settings file. wired; not yet verified in the running client. gaps: No translate button in a message's hover bar (Qord has no message popover hook yet); use the message menu.; A failed auto-translation leaves the text in the message box instead of sending it untranslated as upstream does.; The settings page has no button for the languages window; it opens from the chat bar button.; The DeepL key and Kagi session fields show whatever service is chosen. |
 | Translate+ | `src/equicordplugins/translatePlus` |  | Not Started |  |
 | TriviaAI | `src/equicordplugins/triviaAI` |  | Not Started |  |
 | TypingIndicator | `src/plugins/typingIndicator` | `plugins/appearance/typingindicator` | Tested | Channels, voice channels' chats and threads in the channel list show who is typing in them: up to three avatars (then "+N") and Discord's animated dots, with "Ava is typing..." as the tooltip. Names are the server nickname, display name or username, as upstream. wired; not yet verified in the running client. gaps: Only the account you are viewing: Qord tracks typing for the current account; With more than three typers the tooltip says "Several people are typing..." (upstream names two when TypingTweaks, not ported yet, is on); Clicking the avatars doesn't open user popouts. |

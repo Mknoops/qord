@@ -10,6 +10,8 @@
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Session.hpp"
+#include "Core/TokenStore.hpp"
+#include "Qord/DevMock.hpp"
 #include "Core/UserManager.hpp"
 #include "Core/Markdown/Parser.hpp"
 #include "Discord/CdnUrls.hpp"
@@ -20,6 +22,7 @@
 #include <QMessageBox>
 #include <QClipboard>
 #include <QComboBox>
+#include <QCompleter>
 #include <QDateTimeEdit>
 #include <QLineEdit>
 #include <QLocale>
@@ -60,6 +63,19 @@ QtNetworkService::~QtNetworkService()
 
 NetworkService::Handle QtNetworkService::get(const QUrl &url, Callback callback)
 {
+    return send(url, {}, nullptr, std::move(callback));
+}
+
+NetworkService::Handle QtNetworkService::post(const QUrl &url, const Headers &headers, const QByteArray &body,
+                                              Callback callback)
+{
+    return send(url, headers, &body, std::move(callback));
+}
+
+// body null: GET. Headers can hold API keys, so nothing here logs them.
+NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &headers, const QByteArray *body,
+                                              Callback callback)
+{
     const Handle handle = ++next;
     // Plugins only fetch over HTTPS
     if (url.scheme() != QLatin1String("https")) {
@@ -77,23 +93,26 @@ NetworkService::Handle QtNetworkService::get(const QUrl &url, Callback callback)
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     request.setMaximumRedirectsAllowed(5);
     request.setTransferTimeout(60'000);
-    QNetworkReply *reply = nam->get(request);
+    for (const auto &header : headers)
+        request.setRawHeader(header.first, header.second);
+    QNetworkReply *reply = body ? nam->post(request, *body) : nam->get(request);
     replies.insert(handle, reply);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 received, qint64) {
         if (received > MaxResponseBytes)
             reply->abort();
     });
-    connect(reply, &QNetworkReply::finished, this, [this, handle, reply, callback = std::move(callback)] {
+    const bool keepErrorBody = body != nullptr;
+    connect(reply, &QNetworkReply::finished, this, [this, handle, reply, keepErrorBody, callback = std::move(callback)] {
         reply->deleteLater();
         if (!replies.remove(handle))
             return; // cancelled
         Reply r;
         r.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         r.ok = reply->error() == QNetworkReply::NoError && r.status >= 200 && r.status < 300;
-        if (r.ok)
+        if (r.ok || (keepErrorBody && r.status))
             r.body = reply->readAll();
-        else
+        if (!r.ok)
             r.error = reply->errorString();
         callback(r);
     });
@@ -417,6 +436,57 @@ void QtUiService::promptText(const QString &title, const QString &label, const Q
     });
     dialog->open();
     field->setFocus();
+}
+
+void QtUiService::showForm(const QString &title, const QList<FormField> &fields,
+                           std::function<void(const QString &, const QString &)> changed)
+{
+    auto *dialog = new QDialog(QApplication::activeWindow());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(title);
+    dialog->setMinimumWidth(420);
+    auto *layout = new QVBoxLayout(dialog);
+    for (const auto &field : fields) {
+        if (field.choices.isEmpty()) {
+            auto *box = new QCheckBox(field.label, dialog);
+            box->setChecked(field.value == QLatin1String("true"));
+            QObject::connect(box, &QCheckBox::toggled, dialog, [changed, key = field.key](bool on) {
+                changed(key, on ? QStringLiteral("true") : QStringLiteral("false"));
+            });
+            layout->addWidget(box);
+        } else {
+            auto *caption = new QLabel(field.label, dialog);
+            caption->setStyleSheet(QStringLiteral("font-weight: bold;"));
+            layout->addWidget(caption);
+            // Searchable: type to filter, like Discord's SearchableSelect
+            auto *combo = new QComboBox(dialog);
+            combo->setEditable(true);
+            combo->setInsertPolicy(QComboBox::NoInsert);
+            for (const auto &choice : field.choices)
+                combo->addItem(choice.second, choice.first);
+            combo->setCurrentIndex(combo->findData(field.value));
+            combo->completer()->setCompletionMode(QCompleter::PopupCompletion);
+            combo->completer()->setFilterMode(Qt::MatchContains);
+            combo->completer()->setCaseSensitivity(Qt::CaseInsensitive);
+            QObject::connect(combo, qOverload<int>(&QComboBox::activated), dialog,
+                             [combo, changed, key = field.key](int index) {
+                                 if (index >= 0)
+                                     changed(key, combo->itemData(index).toString());
+                             });
+            layout->addWidget(combo);
+        }
+        if (!field.description.isEmpty()) {
+            auto *help = new QLabel(field.description, dialog);
+            help->setWordWrap(true);
+            help->setStyleSheet(QStringLiteral("color: #949ba4;"));
+            layout->addWidget(help);
+        }
+        layout->addSpacing(8);
+    }
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog->open();
 }
 
 bool QtUiService::confirm(Confirmation &confirmation)
@@ -923,6 +993,24 @@ static QString pluginDataDirectory()
     return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(QStringLiteral("plugins"));
 }
 
+namespace {
+// Secret plugin settings (API keys, session tokens) in the system keychain
+class KeychainSecretStore : public SecretStore
+{
+public:
+    QString read(const QString &key) const override
+    {
+        auto result = Acheron::Core::TokenStore::loadSecret(key);
+        return result.success() ? *result.value : QString();
+    }
+    bool write(const QString &key, const QString &value) override
+    {
+        return Acheron::Core::TokenStore::saveSecret(key, value);
+    }
+    bool remove(const QString &key) override { return Acheron::Core::TokenStore::deleteSecret(key); }
+};
+} // namespace
+
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
       reactions(session), guilds(session), users(session)
@@ -933,6 +1021,11 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     Registry registry;
     registerBuiltinPlugins(registry);
     storage = std::make_unique<FileStorage>(pluginDataDirectory());
+    // The mock server never touches the keychain; its secrets last one run
+    if (!Qord::DevMock::enabled()) {
+        static KeychainSecretStore keychain;
+        PluginSettings::secretStore() = &keychain;
+    }
     Services services;
     services.network = &network;
     services.members = &members;

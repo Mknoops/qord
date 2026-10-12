@@ -4,6 +4,7 @@
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QPointer>
 #include <QUrl>
 
 #include <functional>
@@ -138,6 +139,10 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         if (auto annotation = plugins->dispatchAnnotateMessage(pluginContext(msg)))
             msg.parsedContentCached = annotatedHtml(*annotation, content, msg.channelId);
     }
+    // Qord: shown under the text (Translate)
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageAccessories))
+        for (const auto &entry : plugins->dispatchMessageAccessories(pluginContext(msg)))
+            msg.parsedContentCached += accessoryHtml(entry.pluginId, entry.accessory, msg.channelId);
 
     if (msg.type.hasValue() && msg.type.get() == Discord::MessageType::THREAD_STARTER_MESSAGE &&
         msg.referencedMessage && msg.referencedMessage->content.hasValue() &&
@@ -192,6 +197,26 @@ QString MessageManager::annotatedHtml(const Qord::Plugins::MessageAnnotation &an
             html = QStringLiteral("<div style=\"color: #f23f43;\">") + html + QStringLiteral("</div>");
     }
     return html;
+}
+
+QString MessageManager::accessoryHtml(const QString &pluginId, const Qord::Plugins::MessageAccessory &accessory,
+                                     Snowflake channelId) const
+{
+    QString html = QStringLiteral("<div style=\"color: #b5bac1;\">");
+    if (!accessory.content.isEmpty())
+        html += inlineHtml(accessory.content, channelId);
+    QStringList links;
+    for (const auto &link : accessory.links)
+        links.append(QStringLiteral("<a href=\"%1%2/%3\">%4</a>")
+                             .arg(QLatin1String(Qord::Plugins::MessageAccessoryHref), QString::fromLatin1(QUrl::toPercentEncoding(pluginId)),
+                                  QString::fromLatin1(QUrl::toPercentEncoding(link.id)), link.label.toHtmlEscaped()));
+    if (!accessory.footer.isEmpty() || !links.isEmpty()) {
+        QString footer = accessory.footer.toHtmlEscaped();
+        if (!links.isEmpty())
+            footer += (footer.isEmpty() ? QString() : QStringLiteral(" - ")) + links.join(QStringLiteral(" - "));
+        html += QStringLiteral("<br><span style=\"font-size: small;\">(") + footer + QStringLiteral(")</span>");
+    }
+    return html + QStringLiteral("</div>");
 }
 
 void MessageManager::setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver)
@@ -578,10 +603,11 @@ void MessageManager::addReaction(Snowflake channelId, Snowflake messageId, const
     client->addReaction(channelId, messageId, emoji, isBurst);
 }
 
-bool MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
-                                 Snowflake replyToMessageId,
-                                 const QList<PendingAttachment> &attachments,
-                                 bool mentionRepliedUser, bool runPlugins)
+MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
+                                                       Snowflake replyToMessageId,
+                                                       const QList<PendingAttachment> &attachments,
+                                                       bool mentionRepliedUser, bool runPlugins,
+                                                       std::function<void(bool sent)> deferredDone)
 {
     QString content = originalContent;
     auto *plugins = Qord::Plugins::PluginHost::instance();
@@ -594,11 +620,27 @@ bool MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
         out.content = content;
         plugins->dispatchBeforeSend(out);
         if (out.cancel)
-            return false;
+            return SendResult::Cancelled;
         content = out.content;
+        if (out.deferred) {
+            // Sent once the plugin has the final text (auto-translate)
+            QPointer<MessageManager> self(this);
+            out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser,
+                                   deferredDone](std::optional<QString> finalContent) {
+                bool sent = false;
+                if (self && finalContent && finalContent->trimmed().isEmpty() && attachments.isEmpty())
+                    sent = true;
+                else if (self && finalContent)
+                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, attachments,
+                                             mentionRepliedUser, false) == SendResult::Sent;
+                if (deferredDone)
+                    deferredDone(sent);
+            });
+            return SendResult::Deferred;
+        }
         // Nothing left to send (e.g. a rule replaced everything)
         if (content.trimmed().isEmpty() && attachments.isEmpty())
-            return true;
+            return SendResult::Sent;
     }
 
     // Like Discord's client: a leading "@silent " sends without notifying
@@ -678,12 +720,12 @@ bool MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
     for (const auto &att : outgoing) {
         if (att.data.isEmpty() && att.filePath.isEmpty()) {
             emit messageErrored(nonce);
-            return true;
+            return SendResult::Sent;
         }
     }
 
     client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
-    return true;
+    return SendResult::Sent;
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)

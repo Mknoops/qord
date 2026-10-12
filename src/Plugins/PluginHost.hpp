@@ -120,6 +120,13 @@ public:
     [[nodiscard]] bool dispatchShortcut(const ShortcutContext &shortcut);
     // The first plugin with an indicator wins
     [[nodiscard]] std::optional<TypingIndicator> dispatchChannelTypingIndicator(const ChannelTypingContext &channel);
+    struct PluginAccessory
+    {
+        QString pluginId;
+        MessageAccessory accessory;
+    };
+    [[nodiscard]] QList<PluginAccessory> dispatchMessageAccessories(const MessageContext &message);
+    void dispatchMessageAccessoryAction(const QString &pluginId, const QString &actionId, const MessageContext &message);
     [[nodiscard]] QList<PluginButton> dispatchAttachmentButtons(const AttachmentContext &attachment);
     void dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
                                          const AttachmentContext &attachment);

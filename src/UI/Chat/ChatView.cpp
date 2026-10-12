@@ -419,6 +419,19 @@ void ChatView::openLink(const QString &url)
         return;
     }
 
+    // Qord: a link under a message from a plugin (Translate's "Dismiss")
+    const QLatin1String accessory(Qord::Plugins::MessageAccessoryHref);
+    if (url.startsWith(accessory)) {
+        const QStringList parts = url.mid(accessory.size()).split(QLatin1Char('/'));
+        const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (parts.size() == 2 && idx.isValid() && host)
+            if (auto ctx = pluginContext(idx.row()))
+                host->dispatchMessageAccessoryAction(QUrl::fromPercentEncoding(parts[0].toLatin1()),
+                                                     QUrl::fromPercentEncoding(parts[1].toLatin1()), *ctx);
+        return;
+    }
+
     // Qord: a user mention opens the profile
     const QLatin1String userMention("acheron://user/");
     if (url.startsWith(userMention)) {

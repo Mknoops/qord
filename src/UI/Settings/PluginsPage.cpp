@@ -348,6 +348,11 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
                 form->addWidget(edit);
             } else {
                 auto *edit = new QLineEdit(settings->stringValue(key), editor);
+                if (spec.secret) {
+                    // Kept in the system keychain; shown hidden
+                    edit->setEchoMode(QLineEdit::Password);
+                    edit->setPlaceholderText(QObject::tr("Stored in the system keychain"));
+                }
                 connect(edit, &QLineEdit::editingFinished, editor, [edit, commit] { commit(edit->text()); });
                 form->addWidget(edit);
             }

@@ -29,6 +29,25 @@ public:
 
     Handle get(const QUrl &url, Callback callback) override
     {
+        return track([&](Callback wrapped) { return inner->get(url, std::move(wrapped)); }, std::move(callback));
+    }
+
+    Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override
+    {
+        return track([&](Callback wrapped) { return inner->post(url, headers, body, std::move(wrapped)); },
+                     std::move(callback));
+    }
+
+    void cancel(Handle handle) override
+    {
+        if (pending.remove(handle))
+            inner->cancel(handle);
+    }
+
+private:
+    // Drops the reply once the plugin stopped; cancels what is still pending then
+    Handle track(const std::function<Handle(Callback)> &send, Callback callback)
+    {
         struct Request
         {
             Handle handle = 0;
@@ -36,7 +55,7 @@ public:
         };
         auto request = std::make_shared<Request>();
         std::weak_ptr<bool> weakAlive = alive;
-        request->handle = inner->get(url, [this, weakAlive, request, callback = std::move(callback)](const Reply &reply) {
+        request->handle = send([this, weakAlive, request, callback = std::move(callback)](const Reply &reply) {
             auto isAlive = weakAlive.lock();
             if (!isAlive || !*isAlive)
                 return;
@@ -49,13 +68,6 @@ public:
         return request->handle;
     }
 
-    void cancel(Handle handle) override
-    {
-        if (pending.remove(handle))
-            inner->cancel(handle);
-    }
-
-private:
     NetworkService *inner;
     std::shared_ptr<bool> alive;
     QSet<Handle> pending;
@@ -142,6 +154,15 @@ public:
     }
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
+    void showForm(const QString &title, const QList<FormField> &fields,
+                  std::function<void(const QString &, const QString &)> changed) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->showForm(title, fields, [weak, changed = std::move(changed)](const QString &key, const QString &value) {
+            if (auto a = weak.lock(); a && *a)
+                changed(key, value);
+        });
+    }
     void cancelReply() override { inner->cancelReply(); }
     void cancelEditing() override { inner->cancelEditing(); }
     void focusMessageBox() override { inner->focusMessageBox(); }
@@ -313,7 +334,8 @@ MessageActionService *PluginContext::messageActions() const
 
 MessageService *PluginContext::messages() const
 {
-    if (!granted.testFlag(Permission::LogMessages) && !granted.testFlag(Permission::HideMessages))
+    if (!granted.testFlag(Permission::LogMessages) && !granted.testFlag(Permission::HideMessages) &&
+        !granted.testFlag(Permission::ModifyDisplayedMessages))
         return nullptr;
     return services.messages;
 }

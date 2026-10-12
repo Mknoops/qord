@@ -60,12 +60,15 @@ public:
     void requestLoadHistory(Snowflake channelId, Snowflake beforeId);
     void requestLoadFuture(Snowflake channelId, Snowflake afterId);
     void requestLoadAround(Snowflake channelId, Snowflake messageId);
-    // Qord: false when a plugin cancelled the send; with
-    // runPlugins false the BeforeSend hook already ran
-    bool sendMessage(Snowflake channelId, const QString &content,
-                     Snowflake replyToMessageId = Snowflake::Invalid,
-                     const QList<PendingAttachment> &attachments = {},
-                     bool mentionRepliedUser = true, bool runPlugins = true);
+    // Qord: Cancelled when a plugin stopped the send; Deferred when a plugin
+    // first needs the network (deferredDone then says whether it was sent).
+    // With runPlugins false the BeforeSend hook already ran.
+    enum class SendResult { Sent, Cancelled, Deferred };
+    SendResult sendMessage(Snowflake channelId, const QString &content,
+                           Snowflake replyToMessageId = Snowflake::Invalid,
+                           const QList<PendingAttachment> &attachments = {},
+                           bool mentionRepliedUser = true, bool runPlugins = true,
+                           std::function<void(bool sent)> deferredDone = {});
     void cancelSend(Snowflake channelId, const QString &nonce);
     void addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst);
 
@@ -104,6 +107,8 @@ private:
     void parseMessageContent(Discord::Message &msg);
     [[nodiscard]] Qord::Plugins::MessageContext pluginContext(const Discord::Message &msg, bool withJson = false) const;
     [[nodiscard]] QString annotatedHtml(const Qord::Plugins::MessageAnnotation &annotation, const QString &content,
+                                        Snowflake channelId) const;
+    [[nodiscard]] QString accessoryHtml(const QString &pluginId, const Qord::Plugins::MessageAccessory &accessory,
                                         Snowflake channelId) const;
     QString inlineHtml(const QString &content, Snowflake channelId) const;
 

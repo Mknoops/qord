@@ -233,6 +233,19 @@ public:
         return std::nullopt;
     }
 
+    // Hook::MessageAccessories: shown under a message (nullopt: nothing). A
+    // plugin re-renders the message (MessageService) when this changes.
+    virtual std::optional<MessageAccessory> messageAccessory(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return std::nullopt;
+    }
+    virtual void onMessageAccessoryAction(const QString &id, const MessageContext &message)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(message);
+    }
+
     // Hook::AttachmentButtons: buttons in a text file's preview (and its
     // full view), once its start is loaded
     virtual QList<ChatBarButton> attachmentButtons(const AttachmentContext &attachment)

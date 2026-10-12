@@ -9,7 +9,8 @@ For checking Qord's Go Live without Discord:
 - video Qord streams is also decrypted here (aead_aes256_gcm_rtpsize, with
   Windows' BCrypt), taken apart (RFC 6184) and written to
   %TEMP%/qord-mock-stream.h264, so ffmpeg can say whether it is valid H.264;
-- Ava streams a test picture (made once with ffmpeg) that Qord can watch,
+- Ava streams a test picture with a 660 Hz tone (made once with ffmpeg) that
+  Qord can watch, and Qord's stream sound is counted when it arrives;
   and has her camera on (colour bars) in the first server's voice channel.
 
 AES-GCM goes through Windows' BCrypt, or the `cryptography` package elsewhere.
@@ -32,6 +33,7 @@ from typing import Any
 UDP_PORT = 8767
 MODE = "aead_aes256_gcm_rtpsize"
 H264_PT = 101
+OPUS_PT = 120
 LOG = print
 OUT_PATH = os.path.join(tempfile.gettempdir(), "qord-mock-stream.h264")
 FFMPEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "deps", "ffmpeg", "bin", "ffmpeg.exe")
@@ -266,6 +268,8 @@ class Session:
         self.addr = None
         self.video_op = None  # the last op 12 this session sent
         self.depacketizer = Depacketizer()
+        self.audio_packets = 0
+        self.audio_loud = 0
 
 
 SESSIONS: list[Session] = []
@@ -309,6 +313,18 @@ class MediaProtocol(asyncio.DatagramProtocol):
         sender = next((s for s in SESSIONS if s.addr == addr), None)
         if not sender or len(data) < 12:
             return
+        # Qord's sound (a Go Live stream's, or the microphone): count what
+        # decrypts and how much of it isn't silence
+        if not (192 <= data[1] <= 223) and (data[1] & 0x7F) == OPUS_PT:
+            payload = open_packet(crypto_for(sender.server), data)
+            if payload is None:
+                LOG("voice: an audio packet did not decrypt")
+            else:
+                sender.audio_packets += 1
+                sender.audio_loud += len(payload) > 3
+                if sender.audio_packets % 100 == 1:
+                    LOG(f"voice: audio from {sender.user_id} on {sender.server}: {sender.audio_packets} packets "
+                        f"({sender.audio_loud} with sound)")
         # Qord's own video: check it independently
         if not (192 <= data[1] <= 223) and (data[1] & 0x7F) == H264_PT and sender.video:
             payload = open_packet(crypto_for(sender.server), data)
@@ -422,6 +438,54 @@ def test_frames(source: str = "testsrc2") -> list[bytes]:
     return _TEST_FRAMES[source]
 
 
+_TEST_AUDIO: list[bytes] = []
+
+
+def ogg_packets(data: bytes) -> list[bytes]:
+    """The packets of an Ogg stream (one logical stream, as ffmpeg writes it)."""
+    packets, current, pos = [], b"", 0
+    while pos + 27 <= len(data) and data[pos:pos + 4] == b"OggS":
+        count = data[pos + 26]
+        table = data[pos + 27:pos + 27 + count]
+        pos += 27 + count
+        for size in table:
+            current += data[pos:pos + size]
+            pos += size
+            if size < 255:
+                packets.append(current)
+                current = b""
+    return packets
+
+
+def test_audio() -> list[bytes]:
+    """Ten seconds of a 660 Hz tone as 20 ms Opus packets (made once with ffmpeg)."""
+    if not _TEST_AUDIO:
+        path = os.path.join(tempfile.gettempdir(), "qord-mock-tone.opus")
+        if not os.path.exists(path):
+            subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                            "sine=frequency=660:sample_rate=48000", "-ac", "2", "-t", "10", "-c:a", "libopus",
+                            "-b:a", "96k", "-frame_duration", "20", "-f", "ogg", path], check=True)
+        with open(path, "rb") as f:
+            _TEST_AUDIO.extend(ogg_packets(f.read())[2:])  # past OpusHead and OpusTags
+    return _TEST_AUDIO
+
+
+async def fake_stream_audio(viewer: Session, ssrc: int) -> None:
+    """The stream's sound: Opus every 20 ms, as Discord's SFU forwards it."""
+    packets = test_audio()
+    crypto = crypto_for(viewer.server)
+    seq, counter, start, i = random.randint(0, 65535), 1 << 31, time.monotonic(), 0
+    while viewer in SESSIONS:
+        if not viewer.addr or TRANSPORT is None:
+            await asyncio.sleep(0.1)
+            continue
+        header = struct.pack(">BBHII", 0x80, OPUS_PT, seq, (i * 960) & 0xFFFFFFFF, ssrc)
+        TRANSPORT.sendto(seal(crypto, counter, header, packets[i % len(packets)]), viewer.addr)
+        seq, counter, i = (seq + 1) & 0xFFFF, counter + 1, i + 1
+        # Keep to the clock, not to the sleep
+        await asyncio.sleep(max(0.0, start + i * 0.02 - time.monotonic()))
+
+
 async def fake_stream(viewer: Session, user_id: str, source: str = "testsrc2") -> None:
     """Sends the test picture to one viewer, as if `user_id` were streaming it
     (Go Live) or had their camera on (the call's own connection)."""
@@ -429,6 +493,8 @@ async def fake_stream(viewer: Session, user_id: str, source: str = "testsrc2") -
     op12 = {"user_id": user_id, "audio_ssrc": ssrc - 1, "video_ssrc": ssrc, "rtx_ssrc": ssrc + 1,
             "streams": [{"type": "video", "rid": "100", "ssrc": ssrc, "active": True, "quality": 100}]}
     await ws_send(viewer.ws, 12, op12)
+    if source == "testsrc2":  # a Go Live stream has sound; a camera doesn't
+        asyncio.create_task(fake_stream_audio(viewer, ssrc - 1))
     frames = test_frames(source)
     crypto = crypto_for(viewer.server)
     seq, counter, start = random.randint(0, 65535), 1, time.monotonic()

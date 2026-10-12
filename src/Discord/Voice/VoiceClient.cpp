@@ -300,6 +300,10 @@ void VoiceClient::sendAudio(const QByteArray &opusData)
     // snap rtp timestamp back to wall clock after a period of silence
     // otherwise its a little behind and it will be played back delayed by discord
     auto now = std::chrono::steady_clock::now();
+    // Qord: a pause in sending (Go Live audio skips silent frames) is a new
+    // talkspurt too, or the timestamps fall behind the clock
+    if (now - lastAudioSendTime > std::chrono::milliseconds(200))
+        newTalkspurt = true;
     if (newTalkspurt) {
         auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - rtpEpoch);
         rtpTimestamp = static_cast<uint32_t>(static_cast<uint64_t>(elapsed.count()) * 48 / 1000);

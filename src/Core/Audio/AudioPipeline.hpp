@@ -50,6 +50,8 @@ public slots:
 
     void setSsrcUserId(quint32 ssrc, Snowflake userId);
     void removeUser(Snowflake userId);
+    // Qord: one source (a watched stream's audio) is gone
+    void removeSsrc(quint32 ssrc);
     void setDeafened(bool deafened);
     void setUserVolume(Snowflake userId, float volume);
     void setInputDevice(const QByteArray &deviceId);

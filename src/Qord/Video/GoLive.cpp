@@ -7,7 +7,6 @@
 #include "Discord/Voice/VoiceClient.hpp"
 
 #include <QDateTime>
-#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QThread>
 
@@ -22,102 +21,6 @@ constexpr int OpStreamCreate = 18;
 constexpr int OpStreamDelete = 19;
 constexpr int OpStreamWatch = 20;
 constexpr int OpStreamSetPaused = 22;
-
-VideoSender::VideoSender(const CaptureSource &source, const H264Encoder::Settings &settings)
-    : source(source), settings(settings)
-{
-}
-
-VideoSender::~VideoSender() = default;
-
-void VideoSender::begin()
-{
-    if (!capturer.start(source)) {
-        emit failed(tr("Couldn't capture %1").arg(source.name));
-        return;
-    }
-    if (!encoder.open(settings)) {
-        emit failed(tr("No H.264 encoder is available"));
-        return;
-    }
-    emit started(encoder.encoderName());
-    startMs = QDateTime::currentMSecsSinceEpoch();
-    timer = new QTimer(this);
-    timer->setTimerType(Qt::PreciseTimer);
-    connect(timer, &QTimer::timeout, this, &VideoSender::tick);
-    timer->start(1000 / qMax(1, settings.fps));
-}
-
-void VideoSender::end()
-{
-    if (timer)
-        timer->stop();
-    capturer.stop();
-    encoder.close();
-}
-
-void VideoSender::requestKeyframe()
-{
-    keyframeWanted = true;
-}
-
-void VideoSender::tick()
-{
-    QElapsedTimer timing;
-    timing.start();
-    const QImage image = capturer.grab();
-    const qint64 captureNs = timing.nsecsElapsed();
-    if (image.isNull()) {
-        if (capturer.sourceGone()) {
-            end();
-            emit failed(tr("The shared window was closed"));
-        }
-        return; // no picture yet
-    }
-    // Keep the source's aspect ratio inside the chosen size
-    QSize target = image.size().scaled(QSize(settings.width, settings.height), Qt::KeepAspectRatio);
-    if (target.width() > image.width() || target.height() > image.height())
-        target = image.size();
-    target = QSize(target.width() & ~1, target.height() & ~1);
-    if (target != QSize(encoder.settings().width, encoder.settings().height)) {
-        H264Encoder::Settings s = settings;
-        s.width = target.width();
-        s.height = target.height();
-        if (!encoder.open(s, { encoder.encoderName() }) && !encoder.open(s)) {
-            end();
-            emit failed(tr("The encoder stopped"));
-            return;
-        }
-        keyframeWanted = true;
-    }
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    const quint32 timestamp = quint32((now - startMs) * (VideoClockRate / 1000));
-    // Periodic keyframes ourselves: not every encoder keeps to its GOP size
-    // (AMF doesn't), and viewers joining or losing packets need them
-    if (now - lastKeyframeMs >= qint64(settings.keyframeIntervalSeconds) * 1000)
-        keyframeWanted = true;
-    const bool key = keyframeWanted;
-    keyframeWanted = false;
-    if (key)
-        lastKeyframeMs = now;
-    for (const QByteArray &unit : encoder.encode(image, key))
-        emit frameEncoded(unit, timestamp);
-
-    // How the stream keeps up, every five seconds
-    ++statFrames;
-    statCaptureNs += captureNs;
-    statTotalNs += timing.nsecsElapsed();
-    if (now - statStartMs >= 5000) {
-        if (statStartMs)
-            qCInfo(LogVoice).nospace() << "Go Live: " << statFrames * 1000.0 / (now - statStartMs) << " fps, capture "
-                                       << statCaptureNs / statFrames / 1000000.0 << " ms, capture+encode "
-                                       << statTotalNs / statFrames / 1000000.0 << " ms (" << encoder.encoderName()
-                                       << ", " << encoder.settings().width << "x" << encoder.settings().height << ")";
-        statStartMs = now;
-        statFrames = 0;
-        statCaptureNs = statTotalNs = 0;
-    }
-}
 
 void VideoReceiver::onFrame(quint64, quint32, const QByteArray &annexB, bool)
 {
@@ -312,7 +215,7 @@ void GoLive::connectStream(Connection *c)
         settings.bitrateKbps = bitrateKbps(c->quality);
         c->senderThread = new QThread(this);
         c->senderThread->setObjectName(QStringLiteral("GoLiveCapture"));
-        c->sender = new VideoSender(c->source, settings);
+        c->sender = new VideoSender(std::make_unique<ScreenFrameSource>(c->source), settings, QStringLiteral("Go Live"));
         c->sender->moveToThread(c->senderThread);
         connect(c->sender, &VideoSender::frameEncoded, c->client, &VoiceClient::sendVideoFrame);
         connect(c->client, &VoiceClient::keyframeRequested, c->sender, &VideoSender::requestKeyframe);

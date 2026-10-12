@@ -63,12 +63,21 @@ if(TARGET ffmpeg AND ENABLE_VOICE)
         src/Qord/Video/ScreenCapture.cpp
         src/Qord/Video/GoLive.hpp
         src/Qord/Video/GoLive.cpp
+        src/Qord/Video/FrameSource.hpp
+        src/Qord/Video/VideoSender.hpp
+        src/Qord/Video/VideoSender.cpp
+        src/Qord/Video/CameraCapture.hpp
+        src/Qord/Video/CameraCapture.cpp
+        src/Qord/Video/Camera.hpp
+        src/Qord/Video/Camera.cpp
         src/UI/Qord/GoLiveUi.hpp
-        src/UI/Qord/GoLiveUi.cpp)
+        src/UI/Qord/GoLiveUi.cpp
+        src/UI/Qord/CameraUi.hpp
+        src/UI/Qord/CameraUi.cpp)
     target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_HAVE_GO_LIVE)
     if(WIN32)
         target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp)
-        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp)
+        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp mf mfplat mfreadwrite mfuuid)
     endif()
 endif()
 
@@ -115,6 +124,18 @@ if(BUILD_TESTS)
         target_include_directories(TestVideoCodec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         set_target_properties(TestVideoCodec PROPERTIES AUTOMOC ON)
         add_test(NAME QordVideoCodecTests COMMAND TestVideoCodec)
+
+        # Cameras and the sender they share with Go Live
+        qt_add_executable(TestCamera tests/qord/tst_camera.cpp src/Qord/Video/CameraCapture.cpp
+            src/Qord/Video/VideoSender.cpp src/Qord/Video/VideoCodec.cpp src/Qord/Video/H264Rtp.cpp
+            src/Qord/DevMock.cpp src/Core/Logging.cpp)
+        target_link_libraries(TestCamera PRIVATE Qt::Core Qt::Gui Qt::Network Qt::Test ffmpeg)
+        target_include_directories(TestCamera PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        set_target_properties(TestCamera PROPERTIES AUTOMOC ON)
+        if(WIN32)
+            target_link_libraries(TestCamera PRIVATE mf mfplat mfreadwrite mfuuid)
+        endif()
+        add_test(NAME QordCameraTests COMMAND TestCamera)
     endif()
     add_subdirectory(tests/plugins)
 endif()

@@ -21,6 +21,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Input/PluginChatButtons.cpp
     src/Qord/DevMock.hpp
     src/Qord/DevMock.cpp
+    src/Core/LogRedaction.hpp
+    src/Core/LogRedaction.cpp
     src/Qord/DevMockAccount.cpp
     src/Qord/ClientExtras.cpp
     src/Core/Markdown/QordRules.cpp
@@ -110,6 +112,12 @@ if(BUILD_TESTS)
         target_compile_options(TestSlashCommands PRIVATE /utf-8)
     endif()
     add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
+
+    qt_add_executable(TestLogRedaction tests/qord/tst_log_redaction.cpp src/Core/LogRedaction.cpp)
+    target_link_libraries(TestLogRedaction PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestLogRedaction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestLogRedaction PROPERTIES AUTOMOC ON)
+    add_test(NAME QordLogRedactionTests COMMAND TestLogRedaction)
 
     qt_add_executable(TestH264Rtp tests/qord/tst_h264_rtp.cpp src/Qord/Video/H264Rtp.cpp)
     target_link_libraries(TestH264Rtp PRIVATE Qt::Core Qt::Test)

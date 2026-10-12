@@ -21,6 +21,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Input/PluginChatButtons.cpp
     src/Qord/DevMock.hpp
     src/Qord/DevMock.cpp
+    src/Core/LogRedaction.hpp
+    src/Core/LogRedaction.cpp
     src/Qord/DevMockAccount.cpp
     src/Qord/ClientExtras.cpp
     src/Core/Markdown/QordRules.cpp
@@ -63,12 +65,24 @@ if(TARGET ffmpeg AND ENABLE_VOICE)
         src/Qord/Video/ScreenCapture.cpp
         src/Qord/Video/GoLive.hpp
         src/Qord/Video/GoLive.cpp
+        src/Qord/Video/FrameSource.hpp
+        src/Qord/Audio/StreamAudio.hpp
+        src/Qord/Audio/StreamAudio.cpp
+        src/Qord/Video/VideoSender.hpp
+        src/Qord/Video/VideoSender.cpp
+        src/Qord/Video/CameraCapture.hpp
+        src/Qord/Video/CameraCapture.cpp
+        src/Qord/Video/Camera.hpp
+        src/Qord/Video/Camera.cpp
         src/UI/Qord/GoLiveUi.hpp
-        src/UI/Qord/GoLiveUi.cpp)
+        src/UI/Qord/GoLiveUi.cpp
+        src/UI/Qord/CameraUi.hpp
+        src/UI/Qord/CameraUi.cpp)
     target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_HAVE_GO_LIVE)
     if(WIN32)
-        target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp)
-        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp)
+        target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp
+            src/Qord/Audio/WasapiLoopback.hpp src/Qord/Audio/WasapiLoopback.cpp)
+        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp mf mfplat mfreadwrite mfuuid mmdevapi)
     endif()
 endif()
 
@@ -102,6 +116,12 @@ if(BUILD_TESTS)
     endif()
     add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
 
+    qt_add_executable(TestLogRedaction tests/qord/tst_log_redaction.cpp src/Core/LogRedaction.cpp)
+    target_link_libraries(TestLogRedaction PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestLogRedaction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestLogRedaction PROPERTIES AUTOMOC ON)
+    add_test(NAME QordLogRedactionTests COMMAND TestLogRedaction)
+
     qt_add_executable(TestH264Rtp tests/qord/tst_h264_rtp.cpp src/Qord/Video/H264Rtp.cpp)
     target_link_libraries(TestH264Rtp PRIVATE Qt::Core Qt::Test)
     target_include_directories(TestH264Rtp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -115,6 +135,34 @@ if(BUILD_TESTS)
         target_include_directories(TestVideoCodec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         set_target_properties(TestVideoCodec PROPERTIES AUTOMOC ON)
         add_test(NAME QordVideoCodecTests COMMAND TestVideoCodec)
+
+        # Cameras and the sender they share with Go Live
+        qt_add_executable(TestCamera tests/qord/tst_camera.cpp src/Qord/Video/CameraCapture.cpp
+            src/Qord/Video/VideoSender.cpp src/Qord/Video/VideoCodec.cpp src/Qord/Video/H264Rtp.cpp
+            src/Qord/DevMock.cpp src/Core/Logging.cpp)
+        target_link_libraries(TestCamera PRIVATE Qt::Core Qt::Gui Qt::Network Qt::Test ffmpeg)
+        target_include_directories(TestCamera PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        set_target_properties(TestCamera PROPERTIES AUTOMOC ON)
+        if(WIN32)
+            target_link_libraries(TestCamera PRIVATE mf mfplat mfreadwrite mfuuid)
+        endif()
+        add_test(NAME QordCameraTests COMMAND TestCamera)
+
+        # Go Live's sound: frames and Opus (capture needs a sound server)
+        qt_add_executable(TestStreamAudio tests/qord/tst_stream_audio.cpp src/Qord/Audio/StreamAudio.cpp
+            src/Core/Audio/OpusEncoder.cpp src/Core/Audio/OpusDecoder.cpp src/Core/Audio/MiniaudioImpl.cpp
+            src/Core/Logging.cpp)
+        target_link_libraries(TestStreamAudio PRIVATE Qt::Core Qt::Test ${OPUS_TARGET})
+        target_include_directories(TestStreamAudio PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/vendor/miniaudio)
+        set_target_properties(TestStreamAudio PROPERTIES AUTOMOC ON)
+        if(WIN32)
+            target_sources(TestStreamAudio PRIVATE src/Qord/Audio/WasapiLoopback.cpp)
+            target_link_libraries(TestStreamAudio PRIVATE mmdevapi ole32)
+        else()
+            target_link_libraries(TestStreamAudio PRIVATE ${CMAKE_DL_LIBS} Threads::Threads)
+        endif()
+        add_test(NAME QordStreamAudioTests COMMAND TestStreamAudio)
     endif()
     add_subdirectory(tests/plugins)
 endif()

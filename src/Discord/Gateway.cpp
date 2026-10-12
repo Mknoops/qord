@@ -1,5 +1,7 @@
 #include "Gateway.hpp"
 
+#include "Core/LogRedaction.hpp"
+
 #include "Enums.hpp"
 #include "Objects.hpp"
 #include "Outbound.hpp"
@@ -129,7 +131,7 @@ void Gateway::sendPayload(const QByteArray &data)
 
 void Gateway::onPayloadReceived(const QJsonObject &root)
 {
-    qCDebug(LogDiscord) << "Received payload" << root;
+    qCDebug(LogDiscord) << "Received payload" << Core::redactSecrets(root); // Qord: no tokens in logs
 
     Inbound msg = Inbound::fromJson(root);
 

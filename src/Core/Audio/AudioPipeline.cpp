@@ -152,6 +152,12 @@ void AudioPipeline::removeUser(Snowflake userId)
     pendingUserRms.remove(userId);
 }
 
+void AudioPipeline::removeSsrc(quint32 ssrc)
+{
+    speakers.erase(ssrc);
+    ssrcToUser.remove(ssrc);
+}
+
 void AudioPipeline::setUserVolume(Snowflake userId, float volume)
 {
     if (volume == 1.0f)

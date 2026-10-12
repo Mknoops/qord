@@ -12,6 +12,8 @@
 
 #include <memory>
 
+#include "Qord/Video/FrameSource.hpp"
+
 namespace Qord {
 namespace Video {
 
@@ -52,6 +54,22 @@ private:
     struct Private;
     std::unique_ptr<Private> d;
     bool drawCursor = true;
+};
+
+// A screen or window as VideoSender's source
+class ScreenFrameSource : public FrameSource
+{
+public:
+    explicit ScreenFrameSource(const CaptureSource &source) : source(source) {}
+    bool start() override { return capturer.start(source); }
+    void stop() override { capturer.stop(); }
+    QImage grab() override { return capturer.grab(); }
+    [[nodiscard]] bool sourceGone() const override { return capturer.sourceGone(); }
+    [[nodiscard]] QString name() const override { return source.name; }
+
+private:
+    CaptureSource source;
+    ScreenCapturer capturer;
 };
 
 } // namespace Video

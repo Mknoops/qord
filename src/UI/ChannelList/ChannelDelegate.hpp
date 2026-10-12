@@ -36,6 +36,9 @@ public:
     // Qord: whether a voice participant is streaming (Go Live): a red LIVE badge
     using LiveProvider = std::function<bool(quint64 accountId, quint64 userId)>;
     static void setLiveProvider(LiveProvider provider);
+    // Qord: whether a voice participant has their camera on: a camera icon
+    using CameraProvider = std::function<bool(quint64 accountId, quint64 userId)>;
+    static void setCameraProvider(CameraProvider provider);
     bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
                    const QModelIndex &index) override;
 

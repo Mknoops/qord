@@ -100,10 +100,16 @@ From Acheron, extended by Qord:
     Media Foundation.
   - Windows capture: DXGI desktop duplication for screens and Windows.Graphics.Capture
     for windows, with fallbacks.
+  - **Stream sound:** on Windows, a shared window streams that program's sound and a
+    shared screen streams everything except Qord, so the call never echoes. On Linux it
+    streams the PulseAudio/PipeWire output, and the call is included.
   - A red **LIVE** badge in the channel list. Click a live user to watch their stream
-    in a viewer window (double-click or F11 for full screen).
-- **Camera video in calls** *(in progress)*: Media Foundation on Windows, V4L2 on
-  Linux, the `self_video` voice state, a video grid and a self view.
+    in a viewer window (double-click or F11 for full screen). The stream's sound plays
+    with the call.
+- **Camera video in calls:** turn your camera on from the voice panel (and pick a camera
+  when you have several). Everyone's camera appears in a video grid with your own
+  mirrored self view, and a camera icon marks who has video on. 720p30. Cameras are
+  captured through Media Foundation on Windows and V4L2 on Linux.
 
 ### Look and feel
 
@@ -203,10 +209,10 @@ Blocked, with notes and known gaps) is in
 | Base client (Acheron features) | Works |
 | Qord UI and core Discord features | Works against the mock server; partly checked on real Discord |
 | Plugins | 30 of 369 Tested (each has its own test); none yet marked Complete (verified in a logged-in client) |
-| Go Live | Verified against the mock server; not yet tested on real Discord |
-| Camera video | In progress |
+| Go Live | Picture and sound verified against the mock server; not yet tested on real Discord |
+| Camera video | Verified against the mock server on Linux; not yet tested with a real camera or on real Discord |
 | Windows build | Primary platform (MSVC, Qt 6.10) |
-| Linux build | Builds with CMake against Qt 6.9+ and system libraries |
+| Linux build | Builds and passes all tests with CMake against Qt 6.10 and system libraries |
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).
@@ -231,8 +237,11 @@ configures `build\`, builds the client and all tests, and runs ctest.
 
 ### Linux
 
-Install Qt 6.9 or newer (Qt 6.9 is needed for 64-bit flags; your distribution's
-package or conda-forge's `qt6-main` will do), then:
+Install Qt 6.10 or newer: the code uses 64-bit `QFlags` (Qt 6.9) and
+`QSortFilterProxyModel::endFilterChange` (Qt 6.10). Your distribution's package or
+conda-forge's `qt6-main` will do. libcurl must support WebSockets (`ws`/`wss` in
+`curl --version`), because the gateway needs them; some distributions' libcurl
+doesn't (Ubuntu 24.04's doesn't). curl-impersonate does. Then run:
 
 ```bash
 # Debian/Ubuntu package names; use your distribution's equivalents
@@ -256,8 +265,8 @@ can.
 
 ### Dependencies
 
-- Qt 6.9+ (Core, Gui, Widgets, Svg, Network, Sql, Concurrent), or Qt 5.15 without voice and video
-- libcurl-impersonate (plain libcurl works with `ALLOW_PLAIN_CURL=ON`), OpenSSL, zlib
+- Qt 6.10+ (Core, Gui, Widgets, Svg, Network, Sql, Concurrent), or Qt 5.15 without voice and video
+- libcurl-impersonate (plain libcurl with WebSockets works with `ALLOW_PLAIN_CURL=ON`), OpenSSL, zlib
 - QtKeychain (vendored if the system has none)
 - ffmpeg (libavcodec, libavformat, libavutil, libswscale, libswresample): media playback, Go Live and video
 - libsodium, libopus, libdave and mlspp (vendored), miniaudio (vendored): voice
@@ -270,12 +279,14 @@ can.
 
 `tools/mock_discord.py` is a local stand-in for Discord's gateway, REST API, CDN and
 voice servers. It has sample servers, channels, messages, friends and a voice channel
-where "Ava" is streaming a test picture. Setting `QORD_MOCK_DISCORD` makes the
+where "Ava" is streaming a test picture and has her camera on. Setting `QORD_MOCK_DISCORD` makes the
 client use it, with a separate `Qord-Mock` profile, and it only accepts loopback
 addresses:
 
 ```bash
 pwsh -File tools/run-mock.ps1 -Reset          # Windows: start the mock and the client
+# Linux/macOS: python3 tools/mock_discord.py --port 8765, then
+#   QORD_MOCK_DISCORD=http://127.0.0.1:8765 ./build/acheron
 python tools/mock_discord.py say --channel general --user ava "hello"
 python tools/mock_discord.py edit --channel general "changed text"
 python tools/mock_discord.py delete --channel general

@@ -225,6 +225,13 @@ public:
     QList<QUrl> images;
 };
 
+class FakeAudio : public AudioOptionsService
+{
+public:
+    void setUserVolumeMultiplier(double value) override { multiplier = value; }
+    double multiplier = 1.0;
+};
+
 class FakePrivateChannels : public PrivateChannelDirectory
 {
 public:
@@ -403,6 +410,7 @@ struct SinglePluginHost
         services.guilds = &guilds;
         services.users = &users;
         services.privateChannels = &dms;
+        services.audio = &audio;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -430,6 +438,7 @@ struct SinglePluginHost
     FakeUi ui;
     FakeMessages messages;
     FakePrivateChannels dms;
+    FakeAudio audio;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

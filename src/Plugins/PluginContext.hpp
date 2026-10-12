@@ -64,6 +64,8 @@ public:
     [[nodiscard]] UserLookupService *users();
     // Null without the read_dms permission.
     [[nodiscard]] const PrivateChannelDirectory *privateChannels() const;
+    // Null without the control_audio permission.
+    [[nodiscard]] AudioOptionsService *audio() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const

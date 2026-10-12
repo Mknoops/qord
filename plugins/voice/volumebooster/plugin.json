@@ -1,0 +1,78 @@
+{
+  "id": "volumebooster",
+  "equicordName": "VolumeBooster",
+  "equicordPath": "src/plugins/volumeBooster",
+  "name": "VolumeBooster",
+  "description": "Allows you to set the user and stream volume above the default maximum",
+  "categories": [
+    "voice"
+  ],
+  "tags": [
+    "Voice",
+    "Utility"
+  ],
+  "authors": [
+    "Nuckyz",
+    "sadan"
+  ],
+  "permissions": [
+    "control_audio"
+  ],
+  "hooks": [],
+  "settings": [
+    {
+      "key": "multiplier",
+      "type": "choice",
+      "default": "2",
+      "label": "Volume Multiplier",
+      "description": "Volume Multiplier",
+      "choices": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "1.5",
+          "label": "1.5"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "2.5",
+          "label": "2.5"
+        },
+        {
+          "value": "3",
+          "label": "3"
+        },
+        {
+          "value": "3.5",
+          "label": "3.5"
+        },
+        {
+          "value": "4",
+          "label": "4"
+        },
+        {
+          "value": "4.5",
+          "label": "4.5"
+        },
+        {
+          "value": "5",
+          "label": "5"
+        }
+      ]
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The user volume sliders in the voice window go up to 200% times the multiplier (400% by default) instead of 200%; turning the plugin off or lowering the multiplier brings louder users back down to the new limit. Qord mixes voice itself, so a boosted user is simply amplified (and may clip, as with upstream's gain node).",
+  "gaps": [
+    "Qord has no stream volume control yet, so only user volumes are boosted.",
+    "Upstream's slider markers are 0.5 apart; Qord offers the same values as a list."
+  ]
+}

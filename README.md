@@ -186,10 +186,11 @@ inventory). All are off by default.
 | **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
 | **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
+| **VolumeBooster** | User volume sliders go past 200% (up to 1,000%) | control_audio |
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** PinDMs, ImageZoom, FavoriteEmojiFirst, BetterFolders, VolumeBooster.
+**Up next:** PinDMs, ImageZoom, FavoriteEmojiFirst, BetterFolders.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

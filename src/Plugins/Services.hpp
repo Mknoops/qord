@@ -354,6 +354,15 @@ public:
     virtual void refreshFilters() = 0;
 };
 
+// How voice audio plays (VolumeBooster).
+class AudioOptionsService
+{
+public:
+    virtual ~AudioOptionsService() = default;
+    // User volume sliders go up to 200% times this (1 to 5)
+    virtual void setUserVolumeMultiplier(double multiplier) = 0;
+};
+
 // Your DMs and group DMs, newest first (Discord's sorted private channels).
 class PrivateChannelDirectory
 {
@@ -378,6 +387,7 @@ struct Services
     GuildDirectory *guilds = nullptr;
     UserLookupService *users = nullptr;
     PrivateChannelDirectory *privateChannels = nullptr;
+    AudioOptionsService *audio = nullptr;
 };
 
 } // namespace Plugins

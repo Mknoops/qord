@@ -1,6 +1,8 @@
 #include "VoiceWindow.hpp"
 
 #include "Core/Audio/VoiceManager.hpp"
+#include "Core/Audio/VolumeLimit.hpp"
+#include "Plugins/PluginHost.hpp"
 #include "Core/ImageManager.hpp"
 #include "UI/StatusIndicator.hpp"
 
@@ -150,7 +152,7 @@ VoiceUserWidget::VoiceUserWidget(Core::Snowflake userId, QWidget *parent)
     meter->setFixedHeight(8);
 
     volumeSlider = new QSlider(Qt::Horizontal, this);
-    volumeSlider->setRange(0, 200);
+    volumeSlider->setRange(0, Core::Audio::maxUserVolume()); // Qord: VolumeBooster raises it
     volumeSlider->setValue(100);
     volumeSlider->setMinimumWidth(40);
 
@@ -232,6 +234,12 @@ void VoiceUserWidget::setLocallyMuted(bool muted)
     muteBtn->setChecked(muted);
 }
 
+void VoiceUserWidget::setMaximumVolume(int pct)
+{
+    // A volume above the new limit comes down to it (valueChanged applies it)
+    volumeSlider->setMaximum(pct);
+}
+
 void VoiceUserWidget::setVolume(int pct)
 {
     volumeSlider->blockSignals(true);
@@ -282,6 +290,12 @@ VoiceWindow::VoiceWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
 {
     setWindowTitle(tr("Voice Settings"));
+    // Qord: VolumeBooster changes how far user volumes go
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() {
+            for (auto *widget : std::as_const(userWidgets))
+                widget->setMaximumVolume(Core::Audio::maxUserVolume());
+        });
     setAttribute(Qt::WA_DeleteOnClose, false);
     setAttribute(Qt::WA_QuitOnClose, false);
     setupUi();

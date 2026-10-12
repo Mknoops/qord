@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 327 |
+| Not Started | 326 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 42 |
+| Tested | 43 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -371,7 +371,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | VoiceMessageTranscriber | `src/equicordplugins/voiceMessageTranscriber.desktop` |  | Not Started |  |
 | VoiceRejoin | `src/equicordplugins/voiceRejoin` |  | Not Started |  |
 | VoiceStats | `src/equicordplugins/voiceStats` |  | Not Started |  |
-| VolumeBooster | `src/plugins/volumeBooster` |  | Not Started |  |
+| VolumeBooster | `src/plugins/volumeBooster` | `plugins/voice/volumebooster` | Tested | The user volume sliders in the voice window go up to 200% times the multiplier (400% by default) instead of 200%; turning the plugin off or lowering the multiplier brings louder users back down to the new limit. Qord mixes voice itself, so a boosted user is simply amplified (and may clip, as with upstream's gain node). wired; not yet verified in the running client. gaps: Qord has no stream volume control yet, so only user volumes are boosted.; Upstream's slider markers are 0.5 apart; Qord offers the same values as a list. |
 | WaitForSlot | `src/equicordplugins/waitForSlot` |  | Not Started |  |
 | WebContextMenus | `src/plugins/webContextMenus.web` |  | Not Started |  |
 | WebKeybinds | `src/plugins/webKeybinds.web` |  | Not Started |  |

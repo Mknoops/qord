@@ -90,6 +90,7 @@ public:
     void setVoiceStateFlags(bool selfMute, bool selfDeaf, bool serverMute, bool serverDeaf, bool suppress);
     void setLocallyMuted(bool muted);
     void setVolume(int pct);
+    void setMaximumVolume(int pct);
     void setDisplayName(const QString &name);
     void setAvatar(const QPixmap &pm);
     void setStatus(const Core::PresenceBadge &badge);

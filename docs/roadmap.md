@@ -8,29 +8,28 @@ The Equicord plugins Qord should port next, most useful and popular first. A plu
 
 | # | Plugin | Effort | Good first | Needs |
 |---|---|---|---|---|
-| 1 | CopyEmojiMarkdown | small | yes | Nothing new for the emoji picker's menu (emojiSuggestions hook); messages' emojis have no menu yet. |
-| 2 | ServerListIndicators | small |  | Friends' online status for plugins; the server list button (serverListButtons hook) already exists. |
-| 3 | PreviewMessage | small |  | The message box's text in ChatContext, so a chat bar button can preview it. |
-| 4 | DecodeBase64 | small | yes | Nothing new: "Decode Base64" in the message menu (messageContextMenu) showing the decoded text (UiService::showTextDialog). |
-| 5 | UnitConverter | small | yes | Nothing new: "Convert Units" in the message menu (messageContextMenu), shown under the message (messageAccessories). |
-| 6 | KeywordNotify | medium |  | Messages matching keywords reaching plugins as notifications (UiService::showNotification exists), and a mentions-inbox tab for them. |
-| 7 | MessageLinkTooltip | medium |  | Hover tooltips on message links showing the linked message (the fetch_messages service exists). |
-| 8 | ReplyTimestamp | small |  | A hook for the reply line above a message, to show when the replied message was sent. |
-| 9 | CharacterCounter | small |  | A way for plugins to show text next to the message box as you type. |
-| 10 | ShowTimeoutDuration | small |  | Discord's timeout icon next to timed-out members, which plugins can then label with the time left. |
-| 11 | VoiceChannelLog | medium |  | A log view of who joined and left a voice channel (the voiceStates hook exists). |
-| 12 | Timezones | medium |  | Per-user time zones, shown next to message timestamps and in profiles. |
-| 13 | PictureInPicture | medium |  | Pop-out playback for video attachments. |
-| 14 | NoPendingCount | small |  | A display option to hide the pending request count on the Friends page and home icon. |
-| 15 | VoiceChatDoubleClick | small |  | A display option so voice channels join on double click instead of single click. |
-| 16 | ClickableRoles | small |  | Clicks on profile roles reaching plugins (the profileRoleButtons hook is close). |
-| 17 | MoreQuickReactions | medium |  | Plugin control over how many reactions the hover bar offers. |
-| 18 | MentionAvatars | medium |  | Avatars inside user mentions when rendering messages. |
-| 19 | LastActive | medium |  | A user menu item that searches for their last message (search API). |
-| 20 | StreamerModeOn | medium |  | A streamer mode in the client (hides personal information) that plugins can switch. |
-| 21 | CustomIdle | small |  | Plugin control over when the client sets you idle. |
-| 22 | UnreadCountBadge | small |  | Unread counts on channels in the channel list (a display option). |
-| 23 | NoTypingAnimation | small |  | A display option to stop the typing indicator's dots animating. |
-| 24 | SilenceUsers | medium |  | Per-user silencing of notifications and sounds (the notifications hook exists). |
+| 1 | ServerListIndicators | small |  | Friends' online status for plugins; the server list button (serverListButtons hook) already exists. |
+| 2 | PreviewMessage | small |  | The message box's text in ChatContext, so a chat bar button can preview it. |
+| 3 | DecodeBase64 | small | yes | Nothing new: "Decode Base64" in the message menu (messageContextMenu) showing the decoded text (UiService::showTextDialog). |
+| 4 | UnitConverter | small | yes | Nothing new: "Convert Units" in the message menu (messageContextMenu), shown under the message (messageAccessories). |
+| 5 | KeywordNotify | medium |  | Messages matching keywords reaching plugins as notifications (UiService::showNotification exists), and a mentions-inbox tab for them. |
+| 6 | MessageLinkTooltip | medium |  | Hover tooltips on message links showing the linked message (the fetch_messages service exists). |
+| 7 | ReplyTimestamp | small |  | A hook for the reply line above a message, to show when the replied message was sent. |
+| 8 | CharacterCounter | small |  | A way for plugins to show text next to the message box as you type. |
+| 9 | ShowTimeoutDuration | small |  | Discord's timeout icon next to timed-out members, which plugins can then label with the time left. |
+| 10 | VoiceChannelLog | medium |  | A log view of who joined and left a voice channel (the voiceStates hook exists). |
+| 11 | Timezones | medium |  | Per-user time zones, shown next to message timestamps and in profiles. |
+| 12 | PictureInPicture | medium |  | Pop-out playback for video attachments. |
+| 13 | NoPendingCount | small |  | A display option to hide the pending request count on the Friends page and home icon. |
+| 14 | VoiceChatDoubleClick | small |  | A display option so voice channels join on double click instead of single click. |
+| 15 | ClickableRoles | small |  | Clicks on profile roles reaching plugins (the profileRoleButtons hook is close). |
+| 16 | MoreQuickReactions | medium |  | Plugin control over how many reactions the hover bar offers. |
+| 17 | MentionAvatars | medium |  | Avatars inside user mentions when rendering messages. |
+| 18 | LastActive | medium |  | A user menu item that searches for their last message (search API). |
+| 19 | StreamerModeOn | medium |  | A streamer mode in the client (hides personal information) that plugins can switch. |
+| 20 | CustomIdle | small |  | Plugin control over when the client sets you idle. |
+| 21 | UnreadCountBadge | small |  | Unread counts on channels in the channel list (a display option). |
+| 22 | NoTypingAnimation | small |  | A display option to stop the typing indicator's dots animating. |
+| 23 | SilenceUsers | medium |  | Per-user silencing of notifications and sounds (the notifications hook exists). |
 
-Beyond this list, 311 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.
+Beyond this list, 310 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.

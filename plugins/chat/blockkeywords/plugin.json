@@ -1,0 +1,77 @@
+{
+  "id": "blockkeywords",
+  "equicordName": "BlockKeywords",
+  "equicordPath": "src/equicordplugins/blockKeywords",
+  "name": "BlockKeywords",
+  "description": "Blocks messages containing specific user-defined keywords, as if the user sending them was blocked.",
+  "summary": "Hides messages containing words or patterns you choose",
+  "categories": [
+    "chat",
+    "appearance",
+    "privacy"
+  ],
+  "tags": [
+    "Appearance",
+    "Customisation",
+    "Privacy"
+  ],
+  "authors": [
+    "catcraft",
+    "secp192k1"
+  ],
+  "permissions": [
+    "hide_messages",
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "messageFilter"
+  ],
+  "settings": [
+    {
+      "key": "blockedWords",
+      "type": "string",
+      "default": "",
+      "label": "Blocked words",
+      "description": "Comma-separated list of words to block"
+    },
+    {
+      "key": "useRegex",
+      "type": "bool",
+      "default": false,
+      "label": "Use regex",
+      "description": "Use each value as a regular expression when checking message content (advanced)"
+    },
+    {
+      "key": "regexHelper",
+      "type": "action",
+      "default": "",
+      "label": "Regex Helper",
+      "description": "Test your regular expressions against a sample input"
+    },
+    {
+      "key": "caseSensitive",
+      "type": "bool",
+      "default": false,
+      "label": "Case sensitive",
+      "description": "Whether to use a case sensitive search or not"
+    },
+    {
+      "key": "ignoreBlockedMessages",
+      "type": "bool",
+      "default": true,
+      "label": "Ignore blocked messages",
+      "description": "Completely ignores (recent) new messages bar"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Messages whose text, or an embed's title or description, contains one of your comma-separated words (as a whole word, case-insensitive unless \"Case sensitive\" is on) are hidden from the chat, and so don't count as unread or notify. With \"Use regex\" each entry is a regular expression instead; commas inside [...] and {n,m} stay part of the pattern, as upstream. Regex Helper asks for a sample text and lists each pattern as matching (✓), not matching (✗) or invalid (⚠, with the reason). Changes apply at once, without upstream's restart. As upstream, a word that starts or ends with a symbol (such as c++) never matches, as whole-word matching needs letters or digits at its edges.",
+  "gaps": [
+    "Qord has no collapsed \"blocked message\" row: matching messages are hidden outright, as NoBlockedMessages hides blocked users' messages.",
+    "Hidden messages never count as unread, so \"Ignore blocked messages\" off has no effect.",
+    "An invalid regular expression is skipped instead of stopping the plugin; Regex Helper shows why it is invalid.",
+    "Patterns are Qt (PCRE2) regular expressions, which match JavaScript's for everyday patterns."
+  ]
+}

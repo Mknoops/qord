@@ -2,12 +2,28 @@ name: Build
 
 on:
   push:
-    branches: [master, ci/**]
+    branches: [qord, master, ci/**]
   pull_request:
-    branches: [master]
+    branches: [qord, master]
+  # release.yml builds the release packages through this workflow
+  workflow_call:
+
+# Builds only read the repository; release.yml grants write to its publish job alone
+permissions:
+  contents: read
 
 env:
   CURL_IMPERSONATE_VERSION: v2.0.0
+  CURL_IMPERSONATE_WINDOWS_SHA256: 88e5b641a13b9a991857996947837c6f058cc3b0c9142ded0fc17b82008e98b2
+  CURL_IMPERSONATE_LINUX_SHA256: d8a98bc123fae4f04bb6a7584ff486333a334b3b08edaba1867929ae8d6ebb4d
+  CURL_IMPERSONATE_MACOS_SHA256: f8cc4ee6e4cc942fe6b52d905f8fe03ddebda5ffc428683e3b4e0f613cbfff17
+  # AppImage tooling, pinned to tagged releases (not the moving "continuous" ones)
+  LINUXDEPLOY_TAG: 1-alpha-20251107-1
+  LINUXDEPLOY_SHA256: c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
+  LINUXDEPLOY_QT_TAG: 1-alpha-20250213-1
+  LINUXDEPLOY_QT_SHA256: 15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724
+  APPIMAGE_RUNTIME_TAG: "20251108"
+  APPIMAGE_RUNTIME_SHA256: 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
   # BtbN keeps only the last couple of weeks of daily autobuilds plus one build per
   # month, so pin a month-end tag: a daily one gets deleted out from under us and
   # every ffmpeg download starts 404ing.
@@ -28,34 +44,40 @@ jobs:
         build_type: [MinSizeRel, RelWithDebInfo]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.10.2'
           modules: qtimageformats
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         shell: pwsh
         run: |
+          "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> $env:GITHUB_OUTPUT
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.bat
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
-          key: vcpkg-x64-windows-static-md-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-x64-windows-static-md-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         shell: pwsh
         run: |
           $url = "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.x86_64-win32.tar.gz"
           Invoke-WebRequest -Uri $url -OutFile libcurl-impersonate.tar.gz
+          $actual = (Get-FileHash libcurl-impersonate.tar.gz -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne "${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}") {
+            throw "curl-impersonate archive hash mismatch: expected ${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}, got $actual"
+          }
           New-Item -ItemType Directory -Path curl-impersonate -Force
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
 
@@ -97,13 +119,13 @@ jobs:
       - name: Deploy Qt
         shell: pwsh
         run: |
-          $exe = "${{ github.workspace }}/build/${{ matrix.build_type }}/acheron.exe"
+          $exe = "${{ github.workspace }}/build/${{ matrix.build_type }}/qord.exe"
           windeployqt --no-translations --no-opengl-sw --no-system-d3d-compiler $exe
 
       - name: Prepare artifact
         shell: pwsh
         run: |
-          $out = "acheron-windows-${{ matrix.build_type }}"
+          $out = "qord-windows-${{ matrix.build_type }}"
           $binDir = "build/${{ matrix.build_type }}"
           $curlDir = "${{ github.workspace }}/curl-impersonate"
           New-Item -ItemType Directory -Path $out -Force
@@ -121,43 +143,74 @@ jobs:
           Get-ChildItem "$out/sqldrivers" -Exclude qsqlite.dll | Remove-Item
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: acheron-windows-${{ matrix.build_type }}
-          path: acheron-windows-${{ matrix.build_type }}
+          name: qord-windows-${{ matrix.build_type }}
+          path: qord-windows-${{ matrix.build_type }}
+
+      - name: Package release (zip + installer)
+        if: matrix.build_type == 'MinSizeRel'
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(acheron VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          $name = "Qord-$ver-windows-x64"
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item -Recurse qord-windows-MinSizeRel $name
+          Compress-Archive -Path $name -DestinationPath "dist/$name.zip"
+
+          # Inno Setup 6 is on the hosted Windows images; install it if a runner lacks it
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc /Qp "/DAppVersion=$ver" "/DAppFiles=${{ github.workspace }}\$name" "/DOutputDir=${{ github.workspace }}\dist" packaging\windows\qord.iss
+          if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+
+      - name: Upload release package
+        if: matrix.build_type == 'MinSizeRel'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-windows-x64
+          path: dist/*
 
   build-windows-minimal:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.10.2'
           modules: qtimageformats
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         shell: pwsh
         run: |
+          "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> $env:GITHUB_OUTPUT
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.bat
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
-          key: vcpkg-x64-windows-static-md-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-x64-windows-static-md-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         shell: pwsh
         run: |
           $url = "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.x86_64-win32.tar.gz"
           Invoke-WebRequest -Uri $url -OutFile libcurl-impersonate.tar.gz
+          $actual = (Get-FileHash libcurl-impersonate.tar.gz -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne "${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}") {
+            throw "curl-impersonate archive hash mismatch: expected ${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}, got $actual"
+          }
           New-Item -ItemType Directory -Path curl-impersonate -Force
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
 
@@ -185,13 +238,13 @@ jobs:
       - name: Deploy Qt
         shell: pwsh
         run: |
-          $exe = "${{ github.workspace }}/build/RelWithDebInfo/acheron.exe"
+          $exe = "${{ github.workspace }}/build/RelWithDebInfo/qord.exe"
           windeployqt --no-translations --no-opengl-sw --no-system-d3d-compiler $exe
 
       - name: Prepare artifact
         shell: pwsh
         run: |
-          $out = "acheron-windows-minimal"
+          $out = "qord-windows-minimal"
           $binDir = "build/RelWithDebInfo"
           $curlDir = "${{ github.workspace }}/curl-impersonate"
           New-Item -ItemType Directory -Path $out -Force
@@ -209,16 +262,16 @@ jobs:
           Get-ChildItem "$out/sqldrivers" -Exclude qsqlite.dll | Remove-Item
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: acheron-windows-minimal
-          path: acheron-windows-minimal
+          name: qord-windows-minimal
+          path: qord-windows-minimal
 
   build-windows-qt5:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -227,31 +280,37 @@ jobs:
       # runner's current MSVC toolset relies on the src/qt5_compat.h shim that
       # CMakeLists force-includes (MSVC + Qt5 only).
       - name: Install Qt (5.15.2)
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '5.15.2'
           arch: win64_msvc2019_64
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         shell: pwsh
         run: |
+          "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> $env:GITHUB_OUTPUT
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.bat
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
           # Keyed apart from the Qt6 jobs: this one also holds the from-source ffmpeg,
           # and restoring their cache would rebuild it on every run.
-          key: vcpkg-x64-windows-static-md-ffmpeg-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-x64-windows-static-md-ffmpeg-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         shell: pwsh
         run: |
           $url = "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.x86_64-win32.tar.gz"
           Invoke-WebRequest -Uri $url -OutFile libcurl-impersonate.tar.gz
+          $actual = (Get-FileHash libcurl-impersonate.tar.gz -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne "${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}") {
+            throw "curl-impersonate archive hash mismatch: expected ${{ env.CURL_IMPERSONATE_WINDOWS_SHA256 }}, got $actual"
+          }
           New-Item -ItemType Directory -Path curl-impersonate -Force
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
 
@@ -298,13 +357,13 @@ jobs:
       - name: Deploy Qt
         shell: pwsh
         run: |
-          $exe = "${{ github.workspace }}/build/MinSizeRel/acheron.exe"
+          $exe = "${{ github.workspace }}/build/MinSizeRel/qord.exe"
           windeployqt --no-translations --no-opengl-sw --no-angle --no-system-d3d-compiler $exe
 
       - name: Prepare artifact
         shell: pwsh
         run: |
-          $out = "acheron-windows-qt5-MinSizeRel"
+          $out = "qord-windows-qt5-MinSizeRel"
           $binDir = "build/MinSizeRel"
           $curlDir = "${{ github.workspace }}/curl-impersonate"
           New-Item -ItemType Directory -Path $out -Force
@@ -328,19 +387,34 @@ jobs:
           Get-ChildItem "$out/sqldrivers" -Exclude qsqlite.dll | Remove-Item
 
       - name: Check Windows 7 loadability
-        run: python .github/check_win7_imports.py acheron-windows-qt5-MinSizeRel
+        run: python .github/check_win7_imports.py qord-windows-qt5-MinSizeRel
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: acheron-windows-qt5-MinSizeRel
-          path: acheron-windows-qt5-MinSizeRel
+          name: qord-windows-qt5-MinSizeRel
+          path: qord-windows-qt5-MinSizeRel
+
+      - name: Package release (zip)
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(acheron VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          $name = "Qord-$ver-windows7-x64"
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item -Recurse qord-windows-qt5-MinSizeRel $name
+          Compress-Archive -Path $name -DestinationPath "dist/$name.zip"
+
+      - name: Upload release package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-windows7-x64
+          path: dist/*
 
   build-linux:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -351,27 +425,30 @@ jobs:
             libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.10.2'
           modules: qtimageformats
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         run: |
+          echo "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.sh
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
-          key: vcpkg-x64-linux-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-x64-linux-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         run: |
-          curl -L -o libcurl-impersonate.tar.gz \
+          curl -fsSL -o libcurl-impersonate.tar.gz \
             "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.x86_64-linux-gnu.tar.gz"
+          echo "${{ env.CURL_IMPERSONATE_LINUX_SHA256 }}  libcurl-impersonate.tar.gz" | sha256sum -c -
           mkdir -p curl-impersonate
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
           KEEP_FLAGS=$(nm --defined-only -g curl-impersonate/libcurl-impersonate.a \
@@ -406,7 +483,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -423,29 +500,32 @@ jobs:
             libxcb-render-util0 libxcb-shape0 libxcb-xkb1 libxkbcommon-x11-0
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.10.2'
           modules: qtimageformats
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         run: |
+          echo "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.sh
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
           # Keyed separately from build-linux: its cache is built on
           # ubuntu-latest and restoring it here would raise the glibc floor.
-          key: vcpkg-x64-linux-jammy-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-x64-linux-jammy-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         run: |
-          curl -L -o libcurl-impersonate.tar.gz \
+          curl -fsSL -o libcurl-impersonate.tar.gz \
             "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.x86_64-linux-gnu.tar.gz"
+          echo "${{ env.CURL_IMPERSONATE_LINUX_SHA256 }}  libcurl-impersonate.tar.gz" | sha256sum -c -
           mkdir -p curl-impersonate
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
           KEEP_FLAGS=$(nm --defined-only -g curl-impersonate/libcurl-impersonate.a \
@@ -457,7 +537,7 @@ jobs:
 
       - name: Install ffmpeg
         run: |
-          curl -L -o ffmpeg.tar.xz \
+          curl -fsSL -o ffmpeg.tar.xz \
             "https://github.com/BtbN/FFmpeg-Builds/releases/download/${{ env.FFMPEG_RELEASE_TAG }}/${{ env.FFMPEG_LINUX_BUILD }}.tar.xz"
           echo "${{ env.FFMPEG_LINUX_SHA256 }}  ffmpeg.tar.xz" | sha256sum -c -
           mkdir -p ffmpeg
@@ -488,7 +568,7 @@ jobs:
 
           # The prebuilt libcurl-impersonate.a carries -g, so even a Release binary
           # ships ~30 MB of DWARF for curl and BoringSSL
-          strip AppDir/usr/bin/acheron
+          strip AppDir/usr/bin/qord
 
           # linuxdeploy-plugin-qt deploys every sqldriver it finds, and
           # libqsqlmimer.so needs libmimerapi.so, which no runner has -- the
@@ -511,12 +591,17 @@ jobs:
 
       - name: Get linuxdeploy
         run: |
-          curl -L -O https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          curl -fsSL -O https://github.com/linuxdeploy/linuxdeploy/releases/download/${{ env.LINUXDEPLOY_TAG }}/linuxdeploy-x86_64.AppImage
+          curl -fsSL -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/${{ env.LINUXDEPLOY_QT_TAG }}/linuxdeploy-plugin-qt-x86_64.AppImage
           # FUSE3-capable runtime: the default embedded runtime dlopens
           # libfuse.so.2, which Debian 13 & friends no longer ship
-          curl -L -o runtime-x86_64 \
-            https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+          curl -fsSL -o runtime-x86_64 \
+            https://github.com/AppImage/type2-runtime/releases/download/${{ env.APPIMAGE_RUNTIME_TAG }}/runtime-x86_64
+          sha256sum -c - <<SUMS
+          ${{ env.LINUXDEPLOY_SHA256 }}  linuxdeploy-x86_64.AppImage
+          ${{ env.LINUXDEPLOY_QT_SHA256 }}  linuxdeploy-plugin-qt-x86_64.AppImage
+          ${{ env.APPIMAGE_RUNTIME_SHA256 }}  runtime-x86_64
+          SUMS
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
       - name: Build AppImage
@@ -531,11 +616,10 @@ jobs:
           # LD_LIBRARY_PATH when resolving DT_NEEDED, and copies what it resolves into
           # AppDir/usr/lib like any other dependency.
           export LD_LIBRARY_PATH="$PWD/ffmpeg/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          # Icon: the .desktop file declares Icon=io.github.ouwou.acheron but no
-          # icon is installed by CMake; supply the repo SVG under that name
+          # CMake installs the .desktop file and its icon into the AppDir
+          export OUTPUT="Qord-$(grep -oP 'project\(acheron VERSION \K[0-9.]+' CMakeLists.txt)-x86_64.AppImage"
           ./linuxdeploy-x86_64.AppImage --appdir AppDir \
             --plugin qt \
-            --icon-file acheron.svg --icon-filename io.github.ouwou.acheron \
             --output appimage
 
       # Nothing in CI runs the packaged binary, so a linuxdeploy that quietly failed to
@@ -550,16 +634,16 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: acheron-appimage
-          path: Acheron*.AppImage
+          name: release-linux-x86_64
+          path: Qord-*.AppImage
 
   build-macos:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -567,27 +651,30 @@ jobs:
         run: brew install curl autoconf automake libtool ffmpeg
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.10.2'
           modules: qtimageformats
           cache: true
 
       - name: Bootstrap vcpkg
+        id: vcpkg-rev
         run: |
+          echo "rev=$(git -C vendor/vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git -C vendor/vcpkg fetch --unshallow
           vendor/vcpkg/bootstrap-vcpkg.sh
 
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/vcpkg_installed
-          key: vcpkg-arm64-osx-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-arm64-osx-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-ports/**', 'vcpkg-triplets/**', '.gitmodules') }}-${{ steps.vcpkg-rev.outputs.rev }}
 
       - name: Install curl-impersonate
         run: |
-          curl -L -o libcurl-impersonate.tar.gz \
+          curl -fsSL -o libcurl-impersonate.tar.gz \
             "https://github.com/lexiforest/curl-impersonate/releases/download/${{ env.CURL_IMPERSONATE_VERSION }}/libcurl-impersonate-${{ env.CURL_IMPERSONATE_VERSION }}.arm64-macos.tar.gz"
+          echo "${{ env.CURL_IMPERSONATE_MACOS_SHA256 }}  libcurl-impersonate.tar.gz" | shasum -a 256 -c -
           mkdir -p curl-impersonate
           tar -xzf libcurl-impersonate.tar.gz -C curl-impersonate
 
@@ -610,51 +697,50 @@ jobs:
 
       - name: Prepare artifact
         run: |
+          ver=$(grep -oE 'project\(acheron VERSION [0-9.]+' CMakeLists.txt | grep -oE '[0-9.]+$')
           # Create a .app bundle manually since the binary isn't built as MACOSX_BUNDLE
-          app="acheron-macos/Acheron.app/Contents"
+          app="Qord.app/Contents"
           mkdir -p "$app/MacOS" "$app/Frameworks" "$app/PlugIns"
 
-          cp build/acheron "$app/MacOS/"
+          cp build/qord "$app/MacOS/"
 
           # Copy certs/fonts if present
           [ -d build/certs ] && cp -r build/certs "$app/MacOS/"
           [ -d build/fonts ] && cp -r build/fonts "$app/MacOS/"
 
-          # Info.plist
-          cat > "$app/Info.plist" << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleExecutable</key>
-            <string>acheron</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.acheron.app</string>
-            <key>CFBundleName</key>
-            <string>Acheron</string>
-            <key>CFBundleVersion</key>
-            <string>1.0</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
+          sed "s/@QORD_VERSION@/$ver/g" packaging/macos/Info.plist > "$app/Info.plist"
 
-          # Use macdeployqt to bundle Qt frameworks
-          macdeployqt acheron-macos/Acheron.app -verbose=1
+          # Use macdeployqt to bundle Qt frameworks (and libcurl-impersonate, found
+          # through the build-time rpath)
+          macdeployqt Qord.app -verbose=1
+
+          # The build-time rpath points into this runner's workspace; a shipped app
+          # must only look inside its own bundle
+          install_name_tool -delete_rpath "${{ github.workspace }}/curl-impersonate" "$app/MacOS/qord"
+          # ...so libcurl-impersonate has to be in Frameworks, named through @rpath
+          curl_dep=$(otool -L "$app/MacOS/qord" | awk '/libcurl-impersonate/ {print $1; exit}')
+          curl_lib=$(basename "$curl_dep")
+          [ -f "$app/Frameworks/$curl_lib" ] || cp "curl-impersonate/$curl_lib" "$app/Frameworks/"
+          [ "$curl_dep" = "@rpath/$curl_lib" ] || install_name_tool -change "$curl_dep" "@rpath/$curl_lib" "$app/MacOS/qord"
+          if otool -l "$app/MacOS/qord" | grep -q "${{ github.workspace }}"; then
+            echo "qord still refers to the build workspace"; exit 1
+          fi
 
           # Same rule as the Windows artifacts: Fusion is forced in main.cpp and
           # Storage only ever opens QSQLITE
-          plugins="acheron-macos/Acheron.app/Contents/PlugIns"
+          plugins="$app/PlugIns"
           rm -rf "$plugins/styles"
           find "$plugins/sqldrivers" -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 
+          # Not notarized: an ad-hoc signature keeps arm64 macOS willing to run the
+          # bundle after the edits above
+          codesign --force --deep --sign - Qord.app
+
+          mkdir -p dist
+          hdiutil create -volname Qord -srcfolder Qord.app -ov -format UDZO "dist/Qord-$ver-macos-arm64.dmg"
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: acheron-macos
-          path: acheron-macos
+          name: release-macos-arm64
+          path: dist/*

@@ -5,8 +5,20 @@ seriously. Thank you for helping keep its users safe.
 
 ## Supported versions
 
-Qord has no numbered releases yet. Fixes go to the `qord` branch; please check
-that a problem still exists there before reporting it.
+Only the latest release on the
+[Releases page](https://github.com/mknoops/qord/releases) gets security fixes, in a new
+release; fixes land on the `qord` branch first. Please check that a problem still
+exists in the latest release or on `qord` before reporting it.
+
+| Version | Supported |
+|---|---|
+| 0.1.x (latest) | Yes |
+| Older builds, CI artifacts | No |
+
+Releases are built only by the repository's Release workflow, and each lists the
+SHA-256 of every file in `SHA256SUMS`. A Qord download from anywhere else, or one
+whose checksum doesn't match, isn't ours. The Windows 7 build ships OpenSSL 1.1.1,
+which no longer gets security fixes upstream.
 
 ## Reporting a vulnerability
 

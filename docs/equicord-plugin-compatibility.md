@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 317 |
+| Not Started | 313 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 52 |
+| Tested | 56 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -48,7 +48,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterPlusReacts | `src/equicordplugins/betterPlusReacts` |  | Not Started |  |
 | BetterRoleContext | `src/plugins/betterRoleContext` |  | Not Started |  |
 | BetterRoleDot | `src/plugins/betterRoleDot` | `plugins/appearance/betterroledot` | Tested | With Appearance > Role colors set to "Show role colors next to names", the dot after a name in messages and the member list copies the role color ("#rrggbb", with "Copied to clipboard!") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does. wired; not yet verified in the running client. |
-| BetterSessions | `src/plugins/betterSessions` |  | Not Started |  |
+| BetterSessions | `src/plugins/betterSessions` | `plugins/utility/bettersessions` | Tested | In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on "3 hours ago", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name brings back "OS · Platform". When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each ("New session:" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll. wired; not yet verified in the running client. gaps: The rename dialog has no "Reset Name" button or placeholder; clearing the field does the same.; Discord's mobile badge icon is drawn with Material Icons' phone, which Discord's matches. |
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |
 | BiggerStreamPreview | `src/plugins/biggerStreamPreview` |  | Not Started |  |
@@ -142,7 +142,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FullSearchContext | `src/plugins/fullSearchContext` |  | Not Started |  |
 | FullUserInChatbox | `src/plugins/fullUserInChatbox` |  | Not Started |  |
 | FullVCPFP | `src/equicordplugins/fullVcPfp` |  | Not Started |  |
-| GameActivityToggle | `src/plugins/gameActivityToggle` |  | Not Started |  |
+| GameActivityToggle | `src/plugins/gameActivityToggle` | `plugins/utility/gameactivitytoggle` | Tested | The button sits before mute and deafen and switches Discord's "Share your detected activities with others" (status.show_current_game, synced to your other devices): "Disable Game Activity" while it's on, "Enable Game Activity" with a red glow and a red slash while it's off. With Spotify connected, right-click lists "Share Spotify Activity" (with the account name when there are several) to switch each account's sharing (PATCH /users/@me/connections/spotify/{id}); the menu reflects a change at once, as upstream keeps local overrides. wired; not yet verified in the running client. gaps: Qt's SVG renderer has no masks, so the off icon draws the slash over the controller without upstream's gap around it.; The "Equicord Toolbox" location has no counterpart: Qord has no toolbox, so the button is always in the user panel. |
 | Ghosted | `src/equicordplugins/ghosted` |  | Not Started |  |
 | GifCollections | `src/equicordplugins/gifCollections` |  | Not Started |  |
 | GifMaker | `src/equicordplugins/gifMaker` |  | Not Started |  |
@@ -264,7 +264,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReactionTimestamps | `src/equicordplugins/reactionTimestamps` |  | Not Started |  |
 | ReadAllNotificationsButton | `src/plugins/readAllNotificationsButton` | `plugins/utility/readallnotificationsbutton` | Tested | The Read All button sits above the servers in the server list. It marks every unread channel, voice channel and joined thread you can see as read with one bulk acknowledgement, as Discord's own Mark As Read does for a single server. wired; not yet verified in the running client. |
 | RecentDMSwitcher | `src/equicordplugins/recentDMSwitcher` |  | Not Started |  |
-| RelationshipNotifier | `src/plugins/relationshipNotifier` |  | Not Started |  |
+| RelationshipNotifier | `src/plugins/relationshipNotifier` | `plugins/utility/relationshipnotifier` | Tested | A "Relationship Notifier" notification, with the friend's avatar or the server's or group's icon, says "X removed you as a friend.", "A friend request from X has been removed.", "You were removed from the server X." or "You were removed from the group X." as it happens; clicking one about a person opens their profile. Removals you make yourself from Qord (removing a friend, declining a request, leaving a server) don't notify, and servers that go down for an outage aren't removals. The plugin remembers, per account, your friends, incoming friend requests, servers and group DMs, so when Qord connects it also tells you what changed while it was closed: "You are no longer friends with X.", "Friend request from X has been revoked." (unless you are now friends, blocked them or sent them a request), "You are no longer in the server X." and "You are no longer in the group X.". With Notices on, the notifications stay until you close them. wired; not yet verified in the running client. gaps: Qord has no notice bar at the top of the window: with Notices on, the notification is permanent instead.; Qord can't leave or close group DMs yet, so a group you left from another client counts as a removal, as upstream counts one left elsewhere. |
 | RemixRevived | `src/equicordplugins/remix` |  | Not Started |  |
 | RepeatMessages | `src/equicordplugins/repeatMessages` |  | Not Started |  |
 | ReplaceGoogleSearch | `src/plugins/replaceGoogleSearch` |  | Not Started |  |
@@ -272,7 +272,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReplyTimestamp | `src/plugins/replyTimestamp` |  | Not Started |  |
 | RevealAllSpoilers | `src/plugins/revealAllSpoilers` |  | Not Started |  |
 | ReverseImageSearch | `src/plugins/reverseImageSearch` | `plugins/media/reverseimagesearch` | Tested | Right-click an image in chat, then Search Image. The image link is sent to the chosen search engine when you pick it. Engine favicons are not shown (that would contact DuckDuckGo every time the menu opens). wired; not yet verified in the running client. gaps: The image viewer's own context menu (upstream's image-context) needs a plugin surface in Qord's image viewer. |
-| ReviewDB | `src/plugins/reviewDB` |  | Not Started |  |
+| ReviewDB | `src/plugins/reviewDB` | `plugins/utility/reviewdb` | Tested | Profiles get a "User Reviews" tab listing a user's reviews (or "No reviews yet" / "User opted out"); clicking one, or "View Reviews" in a user's or a server's menu, opens the reviews window: "<name>'s Reviews" with the count, system messages first, each review's author, badges, date (unless hidden) and text, a menu to view the author's profile, vote, report, block (on your own profile) or delete (your review, your profile, or as a ReviewDB admin), pages of 50, and a box to write or update your review. Writing, voting, reporting and blocking need a ReviewDB login: "Authorize with ReviewDB" (or clicking the box) asks Discord to authorize ReviewDB's app with the identify scope, then trades the code for a ReviewDB token, kept in the system keychain per account. On start, a logged-in account learns about new reviews on its profile (a toast) and ReviewDB's notices (a dialog, marked read). Talks to manti.vendicated.dev, as upstream; the mock answers instead when testing. wired; not yet verified in the running client. gaps: Reviews are plain text: Discord markdown in them isn't rendered.; Your own review is listed with the others rather than pinned above the input, and long reviews aren't shortened to "Read more".; ReviewDB's ban notice offers no Appeal button; its website (from the settings) has the appeal page. |
 | RichMagnetLinks | `src/equicordplugins/richMagnetLinks` |  | Not Started |  |
 | RichPresence | `src/equicordplugins/richPresence` |  | Not Started |  |
 | RoleColorEverywhere | `src/plugins/roleColorEverywhere` | `plugins/appearance/rolecoloreverywhere` | Tested | User mentions in messages show in the member's top role color on a 10% background of it, member list role headers in their role's color, people in voice channels in their role color, and, with "Color chat messages", message text mixed with the author's role color (CSS color-mix in oklab, at the saturation setting; not failed sends). Changes apply at once, where upstream needs a restart. wired; not yet verified in the running client. gaps: Mentions typed in the message box aren't colored (Qord's message box shows them as text).; Qord has no reactors list or poll voter list, so those two settings do nothing yet.; Thread member lists aren't covered (Qord shows the channel's member list in threads).; CustomUserColors' colors aren't used, as that plugin isn't ported. |

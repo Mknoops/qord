@@ -84,9 +84,17 @@ NetworkService::Handle QtNetworkService::post(const QUrl &url, const Headers &he
     return send(url, headers, &body, std::move(callback));
 }
 
+NetworkService::Handle QtNetworkService::request(const QByteArray &method, const QUrl &url, const Headers &headers,
+                                                 const QByteArray &body, Callback callback)
+{
+    if (method == "GET" && body.isEmpty())
+        return send(url, headers, nullptr, std::move(callback), true);
+    return send(url, headers, &body, std::move(callback), true, method);
+}
+
 // body null: GET. Headers can hold API keys, so nothing here logs them.
 NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &headers, const QByteArray *body,
-                                              Callback callback)
+                                              Callback callback, bool keepErrorBodies, const QByteArray &method)
 {
     const Handle handle = ++next;
     // Plugins only fetch over HTTPS
@@ -107,14 +115,16 @@ NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &he
     request.setTransferTimeout(60'000);
     for (const auto &header : headers)
         request.setRawHeader(header.first, header.second);
-    QNetworkReply *reply = body ? nam->post(request, *body) : nam->get(request);
+    QNetworkReply *reply = !method.isEmpty() ? nam->sendCustomRequest(request, method, body ? *body : QByteArray())
+                           : body           ? nam->post(request, *body)
+                                            : nam->get(request);
     replies.insert(handle, reply);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 received, qint64) {
         if (received > MaxResponseBytes)
             reply->abort();
     });
-    const bool keepErrorBody = body != nullptr;
+    const bool keepErrorBody = body != nullptr || keepErrorBodies;
     connect(reply, &QNetworkReply::finished, this, [this, handle, reply, keepErrorBody, callback = std::move(callback)] {
         reply->deleteLater();
         if (!replies.remove(handle))
@@ -470,6 +480,47 @@ QString SessionVoiceStates::displayName(Id accountId, Id guildId, Id userId) con
                                              guildId ? Core::Snowflake(guildId) : Core::Snowflake::Invalid);
 }
 
+bool SessionActivity::showCurrentGame(Id accountId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    return !instance || instance->discord()->showCurrentGame();
+}
+
+void SessionActivity::setShowCurrentGame(Id accountId, bool show)
+{
+    if (Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->discord()->setShowCurrentGame(show);
+}
+
+void SessionActivity::fetchConnections(Id accountId,
+                                       std::function<void(bool, const QList<ActivityConnection> &)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    instance->discord()->fetchOwnConnections(
+            [done](bool ok, const QList<Acheron::Discord::Client::OwnConnection> &connections) {
+                QList<ActivityConnection> out;
+                for (const auto &c : connections)
+                    out.append({ c.type, c.id, c.name, c.showActivity, c.revoked });
+                done(ok, out);
+            });
+}
+
+void SessionActivity::setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId,
+                                                bool show, std::function<void(bool)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        if (done)
+            done(false);
+        return;
+    }
+    instance->discord()->setConnectionShowActivity(type, connectionId, show, std::move(done));
+}
+
 std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
 {
     static std::function<QList<PrivateChannelInfo>(Id)> list;
@@ -568,6 +619,107 @@ void QtUiService::showMemberPermissions(const MemberPermissionsView &view)
 void QtUiService::openUrl(const QUrl &url)
 {
     QDesktopServices::openUrl(url);
+}
+
+std::function<void(const PluginNotification &, std::function<void()>)> &QtUiService::notificationShower()
+{
+    static std::function<void(const PluginNotification &, std::function<void()>)> shower;
+    return shower;
+}
+
+void QtUiService::showNotification(const PluginNotification &notification, std::function<void()> clicked)
+{
+    if (notificationShower())
+        notificationShower()(notification, std::move(clicked));
+}
+
+std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> &QtUiService::appAuthorizer()
+{
+    static std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> authorizer;
+    return authorizer;
+}
+
+void QtUiService::authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done)
+{
+    if (!appAuthorizer()) {
+        done(std::nullopt);
+        return;
+    }
+    appAuthorizer()(request, std::move(done));
+}
+
+QtUiService::ListDialogs &QtUiService::listDialogs()
+{
+    static ListDialogs dialogs;
+    return dialogs;
+}
+
+quint64 QtUiService::openListDialog(const ListDialogView &view, ListDialogEvents events)
+{
+    return listDialogs().open ? listDialogs().open(view, std::move(events)) : 0;
+}
+
+void QtUiService::updateListDialog(quint64 handle, const ListDialogView &view)
+{
+    if (listDialogs().update)
+        listDialogs().update(handle, view);
+}
+
+void QtUiService::closeListDialog(quint64 handle)
+{
+    if (listDialogs().close)
+        listDialogs().close(handle);
+}
+
+std::function<void()> &QtUiService::devicesOpener()
+{
+    static std::function<void()> opener;
+    return opener;
+}
+
+void QtUiService::openDevicesSettings()
+{
+    if (devicesOpener())
+        devicesOpener()();
+}
+
+std::function<void()> &SessionDevices::devicesRefresher()
+{
+    static std::function<void()> refresher;
+    return refresher;
+}
+
+QList<Id> SessionDevices::accountIds() const
+{
+    QList<Id> out;
+    for (const auto &instance : session->getClients())
+        out.append(quint64(instance->accountId()));
+    return out;
+}
+
+void SessionDevices::refreshDevicesPage()
+{
+    if (devicesRefresher())
+        devicesRefresher()();
+}
+
+void SessionDevices::fetchSessions(Id accountId, std::function<void(bool, const QList<DeviceSession> &)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    const QString current = instance->discord()->currentAuthSessionHash();
+    instance->discord()->fetchAuthSessions(
+            [done, current](bool ok, const QList<Acheron::Discord::Client::AuthSession> &list) {
+                QList<DeviceSession> out;
+                for (const auto &a : list)
+                    out.append({ a.idHash, a.os, a.platform, a.location,
+                                 a.lastUsed.isValid() ? a.lastUsed.toMSecsSinceEpoch() : 0,
+                                 !current.isEmpty() && a.idHash == current });
+                done(ok, out);
+            });
 }
 
 std::function<void(const QString &, UiService::ToastType)> &QtUiService::toastShower()
@@ -1447,7 +1599,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session)
+      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session), devices(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1478,6 +1630,8 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.audio = &audio;
     services.messageLookup = &messageLookup;
     services.voiceStates = &voiceStates;
+    services.activity = &activity;
+    services.sessions = &devices;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

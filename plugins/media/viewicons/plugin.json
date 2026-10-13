@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/viewIcons",
   "name": "ViewIcons",
   "description": "Makes avatars and banners in user profiles clickable, adds View Icon/Banner/Avatar entries in the user, server and group channel context menu.",
+  "summary": "Click avatars and banners to open them full size; \"View Icon/Banner/Avatar\" menu items",
   "categories": ["media", "appearance"],
   "tags": ["Media", "Servers", "Appearance"],
   "authors": ["Ven", "TheKodeToad", "Nuckyz", "nyx"],

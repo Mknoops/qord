@@ -41,12 +41,13 @@ QUrl rewrite(const QUrl &url)
     if (!enabled())
         return url;
     const QString host = url.host();
-    // Discord, plus the services plugins call: translation (Translate) and
-    // GitHub's API (ShowConnections)
+    // Discord, plus the services plugins call: translation (Translate),
+    // GitHub's API (ShowConnections) and ReviewDB
     static const QStringList hosts = { QStringLiteral("cdn.discordapp.com"), QStringLiteral("media.discordapp.net"),
                                        QStringLiteral("discord.com"), QStringLiteral("translate-pa.googleapis.com"),
                                        QStringLiteral("api-free.deepl.com"), QStringLiteral("api.deepl.com"),
-                                       QStringLiteral("translate.kagi.com"), QStringLiteral("api.github.com") };
+                                       QStringLiteral("translate.kagi.com"), QStringLiteral("api.github.com"),
+                                       QStringLiteral("manti.vendicated.dev") };
     if (!hosts.contains(host))
         return url;
     QUrl out = baseUrl();

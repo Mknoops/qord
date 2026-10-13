@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/showHiddenChannels",
   "name": "ShowHiddenChannels",
   "description": "Show channels that you do not have access to view.",
+  "summary": "Shows channels you can't see, with a lock screen listing their settings and who can see them",
   "categories": ["utility"],
   "tags": ["Servers", "Utility"],
   "authors": ["BigDuck", "Average React Enjoyer", "D3SOX", "Ven", "Nuckyz", "Nickyux", "rini", "Oggetto"],

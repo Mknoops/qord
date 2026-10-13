@@ -68,6 +68,14 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Change how loud voice chat can play") },
     { Permission::FetchMessages, "fetch_messages",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Load messages from other channels you can see") },
+    { Permission::ControlActivity, "control_activity",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Change whether others see what you play or listen to") },
+    { Permission::ReadSessions, "read_sessions",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See the devices logged in to your account") },
+    { Permission::AuthorizeApps, "authorize_apps",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Ask you to log in to apps with your Discord account") },
+    { Permission::ReadMemberships, "read_memberships",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See your friends, servers and group DMs, and when they remove you") },
 };
 
 struct HookInfo
@@ -111,6 +119,9 @@ const HookInfo hookTable[] = {
     { Hook::DmPins, "dmPins", Permission::AddUiElements },
     { Hook::EmojiSuggestions, "emojiSuggestions", Permission::AddUiElements },
     { Hook::FriendsSections, "friendsSections", Permission::ReadRelationships },
+    { Hook::UserPanelButtons, "userPanelButtons", Permission::AddUiElements },
+    { Hook::DeviceSessions, "deviceSessions", Permission::ReadSessions },
+    { Hook::Memberships, "memberships", Permission::ReadMemberships },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

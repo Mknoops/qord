@@ -160,6 +160,13 @@ PluginSettings *PluginHost::settings(const QString &id)
     return e->settings.get();
 }
 
+void PluginHost::dispatchSettingAction(const QString &pluginId, const QString &key)
+{
+    Entry *e = find(pluginId);
+    if (e && e->plugin && e->info.running)
+        guarded(pluginId, "onSettingAction", [&] { e->plugin->onSettingAction(key); });
+}
+
 void PluginHost::onSettingChanged(Entry &entry, const QString &key)
 {
     if (entry.plugin)
@@ -178,6 +185,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit dmListChanged();
     if (hooks.testFlag(Hook::FriendsSections))
         emit friendsChanged();
+    if (hooks.testFlag(Hook::UserPanelButtons))
+        emit userPanelChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
@@ -219,6 +228,8 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context->onDmListChanged = [this] { emit dmListChanged(); };
     entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
     entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
+    entry.context->onUserPanelChanged = [this] { emit userPanelChanged(); };
+    entry.context->onProfileTabsChanged = [this] { emit profileTabsChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -974,6 +985,90 @@ void PluginHost::dispatchEmojiContextMenuAction(const QString &pluginId, const Q
 {
     if (Plugin *plugin = tablePlugin(Hook::EmojiSuggestions, pluginId))
         guarded(pluginId, "onEmojiContextMenuAction", [&] { plugin->onEmojiContextMenuAction(itemId, emoji); });
+}
+
+std::optional<QPair<QString, DeviceSessionView>> PluginHost::dispatchDeviceSessionView(Id accountId,
+                                                                                   const DeviceSession &session)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<DeviceSessionView> view;
+        guarded(tableIds[h][i], "deviceSessionView", [&] { view = tables[h][i]->deviceSessionView(accountId, session); });
+        if (view)
+            return qMakePair(tableIds[h][i], *view);
+    }
+    return std::nullopt;
+}
+
+void PluginHost::dispatchDeviceSessionButton(const QString &pluginId, Id accountId, const QString &buttonId,
+                                             const DeviceSession &session)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DeviceSessions, pluginId))
+        guarded(pluginId, "onDeviceSessionButton", [&] { plugin->onDeviceSessionButton(accountId, buttonId, session); });
+}
+
+void PluginHost::dispatchDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onDevicesPageClosed", [&] { tables[h][i]->onDevicesPageClosed(accountId, sessions); });
+}
+
+void PluginHost::dispatchDeviceSessionsChanged(Id accountId)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onDeviceSessionsChanged", [&] { tables[h][i]->onDeviceSessionsChanged(accountId); });
+}
+
+void PluginHost::dispatchMembershipsChanged(const Memberships &memberships)
+{
+    const int h = hookIndex(Hook::Memberships);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onMembershipsChanged", [&] { tables[h][i]->onMembershipsChanged(memberships); });
+}
+
+void PluginHost::dispatchRemoved(const Removal &removal)
+{
+    const int h = hookIndex(Hook::Memberships);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onRemoved", [&] { tables[h][i]->onRemoved(removal); });
+}
+
+QList<PluginHost::PluginUserPanelButton> PluginHost::dispatchUserPanelButtons(const UserPanelContext &panel)
+{
+    QList<PluginUserPanelButton> out;
+    const int h = hookIndex(Hook::UserPanelButtons);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "userPanelButtons", [&] {
+            for (const auto &button : tables[h][i]->userPanelButtons(panel))
+                out.append({ tableIds[h][i], button });
+        });
+    return out;
+}
+
+void PluginHost::dispatchUserPanelButtonClicked(const QString &pluginId, const QString &id,
+                                                const UserPanelContext &panel)
+{
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "onUserPanelButtonClicked", [&] { plugin->onUserPanelButtonClicked(id, panel); });
+}
+
+QList<MenuItem> PluginHost::dispatchUserPanelButtonMenu(const QString &pluginId, const QString &id,
+                                                        const UserPanelContext &panel)
+{
+    QList<MenuItem> out;
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "userPanelButtonMenu", [&] { out = plugin->userPanelButtonMenu(id, panel); });
+    return out;
+}
+
+void PluginHost::dispatchUserPanelButtonMenuAction(const QString &pluginId, const QString &id, const QString &itemId,
+                                                   const UserPanelContext &panel)
+{
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "onUserPanelButtonMenuAction",
+                [&] { plugin->onUserPanelButtonMenuAction(id, itemId, panel); });
 }
 
 QList<FriendsSection> PluginHost::dispatchFriendsSections(const FriendsContext &friends)

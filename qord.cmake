@@ -32,6 +32,12 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/Toast.cpp
     src/UI/Qord/FlowLayout.hpp
     src/UI/Qord/FlowLayout.cpp
+    src/UI/Qord/DevicesPage.hpp
+    src/UI/Qord/DevicesPage.cpp
+    src/UI/Qord/NotificationCards.hpp
+    src/UI/Qord/NotificationCards.cpp
+    src/UI/Qord/ListDialog.hpp
+    src/UI/Qord/ListDialog.cpp
     src/UI/Qord/PermissionsView.hpp
     src/UI/Qord/PermissionsView.cpp
     src/UI/Qord/HiddenChannelScreen.hpp

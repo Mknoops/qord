@@ -1,5 +1,7 @@
 #include "PluginContext.hpp"
 
+#include <QSet>
+
 #include <QDir>
 #include <QLoggingCategory>
 
@@ -35,6 +37,13 @@ public:
     Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override
     {
         return track([&](Callback wrapped) { return inner->post(url, headers, body, std::move(wrapped)); },
+                     std::move(callback));
+    }
+
+    Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                   Callback callback) override
+    {
+        return track([&](Callback wrapped) { return inner->request(method, url, headers, body, std::move(wrapped)); },
                      std::move(callback));
     }
 
@@ -117,11 +126,16 @@ namespace {
 class ScopedUi : public UiService
 {
 public:
-    ScopedUi(UiService *inner, bool canOpen)
-        : inner(inner), canOpen(canOpen), alive(std::make_shared<bool>(true))
+    ScopedUi(UiService *inner, bool canOpen, bool canAuthorize)
+        : inner(inner), canOpen(canOpen), canAuthorize(canAuthorize), alive(std::make_shared<bool>(true))
     {
     }
-    ~ScopedUi() override { *alive = false; }
+    ~ScopedUi() override
+    {
+        *alive = false;
+        for (const quint64 handle : std::as_const(listDialogs))
+            inner->closeListDialog(handle);
+    }
     void insertIntoMessageBox(const QString &text) override { inner->insertIntoMessageBox(text); }
     void showToast(const QString &text, ToastType type) override { inner->showToast(text, type); }
     bool confirm(Confirmation &confirmation) override { return inner->confirm(confirmation); }
@@ -156,6 +170,77 @@ public:
     void refreshLockScreen() override { inner->refreshLockScreen(); }
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
     void joinVoiceChannel(Id accountId, Id channelId) override { inner->joinVoiceChannel(accountId, channelId); }
+    void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
+    {
+        // The click may come after the plugin stopped
+        std::weak_ptr<bool> weak = alive;
+        inner->showNotification(notification, [weak, clicked = std::move(clicked)]() {
+            if (auto a = weak.lock(); a && *a && clicked)
+                clicked();
+        });
+    }
+    void openDevicesSettings() override { inner->openDevicesSettings(); }
+    quint64 openListDialog(const ListDialogView &view, ListDialogEvents events) override
+    {
+        // Events stop with the plugin; its windows close then (destructor)
+        std::weak_ptr<bool> weak = alive;
+        auto live = [weak]() {
+            auto a = weak.lock();
+            return a && *a;
+        };
+        ListDialogEvents guarded;
+        if (events.menuAction)
+            guarded.menuAction = [live, f = events.menuAction](const QString &item, const QString &menu) {
+                if (live())
+                    f(item, menu);
+            };
+        if (events.submitted)
+            guarded.submitted = [live, f = events.submitted](const QString &text) {
+                if (live())
+                    f(text);
+            };
+        if (events.page)
+            guarded.page = [live, f = events.page](int delta) {
+                if (live())
+                    f(delta);
+            };
+        if (events.inputBlocked)
+            guarded.inputBlocked = [live, f = events.inputBlocked]() {
+                if (live())
+                    f();
+            };
+        if (events.closed)
+            guarded.closed = [live, f = events.closed]() {
+                if (live())
+                    f();
+            };
+        const quint64 handle = inner->openListDialog(view, std::move(guarded));
+        if (handle)
+            listDialogs.insert(handle);
+        return handle;
+    }
+    void updateListDialog(quint64 handle, const ListDialogView &view) override
+    {
+        if (listDialogs.contains(handle))
+            inner->updateListDialog(handle, view);
+    }
+    void closeListDialog(quint64 handle) override
+    {
+        if (listDialogs.remove(handle))
+            inner->closeListDialog(handle);
+    }
+    void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done) override
+    {
+        if (!canAuthorize) {
+            done(std::nullopt);
+            return;
+        }
+        std::weak_ptr<bool> weak = alive;
+        inner->authorizeApp(request, [weak, done = std::move(done)](std::optional<QString> location) {
+            if (auto a = weak.lock(); a && *a)
+                done(location);
+        });
+    }
     void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
                         std::function<void(const QHash<QString, QString> &)> done) override
     {
@@ -225,6 +310,8 @@ public:
 private:
     UiService *inner;
     bool canOpen;
+    bool canAuthorize;
+    QSet<quint64> listDialogs;
     std::shared_ptr<bool> alive;
 };
 } // namespace
@@ -343,6 +430,20 @@ AudioOptionsService *PluginContext::audio() const
     return services.audio;
 }
 
+SessionService *PluginContext::sessions() const
+{
+    if (!granted.testFlag(Permission::ReadSessions))
+        return nullptr;
+    return services.sessions;
+}
+
+ActivitySettingsService *PluginContext::activity() const
+{
+    if (!granted.testFlag(Permission::ControlActivity))
+        return nullptr;
+    return services.activity;
+}
+
 const VoiceStateDirectory *PluginContext::voiceStates() const
 {
     if (!granted.testFlag(Permission::ReadVoiceStates))
@@ -378,7 +479,8 @@ UiService *PluginContext::ui()
     if (!granted.testFlag(Permission::AddUiElements) || !services.ui)
         return nullptr;
     if (!scopedUi)
-        scopedUi = std::make_unique<ScopedUi>(services.ui, granted.testFlag(Permission::OpenLinks));
+        scopedUi = std::make_unique<ScopedUi>(services.ui, granted.testFlag(Permission::OpenLinks),
+                                              granted.testFlag(Permission::AuthorizeApps));
     return scopedUi.get();
 }
 

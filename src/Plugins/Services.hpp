@@ -38,6 +38,17 @@ public:
     // as given and never logged. Unlike get(), a failed reply keeps its body.
     using Headers = QList<QPair<QByteArray, QByteArray>>;
     virtual Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) = 0;
+    // Any method ("GET", "PUT", "PATCH", "DELETE", ...) with headers and an
+    // optional body, for APIs that need them (ReviewDB). Like post(), a
+    // failed reply keeps its body.
+    virtual Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                           Callback callback)
+    {
+        if (method == "POST")
+            return post(url, headers, body, std::move(callback));
+        Q_UNUSED(body);
+        return get(url, std::move(callback));
+    }
     virtual void cancel(Handle handle) = 0;
 };
 
@@ -173,6 +184,38 @@ public:
     {
         Q_UNUSED(accountId);
         Q_UNUSED(channelId);
+    }
+    // A notification card in the corner of the window (and a desktop
+    // notification while Qord isn't focused); `clicked` runs when it is
+    // clicked, before it closes
+    virtual void showNotification(const PluginNotification &notification, std::function<void()> clicked)
+    {
+        Q_UNUSED(notification);
+        Q_UNUSED(clicked);
+    }
+    // Opens Settings at Devices
+    virtual void openDevicesSettings() {}
+    // A list window (ListDialogView); returns a handle to update or close it.
+    // Its events stop when the plugin stops, and its windows close.
+    virtual quint64 openListDialog(const ListDialogView &view, ListDialogEvents events)
+    {
+        Q_UNUSED(view);
+        Q_UNUSED(events);
+        return 0;
+    }
+    virtual void updateListDialog(quint64 handle, const ListDialogView &view)
+    {
+        Q_UNUSED(handle);
+        Q_UNUSED(view);
+    }
+    virtual void closeListDialog(quint64 handle) { Q_UNUSED(handle); }
+    // Discord's app authorization: shows the app and what it asks for, and if
+    // you authorize it `done` gets the redirect location (with the code);
+    // nullopt when you cancel or it fails. Needs authorize_apps.
+    virtual void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString> location)> done)
+    {
+        Q_UNUSED(request);
+        done(std::nullopt);
     }
     // Joins a voice channel (or a DM's call) of the account you are viewing
     virtual void joinVoiceChannel(Id accountId, Id channelId)
@@ -458,6 +501,36 @@ public:
     [[nodiscard]] virtual QString displayName(Id accountId, Id guildId, Id userId) const = 0;
 };
 
+// Whether others see what you play or listen to (GameActivityToggle).
+class ActivitySettingsService
+{
+public:
+    virtual ~ActivitySettingsService() = default;
+    // Discord's "Share your detected activities with others" (synced)
+    [[nodiscard]] virtual bool showCurrentGame(Id accountId) const = 0;
+    virtual void setShowCurrentGame(Id accountId, bool show) = 0;
+    // Your connected accounts (GET /users/@me/connections); `done` may run
+    // after the plugin stopped, so guard it
+    virtual void fetchConnections(Id accountId,
+                                  std::function<void(bool ok, const QList<ActivityConnection> &connections)> done) = 0;
+    // Whether a connected account (Spotify) shares its activity
+    virtual void setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId, bool show,
+                                           std::function<void(bool ok)> done) = 0;
+};
+
+// The devices logged in to your account (BetterSessions).
+class SessionService
+{
+public:
+    virtual ~SessionService() = default;
+    // GET /auth/sessions; `done` may run after the plugin stopped, so guard it
+    virtual void fetchSessions(Id accountId, std::function<void(bool ok, const QList<DeviceSession> &sessions)> done) = 0;
+    // Asks Settings → Devices to show its devices again
+    virtual void refreshDevicesPage() = 0;
+    // The accounts logged in to Qord
+    [[nodiscard]] virtual QList<Id> accountIds() const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -477,6 +550,8 @@ struct Services
     AudioOptionsService *audio = nullptr;
     MessageLookupService *messageLookup = nullptr;
     VoiceStateDirectory *voiceStates = nullptr;
+    ActivitySettingsService *activity = nullptr;
+    SessionService *sessions = nullptr;
 };
 
 } // namespace Plugins

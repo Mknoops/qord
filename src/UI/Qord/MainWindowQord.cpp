@@ -44,6 +44,11 @@
 #include "UI/Qord/HiddenChannelScreen.hpp"
 #include "UI/Qord/ServerInfoDialog.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/DevicesPage.hpp"
+#include "UI/Qord/NotificationCards.hpp"
+#include "UI/Qord/ListDialog.hpp"
+#include "Core/Presence/PresenceManager.hpp"
+#include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -814,6 +819,118 @@ void MainWindow::setupQordFeatures()
     connect(notifier, &DesktopNotifier::openRequested, this,
             [this](Snowflake, Snowflake channelId, Snowflake messageId) { jumpToMessageLink(channelId, messageId); });
 
+    // Plugin notifications (Vencord's showNotification): a card in the corner,
+    // and a desktop notification while Qord isn't focused
+    Qord::Plugins::QtUiService::notificationShower() = [this](const Qord::Plugins::PluginNotification &n,
+                                                              std::function<void()> clicked) {
+        NotificationCard *card = NotificationCard::show(this, n.title, n.body, n.permanent, clicked);
+        if (card && !n.iconUrl.isEmpty()) {
+            const Snowflake accountId = currentInstance ? currentInstance->accountId() : railSelectedAccountId;
+            const QPointer<NotificationCard> guard(card);
+            session->getImageManager()->fetch(QUrl(n.iconUrl), accountId, card, [guard](const QByteArray &data) {
+                QPixmap pixmap;
+                if (guard && pixmap.loadFromData(data))
+                    guard->setIcon(pixmap);
+            });
+        }
+        if (!isActiveWindow())
+            notifier->notify(n.title, n.body, clicked);
+    };
+    // Discord's app authorization (ReviewDB's login): who asks, for what,
+    // and Authorize, for the account in view
+    Qord::Plugins::QtUiService::appAuthorizer() = [this](const Qord::Plugins::OAuthRequest &request,
+                                                         std::function<void(std::optional<QString>)> done) {
+        Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+        if (!instance) {
+            done(std::nullopt);
+            return;
+        }
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("client_id"), request.clientId);
+        query.addQueryItem(QStringLiteral("response_type"), request.responseType);
+        query.addQueryItem(QStringLiteral("redirect_uri"), request.redirectUri);
+        query.addQueryItem(QStringLiteral("scope"), request.scopes.join(QLatin1Char(' ')));
+        const QPointer<Core::ClientInstance> guard(instance);
+        instance->discord()->fetchOAuthApplication(query, [this, guard, query, request, done](
+                                                                  bool ok, const Discord::Client::OAuthApp &app) {
+            if (!guard || !ok) {
+                Toast::show(this, tr("Couldn't load the app to authorize."), Toast::Type::Failure);
+                done(std::nullopt);
+                return;
+            }
+            static const QHash<QString, QString> scopeText = {
+                { QStringLiteral("identify"), tr("Access your username, avatar, and banner") },
+                { QStringLiteral("email"), tr("Access your email address") },
+                { QStringLiteral("guilds"), tr("Know what servers you're in") },
+                { QStringLiteral("connections"), tr("Access your third-party connections") },
+            };
+            QStringList lines;
+            for (const QString &scope : request.scopes)
+                lines.append(QStringLiteral("• ") + scopeText.value(scope, scope).toHtmlEscaped());
+            QMessageBox box(this);
+            box.setWindowTitle(tr("Authorize"));
+            box.setTextFormat(Qt::RichText);
+            box.setText(tr("<b>%1</b> wants to access your Discord account (%2).")
+                                .arg(app.name.toHtmlEscaped(), guard->users()->getDisplayName(guard->accountId()).toHtmlEscaped()));
+            box.setInformativeText(tr("This will allow the developer of %1 to:").arg(app.name.toHtmlEscaped()) +
+                                   QStringLiteral("<br>") + lines.join(QStringLiteral("<br>")));
+            QPushButton *authorize = box.addButton(tr("Authorize"), QMessageBox::AcceptRole);
+            box.addButton(QMessageBox::Cancel);
+            box.exec();
+            if (box.clickedButton() != authorize || !guard) {
+                done(std::nullopt);
+                return;
+            }
+            guard->discord()->authorizeOAuth(query, request.permissions,
+                                             [this, done](bool ok, const QString &location, const QString &) {
+                                                 if (!ok)
+                                                     Toast::show(this, tr("Authorizing failed."), Toast::Type::Failure);
+                                                 done(ok ? std::optional<QString>(location) : std::nullopt);
+                                             });
+        });
+    };
+    // Plugins' list windows (ReviewDB's reviews)
+    {
+        auto dialogs = std::make_shared<QHash<quint64, QPointer<ListDialog>>>();
+        auto nextHandle = std::make_shared<quint64>(0);
+        auto &service = Qord::Plugins::QtUiService::listDialogs();
+        service.open = [this, dialogs, nextHandle](const Qord::Plugins::ListDialogView &view,
+                                                   Qord::Plugins::ListDialogEvents events) {
+            Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+            auto *dialog = new ListDialog(session->getImageManager(), instance ? instance->accountId() : Snowflake(),
+                                          std::move(events), this);
+            dialog->setView(view);
+            dialog->show();
+            const quint64 handle = ++*nextHandle;
+            dialogs->insert(handle, dialog);
+            return handle;
+        };
+        service.update = [dialogs](quint64 handle, const Qord::Plugins::ListDialogView &view) {
+            if (ListDialog *d = dialogs->value(handle))
+                d->setView(view);
+        };
+        service.close = [dialogs](quint64 handle) {
+            if (QPointer<ListDialog> d = dialogs->take(handle))
+                d->close();
+        };
+        connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::listDialogs() = {}; });
+    }
+    // Settings → Devices (BetterSessions)
+    Qord::Plugins::QtUiService::devicesOpener() = [this]() {
+        openSettingsWindow();
+        settingsWindow->showDevices();
+    };
+    Qord::Plugins::SessionDevices::devicesRefresher() = []() {
+        if (auto *page = DevicesPage::visiblePage())
+            page->rerender();
+    };
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::notificationShower() = nullptr;
+        Qord::Plugins::QtUiService::devicesOpener() = nullptr;
+        Qord::Plugins::QtUiService::appAuthorizer() = nullptr;
+        Qord::Plugins::SessionDevices::devicesRefresher() = nullptr;
+    });
+
     // Add a Server
     connect(addServerButton, &QToolButton::clicked, this, [this]() {
         Core::ClientInstance *instance = session->client(railSelectedAccountId);
@@ -1189,11 +1306,166 @@ void MainWindow::openImageInViewer(const QUrl &url)
     viewer->showImage(url, QPixmap());
 }
 
+void MainWindow::connectMemberships(Core::ClientInstance *instance)
+{
+    using Qord::Plugins::Id;
+    using Qord::Plugins::MembershipEntry;
+    using Qord::Plugins::Removal;
+    // The last list given to plugins (removals are looked up in it, as the
+    // client has already dropped what was removed), servers that are down
+    // for an outage (kept, as they aren't removals), and whether READY came
+    struct State
+    {
+        Qord::Plugins::Memberships last;
+        QSet<Snowflake> unavailable;
+        bool ready = false;
+        QTimer *debounce = nullptr;
+    };
+    auto state = std::make_shared<State>();
+    const QPointer<Core::ClientInstance> guard(instance);
+    const auto hostWants = []() {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        return host && host->hasHook(Qord::Plugins::Hook::Memberships) ? host : nullptr;
+    };
+    const auto userEntry = [guard](Snowflake userId) {
+        MembershipEntry e;
+        e.id = quint64(userId);
+        if (const auto user = guard->users()->getUser(userId)) {
+            e.name = user->username.hasValue() ? user->username.get() : QString();
+            e.iconUrl = guard->users()->getAvatarUrl(*user, Snowflake::Invalid, 128).toString();
+        }
+        return e;
+    };
+    const auto build = [this, guard, state, userEntry]() {
+        Qord::Plugins::Memberships m;
+        m.accountId = quint64(guard->accountId());
+        for (const auto &rel : guard->relationships()->all()) {
+            if (!rel.id.hasValue() || !rel.type.hasValue())
+                continue;
+            if (rel.type.get() == Discord::RelationshipType::FRIEND)
+                m.friends.append(userEntry(rel.id.get()));
+            else if (rel.type.get() == Discord::RelationshipType::INCOMING_REQUEST)
+                m.incomingRequests.append(userEntry(rel.id.get()));
+        }
+        QSet<Id> seen;
+        for (const ChannelNode *node : channelTreeModel->guildNodes(guard->accountId())) {
+            MembershipEntry e;
+            e.id = quint64(node->id);
+            e.name = node->name;
+            if (!node->TEMP_iconHash.isEmpty())
+                e.iconUrl = Discord::Cdn::guildIcon(node->id, node->TEMP_iconHash, 128).toString();
+            m.servers.append(e);
+            seen.insert(e.id);
+        }
+        for (const MembershipEntry &e : state->last.servers)
+            if (!seen.contains(e.id) && state->unavailable.contains(Snowflake(e.id)))
+                m.servers.append(e);
+        if (auto &provider = Qord::Plugins::QtPrivateChannels::provider())
+            for (const auto &channel : provider(m.accountId))
+                if (channel.isGroup)
+                    m.groups.append({ channel.channelId, channel.name, channel.iconUrl });
+        return m;
+    };
+    state->debounce = new QTimer(this);
+    state->debounce->setSingleShot(true);
+    state->debounce->setInterval(1000);
+    connect(state->debounce, &QTimer::timeout, this, [guard, state, build, hostWants]() {
+        if (!guard || !state->ready)
+            return;
+        state->last = build();
+        if (auto *host = hostWants())
+            host->dispatchMembershipsChanged(state->last);
+    });
+    connect(instance, &QObject::destroyed, state->debounce, &QObject::deleteLater);
+    const auto changed = [state]() { state->debounce->start(); };
+    const auto removed = [guard, state, hostWants](Removal::Kind kind, Id id,
+                                                   const QList<MembershipEntry> &from) {
+        Removal r;
+        r.kind = kind;
+        r.accountId = quint64(guard->accountId());
+        r.byYou = guard->discord()->takeLocalRemoval(Snowflake(id));
+        auto it = std::find_if(from.begin(), from.end(), [id](const MembershipEntry &e) { return e.id == id; });
+        if (it == from.end())
+            return; // not something the plugins were told about
+        r.entry = *it;
+        if (auto *host = hostWants())
+            host->dispatchRemoved(r);
+        state->debounce->start();
+    };
+    Discord::Client *discord = instance->discord();
+    connect(discord, &Discord::Client::ready, this, [state, changed](const Discord::Ready &) {
+        state->ready = true;
+        state->unavailable.clear();
+        changed();
+    });
+    connect(discord, &Discord::Client::relationshipAdded, this, [changed](const Discord::Relationship &) { changed(); });
+    connect(discord, &Discord::Client::relationshipUpdated, this,
+            [changed](const Discord::RelationshipPartial &) { changed(); });
+    connect(discord, &Discord::Client::relationshipRemoved, this,
+            [state, removed](const Discord::RelationshipPartial &event) {
+                if (!event.id.hasValue())
+                    return;
+                const Id id = quint64(event.id.get());
+                const bool request = event.type.hasValue()
+                        ? event.type.get() == Discord::RelationshipType::INCOMING_REQUEST
+                        : std::any_of(state->last.incomingRequests.begin(), state->last.incomingRequests.end(),
+                                      [id](const MembershipEntry &e) { return e.id == id; });
+                if (request)
+                    removed(Removal::Kind::FriendRequest, id, state->last.incomingRequests);
+                else
+                    removed(Removal::Kind::Friend, id, state->last.friends);
+            });
+    connect(discord, &Discord::Client::guildCreated, this, [state, changed](const Discord::GatewayGuild &guild) {
+        if (guild.properties.hasValue())
+            state->unavailable.remove(guild.properties->id.get());
+        changed();
+    });
+    connect(discord, &Discord::Client::guildUpdated, this, [changed](const Discord::Guild &) { changed(); });
+    connect(discord, &Discord::Client::guildDeleted, this, [state, removed](const Discord::GuildDelete &event) {
+        if (!event.id.hasValue())
+            return;
+        if (!event.userRemoved()) {
+            state->unavailable.insert(event.id.get());
+            return;
+        }
+        removed(Removal::Kind::Server, quint64(event.id.get()), state->last.servers);
+    });
+    connect(discord, &Discord::Client::channelCreated, this, [changed](const Discord::ChannelCreate &) { changed(); });
+    connect(discord, &Discord::Client::channelUpdated, this, [changed](const Discord::ChannelUpdate &) { changed(); });
+    connect(discord, &Discord::Client::channelDeleted, this, [state, removed](const Discord::ChannelDelete &event) {
+        if (event.id.hasValue())
+            removed(Removal::Kind::Group, quint64(event.id.get()), state->last.groups);
+    });
+    // A plugin turned on later still hears what the account belongs to
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::pluginStateChanged, this, [changed]() { changed(); });
+}
+
 void MainWindow::connectQordInstance(Core::ClientInstance *instance)
 {
     const QPointer<Core::ClientInstance> guard(instance);
     if (nameDecorations)
         nameDecorations->watch(instance);
+    connectMemberships(instance);
+    // BetterSessions: Discord reports your sessions (SESSIONS_REPLACE) after
+    // logging in and when a device logs in or out; tell plugins when the set
+    // of sessions changes
+    auto knownSessions = std::make_shared<QSet<QString>>();
+    connect(instance->presences(), &Core::PresenceManager::presencesChanged, this,
+            [guard, knownSessions](const QList<Snowflake> &userIds) {
+                auto *host = Qord::Plugins::PluginHost::instance();
+                if (!guard || !userIds.contains(guard->accountId()))
+                    return;
+                QSet<QString> ids;
+                for (const auto &s : guard->presences()->ownSessions())
+                    if (s.sessionId.hasValue() && !s.isAggregate())
+                        ids.insert(s.sessionId.get());
+                if (ids == *knownSessions)
+                    return;
+                *knownSessions = ids;
+                if (host && host->hasHook(Qord::Plugins::Hook::DeviceSessions))
+                    host->dispatchDeviceSessionsChanged(quint64(guard->accountId()));
+            });
     // WhoReacted: reactions coming and going, for the users shown on them
     const auto reactionChanged = [guard](Snowflake channelId, Snowflake messageId, const Discord::Emoji &emoji,
                                          int type, Snowflake userId, bool added) {

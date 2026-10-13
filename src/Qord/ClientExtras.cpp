@@ -119,6 +119,143 @@ void Client::setStatus(const QString &status, const QString &customText, const Q
                       });
 }
 
+bool Client::showCurrentGame() const
+{
+    if (settings.status && settings.status->showCurrentGame)
+        return *settings.status->showCurrentGame;
+    return true;
+}
+
+void Client::setShowCurrentGame(bool show)
+{
+    // Shown at once; Discord echoes the change to the other sessions
+    if (!settings.status)
+        settings.status = Proto::StatusSettings();
+    settings.status->showCurrentGame = show;
+    emit settingsChanged();
+
+    Proto::ProtoWriter value; // google.protobuf.BoolValue
+    if (show)
+        value.writeVarint(1, 1);
+    Proto::ProtoWriter statusSettings;
+    statusSettings.writeBytes(3, value.bytes());
+    Proto::ProtoWriter root;
+    root.writeBytes(11, statusSettings.bytes());
+    QJsonObject payload;
+    payload["settings"] = QString::fromLatin1(root.bytes().toBase64());
+    httpClient->patch("/users/@me/settings-proto/" + QString::number(int(UserSettingsProtoType::PRELOADED)), payload,
+                      [](const HttpResponse &response) {
+                          if (!response.success)
+                              qCWarning(LogDiscord) << "Failed to save activity sharing:" << response.statusCode
+                                                    << response.error;
+                      });
+}
+
+void Client::fetchOwnConnections(std::function<void(bool, const QList<OwnConnection> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/@me/connections"), {}, [callback](const HttpResponse &response) {
+        QList<OwnConnection> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching connections failed:" << response.statusCode << response.error;
+            callback(false, out);
+            return;
+        }
+        for (const QJsonValue &value : QJsonDocument::fromJson(response.body).array()) {
+            const QJsonObject c = value.toObject();
+            out.append({ c.value(QStringLiteral("type")).toString(), c.value(QStringLiteral("id")).toString(),
+                         c.value(QStringLiteral("name")).toString(), c.value(QStringLiteral("show_activity")).toBool(),
+                         c.value(QStringLiteral("revoked")).toBool() });
+        }
+        callback(true, out);
+    });
+}
+
+void Client::setConnectionShowActivity(const QString &type, const QString &id, bool show,
+                                       std::function<void(bool)> callback)
+{
+    QJsonObject payload;
+    payload["show_activity"] = show;
+    const QString endpoint = QStringLiteral("/users/@me/connections/%1/%2")
+                                     .arg(QString::fromLatin1(QUrl::toPercentEncoding(type)),
+                                          QString::fromLatin1(QUrl::toPercentEncoding(id)));
+    httpClient->patch(endpoint, payload, [callback](const HttpResponse &response) {
+        if (!response.success)
+            qCWarning(LogDiscord) << "Changing connection activity failed:" << response.statusCode << response.error;
+        if (callback)
+            callback(response.success);
+    });
+}
+
+void Client::fetchAuthSessions(std::function<void(bool, const QList<AuthSession> &)> callback)
+{
+    httpClient->get(QStringLiteral("/auth/sessions"), {}, [callback](const HttpResponse &response) {
+        QList<AuthSession> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching sessions failed:" << response.statusCode << response.error;
+            callback(false, out);
+            return;
+        }
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("user_sessions")).toArray();
+        for (const QJsonValue &value : list) {
+            const QJsonObject s = value.toObject();
+            const QJsonObject info = s.value(QStringLiteral("client_info")).toObject();
+            out.append({ s.value(QStringLiteral("id_hash")).toString(),
+                         QDateTime::fromString(s.value(QStringLiteral("approx_last_used_time")).toString(), Qt::ISODateWithMs),
+                         info.value(QStringLiteral("os")).toString(), info.value(QStringLiteral("platform")).toString(),
+                         info.value(QStringLiteral("location")).toString() });
+        }
+        callback(true, out);
+    });
+}
+
+void Client::logoutAuthSessions(const QStringList &idHashes, std::function<void(bool, const QString &)> callback)
+{
+    QJsonObject payload;
+    payload["session_id_hashes"] = QJsonArray::fromStringList(idHashes);
+    httpClient->post(QStringLiteral("/auth/sessions/logout"), payload, [callback](const HttpResponse &response) {
+        if (!response.success)
+            qCWarning(LogDiscord) << "Logging out sessions failed:" << response.statusCode << response.error;
+        if (callback)
+            callback(response.success, response.error);
+    });
+}
+
+void Client::fetchOAuthApplication(const QUrlQuery &query, std::function<void(bool, const OAuthApp &)> callback)
+{
+    httpClient->get(QStringLiteral("/oauth2/authorize"), query, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching an OAuth2 application failed:" << response.statusCode << response.error;
+            callback(false, {});
+            return;
+        }
+        const QJsonObject app = QJsonDocument::fromJson(response.body).object().value(QStringLiteral("application")).toObject();
+        callback(true, { app.value(QStringLiteral("id")).toString(), app.value(QStringLiteral("name")).toString(),
+                         app.value(QStringLiteral("icon")).toString() });
+    });
+}
+
+void Client::authorizeOAuth(const QUrlQuery &query, quint64 permissions,
+                            std::function<void(bool, const QString &, const QString &)> callback)
+{
+    QJsonObject payload;
+    payload["permissions"] = QString::number(permissions);
+    payload["authorize"] = true;
+    payload["integration_type"] = 0;
+    QUrlQuery q = query;
+    httpClient->post(QStringLiteral("/oauth2/authorize?") + q.toString(QUrl::FullyEncoded), payload,
+                     [callback](const HttpResponse &response) {
+                         if (!response.success) {
+                             qCWarning(LogDiscord) << "Authorizing an app failed:" << response.statusCode;
+                             callback(false, {}, response.error);
+                             return;
+                         }
+                         const QString location =
+                                 QJsonDocument::fromJson(response.body).object().value(QStringLiteral("location")).toString();
+                         callback(!location.isEmpty(), location, {});
+                     });
+}
+
 void Client::fetchPinnedMessages(Snowflake channelId, MessagesCallback callback)
 {
     QUrlQuery query;
@@ -184,6 +321,7 @@ void Client::putRelationship(Snowflake userId, int type, ActionCallback callback
 
 void Client::removeRelationship(Snowflake userId, ActionCallback callback)
 {
+    localRemovals.insert(userId);
     httpClient->delete_("/users/@me/relationships/" + QString::number(userId),
                         [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }

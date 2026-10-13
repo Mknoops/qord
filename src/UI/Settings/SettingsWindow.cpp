@@ -4,6 +4,7 @@
 #include "GeneralPage.hpp"
 #include "PluginsPage.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
+#include "UI/Qord/DevicesPage.hpp"
 #include "UI/Qord/NotificationSound.hpp"
 
 #include <QCheckBox>
@@ -31,6 +32,16 @@ void SettingsWindow::showPlugin(const QString &pluginId)
 {
     categoryList->setCurrentRow(pages->indexOf(pluginsPage));
     pluginsPage->selectPlugin(pluginId);
+}
+
+void SettingsWindow::setInstance(Core::ClientInstance *instance)
+{
+    devicesPage->setInstance(instance);
+}
+
+void SettingsWindow::showDevices()
+{
+    categoryList->setCurrentRow(pages->indexOf(devicesPage));
 }
 
 void SettingsWindow::setupUi()
@@ -93,6 +104,10 @@ void SettingsWindow::setupUi()
         v->addStretch();
         addPage(tr("Notifications"), page);
     }
+
+    // Qord: Discord's Devices
+    devicesPage = new DevicesPage(this);
+    addPage(tr("Devices"), devicesPage);
 
     pluginsPage = new PluginsPage(this);
     addPage(tr("Plugins"), pluginsPage);

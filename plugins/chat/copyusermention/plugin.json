@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/copyUserMention",
   "name": "CopyUserMention",
   "description": "Adds a button to copy user's mention on the user context menu, works best with ValidUser.",
+  "summary": "\"Copy Mention\" in the user context menu",
   "categories": [
     "chat",
     "utility"

@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/betterRoleDot",
   "name": "BetterRoleDot",
   "description": "Copy role colour on RoleDot (accessibility setting) click. Also allows using both RoleDot and coloured names simultaneously",
+  "summary": "Role dots (Appearance → Role colors → next to names) copy their color when clicked; optionally keep colored names too",
   "categories": ["appearance"],
   "tags": ["Roles", "Appearance"],
   "authors": ["Ven", "AutumnVN"],

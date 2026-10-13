@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/permissionsViewer",
   "name": "PermissionsViewer",
   "description": "View the permissions a user or channel has, and the roles of a server",
+  "summary": "\"View Permissions\" for members, channels and servers, and a member's permissions with the role granting each",
   "categories": ["utility"],
   "tags": ["Servers", "Roles", "Utility"],
   "authors": ["Nuckyz", "Ven"],

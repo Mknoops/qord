@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/showMeYourName",
   "name": "ShowMeYourName",
   "description": "Display any permutation of custom nicknames, friend nicknames, server nicknames, display names, and usernames in chat.",
+  "summary": "Shows any combination of nicknames, display names and usernames",
   "categories": ["chat", "appearance"],
   "tags": ["Appearance", "Customisation"],
   "authors": ["Etorix", "rini", "TheKodeToad", "sadan", "prism", "penguinwokrs"],

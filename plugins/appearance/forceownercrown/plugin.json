@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/forceOwnerCrown",
   "name": "ForceOwnerCrown",
   "description": "Force the owner crown next to usernames even if the server is large.",
+  "summary": "The owner crown in the member list even in large servers",
   "categories": ["appearance"],
   "tags": ["Roles", "Appearance", "Servers"],
   "authors": ["D3SOX", "Nickyux"],

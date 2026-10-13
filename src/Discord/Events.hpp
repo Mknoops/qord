@@ -41,6 +41,7 @@ struct Ready : Core::JsonUtils::JsonObject
     Field<QString> sessionId;
     Field<QString> resumeGatewayUrl;
     Field<QHash<Core::Snowflake, QString>> notes;
+    Field<QString, true> authSessionIdHash; // Qord: this login among GET /auth/sessions
 
     static Ready fromJson(const QJsonObject &obj)
     {
@@ -58,6 +59,7 @@ struct Ready : Core::JsonUtils::JsonObject
         get(obj, "session_id", ready.sessionId);
         get(obj, "resume_gateway_url", ready.resumeGatewayUrl);
         get(obj, "notes", ready.notes);
+        get(obj, "auth_session_id_hash", ready.authSessionIdHash);
 
         if (obj.contains("read_state")) {
             QJsonObject rsObj = obj["read_state"].toObject();

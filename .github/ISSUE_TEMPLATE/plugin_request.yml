@@ -1,0 +1,30 @@
+name: Plugin request
+description: Ask for an Equicord plugin to be ported, or offer to port one
+labels: [plugin]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [docs/roadmap.md](https://github.com/Mknoops/qord/blob/qord/docs/roadmap.md) and the
+        [compatibility matrix](https://github.com/Mknoops/qord/blob/qord/docs/equicord-plugin-compatibility.md)
+        first: the plugin may be planned, done, or blocked already.
+  - type: input
+    id: name
+    attributes:
+      label: Equicord plugin name
+      description: As in the compatibility matrix (e.g. BlockKeywords).
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What do you use it for?
+      description: This helps decide where it goes on the roadmap.
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Want to port it yourself?
+      options:
+        - label: Yes, I'd like to work on it (see CONTRIBUTING.md; `tools/new_plugin.py` gets you started)

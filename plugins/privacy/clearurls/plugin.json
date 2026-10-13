@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/clearURLs",
   "name": "ClearURLs",
   "description": "Automatically removes tracking elements from URLs you send",
+  "summary": "Removes tracking parameters from URLs you send",
   "categories": ["privacy", "utility"],
   "tags": ["Privacy", "Utility"],
   "authors": ["adryd", "thororen"],

@@ -1226,8 +1226,14 @@ void MainWindow::setupUi()
         chat.accountId = currentInstance ? quint64(currentInstance->accountId()) : 0;
         chat.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
         chat.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
+        chat.draft = messageInput->draftText();
+        chat.hasAttachments = messageInput->hasPendingAttachments();
         return chat;
     }, messageInput);
+    // Qord: buttons that depend on the box having something (PreviewMessage)
+    connect(messageInput, &MessageInput::draftEmptyChanged, pluginChatButtons, [this](bool) {
+        pluginChatButtons->rebuild();
+    });
     messageInput->addTrailingWidget(pluginChatButtons);
     messageInput->emojiAutocomplete()->setProvider([this](const QString &query) -> QList<Core::EmojiMatch> {
         if (!currentInstance)
@@ -1556,6 +1562,10 @@ void MainWindow::setupUi()
         messageInput->queueAttachments(urls);
     });
 
+    connect(chatView, &ChatView::dismissMessageRequested, this, [this](Snowflake channelId, Snowflake messageId) {
+        if (currentInstance)
+            currentInstance->messages()->removeKeptMessage(channelId, messageId);
+    });
     connect(chatView, &ChatView::cancelUploadRequested, this,
             [this](Snowflake channelId, Snowflake messageId) {
                 if (currentInstance)

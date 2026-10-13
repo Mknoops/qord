@@ -144,6 +144,8 @@ signals:
     void replyToMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void addReactionRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void cancelUploadRequested(Core::Snowflake channelId, Core::Snowflake messageId);
+    // Qord: "Dismiss message" under a message only you can see
+    void dismissMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void filesDropped(const QList<QUrl> &urls);
     void toggleReactionClicked(Core::Snowflake channelId, Core::Snowflake messageId,
                                const QString &emoji, bool currentlyReacted, bool isBurst);

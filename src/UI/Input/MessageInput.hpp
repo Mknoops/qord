@@ -57,6 +57,10 @@ public:
     [[nodiscard]] QTextEdit *editor() const;
     // Places a widget to the right of the text box (used for plugin buttons)
     void addTrailingWidget(QWidget *widget);
+    // Qord: the text as it would be sent, and whether files are attached
+    // (PreviewMessage)
+    [[nodiscard]] QString draftText() const;
+    [[nodiscard]] bool hasPendingAttachments() const;
 
     void queueAttachments(const QList<QUrl> &urls);
     void setMaxUploadSize(qint64 bytes);
@@ -86,6 +90,8 @@ signals:
     // Qord: Discord's GIF and sticker buttons
     void gifButtonClicked(QWidget *anchor);
     void stickerButtonClicked(QWidget *anchor);
+    // Qord: the box went from empty to holding text or files, or back
+    void draftEmptyChanged(bool empty);
 
 private:
     ChatTextEdit *textEdit;
@@ -102,6 +108,8 @@ private:
     bool replyMention = true;
     bool sendBlocked = false;
     bool keepAfterSend = false;
+    bool draftEmpty = true;
+    void checkDraftEmpty();
 
     void adjustHeight();
     void updateReplyMentionButton();

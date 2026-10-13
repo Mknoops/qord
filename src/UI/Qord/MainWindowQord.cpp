@@ -540,6 +540,11 @@ void MainWindow::setupQordFeatures()
         }
         return out;
     };
+    Qord::Plugins::QtUiService::localMessageShower() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId,
+                                                               const QString &content) {
+        if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
+            instance->messages()->addLocalMessage(Snowflake(channelId), content);
+    };
     Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
         selectChannelInTree(Snowflake(accountId), Snowflake(channelId));
     };
@@ -558,6 +563,7 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::channelOpener() = nullptr;
         Qord::Plugins::QtUiService::voiceJoiner() = nullptr;
         Qord::Plugins::QtUiService::voiceLeaver() = nullptr;
+        Qord::Plugins::QtUiService::localMessageShower() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;

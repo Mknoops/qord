@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 309 |
+| Not Started | 308 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 60 |
+| Tested | 61 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -252,7 +252,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PlatformIndicators | `src/plugins/platformIndicators` | `plugins/appearance/platformindicators` | Tested | Icons follow the platforms in a user's presence (client_status) and, for yourself, your sessions, coloured with the theme's status colours. Qord reads client_status as a JSON object, which sorts the platforms alphabetically, where Discord keeps the order it received. Color mobile indicator shows the phone-shaped status dot for mobile users whatever their status (upstream's isMobileOnline patches); it needs modify_displayed_messages. wired; not yet verified in the running client. |
 | PlatformSpoofer | `src/equicordplugins/platformSpoofer` |  | Not Started |  |
 | PolishWording | `src/equicordplugins/polishWording` | `plugins/chat/polishwording` | Tested | A __CODE_BLOCK_n__ placeholder typed by the user is left as typed; upstream replaces it with "undefined". wired; not yet verified in the running client. |
-| PreviewMessage | `src/plugins/previewMessage` |  | Not Started |  |
+| PreviewMessage | `src/plugins/previewMessage` | `plugins/chat/previewmessage` | Tested | While the message box holds text (or files), an eye button, "Preview Message", appears beside it. Clicking it adds your message to the chat as Discord's "Only you can see this" messages look: from you, with your formatting, mentions and emojis rendered, and a "Dismiss message" link that removes it. Nothing is sent to Discord; the preview disappears when you switch channels or restart, as upstream's does. wired; not yet verified in the running client. gaps: Attached files aren't shown in the preview, only the text; with files and no text, the button does nothing.; The eye icon is Material Icons' rather than Discord's. |
 | ProfileSets | `src/equicordplugins/profileSets` |  | Not Started |  |
 | Questify | `src/equicordplugins/questify` |  | Not Started |  |
 | QuickMention | `src/plugins/quickMention` |  | Not Started |  |

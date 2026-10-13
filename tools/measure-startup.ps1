@@ -2,7 +2,7 @@
 # Launches the client $Runs times with no account, waits $IdleSeconds after the
 # window appears, samples the working set and private bytes, then closes it.
 param(
-    [string]$Exe = "build\acheron.exe",
+    [string]$Exe = "build\qord.exe",
     [int]$Runs = 5,
     [int]$IdleSeconds = 15,
     [string]$QtDir = "C:\Qt\6.10.2\msvc2022_64"

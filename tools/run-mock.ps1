@@ -5,7 +5,7 @@
 #   .\tools\run-mock.ps1              # start server (if needed) and client
 #   .\tools\run-mock.ps1 -Reset       # wipe the mock profile first
 param(
-    [string]$Exe = "build\acheron.exe",
+    [string]$Exe = "build\qord.exe",
     [string]$QtDir = "C:\Qt\6.10.2\msvc2022_64",
     [int]$Port = 8765,
     [switch]$Reset,

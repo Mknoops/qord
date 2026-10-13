@@ -84,7 +84,7 @@ channel. The client only talks to it on `127.0.0.1` and keeps a separate
 
 ```bash
 python3 tools/mock_discord.py --port 8765 &
-QORD_MOCK_DISCORD=http://127.0.0.1:8765 ./build/acheron
+QORD_MOCK_DISCORD=http://127.0.0.1:8765 ./build/qord
 # Make the mock do things while the client runs:
 python3 tools/mock_discord.py say --channel general --user ava "hello"
 ```

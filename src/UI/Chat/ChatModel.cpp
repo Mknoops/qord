@@ -1671,8 +1671,20 @@ bool ChatModel::isFirstUnread(int row) const
 {
     if (!unreadMarkerAfter.isValid() || row <= 0 || row >= messages.size())
         return false;
-    return quint64(messages[row].id.get()) > quint64(unreadMarkerAfter) &&
-           quint64(messages[row - 1].id.get()) <= quint64(unreadMarkerAfter);
+    // Qord: the divider goes above the first newer message from someone else;
+    // your own (a preview, a message from another device) are never new
+    const auto isOwn = [this](int r) {
+        return messages[r].author.hasValue() && messages[r].author->id.get() == currentAccountId;
+    };
+    if (quint64(messages[row].id.get()) <= quint64(unreadMarkerAfter) || isOwn(row))
+        return false;
+    for (int prev = row - 1; prev >= 0; --prev) {
+        if (quint64(messages[prev].id.get()) <= quint64(unreadMarkerAfter))
+            return true;
+        if (!isOwn(prev))
+            return false;
+    }
+    return false;
 }
 
 void ChatModel::setUnreadMarker(Snowflake lastReadId)

@@ -56,6 +56,10 @@ public:
     void fetchLinkedMessage(Snowflake channelId, Snowflake messageId, std::function<void(bool found)> done);
     // Qord: drop a message a plugin kept on screen after it was deleted
     void removeKeptMessage(Snowflake channelId, Snowflake messageId);
+    // Qord: a message from you that only this client shows, marked as only
+    // you can see it (PreviewMessage); its "Dismiss message" removes it
+    void addLocalMessage(Snowflake channelId, const QString &content);
+    static constexpr const char *DismissMessageHref = "acheron://dismiss-message";
     void setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver);
     void setEmojiManager(EmojiManager *manager);
 

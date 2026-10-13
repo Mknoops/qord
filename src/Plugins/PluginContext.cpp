@@ -171,6 +171,10 @@ public:
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
     void joinVoiceChannel(Id accountId, Id channelId) override { inner->joinVoiceChannel(accountId, channelId); }
     void leaveVoice(Id accountId) override { inner->leaveVoice(accountId); }
+    void showLocalMessage(Id accountId, Id channelId, const QString &content) override
+    {
+        inner->showLocalMessage(accountId, channelId, content);
+    }
     void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
     {
         // The click may come after the plugin stopped

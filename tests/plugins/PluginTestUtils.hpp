@@ -188,6 +188,17 @@ public:
     void joinVoiceChannel(Id accountId, Id channelId) override { joinedVoice.append({ accountId, channelId }); }
     void leaveVoice(Id accountId) override { leftVoice.append(accountId); }
     QList<Id> leftVoice;
+    void showLocalMessage(Id accountId, Id channelId, const QString &content) override
+    {
+        localMessages.append({ accountId, channelId, content });
+    }
+    struct LocalMessage
+    {
+        Id accountId;
+        Id channelId;
+        QString content;
+    };
+    QList<LocalMessage> localMessages;
     QList<QPair<Id, Id>> joinedVoice;
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override

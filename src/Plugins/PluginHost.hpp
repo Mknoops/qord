@@ -148,6 +148,15 @@ public:
     void dispatchDeviceSessionsChanged(Id accountId);
     void dispatchMembershipsChanged(const Memberships &memberships);
     void dispatchRemoved(const Removal &removal);
+    [[nodiscard]] bool dispatchHighlightMessage(const MessageContext &message);
+    struct PluginInboxTab
+    {
+        QString pluginId;
+        InboxTab tab;
+    };
+    [[nodiscard]] QList<PluginInboxTab> dispatchInboxTabs(Id accountId);
+    void dispatchInboxMessageRemoved(const QString &pluginId, const QString &tabId, Id accountId, Id messageId);
+    void dispatchInboxCleared(const QString &pluginId, const QString &tabId, Id accountId);
     struct PluginUserPanelButton
     {
         QString pluginId;
@@ -232,6 +241,7 @@ signals:
     // User panel buttons changed: ask dispatchUserPanelButtons again
     void userPanelChanged();
     void serverListChanged(); // a plugin asked for its server list buttons again
+    void inboxChanged(); // a plugin's inbox tabs changed
     // Profile tabs changed (a plugin's data arrived): ask dispatchProfileTabs again
     void profileTabsChanged();
 

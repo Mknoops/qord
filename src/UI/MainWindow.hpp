@@ -277,6 +277,7 @@ private:
     void openPinnedMessages();
     void openMessageSearch(const QString &query);
     void openMentionsInbox();
+    void showInboxTab(int index); // Qord: 0 is Mentions, then plugin tabs
     QString channelLabel(Core::Snowflake channelId) const;
     MessageListPopup *ensureMessagePopup();
     class EmojiPicker *emojiPicker = nullptr;
@@ -335,6 +336,7 @@ private:
     QToolButton *inboxButton = nullptr;
     QLineEdit *searchField = nullptr;
     MessageListPopup *messagePopup = nullptr;
+    int inboxTab = -1; // the inbox tab shown, -1 when the popup shows something else
     qint64 lastTypingSentMs = 0;
     Core::Snowflake lastTypingChannel;
 };

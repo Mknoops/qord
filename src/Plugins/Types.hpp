@@ -973,6 +973,24 @@ struct PluginNotification
     QString iconUrl; // a round image before the text (an avatar, a server's icon), optional
 };
 
+// A message listed in a plugin's inbox tab: the client draws it from the
+// message's JSON (MessageContext::rawJson) and jumps to it when clicked.
+struct InboxMessage
+{
+    Id channelId = 0;
+    Id messageId = 0;
+    QString rawJson;
+};
+
+// A tab of the inbox next to Mentions (KeywordNotify's "Keywords").
+struct InboxTab
+{
+    QString id;
+    QString label;
+    QString emptyText;
+    QList<InboxMessage> messages; // newest first
+};
+
 // A friend, a friend request, a server or a group DM, as you knew it.
 struct MembershipEntry
 {

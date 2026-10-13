@@ -300,6 +300,34 @@ public:
     virtual void onMembershipsChanged(const Memberships &memberships) { Q_UNUSED(memberships); }
     virtual void onRemoved(const Removal &removal) { Q_UNUSED(removal); }
 
+    // Hook::Highlights: true treats a message from someone else as if it
+    // mentioned you (the gold highlight, and a notification as for a mention).
+    // Asked when the message is shown and when it could notify.
+    virtual bool highlightMessage(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return false;
+    }
+
+    // Hook::InboxTabs: tabs of the inbox after Mentions, a message removed
+    // from one (its x) and "Clear All"
+    virtual QList<InboxTab> inboxTabs(Id accountId)
+    {
+        Q_UNUSED(accountId);
+        return {};
+    }
+    virtual void onInboxMessageRemoved(const QString &tabId, Id accountId, Id messageId)
+    {
+        Q_UNUSED(tabId);
+        Q_UNUSED(accountId);
+        Q_UNUSED(messageId);
+    }
+    virtual void onInboxCleared(const QString &tabId, Id accountId)
+    {
+        Q_UNUSED(tabId);
+        Q_UNUSED(accountId);
+    }
+
     // Hook::UserPanelButtons: buttons next to mute and deafen, a click on
     // one, and its right-click menu
     virtual QList<UserPanelButton> userPanelButtons(const UserPanelContext &panel)

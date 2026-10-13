@@ -1021,6 +1021,20 @@ void PluginHost::dispatchDeviceSessionsChanged(Id accountId)
         guarded(tableIds[h][i], "onDeviceSessionsChanged", [&] { tables[h][i]->onDeviceSessionsChanged(accountId); });
 }
 
+void PluginHost::dispatchMembershipsChanged(const Memberships &memberships)
+{
+    const int h = hookIndex(Hook::Memberships);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onMembershipsChanged", [&] { tables[h][i]->onMembershipsChanged(memberships); });
+}
+
+void PluginHost::dispatchRemoved(const Removal &removal)
+{
+    const int h = hookIndex(Hook::Memberships);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onRemoved", [&] { tables[h][i]->onRemoved(removal); });
+}
+
 QList<PluginHost::PluginUserPanelButton> PluginHost::dispatchUserPanelButtons(const UserPanelContext &panel)
 {
     QList<PluginUserPanelButton> out;

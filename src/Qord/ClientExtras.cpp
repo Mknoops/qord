@@ -321,6 +321,7 @@ void Client::putRelationship(Snowflake userId, int type, ActionCallback callback
 
 void Client::removeRelationship(Snowflake userId, ActionCallback callback)
 {
+    localRemovals.insert(userId);
     httpClient->delete_("/users/@me/relationships/" + QString::number(userId),
                         [callback](const HttpResponse &response) { callback(actionResult(response)); });
 }

@@ -146,6 +146,8 @@ public:
                                      const DeviceSession &session);
     void dispatchDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions);
     void dispatchDeviceSessionsChanged(Id accountId);
+    void dispatchMembershipsChanged(const Memberships &memberships);
+    void dispatchRemoved(const Removal &removal);
     struct PluginUserPanelButton
     {
         QString pluginId;

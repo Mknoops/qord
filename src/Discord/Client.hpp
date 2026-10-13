@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QNetworkReply>
 #include <QHash>
+#include <QSet>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -331,6 +332,9 @@ public:
     // type 1 = friend (accepts an incoming request), 2 = block
     void putRelationship(Snowflake userId, int type, ActionCallback callback);
     void removeRelationship(Snowflake userId, ActionCallback callback);
+    // Whether a friend, request or server went away because this client
+    // removed or left it (RelationshipNotifier); asking forgets it
+    bool takeLocalRemoval(Snowflake id) { return localRemovals.remove(id); }
     void resolveInvite(const QString &code, JsonCallback callback);
     void joinGuildByInvite(const QString &code, JsonCallback callback);
     void createGuild(const QString &name, JsonCallback callback);
@@ -493,6 +497,7 @@ private:
     Gateway *gateway;
 
     QHash<Snowflake, Snowflake> channelToGuild; // todo prob move this somewhere or just a cache
+    QSet<Snowflake> localRemovals; // relationships removed and servers left from here
     QHash<Snowflake, PremiumTier> guildPremiumTiers;
     QSet<Snowflake> subscribedGuilds;
     std::optional<QList<StickerPack>> stickerPacks; // Qord

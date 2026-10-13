@@ -1214,6 +1214,12 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         ]}, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
         return await relationships(method, parts[3] if len(parts) > 3 else None, j)
+    if parts[:3] == ["users", "@me", "guilds"] and len(parts) == 4 and method == "DELETE":
+        # Leaving a server
+        if GUILDS.pop(parts[3], None) is None:
+            return 404, {"message": "Unknown Guild", "code": 10004}, "json"
+        await broadcast("GUILD_DELETE", {"id": parts[3]})
+        return 204, None, "json"
     if parts[:1] == ["users"] and len(parts) == 2 and method == "GET":
         found = next((u for u in list(USERS.values()) + [STRANGER] if u["id"] == parts[1]), None)
         return (200, found, "json") if found else (404, {"message": "Unknown User", "code": 10013}, "json")
@@ -1631,7 +1637,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 
 async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
-    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence, /mock/login."""
+    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence, /mock/login,
+    /mock/unfriend, /mock/kick, /mock/groupkick."""
     args = json.loads(body or b"{}")
     cid = resolve_channel(args.get("channel", "general"))
     who = args.get("user", "ava")
@@ -1680,6 +1687,33 @@ async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
             if who in MEMBERS[gid]:
                 await broadcast("PRESENCE_UPDATE", dict(presence(who, gid), user={"id": USERS[who]["id"]}))
         return 204, b"", "application/json"
+    if action == "unfriend":
+        # A friend removes you, or someone cancels their friend request
+        rel = next((r for r in RELATIONSHIPS if r["id"] == USERS[who]["id"]), None)
+        if not rel:
+            return 404, b"{}", "application/json"
+        RELATIONSHIPS.remove(rel)
+        await broadcast("RELATIONSHIP_REMOVE", {"id": rel["id"], "type": rel["type"], "nickname": None})
+        return 204, b"", "application/json"
+    if action == "kick":
+        # Removed from a server, or (outage) the server goes down for a while
+        gid = next((g for g, v in GUILDS.items() if args.get("guild") in (g, v["name"])), None)
+        if not gid:
+            return 404, b"{}", "application/json"
+        if args.get("outage"):
+            await broadcast("GUILD_DELETE", {"id": gid, "unavailable": True})
+        else:
+            GUILDS.pop(gid)
+            await broadcast("GUILD_DELETE", {"id": gid})
+        return 204, b"", "application/json"
+    if action == "groupkick":
+        # Removed from the group DM
+        group = next((c for c in PRIVATE_CHANNELS if c["type"] == 3), None)
+        if not group:
+            return 404, b"{}", "application/json"
+        PRIVATE_CHANNELS.remove(group)
+        await broadcast("CHANNEL_DELETE", group)
+        return 204, b"", "application/json"
     if action == "login":
         # A new device logs in: a new auth session, and SESSIONS_REPLACE
         n = len(AUTH_SESSIONS) + 1
@@ -1725,6 +1759,12 @@ def main(argv: list[str]) -> int:
     login = sub.add_parser("login", help="a new device logs in to your account (BetterSessions)")
     login.add_argument("--os", default="Mac OS X")
     login.add_argument("--platform", default="Safari")
+    unfriend = sub.add_parser("unfriend", help="a friend removes you, or cancels their request (RelationshipNotifier)")
+    unfriend.add_argument("--user", default="ava")
+    kick = sub.add_parser("kick", help="you are removed from a server (RelationshipNotifier)")
+    kick.add_argument("--guild", default="Second Server", help="its name or id")
+    kick.add_argument("--outage", action="store_true", help="the server goes down instead (not a removal)")
+    sub.add_parser("groupkick", help="you are removed from the group DM (RelationshipNotifier)")
     for name in ("say", "edit", "delete", "typing", "presence"):
         p = sub.add_parser(name)
         p.add_argument("--channel", default="general")

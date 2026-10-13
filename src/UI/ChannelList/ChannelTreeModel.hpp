@@ -143,6 +143,8 @@ public:
     QModelIndex dmHeaderIndex(Snowflake accountId);
     // Qord: every server of the account, folders included
     QList<Snowflake> guildIds(Snowflake accountId) const;
+    // The account's servers, in folders or not, in rail order
+    QList<const ChannelNode *> guildNodes(Snowflake accountId) const;
     // Qord: the DM list's channels, newest message first (MutualGroupDMs)
     QList<const ChannelNode *> dmChannels(Snowflake accountId) const;
 

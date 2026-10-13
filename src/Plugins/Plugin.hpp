@@ -294,6 +294,12 @@ public:
     }
     virtual void onDeviceSessionsChanged(Id accountId) { Q_UNUSED(accountId); }
 
+    // Hook::Memberships: what an account belongs to, after it connects and
+    // after each change, and each removal as it happens (servers that go
+    // down for an outage aren't removals)
+    virtual void onMembershipsChanged(const Memberships &memberships) { Q_UNUSED(memberships); }
+    virtual void onRemoved(const Removal &removal) { Q_UNUSED(removal); }
+
     // Hook::UserPanelButtons: buttons next to mute and deafen, a click on
     // one, and its right-click menu
     virtual QList<UserPanelButton> userPanelButtons(const UserPanelContext &panel)

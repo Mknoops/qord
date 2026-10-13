@@ -1145,6 +1145,7 @@ void Client::removeReaction(Snowflake channelId, Snowflake messageId, const QStr
 void Client::leaveGuild(Snowflake guildId)
 {
     QString endpoint = "/users/@me/guilds/" + QString::number(guildId);
+    localRemovals.insert(guildId);
     httpClient->delete_(endpoint, QJsonObject{}, [this, guildId](const HttpResponse &response) {
         if (!response.success) {
             QString err = QStringLiteral("status=%1 error=%2")

@@ -77,6 +77,8 @@ public:
     bool isBlocked(Id accountId, Id userId) const override;
     bool isIgnored(Id accountId, Id userId) const override;
     QList<Id> relationshipIds(Id accountId, Kind kind) const override;
+    bool hasRelationship(Id accountId, Id userId) const override;
+    void fetchUserAffinities(Id accountId, AffinitiesCallback done) const override;
 
 private:
     Acheron::Core::Session *session;

@@ -86,6 +86,13 @@ public:
             onDmListChanged();
     }
     std::function<void()> onDmListChanged; // set by the host
+    // Asks the client to re-query the Friends page's tabs (Hook::FriendsSections)
+    void refreshFriends() const
+    {
+        if (onFriendsChanged)
+            onFriendsChanged();
+    }
+    std::function<void()> onFriendsChanged; // set by the host
     // Whether another plugin is enabled (Vencord's isPluginEnabled)
     [[nodiscard]] bool isPluginEnabled(const QString &pluginId) const
     {

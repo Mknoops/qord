@@ -197,6 +197,34 @@ QList<Id> SessionRelationshipDirectory::relationshipIds(Id accountId, Kind kind)
     return out;
 }
 
+bool SessionRelationshipDirectory::hasRelationship(Id accountId, Id userId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->relationships())
+        return false;
+    for (const auto &rel : instance->relationships()->all())
+        if (rel.id.hasValue() && quint64(rel.id.get()) == userId)
+            return rel.type.hasValue() && int(rel.type.get()) != 0;
+    return false;
+}
+
+void SessionRelationshipDirectory::fetchUserAffinities(Id accountId, AffinitiesCallback done) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    instance->discord()->fetchUserAffinities(
+            [done](const Acheron::Discord::HttpResponse &response,
+                   const QList<QPair<Acheron::Core::Snowflake, double>> &affinities) {
+                QList<UserAffinity> out;
+                for (const auto &[userId, rank] : affinities)
+                    out.append({ quint64(userId), rank });
+                done(response.success, out);
+            });
+}
+
 void QtUiService::showTextDialog(const QString &title, const QList<TextSection> &sections)
 {
     auto *dialog = new QDialog(QApplication::activeWindow());

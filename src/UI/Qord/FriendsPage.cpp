@@ -8,6 +8,7 @@
 #include "Core/Theme/Manager.hpp"
 #include "Core/UserManager.hpp"
 #include "UI/StatusIndicator.hpp"
+#include "Plugins/PluginHost.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -74,6 +75,10 @@ QPushButton *tabButton(const QString &text, QWidget *parent)
     return b;
 }
 
+// Discord's relationship type for implicit relationships
+constexpr int ImplicitType = 5;
+// Button ids of plugin tabs start here
+constexpr int PluginTabBase = 100;
 } // namespace
 
 FriendsPage::FriendsPage(Core::ImageManager *images, QWidget *parent) : QWidget(parent), images(images)
@@ -90,7 +95,7 @@ FriendsPage::FriendsPage(Core::ImageManager *images, QWidget *parent) : QWidget(
     header->setObjectName(QStringLiteral("FriendsHeader"));
     header->setAttribute(Qt::WA_StyledBackground, true);
     header->setFixedHeight(48);
-    auto *headerLayout = new QHBoxLayout(header);
+    headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(16, 0, 16, 0);
     headerLayout->setSpacing(8);
     auto *icon = new QLabel(header);
@@ -119,9 +124,22 @@ FriendsPage::FriendsPage(Core::ImageManager *images, QWidget *parent) : QWidget(
     addTab(tr("Blocked"), Tab::Blocked);
     QPushButton *addButton = addTab(tr("Add Friend"), Tab::Add);
     addButton->setObjectName(QStringLiteral("AddFriendTab"));
+    addFriendTab = addButton;
     headerLayout->addStretch(1);
     layout->addWidget(header);
-    connect(tabs, &QButtonGroup::idClicked, this, [this](int id) { showTab(Tab(id)); });
+    connect(tabs, &QButtonGroup::idClicked, this, [this](int id) {
+        if (id >= PluginTabBase) {
+            currentSection = pluginTabs.value(id - PluginTabBase)->property("qordSection").toString();
+            showTab(Tab::Plugin);
+        } else {
+            showTab(Tab(id));
+        }
+    });
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::friendsChanged, this, [this]() {
+            rebuildPluginTabs();
+            refresh();
+        });
 
     stack = new QStackedWidget(this);
     layout->addWidget(stack, 1);
@@ -209,8 +227,17 @@ void FriendsPage::setInstance(Core::ClientInstance *newInstance)
     for (const auto &c : connections)
         disconnect(c);
     connections.clear();
+    if (instance != newInstance)
+        requestedUsers.clear();
     instance = newInstance;
+    rebuildPluginTabs();
     if (instance) {
+        // Users a plugin tab asked for arrive with member chunks
+        connections.append(connect(instance, &Core::ClientInstance::membersUpdated, this,
+                                   [this](Snowflake, const QList<Snowflake> &) {
+                                       if (isVisible() && current == Tab::Plugin)
+                                           refresh();
+                                   }));
         connections.append(connect(instance->relationships(), &Core::RelationshipManager::relationshipChanged, this,
                                    [this](Snowflake) { refresh(); }));
         connections.append(connect(instance->presences(), &Core::PresenceManager::presencesChanged, this,
@@ -220,13 +247,63 @@ void FriendsPage::setInstance(Core::ClientInstance *newInstance)
                                    }));
     }
     refresh();
+    if (isVisible())
+        pagesOpened();
+}
+
+void FriendsPage::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    pagesOpened();
+}
+
+void FriendsPage::pagesOpened()
+{
+    // Where Discord fetches relationships (ImplicitRelationships piggybacks)
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (instance && host && host->hasHook(Qord::Plugins::Hook::FriendsSections))
+        host->dispatchFriendsPageOpened({ quint64(instance->accountId()) });
+}
+
+void FriendsPage::rebuildPluginTabs()
+{
+    for (QPushButton *b : std::as_const(pluginTabs)) {
+        tabs->removeButton(b);
+        b->deleteLater();
+    }
+    pluginTabs.clear();
+    auto *host = Qord::Plugins::PluginHost::instance();
+    QList<Qord::Plugins::FriendsSection> sections;
+    if (instance && host && host->hasHook(Qord::Plugins::Hook::FriendsSections))
+        sections = host->dispatchFriendsSections({ quint64(instance->accountId()) });
+    const int at = headerLayout->indexOf(addFriendTab);
+    bool currentFound = false;
+    for (int i = 0; i < sections.size(); ++i) {
+        QPushButton *b = tabButton(sections[i].label, headerLayout->parentWidget());
+        b->setProperty("qordSection", sections[i].id);
+        tabs->addButton(b, PluginTabBase + i);
+        headerLayout->insertWidget(at + i, b);
+        pluginTabs.append(b);
+        if (current == Tab::Plugin && sections[i].id == currentSection) {
+            b->setChecked(true);
+            currentFound = true;
+        }
+    }
+    // The tab went away with its plugin
+    if (current == Tab::Plugin && !currentFound) {
+        current = Tab::Online;
+        if (QAbstractButton *b = tabs->button(int(Tab::Online)))
+            b->setChecked(true);
+    }
 }
 
 void FriendsPage::showTab(Tab tab)
 {
     current = tab;
-    if (QAbstractButton *b = tabs->button(int(tab)))
-        b->setChecked(true);
+    if (tab != Tab::Plugin) {
+        if (QAbstractButton *b = tabs->button(int(tab)))
+            b->setChecked(true);
+    }
     stack->setCurrentIndex(tab == Tab::Add ? 1 : 0);
     if (tab == Tab::Add)
         addField->setFocus();
@@ -262,6 +339,7 @@ void FriendsPage::refresh()
             include = type == int(RelationshipType::BLOCKED);
             break;
         case Tab::Add:
+        case Tab::Plugin:
             break;
         }
         if (include)
@@ -271,13 +349,46 @@ void FriendsPage::refresh()
     if (current == Tab::Add)
         return;
 
+    QString emptyText;
+    if (current == Tab::Plugin) {
+        // A plugin's tab: its people, in its order, as implicit relationships
+        // (type 5); unknown ones are asked for and shown when they arrive
+        std::optional<Qord::Plugins::FriendsSection> section;
+        if (auto *host = Qord::Plugins::PluginHost::instance())
+            for (const auto &candidate : host->dispatchFriendsSections({ quint64(instance->accountId()) }))
+                if (candidate.id == currentSection)
+                    section = candidate;
+        if (!section)
+            return;
+        QList<Snowflake> unknown;
+        int order = 0;
+        for (const Qord::Plugins::Id id : section->userIds) {
+            const Snowflake userId(id);
+            if (!instance->users()->getUser(userId)) {
+                if (!requestedUsers.contains(id)) {
+                    requestedUsers.insert(id);
+                    unknown.append(userId);
+                }
+                continue;
+            }
+            const QString key = section->sortByName ? instance->users()->getDisplayName(userId).toLower()
+                                                    : QStringLiteral("%1").arg(order++, 8, 10, QLatin1Char('0'));
+            rows.append({ key, { userId, ImplicitType } });
+        }
+        if (!unknown.isEmpty() && requestUsers)
+            requestUsers(instance, unknown);
+        countLabel->setText(section->countTitle.arg(rows.size()).toUpper());
+        emptyText = section->emptyText;
+    } else {
+        static const char *const titles[] = { "ONLINE — %1", "ALL FRIENDS — %1", "PENDING — %1", "BLOCKED — %1" };
+        countLabel->setText(tr(titles[int(current)]).arg(rows.size()));
+    }
     std::sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
-    static const char *const titles[] = { "ONLINE — %1", "ALL FRIENDS — %1", "PENDING — %1", "BLOCKED — %1" };
-    countLabel->setText(tr(titles[int(current)]).arg(rows.size()));
     for (const auto &row : rows)
         addRow(row.second.first, row.second.second);
     if (rows.isEmpty()) {
-        auto *item = new QListWidgetItem(current == Tab::Blocked ? tr("You can't unblock the Wumpus.")
+        auto *item = new QListWidgetItem(!emptyText.isEmpty()       ? emptyText
+                                         : current == Tab::Blocked ? tr("You can't unblock the Wumpus.")
                                          : current == Tab::Pending ? tr("There are no pending friend requests. Here's Wumpus for now.")
                                          : current == Tab::Online ? tr("No one's around to play with Wumpus.")
                                                                   : tr("Wumpus is waiting on friends. You don't have to though!"),
@@ -303,7 +414,7 @@ void FriendsPage::addRow(Snowflake userId, int type)
         avatar = images->get(instance->users()->getAvatarUrl(*user, {}, 64), QSize(AvatarSize, AvatarSize),
                              instance->accountId());
     auto *avatarLabel = new QLabel(row);
-    const bool showStatus = type == int(RelationshipType::FRIEND);
+    const bool showStatus = type == int(RelationshipType::FRIEND) || type == ImplicitType;
     avatarLabel->setPixmap(roundAvatar(avatar, showStatus ? &badge : nullptr,
                                        Core::Theme::Manager::instance().color(Core::Theme::Token::BaseBg)));
     h->addWidget(avatarLabel);
@@ -352,7 +463,10 @@ void FriendsPage::addRow(Snowflake userId, int type)
         };
     };
 
-    if (type == int(RelationshipType::FRIEND)) {
+    if (type == ImplicitType) {
+        action(Core::Theme::Icons::Name::MessageCircle, tr("Message"), Core::Theme::Token::MutedText,
+               [this, userId]() { emit openDmRequested(userId); });
+    } else if (type == int(RelationshipType::FRIEND)) {
         action(Core::Theme::Icons::Name::MessageCircle, tr("Message"), Core::Theme::Token::MutedText,
                [this, userId]() { emit openDmRequested(userId); });
         action(Core::Theme::Icons::Name::UserMinus, tr("Remove Friend"), Core::Theme::Token::StatusDnd,

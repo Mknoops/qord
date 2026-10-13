@@ -344,6 +344,31 @@ void Client::fetchUser(Snowflake userId,
     });
 }
 
+void Client::fetchUserAffinities(
+        std::function<void(const HttpResponse &, const QList<QPair<Snowflake, double>> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/@me/affinities/v2/users"), {}, [callback](const HttpResponse &response) {
+        QList<QPair<Snowflake, double>> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching user affinities failed:" << response.statusCode << response.error;
+            callback(response, out);
+            return;
+        }
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("user_affinities")).toArray();
+        for (const QJsonValue &value : list) {
+            const QJsonObject a = value.toObject();
+            QString id = a.value(QStringLiteral("other_user_id")).toString();
+            if (id.isEmpty())
+                id = a.value(QStringLiteral("user_id")).toString();
+            if (id.isEmpty())
+                continue;
+            out.append({ Snowflake(id.toULongLong()), a.value(QStringLiteral("communication_rank")).toDouble() });
+        }
+        callback(response, out);
+    });
+}
+
 void Client::fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
                                 ResultCallback<QList<User>> callback)
 {

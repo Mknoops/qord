@@ -110,6 +110,7 @@ const HookInfo hookTable[] = {
     { Hook::ProfileTabs, "profileTabs", Permission::AddUiElements },
     { Hook::DmPins, "dmPins", Permission::AddUiElements },
     { Hook::EmojiSuggestions, "emojiSuggestions", Permission::AddUiElements },
+    { Hook::FriendsSections, "friendsSections", Permission::ReadRelationships },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

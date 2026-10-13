@@ -114,6 +114,9 @@ the rewrite list in `src/Qord/DevMock.cpp`.
 
 ## House rules
 
+Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). Report
+security problems privately, as [SECURITY.md](SECURITY.md) explains, not in an issue.
+
 These keep Qord what it is; pull requests that break them can't be merged.
 
 - **No browser engines or JavaScript runtimes**: no Electron, Chromium, QtWebEngine,

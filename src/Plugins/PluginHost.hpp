@@ -231,6 +231,7 @@ signals:
     void friendsChanged();
     // User panel buttons changed: ask dispatchUserPanelButtons again
     void userPanelChanged();
+    void serverListChanged(); // a plugin asked for its server list buttons again
     // Profile tabs changed (a plugin's data arrived): ask dispatchProfileTabs again
     void profileTabsChanged();
 

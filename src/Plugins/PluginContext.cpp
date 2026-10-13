@@ -431,6 +431,13 @@ AudioOptionsService *PluginContext::audio() const
     return services.audio;
 }
 
+PresenceDirectory *PluginContext::presences() const
+{
+    if (!granted.testFlag(Permission::ReadPresences))
+        return nullptr;
+    return services.presences;
+}
+
 SessionService *PluginContext::sessions() const
 {
     if (!granted.testFlag(Permission::ReadSessions))

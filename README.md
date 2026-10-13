@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 59 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 60 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -206,6 +206,7 @@ These 59 native plugins are available now (out of the 369 in the pinned Equicord
 | **RoleColorEverywhere** | Role colors in mentions, member list headers, voice users and (optionally) message text | modify_displayed_messages |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
 | **ServerInfo** | A server's details, and your friends, mutual users, blocked and ignored users in it | add_ui_elements, read_server_permissions, read_relationships |
+| **ServerListIndicators** | How many friends are online and how many servers you are in, above the server list | add_ui_elements, read_presences, read_relationships |
 | **ShowConnections** | Connected accounts in profiles as a row of icons, with GitHub organizations | modify_displayed_messages, network |
 | **ShowHiddenChannels** | Shows channels you can't see, with a lock screen listing their settings and who can see them | show_hidden_channels, read_server_permissions, add_ui_elements |
 | **ShowMeYourName** | Shows any combination of nicknames, display names and usernames | modify_displayed_messages, add_ui_elements |
@@ -227,7 +228,7 @@ These 59 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** ServerListIndicators, PreviewMessage, DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** PreviewMessage, DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
 **Good first plugins** (the plugin API already covers them, so no client changes are needed): DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
@@ -267,7 +268,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 59 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 60 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

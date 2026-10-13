@@ -118,7 +118,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `notifications` | Whether a message notifies you | `control_notifications` | OnePingPerDM |
 | `authorNames` | The name shown for a message's author | `modify_displayed_messages` | ShowMeYourName |
 | `channelContextMenu` | Items in a server's or channel's right-click menu | `add_ui_elements` | MessageLogger, PermissionsViewer, PinDMs, ReviewDB, ServerInfo, ViewIcons |
-| `serverListButtons` | Buttons above the servers in the server list | `add_ui_elements` | ReadAllNotificationsButton |
+| `serverListButtons` | Buttons above the servers in the server list | `add_ui_elements` | ReadAllNotificationsButton, ServerListIndicators |
 | `memberCounts` | Numbers above the member list and in server tooltips | `add_ui_elements` | MemberCount |
 | `userDecorations` | Icons after user names (clickable), in messages, the member list and profiles | `read_presences` | PlatformIndicators, UserVoiceShow |
 | `profileImages` | Clicks on avatars and banners in profiles | `add_ui_elements` | ViewIcons |
@@ -166,10 +166,11 @@ unless the plugin has the permission, so check before use.
 | `audio()` | `control_audio` | Voice volume limits |
 | `activity()` | `control_activity` | Whether Discord shares your game activity; your connections' activity sharing |
 | `sessions()` | `read_sessions` | The devices logged in to the account; refreshing Settings → Devices |
+| `presences()` | `read_presences` | Whether someone is online, idle, do not disturb or offline |
 | `displayOptions()` | `modify_displayed_messages` | Switches for how the client draws things (role colors, image lens, folders...) |
 
 `settings()` is always there. `refreshChatBar()`, `refreshDmList()`,
-`refreshFriends()`, `refreshUserPanel()` and `refreshProfileTabs()` ask the client to query your hooks again after your state
+`refreshFriends()`, `refreshUserPanel()`, `refreshServerList()` and `refreshProfileTabs()` ask the client to query your hooks again after your state
 changed. The full interfaces are in `src/Plugins/Services.hpp`.
 
 ## Settings

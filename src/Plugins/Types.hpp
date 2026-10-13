@@ -288,6 +288,7 @@ struct ProfileImageContext
 struct ServerListContext
 {
     Id accountId = 0;
+    int serverCount = 0; // servers in the list, in folders or not
 };
 
 // A button above the servers in the server list.
@@ -296,6 +297,8 @@ struct ServerListButton
     QString id;
     QString label;
     QString tooltip;
+    // An SVG drawn before the label; "currentColor" is the theme's icon color
+    QByteArray svg;
 };
 
 // Member numbers for a server, for the member list header or the server's

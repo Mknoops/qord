@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPushButton>
+#include <QSvgRenderer>
 #include <QVBoxLayout>
 
 namespace Acheron {
@@ -67,7 +68,7 @@ ServerListButtonBar::ServerListButtonBar(QWidget *parent)
     hide();
 }
 
-void ServerListButtonBar::refresh(Core::Snowflake account)
+void ServerListButtonBar::refresh(Core::Snowflake account, int serverCount)
 {
     accountId = account;
     clearLayout(layout);
@@ -78,6 +79,7 @@ void ServerListButtonBar::refresh(Core::Snowflake account)
     }
     Qord::Plugins::ServerListContext ctx;
     ctx.accountId = quint64(accountId);
+    ctx.serverCount = serverCount;
     const auto buttons = host->dispatchServerListButtons(ctx);
     for (const auto &entry : buttons) {
         auto *button = new QPushButton(entry.button.label, this);
@@ -86,6 +88,20 @@ void ServerListButtonBar::refresh(Core::Snowflake account)
         button->setFlat(true);
         if (!entry.button.tooltip.isEmpty())
             button->setToolTip(entry.button.tooltip);
+        if (!entry.button.svg.isEmpty()) {
+            QByteArray svg = entry.button.svg;
+            svg.replace("currentColor", Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText).name().toLatin1());
+            QSvgRenderer renderer(svg);
+            const qreal dpr = devicePixelRatioF();
+            QPixmap pixmap(QSize(14, 14) * dpr);
+            pixmap.setDevicePixelRatio(dpr);
+            pixmap.fill(Qt::transparent);
+            QPainter painter(&pixmap);
+            renderer.render(&painter, QRectF(0, 0, 14, 14));
+            painter.end();
+            button->setIcon(QIcon(pixmap));
+            button->setIconSize(QSize(14, 14));
+        }
         connect(button, &QPushButton::clicked, this, [pluginId = entry.pluginId, id = entry.button.id, ctx]() {
             if (auto *h = Qord::Plugins::PluginHost::instance())
                 h->dispatchServerListButtonClicked(pluginId, id, ctx);

@@ -9,6 +9,7 @@
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
 #include "Core/Presence/PresenceBadge.hpp"
+#include "Core/Presence/PresenceManager.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Audio/VolumeLimit.hpp"
 #ifndef ACHERON_NO_VOICE
@@ -699,6 +700,23 @@ std::function<void()> &SessionDevices::devicesRefresher()
 {
     static std::function<void()> refresher;
     return refresher;
+}
+
+QString SessionPresences::status(Id accountId, Id userId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !instance->presences())
+        return QStringLiteral("offline");
+    switch (instance->presences()->badge(Acheron::Core::Snowflake(userId)).status) {
+    case Acheron::Discord::StatusType::ONLINE:
+        return QStringLiteral("online");
+    case Acheron::Discord::StatusType::IDLE:
+        return QStringLiteral("idle");
+    case Acheron::Discord::StatusType::DND:
+        return QStringLiteral("dnd");
+    default:
+        return QStringLiteral("offline");
+    }
 }
 
 QList<Id> SessionDevices::accountIds() const
@@ -1611,7 +1629,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session), devices(session)
+      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session), devices(session), presences(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1644,6 +1662,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.voiceStates = &voiceStates;
     services.activity = &activity;
     services.sessions = &devices;
+    services.presences = &presences;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

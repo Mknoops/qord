@@ -21,6 +21,7 @@ enum class SettingType {
     Choice,
     StringList,
     Json, // structured value edited by a plugin-provided widget
+    Number, // any number (ImageZoom's zoom of 2.5)
 };
 
 std::optional<SettingType> settingTypeFromString(const QString &name);
@@ -40,8 +41,8 @@ struct SettingSpec
     QString label;
     QString description;
     QList<SettingChoice> choices; // Choice only
-    std::optional<qint64> minimum; // Int only
-    std::optional<qint64> maximum; // Int only
+    std::optional<double> minimum; // Int and Number only
+    std::optional<double> maximum; // Int and Number only
     bool multiline = false; // String only
     bool hidden = false; // internal state; no editor is generated
     // String only: an API key or session token. Kept in the system keychain
@@ -130,6 +131,7 @@ public:
     [[nodiscard]] QJsonValue value(const QString &key) const;
     [[nodiscard]] bool boolValue(const QString &key) const { return value(key).toBool(); }
     [[nodiscard]] qint64 intValue(const QString &key) const { return qint64(value(key).toDouble()); }
+    [[nodiscard]] double numberValue(const QString &key) const { return value(key).toDouble(); }
     [[nodiscard]] QString stringValue(const QString &key) const { return value(key).toString(); }
     [[nodiscard]] QStringList stringListValue(const QString &key) const;
 

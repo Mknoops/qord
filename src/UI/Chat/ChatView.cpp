@@ -1334,6 +1334,10 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
                             return;
                         }
                         QAction *action = target->addAction(item.label);
+                        if (item.checked) {
+                            action->setCheckable(true);
+                            action->setChecked(*item.checked);
+                        }
                         connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, context = *ctx]() {
                             if (auto *host = Qord::Plugins::PluginHost::instance())
                                 host->dispatchMessageContextMenuAction(pluginId, itemId, context);

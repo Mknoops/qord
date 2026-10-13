@@ -76,9 +76,9 @@ bool parseSetting(const QJsonValue &value, SettingSpec &spec, QString &error)
         }
     }
     if (obj.contains(QLatin1String("min")))
-        spec.minimum = qint64(obj.value(QLatin1String("min")).toDouble());
+        spec.minimum = obj.value(QLatin1String("min")).toDouble();
     if (obj.contains(QLatin1String("max")))
-        spec.maximum = qint64(obj.value(QLatin1String("max")).toDouble());
+        spec.maximum = obj.value(QLatin1String("max")).toDouble();
     spec.multiline = obj.value(QLatin1String("multiline")).toBool();
     spec.hidden = obj.value(QLatin1String("hidden")).toBool();
     spec.secret = obj.value(QLatin1String("secret")).toBool();

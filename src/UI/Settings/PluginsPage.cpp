@@ -16,6 +16,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QVBoxLayout>
@@ -308,6 +309,21 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
             spin->setRange(int(spec.minimum.value_or(INT_MIN)), int(spec.maximum.value_or(INT_MAX)));
             spin->setValue(int(settings->intValue(key)));
             connect(spin, qOverload<int>(&QSpinBox::valueChanged), editor, [commit](int v) { commit(v); });
+            row->addWidget(spin);
+            row->addStretch();
+            form->addLayout(row);
+            addHelp();
+            break;
+        }
+        case SettingType::Number: {
+            auto *row = new QHBoxLayout;
+            row->addWidget(new QLabel(spec.label, editor));
+            auto *spin = new QDoubleSpinBox(editor);
+            spin->setDecimals(2);
+            spin->setSingleStep(0.1);
+            spin->setRange(spec.minimum.value_or(-1e9), spec.maximum.value_or(1e9));
+            spin->setValue(settings->numberValue(key));
+            connect(spin, &QDoubleSpinBox::editingFinished, editor, [spin, commit] { commit(spin->value()); });
             row->addWidget(spin);
             row->addStretch();
             form->addLayout(row);

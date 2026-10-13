@@ -48,6 +48,12 @@ private:
     QPointF panOffset;
     QPointF lastMousePos;
     bool isPanning = false;
+    // Qord: ImageZoom's lens
+    bool lensActive = false;
+    QPointF lensPos;
+    double lensZoom = 2.0;
+    int lensSize = 100;
+    void paintLens(QPainter &painter, const QRectF &imageRect);
 
     QWidget *trackedWindow = nullptr;
     Core::ImageManager *imageManager;

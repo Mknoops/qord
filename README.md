@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 62 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 63 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -219,6 +219,7 @@ These 62 native plugins are available now (out of the 369 in the pinned Equicord
 | **Translate** | Translate messages (shown under them) and, optionally, your own before sending, with Google, DeepL or Kagi | add_ui_elements, network, modify_outgoing_messages, modify_displayed_messages |
 | **TypingIndicator** | Who is typing, next to channels in the channel list | add_ui_elements, read_relationships, read_server_permissions |
 | **Unindent** | Trims leading indentation from code blocks | modify_outgoing_messages, modify_displayed_messages |
+| **UnitConverter** | "Convert Units" on a message shows it with metric and imperial units swapped | add_ui_elements, modify_displayed_messages |
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |
 | **UserVoiceShow** | A speaker next to people in voice; click to open their channel, double-click to join | read_presences, read_voice_states, add_ui_elements |
 | **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
@@ -230,9 +231,7 @@ These 62 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter, ShowTimeoutDuration. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
-
-**Good first plugins** (the plugin API already covers them, so no client changes are needed): UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
+**Up next:** KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter, ShowTimeoutDuration, VoiceChannelLog. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 <!-- END GENERATED: up-next -->
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
@@ -270,7 +269,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 62 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 63 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

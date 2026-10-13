@@ -1,0 +1,53 @@
+{
+  "id": "unitconverter",
+  "equicordName": "UnitConverter",
+  "equicordPath": "src/equicordplugins/unitConverter",
+  "name": "UnitConverter",
+  "description": "Converts metric units to Imperal units and vice versa",
+  "summary": "\"Convert Units\" on a message shows it with metric and imperial units swapped",
+  "categories": [
+    "utility"
+  ],
+  "tags": [
+    "Utility"
+  ],
+  "authors": [
+    "sadan"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "modify_displayed_messages"
+  ],
+  "hooks": [
+    "messageContextMenu",
+    "messageAccessories"
+  ],
+  "settings": [
+    {
+      "key": "myUnits",
+      "type": "choice",
+      "default": "imperial",
+      "label": "My units",
+      "description": "the units you use and want things converted to. defaults to imperial",
+      "choices": [
+        {
+          "value": "imperial",
+          "label": "Imperial"
+        },
+        {
+          "value": "metric",
+          "label": "Metric"
+        }
+      ]
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "\"Convert Units\" in a message's right-click menu shows the message again under it with its units converted to the ones you use (\"My units\"), with Dismiss to remove it. Converting to imperial: Celsius, centimeters, meters (as feet and inches), kilometers, km/h, grams and kilograms; to metric: Fahrenheit, feet, inches, 5'11\", 5 ft 11 in, pounds, 5 lb 3 oz, ounces and mph. Upstream's arithmetic slips are fixed: inches are multiplied by 2.54 (upstream divides), meters use 3.281 feet (upstream 3.821), \"5 lb 3 oz\" counts the ounces, 1.75 m reads 5ft8.88in rather than rounding the feet up, and \"50 km/h\" converts as a speed instead of as \"50 km\" followed by \"/h\".",
+  "gaps": [
+    "Qord has no plugin buttons on a message's hover bar yet, so Convert Units is in the right-click menu.",
+    "The converted line has no conversion icon."
+  ]
+}

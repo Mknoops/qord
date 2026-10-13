@@ -271,6 +271,11 @@ public:
 
     void setAccount(Snowflake accountId);
     [[nodiscard]] Snowflake getAccountId() const { return currentAccountId; }
+    // Qord: rows the view hides for plugins (BlockKeywords, NoBlockedMessages);
+    // a message after hidden ones starts its own group
+    void setHiddenRowCheck(std::function<bool(int row)> check) { hiddenRowCheck = std::move(check); }
+    // A row was hidden or shown: the next message may gain or lose its header
+    void rowVisibilityChanged(int row);
 
     using AvatarUrlResolver = std::function<QUrl(const Discord::User &author, Snowflake guildId)>;
     void setAvatarUrlResolver(AvatarUrlResolver resolver);
@@ -374,6 +379,7 @@ private:
     Core::ImageManager *imageManager;
     QVector<Discord::Message> messages;
     mutable QHash<Snowflake, QSize> sizeCache;
+    std::function<bool(int row)> hiddenRowCheck;
     mutable QHash<Snowflake, QList<EmbedData>> embedCache;
     mutable QHash<Snowflake, ForwardOriginData> forwardOriginCache;
     mutable QCache<DocCacheKey, QTextDocument> docCache{ 500 };

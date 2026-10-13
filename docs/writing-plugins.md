@@ -112,7 +112,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
 | `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
-| `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | NoBlockedMessages |
+| `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | BlockKeywords, NoBlockedMessages |
 | `typing` | Whether to send, and show, typing | `control_typing` | SilentTyping |
 | `linkWarnings` | Skip the "are you sure?" before opening a link | `trust_links` | AlwaysTrust |
 | `notifications` | Whether a message notifies you | `control_notifications` | OnePingPerDM |

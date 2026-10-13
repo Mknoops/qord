@@ -75,6 +75,7 @@ public:
     [[nodiscard]] ActivitySettingsService *activity() const;
     // Null without the read_sessions permission.
     [[nodiscard]] SessionService *sessions() const;
+    [[nodiscard]] PresenceDirectory *presences() const; // read_presences
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -104,6 +105,13 @@ public:
             onUserPanelChanged();
     }
     std::function<void()> onUserPanelChanged; // set by the host
+    // Asks the client to re-query the server list's buttons (Hook::ServerListButtons)
+    void refreshServerList() const
+    {
+        if (onServerListChanged)
+            onServerListChanged();
+    }
+    std::function<void()> onServerListChanged; // set by the host
     // Asks open profiles to re-query their plugin tabs (Hook::ProfileTabs)
     void refreshProfileTabs() const
     {

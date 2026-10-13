@@ -92,6 +92,7 @@ PERMISSIONS = {
     "control_activity",
     "read_sessions",
     "authorize_apps",
+    "read_memberships",
 }
 
 SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action"}
@@ -134,6 +135,7 @@ HOOK_DISPATCH = {
     "friendsSections": "dispatchFriendsSections(",
     "userPanelButtons": "dispatchUserPanelButtons(",
     "deviceSessions": "dispatchDeviceSessionView(",
+    "memberships": "dispatchRemoved(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -173,6 +175,7 @@ HOOK_DOCS = {
     "friendsSections": "Tabs on the Friends page",
     "userPanelButtons": "Buttons next to mute and deafen, with a right-click menu",
     "deviceSessions": "How devices look in Settings → Devices, with buttons; new and changed sessions",
+    "memberships": "Your friends, incoming requests, servers and group DMs, and when one of them removes you",
 }
 
 MANIFEST_REQUIRED = {

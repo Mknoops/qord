@@ -20,6 +20,8 @@ public:
 
     static NotificationCard *show(QWidget *window, const QString &title, const QString &body, bool permanent,
                                   std::function<void()> clicked);
+    // A round image before the title and text (an avatar, a server's icon)
+    void setIcon(const QPixmap &pixmap);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -38,6 +40,7 @@ private:
     int remainingMs = TimeoutMs;
     bool hovered = false;
     class QTimer *tick = nullptr;
+    class QLabel *iconLabel = nullptr;
 };
 
 } // namespace UI

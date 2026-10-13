@@ -1020,16 +1020,24 @@ QModelIndex ChannelTreeModel::folderIndex(Snowflake accountId, Snowflake folderI
 QList<Snowflake> ChannelTreeModel::guildIds(Snowflake accountId) const
 {
     QList<Snowflake> out;
+    for (const ChannelNode *node : guildNodes(accountId))
+        out.append(node->id);
+    return out;
+}
+
+QList<const ChannelNode *> ChannelTreeModel::guildNodes(Snowflake accountId) const
+{
+    QList<const ChannelNode *> out;
     const ChannelNode *accNode = accountNodes.value(accountId, nullptr);
     if (!accNode)
         return out;
     for (const auto &child : accNode->children) {
         if (child->type == ChannelNode::Type::Server)
-            out.append(child->id);
+            out.append(child.get());
         else if (child->type == ChannelNode::Type::Folder)
             for (const auto &inner : child->children)
                 if (inner->type == ChannelNode::Type::Server)
-                    out.append(inner->id);
+                    out.append(inner.get());
     }
     return out;
 }

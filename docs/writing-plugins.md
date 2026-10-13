@@ -138,6 +138,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `friendsSections` | Tabs on the Friends page | `read_relationships` | ImplicitRelationships |
 | `userPanelButtons` | Buttons next to mute and deafen, with a right-click menu | `add_ui_elements` | GameActivityToggle |
 | `deviceSessions` | How devices look in Settings → Devices, with buttons; new and changed sessions | `read_sessions` | BetterSessions |
+| `memberships` | Your friends, incoming requests, servers and group DMs, and when one of them removes you | `read_memberships` | RelationshipNotifier |
 <!-- END GENERATED: hooks -->
 
 ## Services
@@ -149,7 +150,7 @@ unless the plugin has the permission, so check before use.
 |---|---|---|
 | `network()` | `network` | HTTPS GET, POST and any other method (`request`); requests are cancelled when the plugin stops |
 | `clipboard()` | `write_clipboard` | Copy text |
-| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications, dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining voice, logging in to a Discord app (OAuth2) |
+| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications (with an icon), dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining voice, logging in to a Discord app (OAuth2) |
 | `relationships()` | `read_relationships` | Friends, blocked and ignored users, user affinities |
 | `members()` | `read_guild_members` | A member's roles |
 | `guilds()` | `read_server_permissions` | Servers, channels, roles, permission overwrites, members |

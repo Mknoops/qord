@@ -963,6 +963,36 @@ struct PluginNotification
     QString title;
     QString body;
     bool permanent = false; // stays until closed or clicked (else 5 seconds)
+    QString iconUrl; // a round image before the text (an avatar, a server's icon), optional
+};
+
+// A friend, a friend request, a server or a group DM, as you knew it.
+struct MembershipEntry
+{
+    Id id = 0; // the user, server or channel
+    QString name; // a user's username, a server's or group's name
+    QString iconUrl; // an avatar or icon, empty if there is none
+};
+
+// Everyone and everything an account belongs to, after it connects and
+// whenever that changes.
+struct Memberships
+{
+    Id accountId = 0;
+    QList<MembershipEntry> friends;
+    QList<MembershipEntry> incomingRequests;
+    QList<MembershipEntry> servers;
+    QList<MembershipEntry> groups;
+};
+
+// A friend, friend request, server or group DM gone while Qord is running.
+struct Removal
+{
+    enum class Kind { Friend, FriendRequest, Server, Group };
+    Kind kind = Kind::Friend;
+    Id accountId = 0;
+    MembershipEntry entry;
+    bool byYou = false; // you removed the friend, declined the request or left, from Qord
 };
 
 // Someone Discord ranks you as talking to (GET /users/@me/affinities).

@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPointer>
 #include <QTimer>
 #include <QToolButton>
@@ -21,6 +22,7 @@ using Core::Theme::Token;
 constexpr int Margin = 16;
 constexpr int Gap = 8;
 constexpr int TickMs = 50;
+constexpr int IconSize = 40;
 } // namespace
 
 NotificationCard *NotificationCard::show(QWidget *window, const QString &title, const QString &body, bool permanent,
@@ -47,8 +49,16 @@ NotificationCard::NotificationCard(QWidget *window, const QString &title, const 
     setStyleSheet(QStringLiteral("#QordNotificationCard { background: %1; border: 1px solid %2; border-radius: 8px; }")
                           .arg(theme.color(Token::RailBg).name(), theme.color(Token::Divider).name()));
 
-    auto *v = new QVBoxLayout(this);
-    v->setContentsMargins(14, 10, 8, 14);
+    auto *outer = new QHBoxLayout(this);
+    outer->setContentsMargins(14, 10, 8, 14);
+    outer->setSpacing(10);
+    iconLabel = new QLabel(this);
+    iconLabel->setFixedSize(IconSize, IconSize);
+    iconLabel->hide();
+    outer->addWidget(iconLabel, 0, Qt::AlignTop);
+    auto *v = new QVBoxLayout;
+    v->setContentsMargins(0, 0, 0, 0);
+    outer->addLayout(v, 1);
     auto *top = new QHBoxLayout;
     auto *titleLabel = new QLabel(title, this);
     QFont bold = titleLabel->font();
@@ -84,6 +94,29 @@ NotificationCard::NotificationCard(QWidget *window, const QString &title, const 
         });
         tick->start();
     }
+}
+
+void NotificationCard::setIcon(const QPixmap &pixmap)
+{
+    if (pixmap.isNull())
+        return;
+    const qreal dpr = devicePixelRatioF();
+    QPixmap round(QSize(IconSize, IconSize) * dpr);
+    round.setDevicePixelRatio(dpr);
+    round.fill(Qt::transparent);
+    QPainter p(&round);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    QPainterPath clip;
+    clip.addEllipse(QRectF(0, 0, IconSize, IconSize));
+    p.setClipPath(clip);
+    p.drawPixmap(QRect(0, 0, IconSize, IconSize),
+                 pixmap.scaled(QSize(IconSize, IconSize) * dpr, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+    p.end();
+    iconLabel->setPixmap(round);
+    iconLabel->show();
+    if (QWidget *window = parentWidget())
+        layoutCards(window);
 }
 
 void NotificationCard::dismiss()

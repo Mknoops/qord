@@ -74,6 +74,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See the devices logged in to your account") },
     { Permission::AuthorizeApps, "authorize_apps",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Ask you to log in to apps with your Discord account") },
+    { Permission::ReadMemberships, "read_memberships",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See your friends, servers and group DMs, and when they remove you") },
 };
 
 struct HookInfo
@@ -119,6 +121,7 @@ const HookInfo hookTable[] = {
     { Hook::FriendsSections, "friendsSections", Permission::ReadRelationships },
     { Hook::UserPanelButtons, "userPanelButtons", Permission::AddUiElements },
     { Hook::DeviceSessions, "deviceSessions", Permission::ReadSessions },
+    { Hook::Memberships, "memberships", Permission::ReadMemberships },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

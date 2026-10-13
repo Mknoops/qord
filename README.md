@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 55 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 56 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -197,6 +197,7 @@ These 55 native plugins are available now (out of the 369 in the pinned Equicord
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
 | **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
+| **RelationshipNotifier** | A notification when a friend, group DM or server removes you, even while Qord was closed | read_memberships, read_relationships, add_ui_elements |
 | **ReverseImageSearch** | "Search Image" in image context menus | add_ui_elements, open_links |
 | **ReviewDB** | Reviews of users and servers from ReviewDB: read them in profiles, and write, vote on and report them | add_ui_elements, network, authorize_apps, open_links, read_relationships |
 | **RoleColorEverywhere** | Role colors in mentions, member list headers, voice users and (optionally) message text | modify_displayed_messages |
@@ -223,7 +224,7 @@ These 55 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** RelationshipNotifier, BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, ServerListIndicators, PreviewMessage. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, ServerListIndicators, PreviewMessage, DecodeBase64. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
 **Good first plugins** (the plugin API already covers them, so no client changes are needed): BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
@@ -263,7 +264,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 55 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 56 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

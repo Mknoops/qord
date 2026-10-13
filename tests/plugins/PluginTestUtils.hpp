@@ -298,6 +298,8 @@ public:
         lensChanged = std::move(changed);
     }
     std::optional<ImageLens> lens;
+    void setFolderSidebar(const std::optional<FolderSidebar> &value) override { folders = value; }
+    std::optional<FolderSidebar> folders;
     std::function<void(double, int)> lensChanged;
     RoleColors roleColors;
     int roleColorUpdates = 0;

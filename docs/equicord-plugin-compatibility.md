@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 323 |
+| Not Started | 322 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 46 |
+| Tested | 47 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -39,7 +39,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterBanReasons | `src/equicordplugins/betterBanReasons` |  | Not Started |  |
 | BetterBlockedUsers | `src/equicordplugins/betterBlockedUsers` |  | Not Started |  |
 | BetterCommands | `src/equicordplugins/betterCommands` |  | Not Started |  |
-| BetterFolders | `src/plugins/betterFolders` |  | Not Started |  |
+| BetterFolders | `src/plugins/betterFolders` | `plugins/appearance/betterfolders` | Tested | With the sidebar on, opening a server folder shows its servers on a second rail beside the server list (under the folder's icon, by the setting), and the server list shows just the open folder unless "Keep icons" is on; the rail goes away when every folder is closed. The other settings close folders when you select a server outside them or in them, click the home button, or open another folder, and open a folder when you switch to one of its servers. It works with Qord's classic channel list (server list plus channels). wired; not yet verified in the running client. gaps: The sidebar appears without upstream's opening animation ("Sidebar animation" does nothing yet). |
 | BetterForwards | `src/equicordplugins/betterForwards` |  | Not Started |  |
 | BetterGifAltText | `src/plugins/betterGifAltText` |  | Not Started |  |
 | BetterGifPicker | `src/plugins/betterGifPicker` |  | Not Started |  |

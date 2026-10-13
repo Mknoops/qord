@@ -10,6 +10,7 @@
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Audio/VolumeLimit.hpp"
+#include "Core/FolderSidebar.hpp"
 #include "Core/ImageLens.hpp"
 #include "Core/OwnerCrown.hpp"
 #include "Core/RoleColors.hpp"
@@ -467,6 +468,25 @@ void QtDisplayOptions::setImageLens(const std::optional<ImageLens> &lens, std::f
     options.nearestNeighbour = lens->nearestNeighbour;
     options.invertScroll = lens->invertScroll;
     options.changed = std::move(changed);
+}
+
+void QtDisplayOptions::setFolderSidebar(const std::optional<FolderSidebar> &folders)
+{
+    auto &options = Acheron::Core::folderSidebarOptions();
+    options = {};
+    if (folders) {
+        options.enabled = true;
+        options.sidebar = folders->sidebar;
+        options.closeAllFolders = folders->closeAllFolders;
+        options.closeAllHomeButton = folders->closeAllHomeButton;
+        options.closeOthers = folders->closeOthers;
+        options.closeServerFolder = folders->closeServerFolder;
+        options.forceOpen = folders->forceOpen;
+        options.keepIcons = folders->keepIcons;
+        options.folderIcon = Acheron::Core::FolderSidebarOptions::FolderIcon(int(folders->folderIcon));
+    }
+    if (host)
+        emit host->presentationChanged();
 }
 
 void QtDisplayOptions::setRoleColors(const RoleColors &colors)

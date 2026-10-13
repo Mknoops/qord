@@ -188,6 +188,10 @@ private:
     QWidget *leftSideWidget = nullptr;
     ServerRailView *serverRail = nullptr;
     ServerRailModel *serverRailModel = nullptr;
+    // Qord: BetterFolders' second rail with the open folders' servers
+    ServerRailView *folderSidebar = nullptr;
+    ServerRailModel *folderSidebarModel = nullptr;
+    void updateFolderSidebar();
     QLabel *guildHeaderLabel = nullptr;
 
     AccountsModel *accountsModel;

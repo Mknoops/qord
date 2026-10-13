@@ -6,6 +6,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
+#include <QTabBar>
+#include <QToolButton>
 #include <QScreen>
 #include <QVBoxLayout>
 
@@ -54,8 +57,29 @@ MessageListPopup::MessageListPopup(QWidget *parent) : QFrame(parent, Qt::Popup)
     searchField->setMinimumWidth(200);
     searchField->hide();
     headerLayout->addWidget(searchField);
+    clearButton = new QToolButton(header);
+    clearButton->setText(tr("Clear All"));
+    clearButton->setAutoRaise(true);
+    clearButton->setCursor(Qt::PointingHandCursor);
+    clearButton->hide();
+    connect(clearButton, &QToolButton::clicked, this, [this]() {
+        if (clearHandler)
+            clearHandler();
+    });
+    headerLayout->addWidget(clearButton);
     header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     layout->addWidget(header);
+
+    tabs = new QTabBar(this);
+    tabs->setObjectName(QStringLiteral("MessageListPopupTabs"));
+    tabs->setDrawBase(false);
+    tabs->setExpanding(false);
+    tabs->hide();
+    connect(tabs, &QTabBar::currentChanged, this, [this](int index) {
+        if (index >= 0 && tabs->isVisible())
+            emit tabSelected(index);
+    });
+    layout->addWidget(tabs);
 
     statusLabel = new QLabel(this);
     statusLabel->setAlignment(Qt::AlignCenter);
@@ -79,6 +103,18 @@ MessageListPopup::MessageListPopup(QWidget *parent) : QFrame(parent, Qt::Popup)
         hide();
     });
     connect(list, &QListWidget::itemClicked, list, &QListWidget::itemActivated);
+    list->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(list, &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QListWidgetItem *item = list->itemAt(pos);
+        if (!item || !removeHandler)
+            return;
+        QMenu menu(this);
+        menu.addAction(tr("Remove"), this, [this, id = item->data(RoleMessage).toULongLong()]() {
+            if (removeHandler)
+                removeHandler(Core::Snowflake(id));
+        });
+        menu.exec(list->viewport()->mapToGlobal(pos));
+    });
     connect(searchField, &QLineEdit::returnPressed, this, [this]() {
         if (searchHandler && !searchField->text().trimmed().isEmpty())
             searchHandler(searchField->text().trimmed());
@@ -176,6 +212,29 @@ void MessageListPopup::addMessageItem(const Discord::Message &m)
     item->setData(RoleChannel, quint64(m.channelId.get()));
     item->setData(RoleMessage, quint64(m.id.get()));
     item->setToolTip(tr("Jump to message"));
+}
+
+void MessageListPopup::setTabs(const QStringList &labels, int current)
+{
+    const QSignalBlocker block(tabs);
+    while (tabs->count() > 0)
+        tabs->removeTab(0);
+    for (const QString &label : labels)
+        tabs->addTab(label);
+    tabs->setVisible(!labels.isEmpty());
+    if (!labels.isEmpty())
+        tabs->setCurrentIndex(qBound(0, current, int(labels.size()) - 1));
+}
+
+void MessageListPopup::setClearHandler(std::function<void()> handler)
+{
+    clearHandler = std::move(handler);
+    clearButton->setVisible(static_cast<bool>(clearHandler));
+}
+
+void MessageListPopup::setRemoveHandler(std::function<void(Core::Snowflake)> handler)
+{
+    removeHandler = std::move(handler);
 }
 
 void MessageListPopup::popup(QWidget *anchor)

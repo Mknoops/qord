@@ -136,6 +136,8 @@ HOOK_DISPATCH = {
     "userPanelButtons": "dispatchUserPanelButtons(",
     "deviceSessions": "dispatchDeviceSessionView(",
     "memberships": "dispatchRemoved(",
+    "highlights": "dispatchHighlightMessage(",
+    "inboxTabs": "dispatchInboxTabs(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -176,6 +178,8 @@ HOOK_DOCS = {
     "userPanelButtons": "Buttons next to mute and deafen, with a right-click menu",
     "deviceSessions": "How devices look in Settings → Devices, with buttons; new and changed sessions",
     "memberships": "Your friends, incoming requests, servers and group DMs, and when one of them removes you",
+    "highlights": "Treat a message as if it mentioned you: the gold highlight and a mention's notification",
+    "inboxTabs": "Tabs of messages in the inbox next to Mentions, with remove and Clear All",
 }
 
 MANIFEST_REQUIRED = {

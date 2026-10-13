@@ -11,6 +11,8 @@ class QLabel;
 class QLineEdit;
 class QListWidget;
 class QListWidgetItem;
+class QTabBar;
+class QToolButton;
 
 namespace Acheron {
 namespace UI {
@@ -36,8 +38,17 @@ public:
 
     void popup(QWidget *anchor);
 
+    // Qord: tabs under the title (the inbox's Mentions and plugin tabs); an
+    // empty list hides them
+    void setTabs(const QStringList &labels, int current);
+    // Qord: a "Clear All" button in the header, and "Remove" on each message
+    // (plugin inbox tabs); null handlers hide them
+    void setClearHandler(std::function<void()> handler);
+    void setRemoveHandler(std::function<void(Core::Snowflake messageId)> handler);
+
 signals:
     void jumpRequested(Core::Snowflake channelId, Core::Snowflake messageId);
+    void tabSelected(int index);
 
 private:
     void addMessageItem(const Discord::Message &message);
@@ -46,6 +57,10 @@ private:
     QLineEdit *searchField;
     QLabel *statusLabel;
     QListWidget *list;
+    QTabBar *tabs;
+    QToolButton *clearButton;
+    std::function<void()> clearHandler;
+    std::function<void(Core::Snowflake)> removeHandler;
     std::function<void(const QString &)> searchHandler;
     std::function<QString(Core::Snowflake)> channelNameResolver;
 };

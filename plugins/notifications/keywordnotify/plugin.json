@@ -1,0 +1,68 @@
+{
+  "id": "keywordnotify",
+  "equicordName": "KeywordNotify",
+  "equicordPath": "src/equicordplugins/keywordNotify",
+  "name": "KeywordNotify",
+  "description": "Sends a notification if a given message matches certain keywords or regexes",
+  "summary": "Messages matching your keywords or regexes highlight and notify like mentions, and collect in a Keywords inbox tab",
+  "categories": [
+    "notifications"
+  ],
+  "tags": [],
+  "authors": [
+    "camila314",
+    "x3rt",
+    "benjas333"
+  ],
+  "permissions": [
+    "control_notifications",
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "highlights",
+    "inboxTabs"
+  ],
+  "settings": [
+    {
+      "key": "ignoreBots",
+      "type": "bool",
+      "default": true,
+      "label": "Ignore bots",
+      "description": "Ignore messages from bots",
+      "hidden": true
+    },
+    {
+      "key": "amountToKeep",
+      "type": "int",
+      "default": 50,
+      "min": 0,
+      "label": "Amount to keep",
+      "description": "Amount of messages to keep in the log"
+    },
+    {
+      "key": "keywordEntries",
+      "type": "json",
+      "default": [],
+      "label": "Keywords",
+      "description": "Manage keywords"
+    },
+    {
+      "key": "log",
+      "type": "json",
+      "default": {},
+      "label": "Keyword log",
+      "description": "Matched messages, per account",
+      "hidden": true
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Settings list keyword entries: a regular expression (\"example|regex\"), Ignore Case, Ignore Bots, a whitelist and a blacklist of user, channel or server IDs, and which list wins when an ID is in both (\"List priority\"). A message from someone else whose text, or an embed's title, description or field, matches an entry counts as mentioning you: it gets the gold mention highlight and notifies you as a mention would (in servers too, unless the channel or server is muted or you are in Do Not Disturb). Matches collect, newest first, in a \"Keywords\" tab of the inbox next to Mentions (at most \"Amount to keep\" per account): click one to jump to it, right-click to remove it, or Clear All. Messages that arrive or load after you change your keywords use the new ones.",
+  "gaps": [
+    "The matched keyword isn't highlighted inside the inbox entry.",
+    "Matching messages don't add to the channel's mention count badge.",
+    "Patterns are Qt (PCRE2) regular expressions, which match JavaScript's for everyday patterns."
+  ]
+}

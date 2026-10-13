@@ -230,6 +230,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
     entry.context->onUserPanelChanged = [this] { emit userPanelChanged(); };
     entry.context->onServerListChanged = [this] { emit serverListChanged(); };
+    entry.context->onInboxChanged = [this] { emit inboxChanged(); };
     entry.context->onProfileTabsChanged = [this] { emit profileTabsChanged(); };
     bool ok = true;
     try {
@@ -1034,6 +1035,39 @@ void PluginHost::dispatchRemoved(const Removal &removal)
     const int h = hookIndex(Hook::Memberships);
     for (size_t i = 0; i < tables[h].size(); ++i)
         guarded(tableIds[h][i], "onRemoved", [&] { tables[h][i]->onRemoved(removal); });
+}
+
+bool PluginHost::dispatchHighlightMessage(const MessageContext &message)
+{
+    const int h = hookIndex(Hook::Highlights);
+    bool highlight = false;
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "highlightMessage", [&] { highlight = tables[h][i]->highlightMessage(message) || highlight; });
+    return highlight;
+}
+
+QList<PluginHost::PluginInboxTab> PluginHost::dispatchInboxTabs(Id accountId)
+{
+    QList<PluginInboxTab> out;
+    const int h = hookIndex(Hook::InboxTabs);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "inboxTabs", [&] {
+            for (const InboxTab &tab : tables[h][i]->inboxTabs(accountId))
+                out.append({ tableIds[h][i], tab });
+        });
+    return out;
+}
+
+void PluginHost::dispatchInboxMessageRemoved(const QString &pluginId, const QString &tabId, Id accountId, Id messageId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::InboxTabs, pluginId))
+        guarded(pluginId, "onInboxMessageRemoved", [&] { plugin->onInboxMessageRemoved(tabId, accountId, messageId); });
+}
+
+void PluginHost::dispatchInboxCleared(const QString &pluginId, const QString &tabId, Id accountId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::InboxTabs, pluginId))
+        guarded(pluginId, "onInboxCleared", [&] { plugin->onInboxCleared(tabId, accountId); });
 }
 
 QList<PluginHost::PluginUserPanelButton> PluginHost::dispatchUserPanelButtons(const UserPanelContext &panel)

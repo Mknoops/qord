@@ -135,6 +135,8 @@ qord_add_plugin(serverlistindicators servers SOURCES ServerListIndicators.cpp)
 qord_add_plugin(previewmessage chat SOURCES PreviewMessage.cpp)
 qord_add_plugin(decodebase64 chat SOURCES DecodeBase64.cpp)
 qord_add_plugin(unitconverter utility SOURCES UnitConverter.cpp)
+qord_add_plugin(keywordnotify notifications SOURCES KeywordNotify.hpp KeywordNotify.cpp
+    UI_SOURCES KeywordEntriesWidget.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

@@ -310,6 +310,18 @@ void QtUiService::joinVoiceChannel(Id accountId, Id channelId)
         voiceJoiner()(accountId, channelId);
 }
 
+std::function<void(Id)> &QtUiService::voiceLeaver()
+{
+    static std::function<void(Id)> leaver;
+    return leaver;
+}
+
+void QtUiService::leaveVoice(Id accountId)
+{
+    if (voiceLeaver())
+        voiceLeaver()(accountId);
+}
+
 void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
 {
     multiplier = qBound(1.0, multiplier, 5.0);

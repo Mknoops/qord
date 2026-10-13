@@ -186,6 +186,8 @@ public:
     void openChannel(Id accountId, Id channelId) override { openedChannels.append({ accountId, channelId }); }
     QList<QPair<Id, Id>> openedChannels;
     void joinVoiceChannel(Id accountId, Id channelId) override { joinedVoice.append({ accountId, channelId }); }
+    void leaveVoice(Id accountId) override { leftVoice.append(accountId); }
+    QList<Id> leftVoice;
     QList<QPair<Id, Id>> joinedVoice;
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override

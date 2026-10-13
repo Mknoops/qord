@@ -160,7 +160,9 @@ public:
     void openChannel(Id accountId, Id channelId) override;
     static std::function<void(Id, Id)> &channelOpener(); // set by the main window
     void joinVoiceChannel(Id accountId, Id channelId) override;
+    void leaveVoice(Id accountId) override;
     static std::function<void(Id, Id)> &voiceJoiner(); // set by the main window
+    static std::function<void(Id)> &voiceLeaver(); // set by the main window
     static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box

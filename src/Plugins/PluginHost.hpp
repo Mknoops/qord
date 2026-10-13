@@ -176,6 +176,8 @@ public:
     [[nodiscard]] QList<CountBadge> dispatchMemberCountBadges(const MemberCountContext &counts);
     // Every plugin's decorations, in plugin order.
     [[nodiscard]] QList<NameDecoration> dispatchNameDecorations(const DecorationContext &user);
+    void dispatchNameDecorationClicked(const QString &pluginId, const QString &clickId, const DecorationContext &user,
+                                       bool doubleClick);
     // True if a plugin handled the click.
     [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
     void dispatchVoiceStateChanged(const VoiceStateChange &change);

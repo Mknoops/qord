@@ -1724,52 +1724,9 @@ void MainWindow::setupUi()
     connect(channelTree, &ChannelTreeView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
 
 #ifndef ACHERON_NO_VOICE
-    connect(channelTree, &ChannelTreeView::joinVoiceChannelRequested, this,
-            [this](const QModelIndex &proxyIndex) {
-                QModelIndex sourceIndex = channelFilterProxy->mapToSource(proxyIndex);
-                auto *node = channelTreeModel->nodeFromIndex(sourceIndex);
-                if (!node)
-                    return;
-
-                bool isDM = (node->type == ChannelNode::Type::DMChannel);
-                bool isVoice = (node->type == ChannelNode::Type::VoiceChannel);
-                if (!isDM && !isVoice)
-                    return;
-
-                ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
-                if (!accountNode)
-                    return;
-
-                ClientInstance *instance = session->client(accountNode->id);
-                if (!instance)
-                    return;
-
-                // Qord: ShowHiddenChannels shows a voice channel you can't
-                // join instead of trying to
-                if (isVoice && openHiddenChannel(instance, node, accountNode, true))
-                    return;
-
-                if (!instance->discord()->getProxy().canRelayUdp()) {
-                    QMessageBox::warning(this,
-                                         tr("Voice unavailable"),
-                                         tr("This account uses an HTTP proxy, which cannot carry "
-                                            "voice traffic.<br>Switch it to a SOCKS5 proxy to use voice."));
-                    return;
-                }
-
-                if (isDM) {
-                    qCInfo(LogVoice) << "Joining DM call" << node->name << node->id;
-                    instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, userPanel->selfMute(), userPanel->selfDeaf());
-                } else {
-                    ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
-                    if (!guildNode)
-                        return;
-
-                    qCInfo(LogVoice) << "Joining voice channel" << node->name << node->id
-                                     << "in guild" << guildNode->id;
-                    instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, userPanel->selfMute(), userPanel->selfDeaf());
-                }
-            });
+    connect(channelTree, &ChannelTreeView::joinVoiceChannelRequested, this, [this](const QModelIndex &proxyIndex) {
+        joinVoiceNode(channelTreeModel->nodeFromIndex(channelFilterProxy->mapToSource(proxyIndex)));
+    });
 
     connect(channelTree, &ChannelTreeView::disconnectVoiceRequested, this,
             [this](const QModelIndex &proxyIndex) {
@@ -2988,6 +2945,53 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
 
     menu.exec(globalPos);
 }
+
+#ifndef ACHERON_NO_VOICE
+void MainWindow::joinVoiceNode(ChannelNode *node)
+{
+    if (!node)
+        return;
+
+    bool isDM = (node->type == ChannelNode::Type::DMChannel);
+    bool isVoice = (node->type == ChannelNode::Type::VoiceChannel);
+    if (!isDM && !isVoice)
+        return;
+
+    ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
+    if (!accountNode)
+        return;
+
+    ClientInstance *instance = session->client(accountNode->id);
+    if (!instance)
+        return;
+
+    // Qord: ShowHiddenChannels shows a voice channel you can't
+    // join instead of trying to
+    if (isVoice && openHiddenChannel(instance, node, accountNode, true))
+        return;
+
+    if (!instance->discord()->getProxy().canRelayUdp()) {
+        QMessageBox::warning(this,
+                             tr("Voice unavailable"),
+                             tr("This account uses an HTTP proxy, which cannot carry "
+                                "voice traffic.<br>Switch it to a SOCKS5 proxy to use voice."));
+        return;
+    }
+
+    if (isDM) {
+        qCInfo(LogVoice) << "Joining DM call" << node->name << node->id;
+        instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, userPanel->selfMute(), userPanel->selfDeaf());
+    } else {
+        ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
+        if (!guildNode)
+            return;
+
+        qCInfo(LogVoice) << "Joining voice channel" << node->name << node->id
+                         << "in guild" << guildNode->id;
+        instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, userPanel->selfMute(), userPanel->selfDeaf());
+    }
+}
+#endif
 
 void MainWindow::selectChannelInTree(Snowflake accountId, Snowflake channelId)
 {

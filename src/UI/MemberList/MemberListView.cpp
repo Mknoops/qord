@@ -1,5 +1,10 @@
 #include "MemberListView.hpp"
 
+#include "MemberListDelegate.hpp"
+#include "MemberListModel.hpp"
+
+#include <QMouseEvent>
+
 namespace Acheron {
 namespace UI {
 
@@ -49,6 +54,49 @@ void MemberListView::resizeEvent(QResizeEvent *event)
     QListView::resizeEvent(event);
     updateHeader();
     emitVisibleRange();
+}
+
+bool MemberListView::clickDecoration(QMouseEvent *event, bool doubleClick)
+{
+    auto *delegate = qobject_cast<MemberListDelegate *>(itemDelegate());
+    auto *provider = NameDecorations::instance();
+    const QModelIndex index = indexAt(event->pos());
+    if (event->button() != Qt::LeftButton || !delegate || !provider || !index.isValid())
+        return false;
+    const auto decoration = delegate->clickableDecorationAt(index.row(), event->pos());
+    if (!decoration)
+        return false;
+    provider->click(Core::Snowflake(index.data(MemberListModel::AccountIdRole).toULongLong()),
+                    Core::Snowflake(index.data(MemberListModel::GuildIdRole).toULongLong()),
+                    Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),
+                    NameDecorations::Place::MemberList, *decoration, doubleClick);
+    return true;
+}
+
+void MemberListView::mousePressEvent(QMouseEvent *event)
+{
+    if (clickDecoration(event, false))
+        return;
+    QListView::mousePressEvent(event);
+}
+
+void MemberListView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (clickDecoration(event, true))
+        return;
+    QListView::mouseDoubleClickEvent(event);
+}
+
+void MemberListView::mouseMoveEvent(QMouseEvent *event)
+{
+    QListView::mouseMoveEvent(event);
+    auto *delegate = qobject_cast<MemberListDelegate *>(itemDelegate());
+    const QModelIndex index = indexAt(event->pos());
+    const bool clickable = delegate && index.isValid() && delegate->clickableDecorationAt(index.row(), event->pos());
+    if (clickable)
+        viewport()->setCursor(Qt::PointingHandCursor);
+    else
+        viewport()->unsetCursor();
 }
 
 void MemberListView::emitVisibleRange()

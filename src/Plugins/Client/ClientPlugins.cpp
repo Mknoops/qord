@@ -11,6 +11,9 @@
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Audio/VolumeLimit.hpp"
+#ifndef ACHERON_NO_VOICE
+#include "Core/Audio/VoiceManager.hpp"
+#endif
 #include "Core/FolderSidebar.hpp"
 #include "Core/ImageLens.hpp"
 #include "Core/OwnerCrown.hpp"
@@ -255,6 +258,18 @@ void QtUiService::openChannel(Id accountId, Id channelId)
         channelOpener()(accountId, channelId);
 }
 
+std::function<void(Id, Id)> &QtUiService::voiceJoiner()
+{
+    static std::function<void(Id, Id)> joiner;
+    return joiner;
+}
+
+void QtUiService::joinVoiceChannel(Id accountId, Id channelId)
+{
+    if (voiceJoiner())
+        voiceJoiner()(accountId, channelId);
+}
+
 void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
 {
     multiplier = qBound(1.0, multiplier, 5.0);
@@ -340,6 +355,7 @@ std::optional<LinkedChannel> SessionMessageLookup::channel(Id accountId, Id chan
     const bool isPrivate = out.type == int(Discord::ChannelType::DM) || out.type == int(Discord::ChannelType::GROUP_DM);
     if (isPrivate) {
         out.canView = true;
+        out.canConnect = true;
         if (channel->type.get() == Discord::ChannelType::GROUP_DM) {
             if (channel->icon.hasValue())
                 out.iconUrl = Discord::Cdn::channelIcon(Core::Snowflake(channelId), channel->icon.get(), 64).toString();
@@ -363,7 +379,65 @@ std::optional<LinkedChannel> SessionMessageLookup::channel(Id accountId, Id chan
             out.iconUrl = Discord::Cdn::guildIcon(guildId, guild->icon.get(), 64).toString();
     out.canView = instance->permissions()->hasChannelPermission(instance->accountId(), Core::Snowflake(channelId),
                                                                  Discord::Permission::VIEW_CHANNEL);
+    out.canConnect = out.canView && instance->permissions()->hasChannelPermission(instance->accountId(), Core::Snowflake(channelId),
+                                                                                  Discord::Permission::CONNECT);
     return out;
+}
+
+std::optional<UserVoiceState> SessionVoiceStates::voiceState(Id accountId, Id userId) const
+{
+#ifndef ACHERON_NO_VOICE
+    using namespace Acheron;
+    Core::ClientInstance *instance = session->client(Core::Snowflake(accountId));
+    if (!instance || !instance->voice())
+        return std::nullopt;
+    const auto state = instance->voice()->voiceStateForUser(Core::Snowflake(userId));
+    if (!state || state->channelId.isNull() || !state->channelId.get().isValid())
+        return std::nullopt;
+    UserVoiceState out;
+    out.channelId = quint64(state->channelId.get());
+    if (state->guildId.hasValue())
+        out.guildId = Qord::Plugins::pluginId(state->guildId.get());
+    out.muted = state->mute.valueOr(false) || state->selfMute.valueOr(false);
+    out.deafened = state->deaf.valueOr(false) || state->selfDeaf.valueOr(false);
+    return out;
+#else
+    Q_UNUSED(accountId);
+    Q_UNUSED(userId);
+    return std::nullopt;
+#endif
+}
+
+QList<Id> SessionVoiceStates::channelUsers(Id accountId, Id channelId) const
+{
+    QList<Id> out;
+#ifndef ACHERON_NO_VOICE
+    using namespace Acheron;
+    Core::ClientInstance *instance = session->client(Core::Snowflake(accountId));
+    if (!instance || !instance->voice())
+        return out;
+    for (const Core::Snowflake id : instance->voice()->channelVoiceUsers(Core::Snowflake(channelId)))
+        out.append(quint64(id));
+#else
+    Q_UNUSED(accountId);
+    Q_UNUSED(channelId);
+#endif
+    return out;
+}
+
+std::optional<LinkedChannel> SessionVoiceStates::channel(Id accountId, Id channelId) const
+{
+    return lookup.channel(accountId, channelId);
+}
+
+QString SessionVoiceStates::displayName(Id accountId, Id guildId, Id userId) const
+{
+    using namespace Acheron;
+    Core::ClientInstance *instance = session->client(Core::Snowflake(accountId));
+    if (!instance)
+        return {};
+    return instance->users()->getDisplayName(Core::Snowflake(userId),
+                                             guildId ? Core::Snowflake(guildId) : Core::Snowflake::Invalid);
 }
 
 std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
@@ -1317,7 +1391,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session), messageLookup(session)
+      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1347,6 +1421,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.privateChannels = &privateChannels;
     services.audio = &audio;
     services.messageLookup = &messageLookup;
+    services.voiceStates = &voiceStates;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

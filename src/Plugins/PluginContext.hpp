@@ -69,6 +69,8 @@ public:
     [[nodiscard]] MessageLookupService *messageLookup();
     // Null without the control_audio permission.
     [[nodiscard]] AudioOptionsService *audio() const;
+    // Null without the read_voice_states permission.
+    [[nodiscard]] const VoiceStateDirectory *voiceStates() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -84,6 +86,12 @@ public:
             onDmListChanged();
     }
     std::function<void()> onDmListChanged; // set by the host
+    // Whether another plugin is enabled (Vencord's isPluginEnabled)
+    [[nodiscard]] bool isPluginEnabled(const QString &pluginId) const
+    {
+        return pluginEnabled && pluginEnabled(pluginId);
+    }
+    std::function<bool(const QString &pluginId)> pluginEnabled; // set by the host
 
     // Private writable directory for caches (created on demand).
     [[nodiscard]] QString dataDirectory() const;

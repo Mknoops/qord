@@ -250,6 +250,16 @@ struct LinkedChannel
     Id recipientId = 0; // a DM's other user
     QString iconUrl; // the server's icon, the group's, or the DM user's avatar
     bool canView = false; // you can see it (View Channel; always in DMs)
+    bool canConnect = false; // you may join its voice (Connect; always in DMs)
+};
+
+// Where a user is in voice (Discord's voice state).
+struct UserVoiceState
+{
+    Id guildId = 0; // 0 for DM calls
+    Id channelId = 0;
+    bool muted = false; // by a moderator or themselves
+    bool deafened = false;
 };
 
 // A DM or group DM, as the DM list shows it.
@@ -377,14 +387,19 @@ struct VoiceConnectionContext
 };
 
 // An icon drawn after a user's name. `svg` is an SVG document drawn in
-// `color` where it says "currentColor"; `size` is in pixels.
+// `color` where it says "currentColor": "#rrggbb", "status:<status>" (the
+// theme's status colour) or "icon" (the theme's icon colour); `size` is in
+// pixels.
 struct NameDecoration
 {
     QByteArray svg;
     QString color;
-    QString tooltip;
+    QString tooltip; // plain text, or rich text (Qt's subset of HTML)
     int width = 20;
     int height = 20;
+    // Set to make it clickable: onNameDecorationClicked gets it back
+    QString clickId;
+    QString pluginId; // filled in by the host
 };
 
 // A button a plugin shows next to the message input. `svg` is an SVG

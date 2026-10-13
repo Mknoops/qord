@@ -22,10 +22,15 @@ signals:
 protected:
     void scrollContentsBy(int dx, int dy) override;
     void resizeEvent(QResizeEvent *event) override;
+    // Qord: clickable name decorations (UserVoiceShow)
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     QSize sizeHint() const override { return { 240, 0 }; }
 
 private:
     void emitVisibleRange();
+    bool clickDecoration(QMouseEvent *event, bool doubleClick);
 
     QWidget *header = nullptr;
     int lastFirstVisible = -1;

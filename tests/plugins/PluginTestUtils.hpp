@@ -150,6 +150,8 @@ public:
     void revealMessage(Id messageId) override { revealed.append(messageId); }
     void openChannel(Id accountId, Id channelId) override { openedChannels.append({ accountId, channelId }); }
     QList<QPair<Id, Id>> openedChannels;
+    void joinVoiceChannel(Id accountId, Id channelId) override { joinedVoice.append({ accountId, channelId }); }
+    QList<QPair<Id, Id>> joinedVoice;
     void showForm(const QString &title, const QList<FormField> &fields,
                   std::function<void(const QString &, const QString &)> changed) override
     {
@@ -259,6 +261,34 @@ public:
     QHash<Id, LinkedChannel> channels;
     QList<QPair<Id, Id>> fetches;
     QList<std::function<void(bool)>> pending;
+};
+
+class FakeVoiceStates : public VoiceStateDirectory
+{
+public:
+    std::optional<UserVoiceState> voiceState(Id, Id userId) const override
+    {
+        const auto it = states.constFind(userId);
+        return it == states.constEnd() ? std::nullopt : std::optional<UserVoiceState>(*it);
+    }
+    QList<Id> channelUsers(Id, Id channelId) const override
+    {
+        QList<Id> out;
+        for (auto it = states.constBegin(); it != states.constEnd(); ++it)
+            if (it->channelId == channelId)
+                out.append(it.key());
+        std::sort(out.begin(), out.end());
+        return out;
+    }
+    std::optional<LinkedChannel> channel(Id, Id channelId) const override
+    {
+        const auto it = channels.constFind(channelId);
+        return it == channels.constEnd() ? std::nullopt : std::optional<LinkedChannel>(*it);
+    }
+    QString displayName(Id, Id, Id userId) const override { return names.value(userId); }
+    QHash<Id, UserVoiceState> states;
+    QHash<Id, LinkedChannel> channels;
+    QHash<Id, QString> names;
 };
 
 class FakeAudio : public AudioOptionsService
@@ -457,6 +487,7 @@ struct SinglePluginHost
         services.privateChannels = &dms;
         services.audio = &audio;
         services.messageLookup = &messageLookup;
+        services.voiceStates = &voiceStates;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -486,6 +517,7 @@ struct SinglePluginHost
     FakePrivateChannels dms;
     FakeAudio audio;
     FakeMessageLookup messageLookup;
+    FakeVoiceStates voiceStates;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

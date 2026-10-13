@@ -92,6 +92,7 @@ qord_add_plugin(whoreacted chat SOURCES WhoReacted.hpp WhoReacted.cpp)
 qord_add_plugin(readallnotificationsbutton utility SOURCES ReadAllNotificationsButton.cpp)
 qord_add_plugin(membercount utility SOURCES MemberCount.cpp)
 qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp PlatformIndicators.cpp)
+qord_add_plugin(uservoiceshow voice SOURCES UserVoiceShow.hpp UserVoiceShow.cpp)
 
 # Batch 6
 qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)

@@ -105,6 +105,10 @@ private:
     void openGuildSettings(Core::Snowflake accountId, Core::Snowflake guildId, GuildSettingsSection section);
     void showUserContextMenu(Core::ClientInstance *instance, Core::Snowflake userId, Core::Snowflake guildId, QPoint globalPos);
     void selectChannelInTree(Core::Snowflake accountId, Core::Snowflake channelId);
+#ifndef ACHERON_NO_VOICE
+    // Joins a voice channel or a DM's call
+    void joinVoiceNode(ChannelNode *node);
+#endif
 
 public:
     enum class ChannelListMode {

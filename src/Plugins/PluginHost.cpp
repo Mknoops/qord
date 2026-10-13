@@ -215,6 +215,7 @@ bool PluginHost::start(Entry &entry, QString *error)
                                                     QDir(dataDir).filePath(m.id));
     entry.context->onChatBarChanged = [this] { emit chatBarChanged(); };
     entry.context->onDmListChanged = [this] { emit dmListChanged(); };
+    entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -721,8 +722,23 @@ QList<NameDecoration> PluginHost::dispatchNameDecorations(const DecorationContex
     QList<NameDecoration> out;
     const int h = hookIndex(Hook::UserDecorations);
     for (size_t i = 0; i < tables[h].size(); ++i)
-        guarded(tableIds[h][i], "nameDecorations", [&] { out += tables[h][i]->nameDecorations(user); });
+        guarded(tableIds[h][i], "nameDecorations", [&] {
+            QList<NameDecoration> decorations = tables[h][i]->nameDecorations(user);
+            for (auto &d : decorations)
+                d.pluginId = tableIds[h][i];
+            out += decorations;
+        });
     return out;
+}
+
+void PluginHost::dispatchNameDecorationClicked(const QString &pluginId, const QString &clickId,
+                                               const DecorationContext &user, bool doubleClick)
+{
+    const int h = hookIndex(Hook::UserDecorations);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        if (tableIds[h][i] == pluginId)
+            guarded(tableIds[h][i], "onNameDecorationClicked",
+                    [&] { tables[h][i]->onNameDecorationClicked(clickId, user, doubleClick); });
 }
 
 bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)

@@ -260,6 +260,16 @@ private:
     Acheron::Core::Session *session;
 };
 
+class SessionPresences : public PresenceDirectory
+{
+public:
+    explicit SessionPresences(Acheron::Core::Session *session) : session(session) {}
+    QString status(Id accountId, Id userId) const override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionDevices : public SessionService
 {
 public:
@@ -392,6 +402,7 @@ private:
     SessionVoiceStates voiceStates;
     SessionActivity activity;
     SessionDevices devices;
+    SessionPresences presences;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

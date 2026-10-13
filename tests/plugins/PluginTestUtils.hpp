@@ -398,6 +398,13 @@ public:
     QList<std::function<void(bool)>> pendingChanges;
 };
 
+class FakePresences : public PresenceDirectory
+{
+public:
+    QString status(Id, Id userId) const override { return statuses.value(userId, QStringLiteral("offline")); }
+    QHash<Id, QString> statuses;
+};
+
 class FakeSessions : public SessionService
 {
 public:
@@ -622,6 +629,7 @@ struct SinglePluginHost
         services.voiceStates = &voiceStates;
         services.activity = &activity;
         services.sessions = &sessions;
+        services.presences = &presences;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -654,6 +662,7 @@ struct SinglePluginHost
     FakeVoiceStates voiceStates;
     FakeActivity activity;
     FakeSessions sessions;
+    FakePresences presences;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

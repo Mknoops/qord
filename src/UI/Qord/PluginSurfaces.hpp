@@ -19,7 +19,7 @@ class ServerListButtonBar : public QWidget
     Q_OBJECT
 public:
     explicit ServerListButtonBar(QWidget *parent = nullptr);
-    void refresh(Core::Snowflake accountId);
+    void refresh(Core::Snowflake accountId, int serverCount = 0);
 
 private:
     QVBoxLayout *layout;

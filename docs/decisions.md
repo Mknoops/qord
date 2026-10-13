@@ -179,6 +179,8 @@ and why, so it can be revisited deliberately.
 
 103. **CopyEmojiMarkdown.** Follows upstream with the existing emoji picker menu (`emojiSuggestions`): "Copy Emoji Markdown" copies a server emoji as `<:name:id>` (`<a:name:id>` when animated, without the `~1` Discord adds to repeated names) and a standard emoji as the character, or `:name:` with "Copy Unicode" off, then says "Success! Copied emoji markdown.". Upstream reads animation from the image URL; Qord knows it from the emoji itself. The item has no copy icon. Unit tested and checked against the mock (copying Qord Dev's emoji and pasting it). Not checked against Discord.
 
+104. **Presences for plugins, server list button icons; ServerListIndicators.** `read_presences` now also gives a `PresenceDirectory`: whether someone is online, idle, do not disturb or offline (invisible reads as offline). Server list buttons can carry an SVG icon (in the theme's muted icon colour), their context says how many servers the list has, the list asks again when presences, servers or friends change (at most twice a second), and `PluginContext::refreshServerList()` asks for it on demand. ServerListIndicators follows upstream: online friends (idle and do not disturb count), servers, or both, with upstream's icons or as text with "Use compact", and its tooltip; settings apply at once instead of after a restart. Upstream also counts servers you asked to join that haven't let you in; Qord doesn't know those yet. Unit tested and checked against the mock (both counts, and the friend count dropping when Ava goes offline). Not checked against Discord.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

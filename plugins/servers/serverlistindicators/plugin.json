@@ -1,0 +1,66 @@
+{
+  "id": "serverlistindicators",
+  "equicordName": "ServerListIndicators",
+  "equicordPath": "src/plugins/serverListIndicators",
+  "name": "ServerListIndicators",
+  "description": "Add online friend count or server count in the server list",
+  "summary": "How many friends are online and how many servers you are in, above the server list",
+  "categories": [
+    "servers",
+    "appearance"
+  ],
+  "tags": [
+    "Servers",
+    "Appearance"
+  ],
+  "authors": [
+    "rini",
+    "Panniku"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "read_presences",
+    "read_relationships"
+  ],
+  "hooks": [
+    "serverListButtons"
+  ],
+  "settings": [
+    {
+      "key": "mode",
+      "type": "choice",
+      "default": "2",
+      "label": "Mode",
+      "description": "Mode",
+      "choices": [
+        {
+          "value": "2",
+          "label": "Only online friend count"
+        },
+        {
+          "value": "1",
+          "label": "Only server count"
+        },
+        {
+          "value": "3",
+          "label": "Both server and online friend counts"
+        }
+      ]
+    },
+    {
+      "key": "useCompact",
+      "type": "bool",
+      "default": false,
+      "label": "Use compact",
+      "description": "Makes the indicator appear with only text"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Above the server list, a count of your friends who are online (idle and do not disturb count; offline and invisible don't), the number of servers you are in (in folders or not), or both, each with upstream's icon, or as text (\"3 Friends\") with \"Use compact\"; the tooltip reads \"3 Friends, 12 Servers\". The counts follow presences, servers and friends as they change, and settings apply at once, without upstream's restart.",
+  "gaps": [
+    "Servers you asked to join that haven't let you in yet aren't counted; upstream counts pending join requests."
+  ]
+}

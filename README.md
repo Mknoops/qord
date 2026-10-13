@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 61 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 62 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -176,6 +176,7 @@ These 61 native plugins are available now (out of the 369 in the pinned Equicord
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
+| **DecodeBase64** | "Decode Base64" and "Copy Decoded" in a message's menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
@@ -229,9 +230,9 @@ These 61 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter, ShowTimeoutDuration. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
-**Good first plugins** (the plugin API already covers them, so no client changes are needed): DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
+**Good first plugins** (the plugin API already covers them, so no client changes are needed): UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
@@ -269,7 +270,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 61 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 62 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

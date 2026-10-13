@@ -110,7 +110,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
 | `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, PreviewMessage, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
 | `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
-| `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | DecodeBase64, ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
+| `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | DecodeBase64, ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnitConverter, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
 | `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | BlockKeywords, NoBlockedMessages |
 | `typing` | Whether to send, and show, typing | `control_typing` | SilentTyping |
@@ -131,7 +131,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `channelTyping` | An indicator next to channels someone is typing in | `add_ui_elements` | TypingIndicator |
 | `unknownMentions` | Hovering a mention of a user the client doesn't know | `fetch_users` | ValidUser |
 | `keyboardShortcuts` | Key presses in the chat | `add_ui_elements` | QuickReply |
-| `messageAccessories` | Text, links and embeds shown under a message | `modify_displayed_messages` | MessageLinkEmbeds, Translate |
+| `messageAccessories` | Text, links and embeds shown under a message | `modify_displayed_messages` | MessageLinkEmbeds, Translate, UnitConverter |
 | `profileTabs` | Tabs in user profiles | `add_ui_elements` | MutualGroupDMs, ReviewDB |
 | `dmPins` | How the DM list is grouped, with its headers and menus | `add_ui_elements` | PinDMs |
 | `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | CopyEmojiMarkdown, FavoriteEmojiFirst |

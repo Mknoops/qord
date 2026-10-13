@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 307 |
+| Not Started | 306 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 62 |
+| Tested | 63 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -342,7 +342,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | TypingIndicator | `src/plugins/typingIndicator` | `plugins/appearance/typingindicator` | Tested | Channels, voice channels' chats and threads in the channel list show who is typing in them: up to three avatars (then "+N") and Discord's animated dots, with "Ava is typing..." as the tooltip. Names are the server nickname, display name or username, as upstream. wired; not yet verified in the running client. gaps: Only the account you are viewing: Qord tracks typing for the current account; With more than three typers the tooltip says "Several people are typing..." (upstream names two when TypingTweaks, not ported yet, is on); Clicking the avatars doesn't open user popouts. |
 | TypingTweaks | `src/plugins/typingTweaks` |  | Not Started |  |
 | Unindent | `src/plugins/unindent` | `plugins/chat/unindent` | Tested | Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). Received messages are unindented when shown, like upstream's renderer patch; the stored message is unchanged. wired; not yet verified in the running client. |
-| UnitConverter | `src/equicordplugins/unitConverter` |  | Not Started |  |
+| UnitConverter | `src/equicordplugins/unitConverter` | `plugins/utility/unitconverter` | Tested | "Convert Units" in a message's right-click menu shows the message again under it with its units converted to the ones you use ("My units"), with Dismiss to remove it. Converting to imperial: Celsius, centimeters, meters (as feet and inches), kilometers, km/h, grams and kilograms; to metric: Fahrenheit, feet, inches, 5'11", 5 ft 11 in, pounds, 5 lb 3 oz, ounces and mph. Upstream's arithmetic slips are fixed: inches are multiplied by 2.54 (upstream divides), meters use 3.281 feet (upstream 3.821), "5 lb 3 oz" counts the ounces, 1.75 m reads 5ft8.88in rather than rounding the feet up, and "50 km/h" converts as a speed instead of as "50 km" followed by "/h". wired; not yet verified in the running client. gaps: Qord has no plugin buttons on a message's hover bar yet, so Convert Units is in the right-click menu.; The converted line has no conversion icon. |
 | UniversalMention | `src/equicordplugins/universalMention` |  | Not Started |  |
 | UnlimitedAccounts | `src/equicordplugins/unlimitedAccounts` |  | Not Started |  |
 | UnlockedAvatarZoom | `src/plugins/unlockedAvatarZoom` |  | Not Started |  |

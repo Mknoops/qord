@@ -8,24 +8,23 @@ The Equicord plugins Qord should port next, most useful and popular first. A plu
 
 | # | Plugin | Effort | Good first | Needs |
 |---|---|---|---|---|
-| 1 | KeywordNotify | medium |  | Messages matching keywords reaching plugins as notifications (UiService::showNotification exists), and a mentions-inbox tab for them. |
-| 2 | MessageLinkTooltip | medium |  | Hover tooltips on message links showing the linked message (the fetch_messages service exists). |
-| 3 | ReplyTimestamp | small |  | A hook for the reply line above a message, to show when the replied message was sent. |
-| 4 | CharacterCounter | small |  | A way for plugins to show text next to the message box as you type. |
-| 5 | ShowTimeoutDuration | small |  | Discord's timeout icon next to timed-out members, which plugins can then label with the time left. |
-| 6 | VoiceChannelLog | medium |  | A log view of who joined and left a voice channel (the voiceStates hook exists). |
-| 7 | Timezones | medium |  | Per-user time zones, shown next to message timestamps and in profiles. |
-| 8 | PictureInPicture | medium |  | Pop-out playback for video attachments. |
-| 9 | NoPendingCount | small |  | A display option to hide the pending request count on the Friends page and home icon. |
-| 10 | VoiceChatDoubleClick | small |  | A display option so voice channels join on double click instead of single click. |
-| 11 | ClickableRoles | small |  | Clicks on profile roles reaching plugins (the profileRoleButtons hook is close). |
-| 12 | MoreQuickReactions | medium |  | Plugin control over how many reactions the hover bar offers. |
-| 13 | MentionAvatars | medium |  | Avatars inside user mentions when rendering messages. |
-| 14 | LastActive | medium |  | A user menu item that searches for their last message (search API). |
-| 15 | StreamerModeOn | medium |  | A streamer mode in the client (hides personal information) that plugins can switch. |
-| 16 | CustomIdle | small |  | Plugin control over when the client sets you idle. |
-| 17 | UnreadCountBadge | small |  | Unread counts on channels in the channel list (a display option). |
-| 18 | NoTypingAnimation | small |  | A display option to stop the typing indicator's dots animating. |
-| 19 | SilenceUsers | medium |  | Per-user silencing of notifications and sounds (the notifications hook exists). |
+| 1 | MessageLinkTooltip | medium |  | Hover tooltips on message links showing the linked message (the fetch_messages service exists). |
+| 2 | ReplyTimestamp | small |  | A hook for the reply line above a message, to show when the replied message was sent. |
+| 3 | CharacterCounter | small |  | A way for plugins to show text next to the message box as you type. |
+| 4 | ShowTimeoutDuration | small |  | Discord's timeout icon next to timed-out members, which plugins can then label with the time left. |
+| 5 | VoiceChannelLog | medium |  | A log view of who joined and left a voice channel (the voiceStates hook exists). |
+| 6 | Timezones | medium |  | Per-user time zones, shown next to message timestamps and in profiles. |
+| 7 | PictureInPicture | medium |  | Pop-out playback for video attachments. |
+| 8 | NoPendingCount | small |  | A display option to hide the pending request count on the Friends page and home icon. |
+| 9 | VoiceChatDoubleClick | small |  | A display option so voice channels join on double click instead of single click. |
+| 10 | ClickableRoles | small |  | Clicks on profile roles reaching plugins (the profileRoleButtons hook is close). |
+| 11 | MoreQuickReactions | medium |  | Plugin control over how many reactions the hover bar offers. |
+| 12 | MentionAvatars | medium |  | Avatars inside user mentions when rendering messages. |
+| 13 | LastActive | medium |  | A user menu item that searches for their last message (search API). |
+| 14 | StreamerModeOn | medium |  | A streamer mode in the client (hides personal information) that plugins can switch. |
+| 15 | CustomIdle | small |  | Plugin control over when the client sets you idle. |
+| 16 | UnreadCountBadge | small |  | Unread counts on channels in the channel list (a display option). |
+| 17 | NoTypingAnimation | small |  | A display option to stop the typing indicator's dots animating. |
+| 18 | SilenceUsers | medium |  | Per-user silencing of notifications and sounds (the notifications hook exists). |
 
-Beyond this list, 306 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.
+Beyond this list, 305 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.

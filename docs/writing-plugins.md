@@ -139,6 +139,8 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `userPanelButtons` | Buttons next to mute and deafen, with a right-click menu | `add_ui_elements` | GameActivityToggle |
 | `deviceSessions` | How devices look in Settings → Devices, with buttons; new and changed sessions | `read_sessions` | BetterSessions |
 | `memberships` | Your friends, incoming requests, servers and group DMs, and when one of them removes you | `read_memberships` | RelationshipNotifier |
+| `highlights` | Treat a message as if it mentioned you: the gold highlight and a mention's notification | `control_notifications` | KeywordNotify |
+| `inboxTabs` | Tabs of messages in the inbox next to Mentions, with remove and Clear All | `add_ui_elements` | KeywordNotify |
 <!-- END GENERATED: hooks -->
 
 ## Services
@@ -170,7 +172,7 @@ unless the plugin has the permission, so check before use.
 | `displayOptions()` | `modify_displayed_messages` | Switches for how the client draws things (role colors, image lens, folders...) |
 
 `settings()` is always there. `refreshChatBar()`, `refreshDmList()`,
-`refreshFriends()`, `refreshUserPanel()`, `refreshServerList()` and `refreshProfileTabs()` ask the client to query your hooks again after your state
+`refreshFriends()`, `refreshUserPanel()`, `refreshServerList()`, `refreshInbox()` and `refreshProfileTabs()` ask the client to query your hooks again after your state
 changed. The full interfaces are in `src/Plugins/Services.hpp`.
 
 ## Settings

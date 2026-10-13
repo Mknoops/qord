@@ -1340,6 +1340,7 @@ struct Message : Core::JsonUtils::JsonObject
     QList<int> qordHiddenEmbeds;
     QList<StickerItem> qordAddedStickers;
     QList<Embed> qordAddedEmbeds; // after the message's own (MessageLinkEmbeds)
+    bool qordHighlighted = false; // a plugin treats it as mentioning you (KeywordNotify)
 
     // track for MESSAGE_UPDATE
     QSet<QString> presentKeys;

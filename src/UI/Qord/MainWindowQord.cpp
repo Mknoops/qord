@@ -1571,8 +1571,17 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
             });
     connect(instance, &Core::ClientInstance::notifiableMessage, this,
             [this, guard](const Discord::Message &message, bool mentionsMe, bool wasUnread) {
-                if (guard && notifier)
-                    notifier->consider(guard, message, mentionsMe, wasUnread, chatModel->getActiveChannelId());
+                if (!guard || !notifier)
+                    return;
+                // Plugins may treat it as a mention (KeywordNotify)
+                auto *host = Qord::Plugins::PluginHost::instance();
+                if (!mentionsMe && host && host->hasHook(Qord::Plugins::Hook::Highlights) && message.author.hasValue() &&
+                    message.author->id.get() != guard->accountId()) {
+                    const Snowflake guildId = message.guildId.hasValue() ? message.guildId.get() : Snowflake::Invalid;
+                    mentionsMe = host->dispatchHighlightMessage(Qord::Plugins::toMessageContext(
+                            message, quint64(guard->accountId()), Qord::Plugins::pluginId(guildId), 0, true));
+                }
+                notifier->consider(guard, message, mentionsMe, wasUnread, chatModel->getActiveChannelId());
             });
 }
 
@@ -1760,9 +1769,19 @@ MessageListPopup *MainWindow::ensureMessagePopup()
     if (!messagePopup) {
         messagePopup = new MessageListPopup(this);
         connect(messagePopup, &MessageListPopup::jumpRequested, this, &MainWindow::jumpToMessageLink);
+        connect(messagePopup, &MessageListPopup::tabSelected, this, &MainWindow::showInboxTab);
+        if (auto *host = Qord::Plugins::PluginHost::instance())
+            connect(host, &Qord::Plugins::PluginHost::inboxChanged, this, [this]() {
+                if (messagePopup && messagePopup->isVisible() && inboxTab > 0)
+                    showInboxTab(inboxTab);
+            });
     }
     messagePopup->setSearchHandler({}, {});
     messagePopup->setChannelNameResolver({});
+    messagePopup->setTabs({}, 0);
+    messagePopup->setClearHandler({});
+    messagePopup->setRemoveHandler({});
+    inboxTab = -1;
     return messagePopup;
 }
 
@@ -1870,14 +1889,58 @@ void MainWindow::openMentionsInbox()
     if (!currentInstance)
         return;
     MessageListPopup *popup = ensureMessagePopup();
-    popup->setTitle(tr("Inbox — Mentions"));
     popup->setChannelNameResolver([this](Snowflake id) { return channelLabel(id); });
-    popup->showLoading();
+    // Qord: plugin tabs after Mentions (KeywordNotify)
+    QStringList labels;
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::InboxTabs))
+        for (const auto &entry : host->dispatchInboxTabs(quint64(currentInstance->accountId())))
+            labels.append(entry.tab.label);
+    if (!labels.isEmpty())
+        labels.prepend(tr("Mentions"));
+    popup->setTabs(labels, 0);
     popup->popup(inboxButton);
+    showInboxTab(0);
+}
 
+void MainWindow::showInboxTab(int index)
+{
+    if (!currentInstance || !messagePopup)
+        return;
+    MessageListPopup *popup = messagePopup;
+    inboxTab = index;
+    popup->setClearHandler({});
+    popup->setRemoveHandler({});
+    if (index > 0) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const Qord::Plugins::Id accountId = quint64(currentInstance->accountId());
+        const auto tabs = host ? host->dispatchInboxTabs(accountId) : QList<Qord::Plugins::PluginHost::PluginInboxTab>();
+        if (index - 1 >= tabs.size())
+            return;
+        const auto entry = tabs[index - 1];
+        popup->setTitle(tr("Inbox — %1").arg(entry.tab.label));
+        QList<Discord::Message> messages;
+        for (const auto &m : entry.tab.messages) {
+            const QJsonObject obj = QJsonDocument::fromJson(m.rawJson.toUtf8()).object();
+            if (!obj.isEmpty())
+                messages.append(Discord::Message::fromJson(obj));
+        }
+        popup->setClearHandler([entry, accountId]() {
+            if (auto *h = Qord::Plugins::PluginHost::instance())
+                h->dispatchInboxCleared(entry.pluginId, entry.tab.id, accountId);
+        });
+        popup->setRemoveHandler([entry, accountId](Snowflake messageId) {
+            if (auto *h = Qord::Plugins::PluginHost::instance())
+                h->dispatchInboxMessageRemoved(entry.pluginId, entry.tab.id, accountId, quint64(messageId));
+        });
+        popup->setMessages(messages, entry.tab.emptyText);
+        return;
+    }
+
+    popup->setTitle(tr("Inbox — Mentions"));
+    popup->showLoading();
     const QPointer<MessageListPopup> guard(popup);
-    currentInstance->discord()->fetchRecentMentions(25, true, [guard](const Core::Result<QList<Discord::Message>> &result) {
-        if (!guard)
+    currentInstance->discord()->fetchRecentMentions(25, true, [this, guard](const Core::Result<QList<Discord::Message>> &result) {
+        if (!guard || inboxTab != 0) // another tab was picked meanwhile
             return;
         if (!result.success()) {
             guard->showError(tr("Couldn't load mentions: %1").arg(result.error));

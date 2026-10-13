@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 63 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 64 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -186,6 +186,7 @@ These 63 native plugins are available now (out of the 369 in the pinned Equicord
 | **ImageZoom** | A magnifying lens in the image viewer (hold, scroll to zoom, Shift+scroll to resize) | modify_displayed_messages, add_ui_elements |
 | **ImplicitRelationships** | An "Implicit" tab on the Friends page: people you talk to who aren't your friends | read_relationships |
 | **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
+| **KeywordNotify** | Messages matching your keywords or regexes highlight and notify like mentions, and collect in a Keywords inbox tab | control_notifications, add_ui_elements |
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
 | **MessageLinkEmbeds** | A preview under messages that link other messages | modify_displayed_messages, fetch_messages |
@@ -231,7 +232,7 @@ These 63 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter, ShowTimeoutDuration, VoiceChannelLog. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** MessageLinkTooltip, ReplyTimestamp, CharacterCounter, ShowTimeoutDuration, VoiceChannelLog, Timezones. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 <!-- END GENERATED: up-next -->
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
@@ -269,7 +270,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 63 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 64 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

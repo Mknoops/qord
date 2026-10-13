@@ -122,6 +122,8 @@ const HookInfo hookTable[] = {
     { Hook::UserPanelButtons, "userPanelButtons", Permission::AddUiElements },
     { Hook::DeviceSessions, "deviceSessions", Permission::ReadSessions },
     { Hook::Memberships, "memberships", Permission::ReadMemberships },
+    { Hook::Highlights, "highlights", Permission::ControlNotifications },
+    { Hook::InboxTabs, "inboxTabs", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

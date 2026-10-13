@@ -203,6 +203,12 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
             }
         }
 
+    // Qord: plugins may treat someone else's message as mentioning you
+    msg.qordHighlighted = false;
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::Highlights) && msg.author.hasValue() &&
+        msg.author->id.get() != client->getMe().id.get())
+        msg.qordHighlighted = plugins->dispatchHighlightMessage(pluginContext(msg, true));
+
     // Qord: Discord's footer for messages only you can see (slash command
     // answers, PreviewMessage); dismissing one removes it from the chat
     if (msg.flags.hasValue() && msg.flags->testFlag(Discord::MessageFlag::EPHEMERAL))

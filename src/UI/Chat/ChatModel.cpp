@@ -681,6 +681,8 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue(result);
     }
     case MentionsMeRole: {
+        if (msg.qordHighlighted) // Qord: a plugin's highlight (KeywordNotify)
+            return true;
         const Discord::Message &visible = msg.contentMessage();
         if (visible.mentionEveryone.hasValue() && visible.mentionEveryone.get())
             return true;

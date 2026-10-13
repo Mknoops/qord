@@ -926,6 +926,12 @@ CONNECTED_ACCOUNTS = {
         {"type": "domain", "id": "ava.example", "name": "ava.example", "verified": True, "visibility": 1},
     ],
 }
+OWN_CONNECTIONS = [
+    {"type": "spotify", "id": "qordtester", "name": "Qord Tester", "verified": True, "revoked": False,
+     "show_activity": True, "visibility": 1, "friend_sync": False, "integrations": []},
+    {"type": "github", "id": "9001", "name": "qord-tester", "verified": True, "revoked": False,
+     "show_activity": True, "visibility": 1, "friend_sync": False, "integrations": []},
+]
 # GitHub's /users/{name}/orgs, as ShowConnections asks it (no real GitHub)
 GITHUB_ORGS = {"ava-codes": [{"login": "Equicord", "id": 1}, {"login": "qord-dev", "id": 2}]}
 
@@ -1162,6 +1168,17 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         log(f"rest: guild settings {gid} <- {j}")
         await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
         return 200, settings, "json"
+    if parts[:3] == ["users", "@me", "connections"]:
+        # GameActivityToggle: your own connections, with Spotify sharing switchable
+        if method == "GET" and len(parts) == 3:
+            return 200, OWN_CONNECTIONS, "json"
+        if method == "PATCH" and len(parts) == 5:
+            found = next((c for c in OWN_CONNECTIONS if c["type"] == parts[3] and c["id"] == parts[4]), None)
+            if not found:
+                return 404, {"message": "Unknown Connection", "code": 10017}, "json"
+            found.update({k: v for k, v in j.items() if k in ("show_activity", "visibility")})
+            log(f"rest: connection {parts[3]}/{parts[4]} show_activity={found['show_activity']}")
+            return 200, found, "json"
     if parts[:5] == ["users", "@me", "affinities", "v2", "users"] and method == "GET":
         # ImplicitRelationships: dan and a stranger you share no server with,
         # plus friends and requests (which the plugin leaves out)

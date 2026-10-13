@@ -138,6 +138,17 @@ public:
     [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
     void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
     // The first plugin with a layout decides it
+    struct PluginUserPanelButton
+    {
+        QString pluginId;
+        UserPanelButton button;
+    };
+    [[nodiscard]] QList<PluginUserPanelButton> dispatchUserPanelButtons(const UserPanelContext &panel);
+    void dispatchUserPanelButtonClicked(const QString &pluginId, const QString &id, const UserPanelContext &panel);
+    [[nodiscard]] QList<MenuItem> dispatchUserPanelButtonMenu(const QString &pluginId, const QString &id,
+                                                              const UserPanelContext &panel);
+    void dispatchUserPanelButtonMenuAction(const QString &pluginId, const QString &id, const QString &itemId,
+                                           const UserPanelContext &panel);
     [[nodiscard]] QList<FriendsSection> dispatchFriendsSections(const FriendsContext &friends);
     void dispatchFriendsPageOpened(const FriendsContext &friends);
     [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
@@ -208,6 +219,8 @@ signals:
     void dmListChanged();
     // The Friends page's plugin tabs changed: ask dispatchFriendsSections again
     void friendsChanged();
+    // User panel buttons changed: ask dispatchUserPanelButtons again
+    void userPanelChanged();
 
 private:
     struct Entry

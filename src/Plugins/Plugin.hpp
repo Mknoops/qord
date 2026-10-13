@@ -268,6 +268,31 @@ public:
         Q_UNUSED(emoji);
     }
 
+    // Hook::UserPanelButtons: buttons next to mute and deafen, a click on
+    // one, and its right-click menu
+    virtual QList<UserPanelButton> userPanelButtons(const UserPanelContext &panel)
+    {
+        Q_UNUSED(panel);
+        return {};
+    }
+    virtual void onUserPanelButtonClicked(const QString &id, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(panel);
+    }
+    virtual QList<MenuItem> userPanelButtonMenu(const QString &id, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(panel);
+        return {};
+    }
+    virtual void onUserPanelButtonMenuAction(const QString &id, const QString &itemId, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(itemId);
+        Q_UNUSED(panel);
+    }
+
     // Hook::FriendsSections: tabs added to the Friends page, and the page
     // being opened (where Discord fetches relationships)
     virtual QList<FriendsSection> friendsSections(const FriendsContext &friends)

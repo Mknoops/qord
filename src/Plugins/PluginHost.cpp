@@ -178,6 +178,8 @@ void PluginHost::notifyHooksChanged(Hooks hooks)
         emit dmListChanged();
     if (hooks.testFlag(Hook::FriendsSections))
         emit friendsChanged();
+    if (hooks.testFlag(Hook::UserPanelButtons))
+        emit userPanelChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
@@ -219,6 +221,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context->onDmListChanged = [this] { emit dmListChanged(); };
     entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
     entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
+    entry.context->onUserPanelChanged = [this] { emit userPanelChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -974,6 +977,42 @@ void PluginHost::dispatchEmojiContextMenuAction(const QString &pluginId, const Q
 {
     if (Plugin *plugin = tablePlugin(Hook::EmojiSuggestions, pluginId))
         guarded(pluginId, "onEmojiContextMenuAction", [&] { plugin->onEmojiContextMenuAction(itemId, emoji); });
+}
+
+QList<PluginHost::PluginUserPanelButton> PluginHost::dispatchUserPanelButtons(const UserPanelContext &panel)
+{
+    QList<PluginUserPanelButton> out;
+    const int h = hookIndex(Hook::UserPanelButtons);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "userPanelButtons", [&] {
+            for (const auto &button : tables[h][i]->userPanelButtons(panel))
+                out.append({ tableIds[h][i], button });
+        });
+    return out;
+}
+
+void PluginHost::dispatchUserPanelButtonClicked(const QString &pluginId, const QString &id,
+                                                const UserPanelContext &panel)
+{
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "onUserPanelButtonClicked", [&] { plugin->onUserPanelButtonClicked(id, panel); });
+}
+
+QList<MenuItem> PluginHost::dispatchUserPanelButtonMenu(const QString &pluginId, const QString &id,
+                                                        const UserPanelContext &panel)
+{
+    QList<MenuItem> out;
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "userPanelButtonMenu", [&] { out = plugin->userPanelButtonMenu(id, panel); });
+    return out;
+}
+
+void PluginHost::dispatchUserPanelButtonMenuAction(const QString &pluginId, const QString &id, const QString &itemId,
+                                                   const UserPanelContext &panel)
+{
+    if (Plugin *plugin = tablePlugin(Hook::UserPanelButtons, pluginId))
+        guarded(pluginId, "onUserPanelButtonMenuAction",
+                [&] { plugin->onUserPanelButtonMenuAction(id, itemId, panel); });
 }
 
 QList<FriendsSection> PluginHost::dispatchFriendsSections(const FriendsContext &friends)

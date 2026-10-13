@@ -281,6 +281,23 @@ public:
     void sendTyping(Snowflake channelId);
     // status: online/idle/dnd/invisible. Sent over the gateway and saved to settings.
     void setStatus(const QString &status, const QString &customText, const QString &customEmoji);
+    // Qord: Discord's "Share your detected activities with others"
+    // (status.show_current_game, synced; true unless turned off)
+    [[nodiscard]] bool showCurrentGame() const;
+    void setShowCurrentGame(bool show);
+    // Qord: your connected accounts (GET /users/@me/connections) and whether
+    // one shares its activity (PATCH .../connections/{type}/{id})
+    struct OwnConnection
+    {
+        QString type;
+        QString id;
+        QString name;
+        bool showActivity = false;
+        bool revoked = false;
+    };
+    void fetchOwnConnections(std::function<void(bool ok, const QList<OwnConnection> &connections)> callback);
+    void setConnectionShowActivity(const QString &type, const QString &id, bool show,
+                                   std::function<void(bool ok)> callback);
     void fetchPinnedMessages(Snowflake channelId, MessagesCallback callback);
     // Guild-wide when guildId is valid, else within channelId (DMs)
     void searchMessages(Snowflake guildId, Snowflake channelId, const QUrlQuery &query, JsonCallback callback);

@@ -857,6 +857,34 @@ struct ImageLens
     bool invertScroll = true;
 };
 
+// The panel at the bottom left with your name and the mute and deafen
+// buttons, for an account.
+struct UserPanelContext
+{
+    Id accountId = 0;
+};
+
+// A button a plugin adds next to mute and deafen (GameActivityToggle). `svg`
+// is drawn with "currentColor" in the theme's icon color; `danger` gives it a
+// red glow, as Discord shows a button that is switched off.
+struct UserPanelButton
+{
+    QString id;
+    QString tooltip;
+    QByteArray svg;
+    bool danger = false;
+};
+
+// One of your connected accounts, and whether it shares its activity.
+struct ActivityConnection
+{
+    QString type; // "spotify", ...
+    QString id;
+    QString name;
+    bool showActivity = false;
+    bool revoked = false;
+};
+
 // Someone Discord ranks you as talking to (GET /users/@me/affinities).
 struct UserAffinity
 {

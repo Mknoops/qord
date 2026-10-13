@@ -470,6 +470,47 @@ QString SessionVoiceStates::displayName(Id accountId, Id guildId, Id userId) con
                                              guildId ? Core::Snowflake(guildId) : Core::Snowflake::Invalid);
 }
 
+bool SessionActivity::showCurrentGame(Id accountId) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    return !instance || instance->discord()->showCurrentGame();
+}
+
+void SessionActivity::setShowCurrentGame(Id accountId, bool show)
+{
+    if (Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId)))
+        instance->discord()->setShowCurrentGame(show);
+}
+
+void SessionActivity::fetchConnections(Id accountId,
+                                       std::function<void(bool, const QList<ActivityConnection> &)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    instance->discord()->fetchOwnConnections(
+            [done](bool ok, const QList<Acheron::Discord::Client::OwnConnection> &connections) {
+                QList<ActivityConnection> out;
+                for (const auto &c : connections)
+                    out.append({ c.type, c.id, c.name, c.showActivity, c.revoked });
+                done(ok, out);
+            });
+}
+
+void SessionActivity::setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId,
+                                                bool show, std::function<void(bool)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        if (done)
+            done(false);
+        return;
+    }
+    instance->discord()->setConnectionShowActivity(type, connectionId, show, std::move(done));
+}
+
 std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
 {
     static std::function<QList<PrivateChannelInfo>(Id)> list;
@@ -1447,7 +1488,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session)
+      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1478,6 +1519,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.audio = &audio;
     services.messageLookup = &messageLookup;
     services.voiceStates = &voiceStates;
+    services.activity = &activity;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

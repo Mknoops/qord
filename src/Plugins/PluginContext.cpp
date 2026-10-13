@@ -343,6 +343,13 @@ AudioOptionsService *PluginContext::audio() const
     return services.audio;
 }
 
+ActivitySettingsService *PluginContext::activity() const
+{
+    if (!granted.testFlag(Permission::ControlActivity))
+        return nullptr;
+    return services.activity;
+}
+
 const VoiceStateDirectory *PluginContext::voiceStates() const
 {
     if (!granted.testFlag(Permission::ReadVoiceStates))

@@ -5,6 +5,7 @@
 
 #include "Core/Snowflake.hpp"
 
+class QHBoxLayout;
 class QLabel;
 class QToolButton;
 
@@ -47,6 +48,8 @@ private:
     void refresh();
     void refreshAvatar();
     void refreshButtons();
+    // Plugin buttons before mute (Hook::UserPanelButtons, GameActivityToggle)
+    void rebuildPluginButtons();
     void showStatusMenu();
     void setStatus(const QString &status);
     void editCustomStatus();
@@ -64,6 +67,8 @@ private:
     QToolButton *muteButton;
     QToolButton *deafenButton;
     QToolButton *settingsButton;
+    QHBoxLayout *panelLayout;
+    QList<QToolButton *> pluginButtons;
 
     bool muted = false;
     bool deafened = false;

@@ -6,6 +6,7 @@
 #include "Core/Theme/Manager.hpp"
 #include "Discord/CdnUrls.hpp"
 #include "UI/StatusIndicator.hpp"
+#include "Plugins/PluginHost.hpp"
 
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -18,6 +19,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QSvgRenderer>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -78,6 +80,7 @@ UserPanel::UserPanel(Core::ImageManager *images, QWidget *parent) : QWidget(pare
     setFixedHeight(52);
 
     auto *layout = new QHBoxLayout(this);
+    panelLayout = layout;
     layout->setContentsMargins(8, 0, 8, 0);
     layout->setSpacing(2);
 
@@ -135,7 +138,10 @@ UserPanel::UserPanel(Core::ImageManager *images, QWidget *parent) : QWidget(pare
     connect(&Core::Theme::Manager::instance(), &Core::Theme::Manager::themeChanged, this, [this]() {
         settingsButton->setIcon(Icons::icon(Icons::Name::Settings, Token::MutedText));
         refreshButtons();
+        rebuildPluginButtons();
     });
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::userPanelChanged, this, &UserPanel::rebuildPluginButtons);
     connect(images, &Core::ImageManager::imageFetched, this, [this](const QUrl &url, const QSize &, const QPixmap &) {
         if (url == avatarUrl)
             refreshAvatar();
@@ -164,6 +170,9 @@ void UserPanel::setInstance(Core::ClientInstance *newInstance)
                     refresh();
                     refreshAvatar();
                 }));
+        // Plugin buttons can follow Discord's settings (GameActivityToggle)
+        instanceConnections.append(connect(instance->discord(), &Discord::Client::settingsChanged, this,
+                                           &UserPanel::rebuildPluginButtons));
 #ifndef ACHERON_NO_VOICE
         // Joining already sends mute/deafen; re-sending here would answer every
         // voice state Discord echoes with another one
@@ -173,6 +182,71 @@ void UserPanel::setInstance(Core::ClientInstance *newInstance)
     }
     refresh();
     refreshAvatar();
+    rebuildPluginButtons();
+}
+
+void UserPanel::rebuildPluginButtons()
+{
+    for (QToolButton *b : std::as_const(pluginButtons))
+        b->deleteLater();
+    pluginButtons.clear();
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!instance || !host || !host->hasHook(Qord::Plugins::Hook::UserPanelButtons))
+        return;
+    const Qord::Plugins::UserPanelContext panel{ quint64(instance->accountId()) };
+    int at = panelLayout->indexOf(muteButton);
+    for (const auto &entry : host->dispatchUserPanelButtons(panel)) {
+        QToolButton *b = panelButton(this, entry.button.tooltip);
+        // "currentColor" in the theme's icon color, as the built-in buttons
+        QByteArray svg = entry.button.svg;
+        svg.replace("currentColor", Core::Theme::Manager::instance().color(Token::MutedText).name().toLatin1());
+        QSvgRenderer renderer(svg);
+        const qreal dpr = devicePixelRatioF();
+        QPixmap pixmap(QSize(20, 20) * dpr);
+        pixmap.fill(Qt::transparent);
+        {
+            QPainter p(&pixmap);
+            p.setRenderHint(QPainter::Antialiasing);
+            renderer.render(&p, QRectF(0, 0, pixmap.width(), pixmap.height()));
+        }
+        pixmap.setDevicePixelRatio(dpr);
+        b->setIcon(QIcon(pixmap));
+        // Discord's red glow on a switch that is off
+        if (entry.button.danger)
+            b->setStyleSheet(QStringLiteral("QToolButton { background: rgba(242, 63, 67, 0.15); border-radius: 4px; }"));
+        const QString pluginId = entry.pluginId;
+        const QString id = entry.button.id;
+        connect(b, &QToolButton::clicked, this, [pluginId, id, panel]() {
+            if (auto *h = Qord::Plugins::PluginHost::instance())
+                h->dispatchUserPanelButtonClicked(pluginId, id, panel);
+        });
+        b->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(b, &QWidget::customContextMenuRequested, this, [this, b, pluginId, id, panel](const QPoint &pos) {
+            auto *h = Qord::Plugins::PluginHost::instance();
+            const auto items = h ? h->dispatchUserPanelButtonMenu(pluginId, id, panel) : QList<Qord::Plugins::MenuItem>();
+            if (items.isEmpty())
+                return;
+            QMenu menu(this);
+            for (const auto &item : items) {
+                if (item.id.isEmpty() && item.label.isEmpty()) {
+                    menu.addSeparator();
+                    continue;
+                }
+                QAction *action = menu.addAction(item.label);
+                if (item.checked) {
+                    action->setCheckable(true);
+                    action->setChecked(*item.checked);
+                }
+                connect(action, &QAction::triggered, this, [pluginId, id, itemId = item.id, panel]() {
+                    if (auto *host = Qord::Plugins::PluginHost::instance())
+                        host->dispatchUserPanelButtonMenuAction(pluginId, id, itemId, panel);
+                });
+            }
+            menu.exec(b->mapToGlobal(pos));
+        });
+        panelLayout->insertWidget(at++, b);
+        pluginButtons.append(b);
+    }
 }
 
 void UserPanel::refresh()

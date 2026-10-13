@@ -71,6 +71,8 @@ public:
     [[nodiscard]] AudioOptionsService *audio() const;
     // Null without the read_voice_states permission.
     [[nodiscard]] const VoiceStateDirectory *voiceStates() const;
+    // Null without the control_activity permission.
+    [[nodiscard]] ActivitySettingsService *activity() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -93,6 +95,13 @@ public:
             onFriendsChanged();
     }
     std::function<void()> onFriendsChanged; // set by the host
+    // Asks the client to re-query the user panel's buttons (Hook::UserPanelButtons)
+    void refreshUserPanel() const
+    {
+        if (onUserPanelChanged)
+            onUserPanelChanged();
+    }
+    std::function<void()> onUserPanelChanged; // set by the host
     // Whether another plugin is enabled (Vencord's isPluginEnabled)
     [[nodiscard]] bool isPluginEnabled(const QString &pluginId) const
     {

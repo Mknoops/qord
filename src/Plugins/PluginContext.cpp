@@ -156,6 +156,16 @@ public:
     void refreshLockScreen() override { inner->refreshLockScreen(); }
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
     void joinVoiceChannel(Id accountId, Id channelId) override { inner->joinVoiceChannel(accountId, channelId); }
+    void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
+    {
+        // The click may come after the plugin stopped
+        std::weak_ptr<bool> weak = alive;
+        inner->showNotification(notification, [weak, clicked = std::move(clicked)]() {
+            if (auto a = weak.lock(); a && *a && clicked)
+                clicked();
+        });
+    }
+    void openDevicesSettings() override { inner->openDevicesSettings(); }
     void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
                         std::function<void(const QHash<QString, QString> &)> done) override
     {
@@ -341,6 +351,13 @@ AudioOptionsService *PluginContext::audio() const
     if (!granted.testFlag(Permission::ControlAudio))
         return nullptr;
     return services.audio;
+}
+
+SessionService *PluginContext::sessions() const
+{
+    if (!granted.testFlag(Permission::ReadSessions))
+        return nullptr;
+    return services.sessions;
 }
 
 ActivitySettingsService *PluginContext::activity() const

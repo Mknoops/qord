@@ -2696,6 +2696,11 @@ void MainWindow::openSettingsWindow()
                 &Core::AnimatedImageCache::setAnimationLimitMiB);
     }
 
+    // Devices: the account in view, else the one selected in the rail
+    Core::ClientInstance *account = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+    if (!account && !session->getClients().isEmpty())
+        account = session->getClients().first();
+    settingsWindow->setInstance(account);
     settingsWindow->show();
     settingsWindow->raise();
     settingsWindow->activateWindow();

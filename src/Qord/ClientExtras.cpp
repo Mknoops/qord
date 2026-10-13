@@ -186,6 +186,41 @@ void Client::setConnectionShowActivity(const QString &type, const QString &id, b
     });
 }
 
+void Client::fetchAuthSessions(std::function<void(bool, const QList<AuthSession> &)> callback)
+{
+    httpClient->get(QStringLiteral("/auth/sessions"), {}, [callback](const HttpResponse &response) {
+        QList<AuthSession> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching sessions failed:" << response.statusCode << response.error;
+            callback(false, out);
+            return;
+        }
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("user_sessions")).toArray();
+        for (const QJsonValue &value : list) {
+            const QJsonObject s = value.toObject();
+            const QJsonObject info = s.value(QStringLiteral("client_info")).toObject();
+            out.append({ s.value(QStringLiteral("id_hash")).toString(),
+                         QDateTime::fromString(s.value(QStringLiteral("approx_last_used_time")).toString(), Qt::ISODateWithMs),
+                         info.value(QStringLiteral("os")).toString(), info.value(QStringLiteral("platform")).toString(),
+                         info.value(QStringLiteral("location")).toString() });
+        }
+        callback(true, out);
+    });
+}
+
+void Client::logoutAuthSessions(const QStringList &idHashes, std::function<void(bool, const QString &)> callback)
+{
+    QJsonObject payload;
+    payload["session_id_hashes"] = QJsonArray::fromStringList(idHashes);
+    httpClient->post(QStringLiteral("/auth/sessions/logout"), payload, [callback](const HttpResponse &response) {
+        if (!response.success)
+            qCWarning(LogDiscord) << "Logging out sessions failed:" << response.statusCode << response.error;
+        if (callback)
+            callback(response.success, response.error);
+    });
+}
+
 void Client::fetchPinnedMessages(Snowflake channelId, MessagesCallback callback)
 {
     QUrlQuery query;

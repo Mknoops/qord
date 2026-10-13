@@ -44,6 +44,10 @@
 #include "UI/Qord/HiddenChannelScreen.hpp"
 #include "UI/Qord/ServerInfoDialog.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/DevicesPage.hpp"
+#include "UI/Qord/NotificationCards.hpp"
+#include "Core/Presence/PresenceManager.hpp"
+#include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
@@ -814,6 +818,29 @@ void MainWindow::setupQordFeatures()
     connect(notifier, &DesktopNotifier::openRequested, this,
             [this](Snowflake, Snowflake channelId, Snowflake messageId) { jumpToMessageLink(channelId, messageId); });
 
+    // Plugin notifications (Vencord's showNotification): a card in the corner,
+    // and a desktop notification while Qord isn't focused
+    Qord::Plugins::QtUiService::notificationShower() = [this](const Qord::Plugins::PluginNotification &n,
+                                                              std::function<void()> clicked) {
+        NotificationCard::show(this, n.title, n.body, n.permanent, clicked);
+        if (!isActiveWindow())
+            notifier->notify(n.title, n.body, clicked);
+    };
+    // Settings → Devices (BetterSessions)
+    Qord::Plugins::QtUiService::devicesOpener() = [this]() {
+        openSettingsWindow();
+        settingsWindow->showDevices();
+    };
+    Qord::Plugins::SessionDevices::devicesRefresher() = []() {
+        if (auto *page = DevicesPage::visiblePage())
+            page->rerender();
+    };
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::notificationShower() = nullptr;
+        Qord::Plugins::QtUiService::devicesOpener() = nullptr;
+        Qord::Plugins::SessionDevices::devicesRefresher() = nullptr;
+    });
+
     // Add a Server
     connect(addServerButton, &QToolButton::clicked, this, [this]() {
         Core::ClientInstance *instance = session->client(railSelectedAccountId);
@@ -1194,6 +1221,25 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
     const QPointer<Core::ClientInstance> guard(instance);
     if (nameDecorations)
         nameDecorations->watch(instance);
+    // BetterSessions: Discord reports your sessions (SESSIONS_REPLACE) after
+    // logging in and when a device logs in or out; tell plugins when the set
+    // of sessions changes
+    auto knownSessions = std::make_shared<QSet<QString>>();
+    connect(instance->presences(), &Core::PresenceManager::presencesChanged, this,
+            [guard, knownSessions](const QList<Snowflake> &userIds) {
+                auto *host = Qord::Plugins::PluginHost::instance();
+                if (!guard || !userIds.contains(guard->accountId()))
+                    return;
+                QSet<QString> ids;
+                for (const auto &s : guard->presences()->ownSessions())
+                    if (s.sessionId.hasValue() && !s.isAggregate())
+                        ids.insert(s.sessionId.get());
+                if (ids == *knownSessions)
+                    return;
+                *knownSessions = ids;
+                if (host && host->hasHook(Qord::Plugins::Hook::DeviceSessions))
+                    host->dispatchDeviceSessionsChanged(quint64(guard->accountId()));
+            });
     // WhoReacted: reactions coming and going, for the users shown on them
     const auto reactionChanged = [guard](Snowflake channelId, Snowflake messageId, const Discord::Emoji &emoji,
                                          int type, Snowflake userId, bool added) {

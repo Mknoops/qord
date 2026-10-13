@@ -1,0 +1,30 @@
+{
+  "id": "bettersessions",
+  "equicordName": "BetterSessions",
+  "equicordPath": "src/plugins/betterSessions",
+  "name": "BetterSessions",
+  "description": "Enhances the sessions (devices) menu. Allows you to view exact timestamps, give each session a custom name, and receive notifications about new sessions.",
+  "summary": "Names for your devices in Settings → Devices, exact times, NEW badges, and a notification when a device logs in",
+  "categories": ["utility", "notifications"],
+  "tags": ["Notifications", "Customisation", "Utility"],
+  "authors": ["amia"],
+  "permissions": ["read_sessions", "add_ui_elements"],
+  "hooks": ["deviceSessions"],
+  "settings": [
+    { "key": "backgroundCheck", "type": "bool", "default": false, "label": "Background check",
+      "description": "Check for new sessions in the background, and display notifications when they are detected" },
+    { "key": "checkInterval", "type": "number", "default": 20, "min": 0, "label": "Check interval",
+      "description": "How often to check for new sessions in the background (if enabled), in minutes" },
+    { "key": "savedSessions", "type": "json", "default": {}, "label": "Saved sessions", "hidden": true,
+      "description": "Names and seen devices, per account" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on \"3 hours ago\", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name brings back \"OS · Platform\". When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each (\"New session:\" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll.",
+  "gaps": [
+    "The rename dialog has no \"Reset Name\" button or placeholder; clearing the field does the same.",
+    "Discord's mobile badge icon is drawn with Material Icons' phone, which Discord's matches."
+  ]
+}

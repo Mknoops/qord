@@ -57,6 +57,7 @@ inline constexpr auto Radio = "radio";
 inline constexpr auto Reply = "reply";
 inline constexpr auto Rss = "rss";
 inline constexpr auto ShieldAlert = "shield-alert";
+inline constexpr auto Smartphone = "smartphone";
 inline constexpr auto Spool = "spool";
 inline constexpr auto Trash = "trash-2";
 inline constexpr auto TriangleAlert = "triangle-alert";

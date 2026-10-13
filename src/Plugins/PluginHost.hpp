@@ -138,6 +138,12 @@ public:
     [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
     void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
     // The first plugin with a layout decides it
+    [[nodiscard]] std::optional<QPair<QString, DeviceSessionView>> dispatchDeviceSessionView(Id accountId,
+                                                                                         const DeviceSession &session);
+    void dispatchDeviceSessionButton(const QString &pluginId, Id accountId, const QString &buttonId,
+                                     const DeviceSession &session);
+    void dispatchDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions);
+    void dispatchDeviceSessionsChanged(Id accountId);
     struct PluginUserPanelButton
     {
         QString pluginId;

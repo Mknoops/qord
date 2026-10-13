@@ -90,6 +90,7 @@ PERMISSIONS = {
     "control_audio",
     "fetch_messages",
     "control_activity",
+    "read_sessions",
 }
 
 SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json"}
@@ -131,6 +132,7 @@ HOOK_DISPATCH = {
     "emojiSuggestions": "dispatchSortEmojiSuggestions(",
     "friendsSections": "dispatchFriendsSections(",
     "userPanelButtons": "dispatchUserPanelButtons(",
+    "deviceSessions": "dispatchDeviceSessionView(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -169,6 +171,7 @@ HOOK_DOCS = {
     "emojiSuggestions": "The emoji autocomplete's order, and items in the emoji picker's menu",
     "friendsSections": "Tabs on the Friends page",
     "userPanelButtons": "Buttons next to mute and deafen, with a right-click menu",
+    "deviceSessions": "How devices look in Settings → Devices, with buttons; new and changed sessions",
 }
 
 MANIFEST_REQUIRED = {

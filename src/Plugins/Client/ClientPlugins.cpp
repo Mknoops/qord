@@ -611,6 +611,69 @@ void QtUiService::openUrl(const QUrl &url)
     QDesktopServices::openUrl(url);
 }
 
+std::function<void(const PluginNotification &, std::function<void()>)> &QtUiService::notificationShower()
+{
+    static std::function<void(const PluginNotification &, std::function<void()>)> shower;
+    return shower;
+}
+
+void QtUiService::showNotification(const PluginNotification &notification, std::function<void()> clicked)
+{
+    if (notificationShower())
+        notificationShower()(notification, std::move(clicked));
+}
+
+std::function<void()> &QtUiService::devicesOpener()
+{
+    static std::function<void()> opener;
+    return opener;
+}
+
+void QtUiService::openDevicesSettings()
+{
+    if (devicesOpener())
+        devicesOpener()();
+}
+
+std::function<void()> &SessionDevices::devicesRefresher()
+{
+    static std::function<void()> refresher;
+    return refresher;
+}
+
+QList<Id> SessionDevices::accountIds() const
+{
+    QList<Id> out;
+    for (const auto &instance : session->getClients())
+        out.append(quint64(instance->accountId()));
+    return out;
+}
+
+void SessionDevices::refreshDevicesPage()
+{
+    if (devicesRefresher())
+        devicesRefresher()();
+}
+
+void SessionDevices::fetchSessions(Id accountId, std::function<void(bool, const QList<DeviceSession> &)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false, {});
+        return;
+    }
+    const QString current = instance->discord()->currentAuthSessionHash();
+    instance->discord()->fetchAuthSessions(
+            [done, current](bool ok, const QList<Acheron::Discord::Client::AuthSession> &list) {
+                QList<DeviceSession> out;
+                for (const auto &a : list)
+                    out.append({ a.idHash, a.os, a.platform, a.location,
+                                 a.lastUsed.isValid() ? a.lastUsed.toMSecsSinceEpoch() : 0,
+                                 !current.isEmpty() && a.idHash == current });
+                done(ok, out);
+            });
+}
+
 std::function<void(const QString &, UiService::ToastType)> &QtUiService::toastShower()
 {
     static std::function<void(const QString &, ToastType)> shower;
@@ -1488,7 +1551,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session)
+      reactions(session), guilds(session), users(session), messageLookup(session), voiceStates(session), activity(session), devices(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1520,6 +1583,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.messageLookup = &messageLookup;
     services.voiceStates = &voiceStates;
     services.activity = &activity;
+    services.sessions = &devices;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

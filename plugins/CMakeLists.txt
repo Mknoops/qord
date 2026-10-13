@@ -125,6 +125,7 @@ qord_add_plugin(messagelinkembeds chat SOURCES MessageLinkEmbeds.hpp MessageLink
 qord_add_plugin(favoriteemojifirst chat SOURCES FavoriteEmojiFirst.hpp FavoriteEmojiFirst.cpp
     UI_SOURCES AliasListWidget.cpp)
 qord_add_plugin(gameactivitytoggle utility SOURCES GameActivityToggle.hpp GameActivityToggle.cpp)
+qord_add_plugin(bettersessions utility SOURCES BetterSessions.hpp BetterSessions.cpp PlatformIcons.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

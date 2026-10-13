@@ -268,6 +268,30 @@ public:
         Q_UNUSED(emoji);
     }
 
+    // Hook::DeviceSessions: how a device looks in Settings → Devices
+    // (nullopt: as the client shows it), a click on one of its buttons, the
+    // page being closed (the devices it showed), and Discord reporting your
+    // sessions: first after the account connects, then whenever they change
+    // (someone logged in or out somewhere)
+    virtual std::optional<DeviceSessionView> deviceSessionView(Id accountId, const DeviceSession &session)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(session);
+        return std::nullopt;
+    }
+    virtual void onDeviceSessionButton(Id accountId, const QString &buttonId, const DeviceSession &session)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(buttonId);
+        Q_UNUSED(session);
+    }
+    virtual void onDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(sessions);
+    }
+    virtual void onDeviceSessionsChanged(Id accountId) { Q_UNUSED(accountId); }
+
     // Hook::UserPanelButtons: buttons next to mute and deafen, a click on
     // one, and its right-click menu
     virtual QList<UserPanelButton> userPanelButtons(const UserPanelContext &panel)

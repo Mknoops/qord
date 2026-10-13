@@ -3,6 +3,9 @@
 #include <QtWidgets>
 
 namespace Acheron {
+namespace Core {
+class ClientInstance;
+} // namespace Core
 namespace UI {
 
 class SettingsWindow : public QWidget
@@ -12,6 +15,9 @@ public:
     explicit SettingsWindow(QWidget *parent = nullptr);
     // Qord: open the Plugins page at a plugin
     void showPlugin(const QString &pluginId);
+    // Qord: Discord's Devices page, for the account in view
+    void setInstance(Core::ClientInstance *instance);
+    void showDevices();
 
 signals:
     void channelListModeChanged(bool classic);
@@ -28,6 +34,7 @@ private:
     QListWidget *categoryList;
     QStackedWidget *pages;
     class PluginsPage *pluginsPage = nullptr;
+    class DevicesPage *devicesPage = nullptr;
 };
 
 } // namespace UI

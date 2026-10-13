@@ -47,8 +47,13 @@ DesktopNotifier::DesktopNotifier(QWidget *window) : QObject(window), window(wind
         this->window->showNormal();
         this->window->raise();
         this->window->activateWindow();
-        if (lastChannel.isValid())
+        if (pendingClick) {
+            const auto clicked = std::move(pendingClick);
+            pendingClick = nullptr;
+            clicked();
+        } else if (lastChannel.isValid()) {
             emit openRequested(lastAccount, lastChannel, lastMessage);
+        }
     });
     tray->show();
 }
@@ -119,6 +124,18 @@ void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Me
     lastAccount = instance->accountId();
     lastChannel = channelId;
     lastMessage = message.id.get();
+    pendingClick = nullptr;
+    if (tray)
+        tray->showMessage(title, body, QSystemTrayIcon::Information, 5000);
+    QApplication::alert(window, 0);
+}
+
+void DesktopNotifier::notify(const QString &title, const QString &body, std::function<void()> clicked)
+{
+    if (!enabled())
+        return;
+    lastChannel = Core::Snowflake();
+    pendingClick = std::move(clicked);
     if (tray)
         tray->showMessage(title, body, QSystemTrayIcon::Information, 5000);
     QApplication::alert(window, 0);

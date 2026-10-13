@@ -70,6 +70,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Load messages from other channels you can see") },
     { Permission::ControlActivity, "control_activity",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Change whether others see what you play or listen to") },
+    { Permission::ReadSessions, "read_sessions",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See the devices logged in to your account") },
 };
 
 struct HookInfo
@@ -114,6 +116,7 @@ const HookInfo hookTable[] = {
     { Hook::EmojiSuggestions, "emojiSuggestions", Permission::AddUiElements },
     { Hook::FriendsSections, "friendsSections", Permission::ReadRelationships },
     { Hook::UserPanelButtons, "userPanelButtons", Permission::AddUiElements },
+    { Hook::DeviceSessions, "deviceSessions", Permission::ReadSessions },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

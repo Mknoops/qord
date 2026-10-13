@@ -93,6 +93,10 @@ public:
     void showToast(const QString &text, ToastType type) override;
     // Set by the main window
     static std::function<void(const QString &, ToastType)> &toastShower();
+    void showNotification(const PluginNotification &notification, std::function<void()> clicked) override;
+    static std::function<void(const PluginNotification &, std::function<void()>)> &notificationShower();
+    void openDevicesSettings() override;
+    static std::function<void()> &devicesOpener(); // set by the main window
     void pickTimestamp(std::function<void(const QString &)> done) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &)> &messageBoxInserter();
@@ -239,6 +243,19 @@ private:
     Acheron::Core::Session *session;
 };
 
+class SessionDevices : public SessionService
+{
+public:
+    explicit SessionDevices(Acheron::Core::Session *session) : session(session) {}
+    void fetchSessions(Id accountId, std::function<void(bool, const QList<DeviceSession> &)> done) override;
+    void refreshDevicesPage() override;
+    QList<Id> accountIds() const override;
+    static std::function<void()> &devicesRefresher(); // set by the main window
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionUsers : public UserLookupService
 {
 public:
@@ -357,6 +374,7 @@ private:
     SessionMessageLookup messageLookup;
     SessionVoiceStates voiceStates;
     SessionActivity activity;
+    SessionDevices devices;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

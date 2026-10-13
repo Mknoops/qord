@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/callTimer",
   "name": "CallTimer",
   "description": "Add call timers for all users in voice channels and in the connection status.",
+  "summary": "Call timers for every user in voice channels and in the connection status",
   "categories": ["utility"],
   "tags": ["Voice", "Utility"],
   "authors": ["Ven", "MaxHerbold", "D3SOX"],

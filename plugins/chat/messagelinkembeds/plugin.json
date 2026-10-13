@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/messageLinkEmbeds",
   "name": "MessageLinkEmbeds",
   "description": "Adds a preview to messages that link another message",
+  "summary": "A preview under messages that link other messages",
   "categories": [
     "chat"
   ],

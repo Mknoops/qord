@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/ingtoninator",
   "name": "Ingtoninator",
   "description": "Suffixes 'ington' to a random word in your message",
+  "summary": "Adds \"ington\" to a random word in your message",
   "categories": ["chat"],
   "tags": ["Fun"],
   "authors": ["zyqunix", "BioTomateDE"],

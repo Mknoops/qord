@@ -1,0 +1,161 @@
+{
+  "$comment": "Hand-maintained: Equicord plugins Qord should port next, most useful and popular first. 'effort' is small, medium or large; 'goodFirst' marks plugins the existing plugin API already covers, so a first contribution needs no client changes; 'needs' says what is missing in Qord. Plugins that reach Tested drop out of the generated lists by themselves. Rendered into README.md and docs/roadmap.md by tools/check_equicord_plugins.py --write-docs.",
+  "version": 1,
+  "plugins": [
+    {
+      "name": "GameActivityToggle",
+      "effort": "medium",
+      "needs": "Buttons in the user panel; Discord's synced \"share your activity\" setting and Spotify's per-account sharing."
+    },
+    {
+      "name": "BetterSessions",
+      "effort": "medium",
+      "needs": "A Devices page in settings listing your sessions (GET /auth/sessions), with names and log out."
+    },
+    {
+      "name": "ReviewDB",
+      "effort": "large",
+      "needs": "Reviews on profiles from the ReviewDB service: its OAuth login, a profile section, and writing reviews."
+    },
+    {
+      "name": "RelationshipNotifier",
+      "effort": "medium",
+      "needs": "Relationship and server-removal events reaching plugins, and plugin notifications."
+    },
+    {
+      "name": "BlockKeywords",
+      "effort": "small",
+      "goodFirst": true,
+      "needs": "Nothing new: the messageFilter hook hides messages matching your keywords or regexes."
+    },
+    {
+      "name": "FollowVoiceUser",
+      "effort": "small",
+      "goodFirst": true,
+      "needs": "Nothing new: \"Follow\" in the user menu (userContextMenu), then join where they go (voiceStates hook, UiService::joinVoiceChannel)."
+    },
+    {
+      "name": "CopyEmojiMarkdown",
+      "effort": "small",
+      "goodFirst": true,
+      "needs": "Nothing new for the emoji picker's menu (emojiSuggestions hook); messages' emojis have no menu yet."
+    },
+    {
+      "name": "ServerListIndicators",
+      "effort": "small",
+      "needs": "Friends' online status for plugins; the server list button (serverListButtons hook) already exists."
+    },
+    {
+      "name": "PreviewMessage",
+      "effort": "small",
+      "needs": "The message box's text in ChatContext, so a chat bar button can preview it."
+    },
+    {
+      "name": "DecodeBase64",
+      "effort": "small",
+      "goodFirst": true,
+      "needs": "Nothing new: \"Decode Base64\" in the message menu (messageContextMenu) showing the decoded text (UiService::showTextDialog)."
+    },
+    {
+      "name": "UnitConverter",
+      "effort": "small",
+      "goodFirst": true,
+      "needs": "Nothing new: \"Convert Units\" in the message menu (messageContextMenu), shown under the message (messageAccessories)."
+    },
+    {
+      "name": "KeywordNotify",
+      "effort": "medium",
+      "needs": "Notifications for messages matching keywords (notifications hook), and a mentions-inbox tab for them."
+    },
+    {
+      "name": "MessageLinkTooltip",
+      "effort": "medium",
+      "needs": "Hover tooltips on message links showing the linked message (the fetch_messages service exists)."
+    },
+    {
+      "name": "ReplyTimestamp",
+      "effort": "small",
+      "needs": "A hook for the reply line above a message, to show when the replied message was sent."
+    },
+    {
+      "name": "CharacterCounter",
+      "effort": "small",
+      "needs": "A way for plugins to show text next to the message box as you type."
+    },
+    {
+      "name": "ShowTimeoutDuration",
+      "effort": "small",
+      "needs": "Discord's timeout icon next to timed-out members, which plugins can then label with the time left."
+    },
+    {
+      "name": "VoiceChannelLog",
+      "effort": "medium",
+      "needs": "A log view of who joined and left a voice channel (the voiceStates hook exists)."
+    },
+    {
+      "name": "Timezones",
+      "effort": "medium",
+      "needs": "Per-user time zones, shown next to message timestamps and in profiles."
+    },
+    {
+      "name": "PictureInPicture",
+      "effort": "medium",
+      "needs": "Pop-out playback for video attachments."
+    },
+    {
+      "name": "NoPendingCount",
+      "effort": "small",
+      "needs": "A display option to hide the pending request count on the Friends page and home icon."
+    },
+    {
+      "name": "VoiceChatDoubleClick",
+      "effort": "small",
+      "needs": "A display option so voice channels join on double click instead of single click."
+    },
+    {
+      "name": "ClickableRoles",
+      "effort": "small",
+      "needs": "Clicks on profile roles reaching plugins (the profileRoleButtons hook is close)."
+    },
+    {
+      "name": "MoreQuickReactions",
+      "effort": "medium",
+      "needs": "Plugin control over how many reactions the hover bar offers."
+    },
+    {
+      "name": "MentionAvatars",
+      "effort": "medium",
+      "needs": "Avatars inside user mentions when rendering messages."
+    },
+    {
+      "name": "LastActive",
+      "effort": "medium",
+      "needs": "A user menu item that searches for their last message (search API)."
+    },
+    {
+      "name": "StreamerModeOn",
+      "effort": "medium",
+      "needs": "A streamer mode in the client (hides personal information) that plugins can switch."
+    },
+    {
+      "name": "CustomIdle",
+      "effort": "small",
+      "needs": "Plugin control over when the client sets you idle."
+    },
+    {
+      "name": "UnreadCountBadge",
+      "effort": "small",
+      "needs": "Unread counts on channels in the channel list (a display option)."
+    },
+    {
+      "name": "NoTypingAnimation",
+      "effort": "small",
+      "needs": "A display option to stop the typing indicator's dots animating."
+    },
+    {
+      "name": "SilenceUsers",
+      "effort": "medium",
+      "needs": "Per-user silencing of notifications and sounds (the notifications hook exists)."
+    }
+  ]
+}

@@ -23,7 +23,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--strict", action="store_true", help="also fail unless every feasible plugin is at least Tested")
     ap.add_argument("--test-results", type=Path, help="ctest --output-junit file; Tested then requires a passing run")
-    ap.add_argument("--write-docs", action="store_true", help="regenerate the compatibility matrix and source doc")
+    ap.add_argument("--write-docs", action="store_true", help="regenerate the compatibility matrix, source doc, roadmap and README plugin lists")
     ap.add_argument("--check-docs", action="store_true", help="fail if the generated docs are out of date")
     ap.add_argument("--json", action="store_true", help="print the summary as JSON")
     ap.add_argument("--list", choices=inv.ALL_STATUSES, help="list plugins with this status")

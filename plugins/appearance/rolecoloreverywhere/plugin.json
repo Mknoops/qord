@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/roleColorEverywhere",
   "name": "RoleColorEverywhere",
   "description": "Adds the top role color anywhere possible",
+  "summary": "Role colors in mentions, member list headers, voice users and (optionally) message text",
   "categories": ["appearance"],
   "tags": ["Roles", "Appearance"],
   "authors": ["KingFish", "lewisakura", "AutumnVN", "Kyuuhachi", "jamesbt365"],

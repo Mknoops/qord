@@ -1,0 +1,42 @@
+{
+  "id": "reviewdb",
+  "equicordName": "ReviewDB",
+  "equicordPath": "src/plugins/reviewDB",
+  "name": "ReviewDB",
+  "description": "Review other users (Adds a new settings to profiles)",
+  "summary": "Reviews of users and servers from ReviewDB: read them in profiles, and write, vote on and report them",
+  "categories": ["utility"],
+  "tags": ["Friends", "Servers"],
+  "authors": ["mantikafasi", "V"],
+  "permissions": ["add_ui_elements", "network", "authorize_apps", "open_links", "read_relationships"],
+  "hooks": ["profileTabs", "userContextMenu", "channelContextMenu"],
+  "settings": [
+    { "key": "authorize", "type": "action", "default": "", "label": "Authorize with ReviewDB",
+      "description": "Log in to ReviewDB with your Discord account to write, vote on and report reviews" },
+    { "key": "notifyReviews", "type": "bool", "default": true, "label": "Notify reviews",
+      "description": "Notify about new reviews on startup" },
+    { "key": "showWarning", "type": "bool", "default": true, "label": "Show warning",
+      "description": "Display warning to be respectful at the top of the reviews list" },
+    { "key": "hideTimestamps", "type": "bool", "default": false, "label": "Hide timestamps",
+      "description": "Hide timestamps on reviews" },
+    { "key": "hideBlockedUsers", "type": "bool", "default": true, "label": "Hide blocked users",
+      "description": "Hide reviews from blocked users" },
+    { "key": "manageBlocked", "type": "action", "default": "", "label": "Manage Blocked Users" },
+    { "key": "sponsor", "type": "action", "default": "", "label": "Support ReviewDB development" },
+    { "key": "website", "type": "action", "default": "", "label": "ReviewDB website" },
+    { "key": "supportServer", "type": "action", "default": "", "label": "ReviewDB Support Server" },
+    { "key": "tokens", "type": "string", "default": "", "label": "ReviewDB login", "hidden": true, "secret": true,
+      "description": "ReviewDB tokens per account, kept in the system keychain" },
+    { "key": "lastReviewId", "type": "number", "default": 0, "label": "Last review", "hidden": true }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Profiles get a \"User Reviews\" tab listing a user's reviews (or \"No reviews yet\" / \"User opted out\"); clicking one, or \"View Reviews\" in a user's or a server's menu, opens the reviews window: \"<name>'s Reviews\" with the count, system messages first, each review's author, badges, date (unless hidden) and text, a menu to view the author's profile, vote, report, block (on your own profile) or delete (your review, your profile, or as a ReviewDB admin), pages of 50, and a box to write or update your review. Writing, voting, reporting and blocking need a ReviewDB login: \"Authorize with ReviewDB\" (or clicking the box) asks Discord to authorize ReviewDB's app with the identify scope, then trades the code for a ReviewDB token, kept in the system keychain per account. On start, a logged-in account learns about new reviews on its profile (a toast) and ReviewDB's notices (a dialog, marked read). Talks to manti.vendicated.dev, as upstream; the mock answers instead when testing.",
+  "gaps": [
+    "Reviews are plain text: Discord markdown in them isn't rendered.",
+    "Your own review is listed with the others rather than pinned above the input, and long reviews aren't shortened to \"Read more\".",
+    "ReviewDB's ban notice offers no Appeal button; its website (from the settings) has the appeal page."
+  ]
+}

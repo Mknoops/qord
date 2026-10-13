@@ -2938,6 +2938,8 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
             user.avatarUrl = (u ? Discord::Cdn::userAvatar(userId, u->avatar.valueOr(), 128)
                                 : Discord::Cdn::defaultUserAvatar(userId, 128))
                                      .toString();
+            if (u && u->username.hasValue())
+                user.username = u->username.get();
             if (guildId.isValid())
                 if (const auto member = instance->users()->getMember(guildId, userId))
                     user.memberAvatarUrl =

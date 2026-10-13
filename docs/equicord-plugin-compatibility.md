@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 315 |
+| Not Started | 314 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 54 |
+| Tested | 55 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -272,7 +272,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReplyTimestamp | `src/plugins/replyTimestamp` |  | Not Started |  |
 | RevealAllSpoilers | `src/plugins/revealAllSpoilers` |  | Not Started |  |
 | ReverseImageSearch | `src/plugins/reverseImageSearch` | `plugins/media/reverseimagesearch` | Tested | Right-click an image in chat, then Search Image. The image link is sent to the chosen search engine when you pick it. Engine favicons are not shown (that would contact DuckDuckGo every time the menu opens). wired; not yet verified in the running client. gaps: The image viewer's own context menu (upstream's image-context) needs a plugin surface in Qord's image viewer. |
-| ReviewDB | `src/plugins/reviewDB` |  | Not Started |  |
+| ReviewDB | `src/plugins/reviewDB` | `plugins/utility/reviewdb` | Tested | Profiles get a "User Reviews" tab listing a user's reviews (or "No reviews yet" / "User opted out"); clicking one, or "View Reviews" in a user's or a server's menu, opens the reviews window: "<name>'s Reviews" with the count, system messages first, each review's author, badges, date (unless hidden) and text, a menu to view the author's profile, vote, report, block (on your own profile) or delete (your review, your profile, or as a ReviewDB admin), pages of 50, and a box to write or update your review. Writing, voting, reporting and blocking need a ReviewDB login: "Authorize with ReviewDB" (or clicking the box) asks Discord to authorize ReviewDB's app with the identify scope, then trades the code for a ReviewDB token, kept in the system keychain per account. On start, a logged-in account learns about new reviews on its profile (a toast) and ReviewDB's notices (a dialog, marked read). Talks to manti.vendicated.dev, as upstream; the mock answers instead when testing. wired; not yet verified in the running client. gaps: Reviews are plain text: Discord markdown in them isn't rendered.; Your own review is listed with the others rather than pinned above the input, and long reviews aren't shortened to "Read more".; ReviewDB's ban notice offers no Appeal button; its website (from the settings) has the appeal page. |
 | RichMagnetLinks | `src/equicordplugins/richMagnetLinks` |  | Not Started |  |
 | RichPresence | `src/equicordplugins/richPresence` |  | Not Started |  |
 | RoleColorEverywhere | `src/plugins/roleColorEverywhere` | `plugins/appearance/rolecoloreverywhere` | Tested | User mentions in messages show in the member's top role color on a 10% background of it, member list role headers in their role's color, people in voice channels in their role color, and, with "Color chat messages", message text mixed with the author's role color (CSS color-mix in oklab, at the saturation setting; not failed sends). Changes apply at once, where upstream needs a restart. wired; not yet verified in the running client. gaps: Mentions typed in the message box aren't colored (Qord's message box shows them as text).; Qord has no reactors list or poll voter list, so those two settings do nothing yet.; Thread member lists aren't covered (Qord shows the channel's member list in threads).; CustomUserColors' colors aren't used, as that plugin isn't ported. |

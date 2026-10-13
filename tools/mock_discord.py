@@ -972,6 +972,13 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
     elif body and "multipart" in ctype:
         j = parse_multipart_json(body, ctype)
 
+    # App authorization (ReviewDB's login): the app, then the redirect with a code
+    if parts == ["oauth2", "authorize"]:
+        app = {"id": query.get("client_id", [""])[0], "name": "ReviewDB", "icon": None, "description": ""}
+        if method == "GET":
+            return 200, {"application": app, "user": USERS["self"], "authorized": False}, "json"
+        redirect = query.get("redirect_uri", [""])[0]
+        return 200, {"location": f"{redirect}?code=mock-oauth-code"}, "json"
     if parts[:1] == ["channels"] and len(parts) >= 2:
         cid = parts[1]
         rest = parts[2:]
@@ -1396,6 +1403,122 @@ def fake_translation(text: str, to: str) -> tuple[str, str]:
     return f"[{to}] {text}", "en"
 
 
+# ReviewDB (manti.vendicated.dev), as the ReviewDB plugin uses it. Writing needs
+# the token its OAuth login hands out; nothing here is a real credential.
+RDB_TOKEN = "mock-reviewdb-token"
+RDB_NEXT_ID = [100]
+
+
+def rdb_sender(key: str) -> dict:
+    u = USERS[key]
+    photo = f"https://cdn.discordapp.com/avatars/{u['id']}/{u['avatar']}.png" if u["avatar"] else ""
+    badges = [{"name": "ReviewDB Admin"}] if key == "cleo" else []
+    return {"id": int(u["id"][-3:]), "discordID": u["id"], "username": u["username"], "profilePhoto": photo,
+            "badges": badges}
+
+
+def rdb_review(rid: int, key: str, comment: str, days_ago: int, score: int = 0, rtype: int = 0) -> dict:
+    ts = int(dt.datetime.now(dt.timezone.utc).timestamp()) - days_ago * 86400
+    return {"id": rid, "sender": rdb_sender(key), "comment": comment, "type": rtype, "timestamp": ts, "score": score}
+
+
+RDB_REVIEWS = {
+    U["ava"]: [rdb_review(1, "ben", "Always helps out in #general, great person to play Factorio with.", 3, 4),
+               rdb_review(2, "cleo", "Reviewed my PR in five minutes flat.", 12, 2),
+               rdb_review(3, "eve", "meh", 30, -3)],
+    U["self"]: [rdb_review(4, "ava", "Thanks for testing Qord!", 1, 1)],
+    G1: [rdb_review(5, "ben", "Friendly server, good bots.", 5, 2)],
+}
+RDB_VOTES: dict[int, bool] = {}
+RDB_BLOCKS: list[str] = [U["dan"]]
+RDB_NOTICE: list[dict] = []
+
+
+def mock_reviewdb(method: str, path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
+    sub = path[len("/cdn/manti.vendicated.dev/api/reviewdb"):]
+    parts = [p for p in sub.split("/") if p]
+    authed = headers.get("authorization", "") == RDB_TOKEN
+    j = {}
+    if body:
+        try:
+            j = json.loads(body)
+        except ValueError:
+            j = {}
+
+    def out(status: int, obj) -> tuple[int, bytes, str]:
+        return status, json.dumps(obj).encode(), "application/json"
+
+    if parts == ["auth"]:
+        if query.get("code", [""])[0] == "mock-oauth-code":
+            return out(200, {"token": RDB_TOKEN, "success": True})
+        return out(400, {"message": "Invalid code", "success": False})
+    if parts[:1] == ["users"] and len(parts) == 3 and parts[2] == "reviews":
+        target = parts[1]
+        if method == "GET":
+            offset = int(query.get("offset", ["0"])[0])
+            limit = int(query.get("limit", ["50"])[0])
+            reviews = RDB_REVIEWS.get(target, [])
+            return out(200, {"success": True, "message": "", "reviews": reviews[offset:offset + limit],
+                             "hasNextPage": offset + limit < len(reviews), "reviewCount": len(reviews)})
+        if not authed:
+            return out(401, {"message": "Invalid token", "success": False})
+        if method == "PUT":
+            mine = [r for r in RDB_REVIEWS.setdefault(target, []) if r["sender"]["discordID"] == U["self"]]
+            if mine:
+                mine[0]["comment"] = j.get("comment", "")
+                return out(200, {"success": True, "message": "Updated your review"})
+            RDB_NEXT_ID[0] += 1
+            RDB_REVIEWS[target].insert(0, rdb_review(RDB_NEXT_ID[0], "self", j.get("comment", ""), 0))
+            return out(200, {"success": True, "message": "Added your review"})
+        if method == "DELETE":
+            # The plugin sends the review's id in place of the user's, as upstream does
+            rid = int(target)
+            for reviews in RDB_REVIEWS.values():
+                reviews[:] = [r for r in reviews if r["id"] != rid]
+            return out(200, {"success": True, "message": "Deleted review"})
+    if parts[:1] == ["users"] and len(parts) == 4 and parts[2:] == ["reviews", "votes"]:
+        ids = {r["id"] for r in RDB_REVIEWS.get(parts[1], [])}
+        return out(200, {"votes": [{"reviewID": k, "isUpvote": v} for k, v in RDB_VOTES.items() if k in ids]})
+    if not authed:
+        return out(401, {"message": "Invalid token", "success": False})
+    if parts == ["users"] and method == "POST":
+        me = {"ID": 1, "discordID": U["self"], "username": USERS["self"]["username"], "type": 0,
+              "profilePhoto": "", "badges": [], "blockedUsers": RDB_BLOCKS,
+              "lastReviewID": max((r["id"] for r in RDB_REVIEWS[U["self"]]), default=0)}
+        if RDB_NOTICE:
+            me["notification"] = RDB_NOTICE[0]
+        return out(200, me)
+    if parts == ["notifications"] and method == "PATCH":
+        RDB_NOTICE.clear()
+        return out(200, {"success": True})
+    if len(parts) == 3 and parts[0] == "reviews" and parts[2] == "vote":
+        rid = int(parts[1])
+        for reviews in RDB_REVIEWS.values():
+            for r in reviews:
+                if r["id"] == rid:
+                    old = RDB_VOTES.pop(rid, None)
+                    if old is not None:
+                        r["score"] -= 1 if old else -1
+                    if method == "POST":
+                        RDB_VOTES[rid] = bool(j.get("isUpvote"))
+                        r["score"] += 1 if RDB_VOTES[rid] else -1
+        return out(200, {"success": True})
+    if parts == ["reports"] and method == "PUT":
+        return out(200, {"success": True, "message": "Reported review"})
+    if parts == ["blocks"]:
+        if method == "GET":
+            key_of = {u["id"]: k for k, u in USERS.items()}
+            return out(200, [rdb_sender(key_of[i]) for i in RDB_BLOCKS if i in key_of])
+        if method == "PATCH":
+            uid = j.get("discordId", "")
+            if j.get("action") == "block" and uid not in RDB_BLOCKS:
+                RDB_BLOCKS.append(uid)
+            elif j.get("action") == "unblock" and uid in RDB_BLOCKS:
+                RDB_BLOCKS.remove(uid)
+            return out(200, {"success": True})
+    return out(404, {"message": "Not Found", "success": False})
+
+
 def mock_translate(path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
     if path.startswith("/cdn/translate-pa.googleapis.com/"):
         text, source = fake_translation(query.get("query.text", [""])[0], query.get("query.targetLanguage", ["en"])[0])
@@ -1476,6 +1599,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             elif url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
                                     "/cdn/api.deepl.com/", "/cdn/translate.kagi.com/")):
                 status, data, ctype = mock_translate(url.path, query, body, headers)
+            elif url.path.startswith("/cdn/manti.vendicated.dev/api/reviewdb"):
+                status, data, ctype = mock_reviewdb(method, url.path, query, body, headers)
             elif url.path.startswith("/cdn/"):
                 status, data, ctype = cdn(url.path)
             elif url.path == "/mock/dispatch" and method == "POST":

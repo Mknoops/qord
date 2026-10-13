@@ -46,6 +46,7 @@
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/DevicesPage.hpp"
 #include "UI/Qord/NotificationCards.hpp"
+#include "UI/Qord/ListDialog.hpp"
 #include "Core/Presence/PresenceManager.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RoleStyle.hpp"
@@ -826,6 +827,85 @@ void MainWindow::setupQordFeatures()
         if (!isActiveWindow())
             notifier->notify(n.title, n.body, clicked);
     };
+    // Discord's app authorization (ReviewDB's login): who asks, for what,
+    // and Authorize, for the account in view
+    Qord::Plugins::QtUiService::appAuthorizer() = [this](const Qord::Plugins::OAuthRequest &request,
+                                                         std::function<void(std::optional<QString>)> done) {
+        Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+        if (!instance) {
+            done(std::nullopt);
+            return;
+        }
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("client_id"), request.clientId);
+        query.addQueryItem(QStringLiteral("response_type"), request.responseType);
+        query.addQueryItem(QStringLiteral("redirect_uri"), request.redirectUri);
+        query.addQueryItem(QStringLiteral("scope"), request.scopes.join(QLatin1Char(' ')));
+        const QPointer<Core::ClientInstance> guard(instance);
+        instance->discord()->fetchOAuthApplication(query, [this, guard, query, request, done](
+                                                                  bool ok, const Discord::Client::OAuthApp &app) {
+            if (!guard || !ok) {
+                Toast::show(this, tr("Couldn't load the app to authorize."), Toast::Type::Failure);
+                done(std::nullopt);
+                return;
+            }
+            static const QHash<QString, QString> scopeText = {
+                { QStringLiteral("identify"), tr("Access your username, avatar, and banner") },
+                { QStringLiteral("email"), tr("Access your email address") },
+                { QStringLiteral("guilds"), tr("Know what servers you're in") },
+                { QStringLiteral("connections"), tr("Access your third-party connections") },
+            };
+            QStringList lines;
+            for (const QString &scope : request.scopes)
+                lines.append(QStringLiteral("• ") + scopeText.value(scope, scope).toHtmlEscaped());
+            QMessageBox box(this);
+            box.setWindowTitle(tr("Authorize"));
+            box.setTextFormat(Qt::RichText);
+            box.setText(tr("<b>%1</b> wants to access your Discord account (%2).")
+                                .arg(app.name.toHtmlEscaped(), guard->users()->getDisplayName(guard->accountId()).toHtmlEscaped()));
+            box.setInformativeText(tr("This will allow the developer of %1 to:").arg(app.name.toHtmlEscaped()) +
+                                   QStringLiteral("<br>") + lines.join(QStringLiteral("<br>")));
+            QPushButton *authorize = box.addButton(tr("Authorize"), QMessageBox::AcceptRole);
+            box.addButton(QMessageBox::Cancel);
+            box.exec();
+            if (box.clickedButton() != authorize || !guard) {
+                done(std::nullopt);
+                return;
+            }
+            guard->discord()->authorizeOAuth(query, request.permissions,
+                                             [this, done](bool ok, const QString &location, const QString &) {
+                                                 if (!ok)
+                                                     Toast::show(this, tr("Authorizing failed."), Toast::Type::Failure);
+                                                 done(ok ? std::optional<QString>(location) : std::nullopt);
+                                             });
+        });
+    };
+    // Plugins' list windows (ReviewDB's reviews)
+    {
+        auto dialogs = std::make_shared<QHash<quint64, QPointer<ListDialog>>>();
+        auto nextHandle = std::make_shared<quint64>(0);
+        auto &service = Qord::Plugins::QtUiService::listDialogs();
+        service.open = [this, dialogs, nextHandle](const Qord::Plugins::ListDialogView &view,
+                                                   Qord::Plugins::ListDialogEvents events) {
+            Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
+            auto *dialog = new ListDialog(session->getImageManager(), instance ? instance->accountId() : Snowflake(),
+                                          std::move(events), this);
+            dialog->setView(view);
+            dialog->show();
+            const quint64 handle = ++*nextHandle;
+            dialogs->insert(handle, dialog);
+            return handle;
+        };
+        service.update = [dialogs](quint64 handle, const Qord::Plugins::ListDialogView &view) {
+            if (ListDialog *d = dialogs->value(handle))
+                d->setView(view);
+        };
+        service.close = [dialogs](quint64 handle) {
+            if (QPointer<ListDialog> d = dialogs->take(handle))
+                d->close();
+        };
+        connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::listDialogs() = {}; });
+    }
     // Settings → Devices (BetterSessions)
     Qord::Plugins::QtUiService::devicesOpener() = [this]() {
         openSettingsWindow();
@@ -838,6 +918,7 @@ void MainWindow::setupQordFeatures()
     connect(this, &QObject::destroyed, []() {
         Qord::Plugins::QtUiService::notificationShower() = nullptr;
         Qord::Plugins::QtUiService::devicesOpener() = nullptr;
+        Qord::Plugins::QtUiService::appAuthorizer() = nullptr;
         Qord::Plugins::SessionDevices::devicesRefresher() = nullptr;
     });
 

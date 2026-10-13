@@ -179,6 +179,7 @@ struct UserContext
     QString avatarUrl;
     QString memberAvatarUrl;
     bool isBot = false;
+    QString username; // the user's username (not display name), when known
 };
 
 // A tab a plugin adds to user profiles (MutualGroupDMs): a list of rows,
@@ -907,6 +908,52 @@ struct DeviceSessionView
     QByteArray badgeSvg; // a small round badge on the icon, "currentColor" drawn dark
     QString timeTooltip; // tooltip on the "last used" text
     QList<MenuItem> buttons; // small buttons after the title ("Rename")
+};
+
+// A Discord app asking to be authorized on your account (OAuth2), as
+// Discord's in-client authorization does (ReviewDB's login).
+struct OAuthRequest
+{
+    QString clientId;
+    QStringList scopes; // "identify", ...
+    QString redirectUri;
+    QString responseType = QStringLiteral("code");
+    quint64 permissions = 0;
+};
+
+// A window listing things people wrote, with an input to add one and pages
+// (ReviewDB's reviews). Built by the plugin; updated by it as data arrives.
+struct ListDialogItem
+{
+    QString id;
+    QString avatarUrl; // CDN image; empty: none
+    QString title; // bold (the author)
+    QString badge; // small text after the title ("Admin")
+    QString meta; // muted text after that (a time)
+    QString body; // wrapped plain text
+    QList<MenuItem> menu; // a "…" button's menu; empty: none
+};
+
+struct ListDialogView
+{
+    QString title;
+    QString notice; // above the list (a warning to be respectful)
+    QList<ListDialogItem> items;
+    QString emptyText;
+    QString inputPlaceholder; // empty: no input
+    bool inputEnabled = true; // false: clicking it reports inputBlocked
+    QString pageText; // "Page 2 of 5"; empty: no pager
+    bool canPrevious = false;
+    bool canNext = false;
+};
+
+struct ListDialogEvents
+{
+    std::function<void(const QString &itemId, const QString &menuId)> menuAction;
+    std::function<void(const QString &text)> submitted;
+    std::function<void(int delta)> page; // -1 or +1
+    std::function<void()> inputBlocked;
+    std::function<void()> closed;
 };
 
 // A notification a plugin shows (Vencord's showNotification): a card in the

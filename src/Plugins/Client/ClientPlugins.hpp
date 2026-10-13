@@ -38,10 +38,13 @@ public:
 
     Handle get(const QUrl &url, Callback callback) override;
     Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override;
+    Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                   Callback callback) override;
     void cancel(Handle handle) override;
 
 private:
-    Handle send(const QUrl &url, const Headers &headers, const QByteArray *body, Callback callback);
+    Handle send(const QUrl &url, const Headers &headers, const QByteArray *body, Callback callback,
+                bool keepErrorBodies = false, const QByteArray &method = {});
 
     QNetworkAccessManager *nam = nullptr;
     QHash<Handle, QPointer<QNetworkReply>> replies;
@@ -97,6 +100,18 @@ public:
     static std::function<void(const PluginNotification &, std::function<void()>)> &notificationShower();
     void openDevicesSettings() override;
     static std::function<void()> &devicesOpener(); // set by the main window
+    void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done) override;
+    quint64 openListDialog(const ListDialogView &view, ListDialogEvents events) override;
+    void updateListDialog(quint64 handle, const ListDialogView &view) override;
+    void closeListDialog(quint64 handle) override;
+    struct ListDialogs // set by the main window
+    {
+        std::function<quint64(const ListDialogView &, ListDialogEvents)> open;
+        std::function<void(quint64, const ListDialogView &)> update;
+        std::function<void(quint64)> close;
+    };
+    static ListDialogs &listDialogs();
+    static std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> &appAuthorizer();
     void pickTimestamp(std::function<void(const QString &)> done) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &)> &messageBoxInserter();

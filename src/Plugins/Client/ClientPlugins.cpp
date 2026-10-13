@@ -84,9 +84,17 @@ NetworkService::Handle QtNetworkService::post(const QUrl &url, const Headers &he
     return send(url, headers, &body, std::move(callback));
 }
 
+NetworkService::Handle QtNetworkService::request(const QByteArray &method, const QUrl &url, const Headers &headers,
+                                                 const QByteArray &body, Callback callback)
+{
+    if (method == "GET" && body.isEmpty())
+        return send(url, headers, nullptr, std::move(callback), true);
+    return send(url, headers, &body, std::move(callback), true, method);
+}
+
 // body null: GET. Headers can hold API keys, so nothing here logs them.
 NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &headers, const QByteArray *body,
-                                              Callback callback)
+                                              Callback callback, bool keepErrorBodies, const QByteArray &method)
 {
     const Handle handle = ++next;
     // Plugins only fetch over HTTPS
@@ -107,14 +115,16 @@ NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &he
     request.setTransferTimeout(60'000);
     for (const auto &header : headers)
         request.setRawHeader(header.first, header.second);
-    QNetworkReply *reply = body ? nam->post(request, *body) : nam->get(request);
+    QNetworkReply *reply = !method.isEmpty() ? nam->sendCustomRequest(request, method, body ? *body : QByteArray())
+                           : body           ? nam->post(request, *body)
+                                            : nam->get(request);
     replies.insert(handle, reply);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 received, qint64) {
         if (received > MaxResponseBytes)
             reply->abort();
     });
-    const bool keepErrorBody = body != nullptr;
+    const bool keepErrorBody = body != nullptr || keepErrorBodies;
     connect(reply, &QNetworkReply::finished, this, [this, handle, reply, keepErrorBody, callback = std::move(callback)] {
         reply->deleteLater();
         if (!replies.remove(handle))
@@ -621,6 +631,44 @@ void QtUiService::showNotification(const PluginNotification &notification, std::
 {
     if (notificationShower())
         notificationShower()(notification, std::move(clicked));
+}
+
+std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> &QtUiService::appAuthorizer()
+{
+    static std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> authorizer;
+    return authorizer;
+}
+
+void QtUiService::authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done)
+{
+    if (!appAuthorizer()) {
+        done(std::nullopt);
+        return;
+    }
+    appAuthorizer()(request, std::move(done));
+}
+
+QtUiService::ListDialogs &QtUiService::listDialogs()
+{
+    static ListDialogs dialogs;
+    return dialogs;
+}
+
+quint64 QtUiService::openListDialog(const ListDialogView &view, ListDialogEvents events)
+{
+    return listDialogs().open ? listDialogs().open(view, std::move(events)) : 0;
+}
+
+void QtUiService::updateListDialog(quint64 handle, const ListDialogView &view)
+{
+    if (listDialogs().update)
+        listDialogs().update(handle, view);
+}
+
+void QtUiService::closeListDialog(quint64 handle)
+{
+    if (listDialogs().close)
+        listDialogs().close(handle);
 }
 
 std::function<void()> &QtUiService::devicesOpener()

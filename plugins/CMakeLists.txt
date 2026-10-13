@@ -126,6 +126,7 @@ qord_add_plugin(favoriteemojifirst chat SOURCES FavoriteEmojiFirst.hpp FavoriteE
     UI_SOURCES AliasListWidget.cpp)
 qord_add_plugin(gameactivitytoggle utility SOURCES GameActivityToggle.hpp GameActivityToggle.cpp)
 qord_add_plugin(bettersessions utility SOURCES BetterSessions.hpp BetterSessions.cpp PlatformIcons.cpp)
+qord_add_plugin(reviewdb utility SOURCES ReviewDB.hpp ReviewDB.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

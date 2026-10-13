@@ -3,6 +3,10 @@
 #include "MemberListDelegate.hpp"
 #include "MemberListModel.hpp"
 
+#include "UI/Qord/Toast.hpp"
+
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QMouseEvent>
 
 namespace Acheron {
@@ -61,11 +65,21 @@ bool MemberListView::clickDecoration(QMouseEvent *event, bool doubleClick)
     auto *delegate = qobject_cast<MemberListDelegate *>(itemDelegate());
     auto *provider = NameDecorations::instance();
     const QModelIndex index = indexAt(event->pos());
-    if (event->button() != Qt::LeftButton || !delegate || !provider || !index.isValid())
+    if (event->button() != Qt::LeftButton || !delegate || !index.isValid())
         return false;
     const auto decoration = delegate->clickableDecorationAt(index.row(), event->pos());
     if (!decoration)
         return false;
+    if (!decoration->copyText.isEmpty()) {
+        // BetterRoleDot: copyWithToast(color)
+        if (!doubleClick) {
+            QGuiApplication::clipboard()->setText(decoration->copyText);
+            Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+        }
+        return true;
+    }
+    if (!provider)
+        return true;
     provider->click(Core::Snowflake(index.data(MemberListModel::AccountIdRole).toULongLong()),
                     Core::Snowflake(index.data(MemberListModel::GuildIdRole).toULongLong()),
                     Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),

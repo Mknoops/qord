@@ -19,6 +19,7 @@
 #include "Core/ImageLens.hpp"
 #include "Core/OwnerCrown.hpp"
 #include "Core/RoleColors.hpp"
+#include "Core/RoleStyle.hpp"
 #include "Core/Session.hpp"
 #include "Core/TokenStore.hpp"
 #include "Qord/DevMock.hpp"
@@ -645,6 +646,19 @@ void QtDisplayOptions::setImageLens(const std::optional<ImageLens> &lens, std::f
     options.nearestNeighbour = lens->nearestNeighbour;
     options.invertScroll = lens->invertScroll;
     options.changed = std::move(changed);
+}
+
+void QtDisplayOptions::setRoleDot(const std::optional<RoleDot> &dot)
+{
+    auto &options = Acheron::Core::roleDotOptions();
+    options = {};
+    if (dot) {
+        options.enabled = true;
+        options.bothStyles = dot->bothStyles;
+        options.inProfile = dot->inProfile;
+    }
+    if (host)
+        emit host->presentationChanged();
 }
 
 void QtDisplayOptions::setCompactConnections(const std::optional<CompactConnections> &connections,

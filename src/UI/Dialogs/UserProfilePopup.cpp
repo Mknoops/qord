@@ -44,6 +44,7 @@
 #include "UI/Qord/FlowLayout.hpp"
 #include "UI/Qord/Toast.hpp"
 #include "Core/CompactConnections.hpp"
+#include "Core/RoleStyle.hpp"
 #include "Plugins/PluginHost.hpp"
 
 #include <QMouseEvent>
@@ -514,6 +515,13 @@ QWidget *UserProfilePopup::buildBody()
     rolesLabel->setTextFormat(Qt::RichText);
     rolesLabel->setWordWrap(true);
     rolesLabel->setStyleSheet(QStringLiteral("font-size: 12px;"));
+    // BetterRoleDot: a role's dot copies its color
+    connect(rolesLabel, &QLabel::linkActivated, this, [this](const QString &link) {
+        if (!link.startsWith(QLatin1String("qord-copy:")))
+            return;
+        QGuiApplication::clipboard()->setText(link.mid(10));
+        Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+    });
     rolesLayout->addWidget(rolesLabel);
     leftCol->addWidget(rolesSection);
 
@@ -1256,17 +1264,24 @@ void UserProfilePopup::applyView()
     }
 
     const QColor defaultRoleColor = palette().color(QPalette::Text);
+    // Qord: each role starts with a dot in its color, as Discord's do;
+    // BetterRoleDot makes it copy the color
+    const bool dotsCopy = Core::profileRoleDotsCopy();
     QStringList chips;
     for (const auto &role : memberRoles) {
         QColor color = role.hasColor() ? role.getColor() : defaultRoleColor;
+        const QString dot = dotsCopy ? QStringLiteral("<a href=\"qord-copy:%1\" style=\"color:%1; "
+                                                      "text-decoration:none;\">\u25CF</a>")
+                                               .arg(color.name())
+                                     : QStringLiteral("\u25CF");
         chips << QStringLiteral(
                          "<span style=\"color:%1; background-color:rgba(%2,%3,%4,40); "
-                         "padding:2px 7px; border-radius:6px;\">%5</span>")
+                         "padding:2px 7px; border-radius:6px;\">%5 %6</span>")
                          .arg(color.name())
                          .arg(color.red())
                          .arg(color.green())
                          .arg(color.blue())
-                         .arg(role.name.get().toHtmlEscaped());
+                         .arg(dot, role.name.get().toHtmlEscaped());
     }
     rolesLabel->setText(chips.join(QStringLiteral("&nbsp; ")));
 }

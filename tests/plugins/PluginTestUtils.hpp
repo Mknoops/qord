@@ -362,6 +362,8 @@ public:
         githubOrgs = std::move(lookup);
     }
     std::optional<CompactConnections> connections;
+    void setRoleDot(const std::optional<RoleDot> &value) override { roleDot = value; }
+    std::optional<RoleDot> roleDot;
     GithubOrgsLookup githubOrgs;
     std::function<void(double, int)> lensChanged;
     RoleColors roleColors;

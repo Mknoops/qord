@@ -2680,6 +2680,10 @@ void MainWindow::openSettingsWindow()
             setChannelListMode(classic ? ChannelListMode::Classic : ChannelListMode::Tree);
         });
         connect(settingsWindow, &SettingsWindow::channelListIndentChanged, this, &MainWindow::applyChannelIndent);
+        connect(settingsWindow, &SettingsWindow::roleStyleChanged, this, [this]() {
+            memberListView->viewport()->update();
+            chatView->viewport()->update();
+        });
         connect(settingsWindow, &SettingsWindow::animateEmojiChanged, this, [this](bool enabled) {
             chatView->frameAnimator()->setEmojiEnabled(enabled);
         });

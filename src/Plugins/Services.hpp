@@ -254,6 +254,9 @@ public:
         Q_UNUSED(lens);
         Q_UNUSED(changed);
     }
+    // Role dots (Discord's "Show role colors next to names") copy their
+    // color when clicked (nullopt: they don't)
+    virtual void setRoleDot(const std::optional<RoleDot> &dot) { Q_UNUSED(dot); }
     // Profiles show connected accounts as icons (nullopt: as a list). With
     // `githubOrgs`, a GitHub account is followed by its organizations: the
     // profile asks for a user's and shows the logins `done` gets.

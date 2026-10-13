@@ -857,6 +857,13 @@ struct ImageLens
     bool invertScroll = true;
 };
 
+// BetterRoleDot: role dots copy their color when clicked.
+struct RoleDot
+{
+    bool bothStyles = false; // names keep their role color next to the dot
+    bool inProfile = false; // profile roles' dots can be clicked too
+};
+
 // ShowConnections: a profile's connected accounts as a row of icons.
 struct CompactConnections
 {

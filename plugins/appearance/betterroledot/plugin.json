@@ -1,0 +1,23 @@
+{
+  "id": "betterroledot",
+  "equicordName": "BetterRoleDot",
+  "equicordPath": "src/plugins/betterRoleDot",
+  "name": "BetterRoleDot",
+  "description": "Copy role colour on RoleDot (accessibility setting) click. Also allows using both RoleDot and coloured names simultaneously",
+  "categories": ["appearance"],
+  "tags": ["Roles", "Appearance"],
+  "authors": ["Ven", "AutumnVN"],
+  "permissions": ["modify_displayed_messages"],
+  "hooks": [],
+  "settings": [
+    { "key": "bothStyles", "type": "bool", "default": false, "label": "Both styles",
+      "description": "Show both role dot and coloured names" },
+    { "key": "copyRoleColorInProfilePopout", "type": "bool", "default": false, "label": "Copy role color in profile popout",
+      "description": "Allow click on role dot in profile popout to copy role color" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "With Appearance > Role colors set to \"Show role colors next to names\", the dot after a name in messages and the member list copies the role color (\"#rrggbb\", with \"Copied to clipboard!\") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does."
+}

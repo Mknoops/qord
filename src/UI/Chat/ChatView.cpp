@@ -1,7 +1,10 @@
 #include "ChatView.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/Toast.hpp"
 #include "UI/Qord/TextFileDialog.hpp"
 
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QRegularExpression>
 
 #include <QMenu>
@@ -286,11 +289,21 @@ bool ChatView::clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool d
     auto *chat = qobject_cast<ChatModel *>(model());
     auto *provider = NameDecorations::instance();
     const QModelIndex idx = indexAt(pos);
-    if (!delegate || !chat || !provider || !idx.isValid())
+    if (!delegate || !chat || !idx.isValid())
         return false;
     for (const auto &tip : delegate->headerTips(idx.data(ChatModel::MessageIdRole).toULongLong())) {
-        if (tip.clickId.isEmpty() || !tip.rect.contains(pos))
+        if ((tip.clickId.isEmpty() && tip.copyText.isEmpty()) || !tip.rect.contains(pos))
             continue;
+        if (!tip.copyText.isEmpty()) {
+            // BetterRoleDot: copyWithToast(color)
+            if (!dryRun && !doubleClick) {
+                QGuiApplication::clipboard()->setText(tip.copyText);
+                Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+            }
+            return true;
+        }
+        if (!provider)
+            return false;
         if (!dryRun) {
             NameDecorations::Decoration decoration;
             decoration.pluginId = tip.pluginId;

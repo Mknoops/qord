@@ -1,3 +1,4 @@
+#include "Core/RoleStyle.hpp"
 #include "UI/Qord/FlowLayout.hpp"
 
 #include <QApplication>
@@ -6,7 +7,8 @@
 
 using Acheron::UI::FlowLayout;
 
-class TestFlowLayout : public QObject
+// Qord's small UI pieces: the flow layout and the role color rules
+class TestQordUi : public QObject
 {
     Q_OBJECT
 
@@ -47,7 +49,40 @@ private slots:
         QCOMPARE(c->geometry(), QRect(38, 38, 32, 32));
         QCOMPARE(flow->indexOfWidget(x), 1);
     }
+
+    void roleStyles()
+    {
+        using namespace Acheron::Core;
+        for (const auto style : { RoleStyle::Username, RoleStyle::Dot, RoleStyle::Hidden })
+            QCOMPARE(roleStyleFromKey(roleStyleKey(style)), style);
+        QCOMPARE(roleStyleFromKey(QStringLiteral("junk")), RoleStyle::Username);
+
+        auto &style = roleStyle();
+        auto &dot = roleDotOptions();
+        style = RoleStyle::Username;
+        QVERIFY(roleColorOnName() && !roleDotAfterName());
+        style = RoleStyle::Dot;
+        QVERIFY(!roleColorOnName() && roleDotAfterName());
+        QVERIFY(!profileRoleDotsCopy());
+        style = RoleStyle::Hidden;
+        QVERIFY(!roleColorOnName() && !roleDotAfterName());
+
+        // BetterRoleDot
+        dot.enabled = true;
+        QVERIFY(!profileRoleDotsCopy());
+        dot.bothStyles = true; // both, whatever the setting
+        QVERIFY(roleColorOnName() && roleDotAfterName());
+        QVERIFY(profileRoleDotsCopy());
+        dot.bothStyles = false;
+        dot.inProfile = true;
+        QVERIFY(profileRoleDotsCopy());
+        dot.inProfile = false;
+        style = RoleStyle::Dot;
+        QVERIFY(profileRoleDotsCopy());
+        dot = {};
+        style = RoleStyle::Username;
+    }
 };
 
-QTEST_MAIN(TestFlowLayout)
-#include "tst_flow_layout.moc"
+QTEST_MAIN(TestQordUi)
+#include "tst_qord_ui.moc"

@@ -21,6 +21,8 @@
 #include <QRandomGenerator>
 #include <QScrollArea>
 #include <QSettings>
+
+#include "Core/RoleStyle.hpp"
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QToolButton>
@@ -128,6 +130,23 @@ AppearancePage::AppearancePage(QWidget *parent)
     indentScopeButton->setMenu(indentScopeMenu);
     layoutGroupLayout->addWidget(indentScopeButton);
     outer->addWidget(layoutGroup);
+
+    // Discord's Accessibility > Role Colors
+    auto *roleGroup = new QGroupBox(tr("Role colors"), this);
+    auto *roleLayout = new QHBoxLayout(roleGroup);
+    auto *roleCombo = new QComboBox(roleGroup);
+    roleCombo->addItem(tr("Show role colors in names"), QStringLiteral("username"));
+    roleCombo->addItem(tr("Show role colors next to names"), QStringLiteral("dot"));
+    roleCombo->addItem(tr("Don't show role colors"), QStringLiteral("hidden"));
+    roleCombo->setCurrentIndex(qMax(0, roleCombo->findData(Core::roleStyleKey(Core::roleStyle()))));
+    roleLayout->addWidget(roleCombo, 1);
+    outer->addWidget(roleGroup);
+    connect(roleCombo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this, roleCombo]() {
+        const QString key = roleCombo->currentData().toString();
+        Core::roleStyle() = Core::roleStyleFromKey(key);
+        QSettings().setValue("ui/roleStyle", key);
+        emit roleStyleChanged();
+    });
 
     auto updateIndentControls = [channelListCombo, indentCheck, indentScopeButton]() {
         const bool treeMode = channelListCombo->currentIndex() == 0;

@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 319 |
+| Not Started | 318 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 50 |
+| Tested | 51 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -47,7 +47,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterInvites | `src/equicordplugins/betterInvites` |  | Not Started |  |
 | BetterPlusReacts | `src/equicordplugins/betterPlusReacts` |  | Not Started |  |
 | BetterRoleContext | `src/plugins/betterRoleContext` |  | Not Started |  |
-| BetterRoleDot | `src/plugins/betterRoleDot` |  | Not Started |  |
+| BetterRoleDot | `src/plugins/betterRoleDot` | `plugins/appearance/betterroledot` | Tested | With Appearance > Role colors set to "Show role colors next to names", the dot after a name in messages and the member list copies the role color ("#rrggbb", with "Copied to clipboard!") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does. wired; not yet verified in the running client. |
 | BetterSessions | `src/plugins/betterSessions` |  | Not Started |  |
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |

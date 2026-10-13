@@ -112,6 +112,13 @@ public:
             onServerListChanged();
     }
     std::function<void()> onServerListChanged; // set by the host
+    // Asks an open inbox to re-query its plugin tabs (Hook::InboxTabs)
+    void refreshInbox() const
+    {
+        if (onInboxChanged)
+            onInboxChanged();
+    }
+    std::function<void()> onInboxChanged; // set by the host
     // Asks open profiles to re-query their plugin tabs (Hook::ProfileTabs)
     void refreshProfileTabs() const
     {

@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 306 |
+| Not Started | 305 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 63 |
+| Tested | 64 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -179,7 +179,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | KeepCurrentChannel | `src/plugins/keepCurrentChannel` |  | Not Started |  |
 | KeyboardNavigation | `src/equicordplugins/keyboardNavigation` |  | Not Started |  |
 | KeyboardSounds | `src/equicordplugins/keyboardSounds` |  | Not Started |  |
-| KeywordNotify | `src/equicordplugins/keywordNotify` |  | Not Started |  |
+| KeywordNotify | `src/equicordplugins/keywordNotify` | `plugins/notifications/keywordnotify` | Tested | Settings list keyword entries: a regular expression ("example\|regex"), Ignore Case, Ignore Bots, a whitelist and a blacklist of user, channel or server IDs, and which list wins when an ID is in both ("List priority"). A message from someone else whose text, or an embed's title, description or field, matches an entry counts as mentioning you: it gets the gold mention highlight and notifies you as a mention would (in servers too, unless the channel or server is muted or you are in Do Not Disturb). Matches collect, newest first, in a "Keywords" tab of the inbox next to Mentions (at most "Amount to keep" per account): click one to jump to it, right-click to remove it, or Clear All. Messages that arrive or load after you change your keywords use the new ones. wired; not yet verified in the running client. gaps: The matched keyword isn't highlighted inside the inbox entry.; Matching messages don't add to the channel's mention count badge.; Patterns are Qt (PCRE2) regular expressions, which match JavaScript's for everyday patterns. |
 | LastActive | `src/equicordplugins/lastActive` |  | Not Started |  |
 | LimitlessScreenshare | `src/equicordplugins/limitlessScreenshare` |  | Not Started |  |
 | LoadingQuotes | `src/plugins/loadingQuotes` |  | Not Started |  |

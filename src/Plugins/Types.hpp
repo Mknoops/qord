@@ -423,7 +423,7 @@ struct MenuItem
     QString id;
     QString label;
     QList<MenuItem> children;
-    std::optional<bool> checked = std::nullopt; // a checkbox item (message menus)
+    std::optional<bool> checked = std::nullopt; // a checkbox item (message and user menus)
 };
 
 // A message as plugins see it (from the client's cache).

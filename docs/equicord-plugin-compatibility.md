@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 311 |
+| Not Started | 310 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 58 |
+| Tested | 59 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -78,7 +78,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ConsoleJanitor | `src/plugins/consoleJanitor` |  | Not Started |  |
 | ConsoleShortcuts | `src/plugins/consoleShortcuts` |  | Not Started |  |
 | ContentWarning | `src/equicordplugins/contentWarning` |  | Not Started |  |
-| CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` |  | Not Started |  |
+| CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` | `plugins/emotes/copyemojimarkdown` | Tested | Right-clicking an emoji in the emoji picker offers "Copy Emoji Markdown": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with "Copy Unicode" off; "Success! Copied emoji markdown." confirms it. wired; not yet verified in the running client. gaps: The menu item has no copy icon. |
 | CopyFileContents | `src/plugins/copyFileContents` | `plugins/utility/copyfilecontents` | Tested | The copy button sits in a text file's preview and in its "View whole file" window. It copies with a "Copied to clipboard!" toast and shows a check mark for two seconds; a file Qord loaded only the start of (over 50,000 bytes) can't be copied, as upstream says, "File too large to copy". wired; not yet verified in the running client. |
 | CopyProfileColors | `src/equicordplugins/copyProfileColors` |  | Not Started |  |
 | CopyStatusUrls | `src/equicordplugins/copyStatusUrls` |  | Not Started |  |

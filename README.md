@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 58 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 59 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -172,6 +172,7 @@ These 58 native plugins are available now (out of the 369 in the pinned Equicord
 | **BlockKeywords** | Hides messages containing words or patterns you choose | hide_messages, add_ui_elements |
 | **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
 | **ClearURLs** | Removes tracking parameters from URLs you send | modify_outgoing_messages, network |
+| **CopyEmojiMarkdown** | "Copy Emoji Markdown" in the emoji picker's menu: <:name:id>, or the emoji itself | add_ui_elements, write_clipboard |
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
@@ -226,9 +227,9 @@ These 58 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** CopyEmojiMarkdown, ServerListIndicators, PreviewMessage, DecodeBase64, UnitConverter, KeywordNotify. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** ServerListIndicators, PreviewMessage, DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
-**Good first plugins** (the plugin API already covers them, so no client changes are needed): CopyEmojiMarkdown, DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
+**Good first plugins** (the plugin API already covers them, so no client changes are needed): DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
@@ -266,7 +267,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 58 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 59 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

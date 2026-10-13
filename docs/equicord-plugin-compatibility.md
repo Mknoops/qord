@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 339 |
+| Not Started | 317 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 30 |
+| Tested | 52 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -39,7 +39,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterBanReasons | `src/equicordplugins/betterBanReasons` |  | Not Started |  |
 | BetterBlockedUsers | `src/equicordplugins/betterBlockedUsers` |  | Not Started |  |
 | BetterCommands | `src/equicordplugins/betterCommands` |  | Not Started |  |
-| BetterFolders | `src/plugins/betterFolders` |  | Not Started |  |
+| BetterFolders | `src/plugins/betterFolders` | `plugins/appearance/betterfolders` | Tested | With the sidebar on, opening a server folder shows its servers on a second rail beside the server list (under the folder's icon, by the setting), and the server list shows just the open folder unless "Keep icons" is on; the rail goes away when every folder is closed. The other settings close folders when you select a server outside them or in them, click the home button, or open another folder, and open a folder when you switch to one of its servers. It works with Qord's classic channel list (server list plus channels). wired; not yet verified in the running client. gaps: The sidebar appears without upstream's opening animation ("Sidebar animation" does nothing yet). |
 | BetterForwards | `src/equicordplugins/betterForwards` |  | Not Started |  |
 | BetterGifAltText | `src/plugins/betterGifAltText` |  | Not Started |  |
 | BetterGifPicker | `src/plugins/betterGifPicker` |  | Not Started |  |
@@ -47,7 +47,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterInvites | `src/equicordplugins/betterInvites` |  | Not Started |  |
 | BetterPlusReacts | `src/equicordplugins/betterPlusReacts` |  | Not Started |  |
 | BetterRoleContext | `src/plugins/betterRoleContext` |  | Not Started |  |
-| BetterRoleDot | `src/plugins/betterRoleDot` |  | Not Started |  |
+| BetterRoleDot | `src/plugins/betterRoleDot` | `plugins/appearance/betterroledot` | Tested | With Appearance > Role colors set to "Show role colors next to names", the dot after a name in messages and the member list copies the role color ("#rrggbb", with "Copied to clipboard!") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does. wired; not yet verified in the running client. |
 | BetterSessions | `src/plugins/betterSessions` |  | Not Started |  |
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |
@@ -79,7 +79,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ConsoleShortcuts | `src/plugins/consoleShortcuts` |  | Not Started |  |
 | ContentWarning | `src/equicordplugins/contentWarning` |  | Not Started |  |
 | CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` |  | Not Started |  |
-| CopyFileContents | `src/plugins/copyFileContents` |  | Not Started |  |
+| CopyFileContents | `src/plugins/copyFileContents` | `plugins/utility/copyfilecontents` | Tested | The copy button sits in a text file's preview and in its "View whole file" window. It copies with a "Copied to clipboard!" toast and shows a check mark for two seconds; a file Qord loaded only the start of (over 50,000 bytes) can't be copied, as upstream says, "File too large to copy". wired; not yet verified in the running client. |
 | CopyProfileColors | `src/equicordplugins/copyProfileColors` |  | Not Started |  |
 | CopyStatusUrls | `src/equicordplugins/copyStatusUrls` |  | Not Started |  |
 | CopyStickerLinks | `src/plugins/copyStickerLinks` |  | Not Started |  |
@@ -121,7 +121,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FakeNitro | `src/plugins/fakeNitro` | `plugins/chat/fakenitro` | Tested | Emojis and stickers you can't use are sent as links ([name](url) by default); messages that are only such a link show the emoji or sticker instead, and the link's image embed is hidden. With the bypasses on, the emoji picker and autocomplete (for messages, not reactions) and the sticker picker offer every server's emojis and stickers. Animated (APNG) stickers are redrawn as a GIF and added to the message box, as upstream puts them in the upload queue; Qord's GIF writer keeps transparency by alpha where upstream's gifenc palette does not. The emoji link's base URL follows Discord's IconUtils.getEmojiURL as far as can be read from upstream (cdn.discordapp.com/emojis/<id>.webp?size=N, with animated=true for animated emojis); it cannot be checked against Discord's own code here. When an edit is cancelled at the embed permission prompt the edit is dropped, where Discord keeps the editor open. Received fake emojis are found with Qord's markdown link rules, outside code; with compound sentences on, links nested in formatting are transformed too, where upstream only transforms top-level ones. wired; not yet verified in the running client. gaps: Stream quality bypass: Qord cannot stream (Go Live) yet, so the setting has no effect.; Nitro client themes and app icons: Qord has its own themes and does not implement Discord's gradient client themes or app icons, which upstream unlocks and keeps from being overwritten by synced settings.; Soundboard: Qord has no soundboard, so upstream's unlocking of all soundboard sounds does not apply.; Popout notices: Qord has no emoji or sticker popouts, so the "This is a FakeNitro emoji/sticker" notice upstream adds there is not shown.; Discord's own sticker packs: Qord does not load them, so they are never treated as free standard stickers (they are not offered in the picker either).; Role subscription emojis: Qord cannot tell them apart, so upstream's check for unusable role subscription emojis is not made. |
 | FakeProfileThemes | `src/plugins/fakeProfileThemes` |  | Not Started |  |
 | FastDeleteChannels | `src/equicordplugins/fastDeleteChannels` |  | Not Started |  |
-| FavoriteEmojiFirst | `src/plugins/favEmojiFirst` |  | Not Started |  |
+| FavoriteEmojiFirst | `src/plugins/favEmojiFirst` | `plugins/chat/favoriteemojifirst` | Tested | Your Discord favorite emojis come first in the emoji autocomplete (Qord now reads them, and the emoji picker shows them in a Favorites section). Right-click an emoji in the picker for "Set alias" (or "Edit alias"): your own name for it, 2 to 32 lowercase letters, numbers or underscores, one per emoji. Typing :alias suggests the emoji first (an exact alias before favorites, aliases starting with what you typed after them), and :alias: in a message is sent as the emoji. The plugin's settings list your aliases, to rename or remove, and can delete them all. wired; not yet verified in the running client. gaps: Set alias is only in the emoji picker; upstream also offers it on emojis in messages and in the message box.; Favoriting or unfavoriting an emoji isn't possible from Qord yet (favorites are read from Discord). |
 | FavouriteAnything | `src/equicordplugins/favouriteAnything` |  | Not Started |  |
 | FileUpload | `src/equicordplugins/fileUpload` |  | Not Started |  |
 | FindReply | `src/equicordplugins/findReply` |  | Not Started |  |
@@ -133,7 +133,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FixYoutubeEmbeds | `src/plugins/fixYoutubeEmbeds.desktop` |  | Not Started |  |
 | FollowVoiceUser | `src/equicordplugins/followVoiceUser` |  | Not Started |  |
 | FontLoader | `src/equicordplugins/fontLoader` |  | Not Started |  |
-| ForceOwnerCrown | `src/plugins/forceOwnerCrown` |  | Not Started |  |
+| ForceOwnerCrown | `src/plugins/forceOwnerCrown` | `plugins/appearance/forceownercrown` | Tested | Qord's member list shows a crown ("Server Owner") next to the server's owner, and leaves it out in servers of 1,000 members or more; with this plugin the crown shows in every server. wired; not yet verified in the running client. gaps: Discord's exact rule for hiding the crown isn't documented; Qord's 1,000-member limit is its own reading, and the crown isn't hidden when the owner is listed under a separately shown role. |
 | FrequentQuickSwitcher | `src/equicordplugins/frequentQuickSwitcher` |  | Not Started |  |
 | FriendCodes | `src/equicordplugins/friendCodes` |  | Not Started |  |
 | FriendInvites | `src/plugins/friendInvites` |  | Not Started |  |
@@ -166,8 +166,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ILoveSpam | `src/plugins/iLoveSpam` |  | Not Started |  |
 | ImageFilename | `src/plugins/imageFilename` |  | Not Started |  |
 | ImageLink | `src/plugins/imageLink` |  | Not Started |  |
-| ImageZoom | `src/plugins/imageZoom` |  | Not Started |  |
-| ImplicitRelationships | `src/plugins/implicitRelationships` |  | Not Started |  |
+| ImageZoom | `src/plugins/imageZoom` | `plugins/media/imagezoom` | Tested | In the image viewer, holding the left button over the picture shows a round lens (square with "Square lens") magnifying it, following the cursor; the wheel changes its zoom and Shift+wheel its size, at the zoom speed, upwards by default ("Invert scroll"), and the values are kept for next time. While it is on, the right or middle button pans the picture and the wheel without the left button zooms the viewer as before. An image's message menu has Square Lens and Nearest Neighbour switches. wired; not yet verified in the running client. gaps: Upstream's zoom, lens size and zoom speed sliders in the image menu are only in the plugin's settings (Qord menus have no sliders).; Animated images show their first frame in Qord's viewer, so the lens magnifies that frame. |
+| ImplicitRelationships | `src/plugins/implicitRelationships` | `plugins/utility/implicitrelationships` | Tested | The Friends page gets an "Implicit" tab after Blocked: the people Discord ranks you as talking to (GET /users/@me/affinities/v2/users, asked each time the Friends page opens, as upstream piggybacks Discord's relationship fetch) whom you have no relationship with, closest first or, without Sort by affinity, by name. People the client doesn't know are asked for in every server you are in (100 at a time) and shown when they arrive; ones you share no server with stay hidden, as upstream notes. Each row has a Message button. wired; not yet verified in the running client. |
 | Ingtoninator | `src/equicordplugins/ingtoninator` | `plugins/chat/ingtoninator` | Tested | Showing or hiding the button takes effect immediately; upstream needs a restart. wired; not yet verified in the running client. |
 | InRole | `src/equicordplugins/inRole` |  | Not Started |  |
 | InstantScreenshare | `src/equicordplugins/instantScreenshare` |  | Not Started |  |
@@ -193,7 +193,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | MessageColors | `src/equicordplugins/messageColors` |  | Not Started |  |
 | MessageFetchTimer | `src/equicordplugins/messageFetchTimer` |  | Not Started |  |
 | MessageLatency | `src/plugins/messageLatency` |  | Not Started |  |
-| MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` |  | Not Started |  |
+| MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` | `plugins/chat/messagelinkembeds` | Tested | A message with links to Discord messages (up to five) gets a preview of each under it: where it is ("Server - #channel", "Direct Message - @name" or "Group DM" with the server's, user's or group's icon), its text (or "[no content, 2 attachments]"), its images, its author and when it was sent, drawn as an embed. Messages Qord doesn't have are fetched one at a time, newest first, once each, and the preview appears when they arrive; channels you can't see are skipped, and the ID list leaves out (or, as a whitelist, keeps only) links in those servers or channels or from those users. wired; not yet verified in the running client. gaps: Qord draws one style of preview for every "AutoMod embeds" setting and doesn't show the linked message's buttons or files; "Message background color" has no effect.; Mentions and channel links in the preview's text show as written.; There's no button to clear the linked message cache. |
 | MessageLinkTooltip | `src/equicordplugins/messageLinkTooltip` |  | Not Started |  |
 | MessageLogger | `src/plugins/messageLogger` | `plugins/chat/messagelogger` | Tested | Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu ("View Edit History") instead of by clicking "(edited)". wired; not yet verified in the running client. gaps: Collapsing deleted messages into a "N deleted messages" group (collapseDeleted) needs message grouping UI Qord does not have yet; Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs. |
 | MessageLoggerEnhanced | `src/equicordplugins/messageLoggerEnhanced` |  | Not Started |  |
@@ -209,7 +209,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Moyai | `src/equicordplugins/moyai` |  | Not Started |  |
 | MusicControls | `src/equicordplugins/musicControls` |  | Not Started |  |
 | MusicRichPresence | `src/plugins/musicRichPresence` |  | Not Started |  |
-| MutualGroupDMs | `src/plugins/mutualGroupDMs` |  | Not Started |  |
+| MutualGroupDMs | `src/plugins/mutualGroupDMs` | `plugins/utility/mutualgroupdms` | Tested | Profiles get a "Mutual Groups" tab ("No Mutual Groups", "1 Mutual Group", "3 Mutual Groups") listing the group DMs you share with that user, newest first as in the DM list, with their icon, name and member count; clicking one closes the profile and opens the group. Not shown for bots or yourself. wired; not yet verified in the running client. gaps: Upstream also lists mutual groups in the DM sidebar profile; Qord has no DM profile sidebar. |
 | NeverPausePreviews | `src/equicordplugins/neverPausePreviews` |  | Not Started |  |
 | NewGuildSettings | `src/plugins/newGuildSettings` |  | Not Started |  |
 | NewPluginsManager | `src/equicordplugins/newPluginsManager` |  | Not Started |  |
@@ -242,10 +242,10 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PartyMode | `src/equicordplugins/partyMode` |  | Not Started |  |
 | PauseInvitesForever | `src/plugins/pauseInvitesForever` |  | Not Started |  |
 | PermissionFreeWill | `src/plugins/permissionFreeWill` |  | Not Started |  |
-| PermissionsViewer | `src/plugins/permissionsViewer` |  | Not Started |  |
+| PermissionsViewer | `src/plugins/permissionsViewer` | `plugins/utility/permissionsviewer` | Tested | "View Permissions" is in the user menu (server members), the channel menu and the server menu, and a shield button next to Roles in a member's profile shows their permissions with the role granting each (hover for "Granted by"), the sort order toggle and Role Details. Members named in channel overwrites that Qord hasn't loaded are requested from Discord. wired; not yet verified in the running client. gaps: Right-clicking a role in the list offers Copy Role ID only; BetterRoleContext's extra items and View As Role are not ported; Discord's newest permission (Use Clyde AI, bit 47) has no name in Qord's role settings, so it isn't listed. |
 | PetPet | `src/plugins/petpet` |  | Not Started |  |
 | PictureInPicture | `src/plugins/pictureInPicture` |  | Not Started |  |
-| PinDMs | `src/plugins/pinDms` |  | Not Started |  |
+| PinDMs | `src/plugins/pinDms` | `plugins/chat/pindms` | Tested | Right-click a DM or group DM for "Pin DMs": Add Category (a new category with that DM, named and colored in a small window with Discord's swatches or any color), pin it to an existing category, or, once pinned, Unpin DM and (with the custom order) Move Up or Down. Categories show above your other DMs under their colored header, which collapses on click (the open DM stays visible) and has Edit, Move Up, Move Down and Delete Category on right-click; the rest follow under "Direct Messages", which collapses too with "Can Collapse DM Section". Pinned DMs are ordered by most recent message or by hand. Categories are kept per account, as upstream keeps them per user. wired; not yet verified in the running client. gaps: Pinned DMs aren't moved to the front of Discord's quick switcher or keyboard navigation order (Qord has neither). |
 | PingNotifications | `src/equicordplugins/pingNotifications` |  | Not Started |  |
 | PinIcon | `src/equicordplugins/pinIcon` |  | Not Started |  |
 | PlainFolderIcon | `src/plugins/plainFolderIcon` |  | Not Started |  |
@@ -256,7 +256,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ProfileSets | `src/equicordplugins/profileSets` |  | Not Started |  |
 | Questify | `src/equicordplugins/questify` |  | Not Started |  |
 | QuickMention | `src/plugins/quickMention` |  | Not Started |  |
-| QuickReply | `src/plugins/quickReply` |  | Not Started |  |
+| QuickReply | `src/plugins/quickReply` | `plugins/chat/quickreply` | Tested | Ctrl+Up/Down (Cmd on macOS) moves the reply through the channel's messages, newest first, and Ctrl+Shift+Up/Down moves editing through your own; going past the newest ends the reply or edit. It starts from the reply or edit you already have, skips deleted messages kept on screen, ephemeral messages, message types Discord doesn't let you reply to, and (by default) blocked and ignored users, focuses the message box and scrolls a message near the edge of the chat into view. Nothing happens in a server channel you can't send in. wired; not yet verified in the running client. |
 | QuickThemeSwitcher | `src/equicordplugins/quickThemeSwitcher.discordDesktop` |  | Not Started |  |
 | Quoter | `src/equicordplugins/quoter` |  | Not Started |  |
 | RandomVoice | `src/equicordplugins/randomVoice` |  | Not Started |  |
@@ -275,7 +275,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ReviewDB | `src/plugins/reviewDB` |  | Not Started |  |
 | RichMagnetLinks | `src/equicordplugins/richMagnetLinks` |  | Not Started |  |
 | RichPresence | `src/equicordplugins/richPresence` |  | Not Started |  |
-| RoleColorEverywhere | `src/plugins/roleColorEverywhere` |  | Not Started |  |
+| RoleColorEverywhere | `src/plugins/roleColorEverywhere` | `plugins/appearance/rolecoloreverywhere` | Tested | User mentions in messages show in the member's top role color on a 10% background of it, member list role headers in their role's color, people in voice channels in their role color, and, with "Color chat messages", message text mixed with the author's role color (CSS color-mix in oklab, at the saturation setting; not failed sends). Changes apply at once, where upstream needs a restart. wired; not yet verified in the running client. gaps: Mentions typed in the message box aren't colored (Qord's message box shows them as text).; Qord has no reactors list or poll voter list, so those two settings do nothing yet.; Thread member lists aren't covered (Qord shows the channel's member list in threads).; CustomUserColors' colors aren't used, as that plugin isn't ported. |
 | RPCEditor | `src/equicordplugins/rpcEditor` |  | Not Started |  |
 | SaveFavoriteGIFs | `src/equicordplugins/saveFavoriteGIFs` |  | Not Started |  |
 | ScheduledMessages | `src/equicordplugins/scheduledMessages` |  | Not Started |  |
@@ -285,15 +285,15 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | SedEnhanced | `src/equicordplugins/sedEnhanced` |  | Not Started |  |
 | SekaiStickers | `src/equicordplugins/sekaiStickers` |  | Not Started |  |
 | SendTimestamps | `src/plugins/sendTimestamps` | `plugins/chat/sendtimestamps` | Tested | Type a time in backticks, like `17:59` or `3:51 PM`, and it is sent as a timestamp everyone sees in their own time zone (the next occurrence of that time). The calendar button opens the timestamp picker. Upstream's picker also lists the newer "s"/"S" formats; Qord's picker offers the seven formats its renderer shows. wired; not yet verified in the running client. |
-| ServerInfo | `src/plugins/serverInfo` |  | Not Started |  |
+| ServerInfo | `src/plugins/serverInfo` | `plugins/utility/serverinfo` | Tested | "Server Info" in the server menu opens the server's icon, name, description and banner (click them to view them full size), its details (owner, creation and join dates, vanity link, locale, verification level, boosts, channels, roles) and your friends, mutual users, blocked and ignored users in it. Clicking a user opens their profile. Lists come from the members Qord has loaded; the friends, blocked and ignored users it lacks are asked for from Discord. wired; not yet verified in the running client. gaps: Members Discord sends after the window opened appear the next time it is opened (upstream's list updates live); User rows don't show online status. |
 | ServerListIndicators | `src/plugins/serverListIndicators` |  | Not Started |  |
 | ServerSearch | `src/equicordplugins/serverSearch` |  | Not Started |  |
 | Settings | `src/plugins/_core/settings.tsx` |  | Not Started |  |
 | ShikiCodeblocks | `src/plugins/shikiCodeblocks.desktop` |  | Not Started |  |
 | ShowAllMessageButtons | `src/plugins/showAllMessageButtons` |  | Not Started |  |
 | ShowBadgesInChat | `src/equicordplugins/showBadgesInChat` |  | Not Started |  |
-| ShowConnections | `src/plugins/showConnections` |  | Not Started |  |
-| ShowHiddenChannels | `src/plugins/showHiddenChannels` |  | Not Started |  |
+| ShowConnections | `src/plugins/showConnections` | `plugins/appearance/showconnections` | Tested | Profiles show connected accounts as a row of icons (size and margin are settings), each with a tooltip of the account name, a check when it is verified, and what clicking does: open the account's page, open Xbox's player page, or copy the name ("Copied to clipboard!"). With Show GitHub organizations, a GitHub account is followed by an icon per organization the user belongs to, from GitHub's public API (api.github.com/users/<name>/orgs, asked once per name while Qord runs). wired; not yet verified in the running client. gaps: Qord has one profile window, which already lists connections; the plugin turns that list into icons, so Show on profile modal has nothing to switch.; The tooltip shows the verified check and the action as text rather than upstream's icons, and Qord's links come from its own platform table rather than Discord's. |
+| ShowHiddenChannels | `src/plugins/showHiddenChannels` | `plugins/utility/showhiddenchannels` | Tested | Hidden channels appear in the channel list where Discord would put them, marked as the show mode says. Selecting one shows the lock screen (what kind of channel it is, its settings, the roles and users that can see it, and Permission Details) instead of loading messages, and clicking a voice channel you can't see or join shows it instead of connecting. Hidden channels never become the channel a server opens on, and Qord never asks Discord for their messages. "Show Unreads" marks a hidden channel unread in the list without counting it toward the server. wired; not yet verified in the running client. gaps: Discord's "View Allowed Users and Roles" header is drawn by Qord: roles and users with access, without Discord's member-count overflow; A custom default reaction emoji on a forum shows as "a custom emoji" (the plugin doesn't read your servers' emojis); Qord has no keyboard channel switching or #channel autocomplete yet, so upstream's patches for those have nothing to change; a mention of a hidden channel opens its lock screen. |
 | ShowHiddenThings | `src/plugins/showHiddenThings` |  | Not Started |  |
 | ShowMessageEmbeds | `src/equicordplugins/showMessageEmbeds` |  | Not Started |  |
 | ShowMeYourName | `src/plugins/showMeYourName` | `plugins/chat/showmeyourname` | Tested | Qord has no Streamer Mode, so upstream's truncateAllNamesWithStreamerMode has nothing to do. Custom nicknames are kept in the plugin's settings instead of upstream's DataStore. wired; not yet verified in the running client. gaps: Names in mentions, the typing indicator, the member list, DMs and friends lists, autocomplete, profiles, voice channels and reaction tooltips: Qord has no name surface there yet (upstream settings mentions, typingIndicator, memberList, searchAutocomplete, profilePopout, voiceChannels, reactions).; Per-name colours and Nitro display-name styles (upstream's colour, font, effect, gradient and style* settings): Qord draws the whole name in the author's role colour.; hideDefaultAtSign: Qord's reply previews show names without an @. |
@@ -336,10 +336,10 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ToastNotifications | `src/equicordplugins/toastNotifications` |  | Not Started |  |
 | ToggleVideoBind | `src/equicordplugins/toggleVideoBind` |  | Not Started |  |
 | ToneIndicators | `src/equicordplugins/toneIndicators` |  | Not Started |  |
-| Translate | `src/plugins/translate` |  | Not Started |  |
+| Translate | `src/plugins/translate` | `plugins/utility/translate` | Tested | "Translate" in a message's menu shows the translation under it ("translated from X - Dismiss"). The chat bar button opens the languages window (searchable lists for the received and sent languages, and Auto Translate); Shift+click or right-click toggles auto-translate, with upstream's notice the first time. With auto-translate on, a message waits in the locked message box until it is translated, with "Auto Translate Enabled" over the button for two seconds. Google needs no key; DeepL (free or pro, falling back to Google when the quota runs out) and Kagi take an API key or session token, which Qord keeps in the system keychain instead of the settings file. wired; not yet verified in the running client. gaps: No translate button in a message's hover bar (Qord has no message popover hook yet); use the message menu.; A failed auto-translation leaves the text in the message box instead of sending it untranslated as upstream does.; The settings page has no button for the languages window; it opens from the chat bar button.; The DeepL key and Kagi session fields show whatever service is chosen. |
 | Translate+ | `src/equicordplugins/translatePlus` |  | Not Started |  |
 | TriviaAI | `src/equicordplugins/triviaAI` |  | Not Started |  |
-| TypingIndicator | `src/plugins/typingIndicator` |  | Not Started |  |
+| TypingIndicator | `src/plugins/typingIndicator` | `plugins/appearance/typingindicator` | Tested | Channels, voice channels' chats and threads in the channel list show who is typing in them: up to three avatars (then "+N") and Discord's animated dots, with "Ava is typing..." as the tooltip. Names are the server nickname, display name or username, as upstream. wired; not yet verified in the running client. gaps: Only the account you are viewing: Qord tracks typing for the current account; With more than three typers the tooltip says "Several people are typing..." (upstream names two when TypingTweaks, not ported yet, is on); Clicking the avatars doesn't open user popouts. |
 | TypingTweaks | `src/plugins/typingTweaks` |  | Not Started |  |
 | Unindent | `src/plugins/unindent` | `plugins/chat/unindent` | Tested | Send and edit paths match upstream, including its quirks (a block whose closing ``` shares a line with code gains a trailing newline). Received messages are unindented when shown, like upstream's renderer patch; the stored message is unchanged. wired; not yet verified in the running client. |
 | UnitConverter | `src/equicordplugins/unitConverter` |  | Not Started |  |
@@ -352,10 +352,10 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | UserMessagesPronouns | `src/plugins/userMessagesPronouns` |  | Not Started |  |
 | UserPFP | `src/equicordplugins/userpfp` |  | Not Started |  |
 | UserpluginInstaller | `src/equicordplugins/userpluginInstaller.dev` |  | Not Started |  |
-| UserVoiceShow | `src/plugins/userVoiceShow` |  | Not Started |  |
+| UserVoiceShow | `src/plugins/userVoiceShow` | `plugins/voice/uservoiceshow` | Tested | A speaker after names of people in voice (locked when you can't see or join the channel, deafened or muted icons otherwise), with a tooltip naming the channel and who is in it. Click opens the channel; double click joins it. Channels you can't see are skipped unless ShowHiddenChannels is on. wired; not yet verified in the running client. gaps: The tooltip lists names rather than upstream's row of avatars.; Upstream also puts the indicator among the Friends list's row buttons; Qord's Friends page doesn't show it yet. |
 | USRBG | `src/plugins/usrbg` |  | Not Started |  |
 | ValidReply | `src/plugins/validReply` |  | Not Started |  |
-| ValidUser | `src/plugins/validUser` |  | Not Started |  |
+| ValidUser | `src/plugins/validUser` | `plugins/chat/validuser` | Tested | Hovering an "@unknown-user" mention asks Discord for that user (GET /users/{id}), at most five waiting at a time, newest first, one every 300 ms, waiting out rate limits, and the message then shows their name; a mention of a user Qord already knows is fixed at once. Clicking a mention opens the profile. wired; not yet verified in the running client. gaps: Upstream also fills in the fetched user's profile badges (from their flags) for Discord's popout; Qord's profile loads the user's real profile instead. |
 | VcNarrator | `src/plugins/vcNarrator` |  | Not Started |  |
 | VCPanelSettings | `src/equicordplugins/vcPanelSettings` |  | Not Started |  |
 | ViewIcons | `src/plugins/viewIcons` | `plugins/media/viewicons` | Tested | Images open in Qord's image viewer (zoom, pan, Esc to close). Upstream's modal also links the 4096px original; the viewer loads the chosen size. wired; not yet verified in the running client. gaps: View Avatar Decoration: Qord does not read avatar decorations yet.; Clickable icons in a DM's or group DM's header: Qord's channel header shows no icon.; View Icon for group DMs without a custom icon: upstream opens Discord's built-in default group icon, which Qord does not have. |
@@ -371,7 +371,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | VoiceMessageTranscriber | `src/equicordplugins/voiceMessageTranscriber.desktop` |  | Not Started |  |
 | VoiceRejoin | `src/equicordplugins/voiceRejoin` |  | Not Started |  |
 | VoiceStats | `src/equicordplugins/voiceStats` |  | Not Started |  |
-| VolumeBooster | `src/plugins/volumeBooster` |  | Not Started |  |
+| VolumeBooster | `src/plugins/volumeBooster` | `plugins/voice/volumebooster` | Tested | The user volume sliders in the voice window go up to 200% times the multiplier (400% by default) instead of 200%; turning the plugin off or lowering the multiplier brings louder users back down to the new limit. Qord mixes voice itself, so a boosted user is simply amplified (and may clip, as with upstream's gain node). wired; not yet verified in the running client. gaps: Qord has no stream volume control yet, so only user volumes are boosted.; Upstream's slider markers are 0.5 apart; Qord offers the same values as a list. |
 | WaitForSlot | `src/equicordplugins/waitForSlot` |  | Not Started |  |
 | WebContextMenus | `src/plugins/webContextMenus.web` |  | Not Started |  |
 | WebKeybinds | `src/plugins/webKeybinds.web` |  | Not Started |  |
@@ -381,7 +381,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | WebScreenShare | `src/plugins/webScreenShare.browser` |  | Not Started |  |
 | WebScreenShareFixes | `src/plugins/webScreenShareFixes.web` |  | Not Started |  |
 | WhitelistedEmojis | `src/equicordplugins/whitelistedEmojis` |  | Not Started |  |
-| WhoReacted | `src/plugins/whoReacted` |  | Not Started |  |
+| WhoReacted | `src/plugins/whoReacted` | `plugins/chat/whoreacted` | Tested | Up to five avatars and "+N" next to each reaction's count, on messages with at most ten reactions, as upstream. Reactions are fetched one at a time, newest first, 250 ms apart, and kept up to date as people react; users NoBlockedMessages hides are left out. The setting applies at once (upstream needs a restart). wired; not yet verified in the running client. |
 | WhosWatching | `src/equicordplugins/whosWatching` |  | Not Started |  |
 | WigglyText | `src/equicordplugins/wigglyText` |  | Not Started |  |
 | WriteUpperCase | `src/equicordplugins/writeUpperCase` | `plugins/chat/writeuppercase` | Tested | An empty blocked-words list capitalizes everything; upstream treats it as one empty word that blocks every sentence. wired; not yet verified in the running client. |

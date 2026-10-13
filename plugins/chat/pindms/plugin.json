@@ -1,0 +1,75 @@
+{
+  "id": "pindms",
+  "equicordName": "PinDMs",
+  "equicordPath": "src/plugins/pinDms",
+  "name": "PinDMs",
+  "description": "Allows you to pin private channels to the top of your DM list. To pin/unpin or re-order pins, right click DMs",
+  "categories": [
+    "chat"
+  ],
+  "tags": [
+    "Friends",
+    "Organisation"
+  ],
+  "authors": [
+    "Ven",
+    "Aria"
+  ],
+  "permissions": [
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "dmPins",
+    "channelContextMenu"
+  ],
+  "settings": [
+    {
+      "key": "pinOrder",
+      "type": "choice",
+      "default": "lastMessage",
+      "label": "Pin order",
+      "description": "Which order should pinned DMs be displayed in?",
+      "choices": [
+        {
+          "value": "lastMessage",
+          "label": "Most recent message"
+        },
+        {
+          "value": "custom",
+          "label": "Custom (right click channels to reorder)"
+        }
+      ]
+    },
+    {
+      "key": "canCollapseDmSection",
+      "type": "bool",
+      "default": false,
+      "label": "Can Collapse DM Section",
+      "description": "Allow uncategorised DMs section to be collapsable"
+    },
+    {
+      "key": "dmSectionCollapsed",
+      "type": "bool",
+      "default": false,
+      "label": "DM Section Collapsed",
+      "description": "Collapse DM section",
+      "hidden": true
+    },
+    {
+      "key": "userBasedCategoryList",
+      "type": "json",
+      "default": {},
+      "label": "Categories",
+      "description": "",
+      "hidden": true
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Right-click a DM or group DM for \"Pin DMs\": Add Category (a new category with that DM, named and colored in a small window with Discord's swatches or any color), pin it to an existing category, or, once pinned, Unpin DM and (with the custom order) Move Up or Down. Categories show above your other DMs under their colored header, which collapses on click (the open DM stays visible) and has Edit, Move Up, Move Down and Delete Category on right-click; the rest follow under \"Direct Messages\", which collapses too with \"Can Collapse DM Section\". Pinned DMs are ordered by most recent message or by hand. Categories are kept per account, as upstream keeps them per user.",
+  "gaps": [
+    "Pinned DMs aren't moved to the front of Discord's quick switcher or keyboard navigation order (Qord has neither)."
+  ]
+}

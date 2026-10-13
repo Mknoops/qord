@@ -4,6 +4,7 @@
 #include "ChannelTreeModel.hpp"
 #include "ChannelFilterProxyModel.hpp"
 
+#include "Core/RoleColors.hpp"
 #include "Core/Theme/Icons.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "UI/StatusIndicator.hpp"
@@ -27,7 +28,17 @@ ChannelDelegate::CameraProvider &cameraProvider()
     static ChannelDelegate::CameraProvider provider;
     return provider;
 }
+ChannelDelegate::NameColorProvider &nameColorProvider()
+{
+    static ChannelDelegate::NameColorProvider provider;
+    return provider;
+}
 } // namespace
+
+void ChannelDelegate::setNameColorProvider(NameColorProvider provider)
+{
+    nameColorProvider() = std::move(provider);
+}
 
 void ChannelDelegate::setVoiceLabelProvider(VoiceLabelProvider provider)
 {
@@ -50,10 +61,12 @@ bool ChannelDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, cons
     if (event && index.isValid()) {
         QModelIndex source = proxyModel ? proxyModel->mapToSource(index) : index;
         const void *node = source.internalPointer();
-        auto it = voiceLabelTips.constFind(node);
-        if (it != voiceLabelTips.constEnd() && it->first.contains(event->pos())) {
-            QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
-            return true;
+        for (const auto *tips : { &voiceLabelTips, &hiddenIconTips, &typingTips }) {
+            auto it = tips->constFind(node);
+            if (it != tips->constEnd() && it->first.contains(event->pos())) {
+                QToolTip::showText(event->globalPos(), it->second, view ? view->viewport() : nullptr, it->first);
+                return true;
+            }
         }
     }
     return QStyledItemDelegate::helpEvent(event, view, option, index);
@@ -453,6 +466,34 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     QStyleOptionViewItem contentOpt = option;
     contentOpt.rect = option.rect.adjusted(pillMargin + indentWidth(node, indentScopes), 0, 0, 0);
 
+    // Qord: PinDMs' headers, in the category's color, with a chevron that
+    // points down while open
+    if (node->type == ChannelNode::Type::DMPinHeader) {
+        const QColor color = node->pinColor ? QColor::fromRgb(node->pinColor)
+                                            : Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText);
+        QFont f = painter->font();
+        f.setPixelSize(12);
+        f.setWeight(QFont::DemiBold);
+        f.setCapitalization(QFont::AllUppercase);
+        f.setLetterSpacing(QFont::AbsoluteSpacing, 0.2);
+        painter->setFont(f);
+        painter->setPen(color);
+        QRect textRect = contentOpt.rect.adjusted(4, 0, -24, 0);
+        const QString name = QFontMetrics(f).elidedText(node->name, Qt::ElideRight, textRect.width());
+        painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, name);
+        if (node->pinCollapsible) {
+            const int textWidth = QFontMetrics(f).horizontalAdvance(name);
+            QRect chevron = contentOpt.rect;
+            chevron.setLeft(textRect.left() + textWidth - 2);
+            drawLucideIcon(painter, chevron,
+                           node->collapsed ? Core::Theme::Icons::Name::ChevronRight
+                                           : Core::Theme::Icons::Name::ChevronDown,
+                           color);
+        }
+        painter->restore();
+        return;
+    }
+
     if (node->type == ChannelNode::Type::Account) {
         QRect textRect = contentOpt.rect.adjusted(iconSize, 0, -iconSize, 0);
         painter->fillRect(contentOpt.rect, option.palette.alternateBase().color());
@@ -567,6 +608,18 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
                                                         : 16;
 
         QColor textColor = option.palette.text().color();
+        if (Core::roleColorOptions().voiceUsers && nameColorProvider()) {
+            const ChannelNode *account = node;
+            while (account && account->type != ChannelNode::Type::Account)
+                account = account->parent;
+            const ChannelNode *guild = ChannelTreeModel::findGuildNode(const_cast<ChannelNode *>(node));
+            if (account && guild) {
+                const QColor roleColor =
+                        nameColorProvider()(quint64(account->id), quint64(guild->id), quint64(node->id));
+                if (roleColor.isValid())
+                    textColor = roleColor;
+            }
+        }
         QRect textRect =
                 contentOpt.rect.adjusted(participantIndent + avatarSize + 6, 0, -rightReserve - labelWidth, 0);
         painter->setPen(textColor);
@@ -718,7 +771,16 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
             textColor = option.palette.text().color();
     }
 
-    if (node->type == ChannelNode::Type::Channel) {
+    // Qord: ShowHiddenChannels' channels you can't see
+    const auto &hiddenOptions = ChannelTreeModel::hiddenChannelOptions();
+    const bool hidden = hiddenOptions.show && !index.data(ChannelTreeModel::CanViewRole).toBool();
+    if (hidden && hiddenOptions.muted)
+        textColor = option.palette.text().color().darker(150);
+    const bool lockReplacesIcon = hidden && hiddenOptions.icon == ChannelTreeModel::HiddenChannelOptions::Icon::Lock;
+
+    if (lockReplacesIcon) {
+        drawLucideIcon(painter, contentOpt.rect, Core::Theme::Icons::Name::Lock, textColor);
+    } else if (node->type == ChannelNode::Type::Channel) {
         const ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
         if (guildNode && guildNode->rulesChannelId == node->id)
             drawLucideIcon(painter, contentOpt.rect, Core::Theme::Icons::Name::BookCheck, textColor);
@@ -760,6 +822,81 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         rightReserve = painter->fontMetrics().horizontalAdvance(forumBadgeText) + 12;
     }
 
+    // Qord: TypingIndicator's avatars and dots, on the right
+    typingTips.remove(node);
+    const auto typing = index.data(ChannelTreeModel::TypingIndicatorRole).value<ChannelTreeModel::ChannelTyping>();
+    if (!typing.avatars.isEmpty() || typing.dots) {
+        constexpr int avatarSize = 16;
+        constexpr int avatarStep = 12;
+        const QFontMetrics fm(painter->font());
+        const QString more = typing.moreUsers > 0 ? QStringLiteral("+%1").arg(typing.moreUsers) : QString();
+        int width = 0;
+        if (!typing.avatars.isEmpty())
+            width += avatarSize + (int(typing.avatars.size()) - 1) * avatarStep;
+        if (!more.isEmpty())
+            width += 3 + fm.horizontalAdvance(more);
+        if (typing.dots)
+            width += (width ? 4 : 0) + 20;
+        const int top = contentOpt.rect.top() + (contentOpt.rect.height() - avatarSize) / 2;
+        int x = contentOpt.rect.right() - rightReserve - width + 4;
+        const QRect area(x, top, width, avatarSize);
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setRenderHint(QPainter::SmoothPixmapTransform);
+        for (const QPixmap &avatar : typing.avatars) {
+            const QRectF circle(x, top, avatarSize, avatarSize);
+            painter->setPen(QPen(option.palette.base().color(), 2));
+            painter->setBrush(Qt::NoBrush);
+            QPainterPath clip;
+            clip.addEllipse(circle);
+            painter->save();
+            painter->setClipPath(clip);
+            painter->drawPixmap(circle.toRect(), avatar);
+            painter->restore();
+            painter->drawEllipse(circle);
+            x += avatarStep;
+        }
+        if (!typing.avatars.isEmpty())
+            x += avatarSize - avatarStep;
+        if (!more.isEmpty()) {
+            painter->setPen(textColor);
+            painter->drawText(QRect(x + 3, contentOpt.rect.top(), fm.horizontalAdvance(more), contentOpt.rect.height()),
+                              Qt::AlignVCenter, more);
+            x += 3 + fm.horizontalAdvance(more);
+        }
+        if (typing.dots) {
+            if (!typing.avatars.isEmpty() || !more.isEmpty())
+                x += 4;
+            const int phase = typingPhase() % 8;
+            painter->setPen(Qt::NoPen);
+            for (int i = 0; i < 3; ++i) {
+                QColor dot = textColor;
+                dot.setAlphaF(phase / 2 == i ? 1.0 : 0.35);
+                painter->setBrush(dot);
+                painter->drawEllipse(QPointF(x + 3 + i * 7, contentOpt.rect.center().y() + 0.5), 3, 3);
+            }
+        }
+        painter->restore();
+        if (!typing.tooltip.isEmpty())
+            typingTips.insert(node, { area.adjusted(-2, -2, 2, 2), typing.tooltip });
+        rightReserve += width + 4;
+    }
+
+    hiddenIconTips.remove(node);
+    if (hidden && !lockReplacesIcon) {
+        // The lock or crossed-out eye on the right, before any badge
+        constexpr int hiddenIconSize = 16;
+        const QRect hiddenIcon(contentOpt.rect.right() - rightReserve - hiddenIconSize + 4,
+                               contentOpt.rect.top() + (contentOpt.rect.height() - hiddenIconSize) / 2, hiddenIconSize,
+                               hiddenIconSize);
+        const bool eye = hiddenOptions.icon == ChannelTreeModel::HiddenChannelOptions::Icon::EyeRight;
+        painter->drawPixmap(hiddenIcon, Core::Theme::Icons::pixmap(eye ? Core::Theme::Icons::Name::EyeOff
+                                                                       : Core::Theme::Icons::Name::Lock,
+                                                                   hiddenIconSize, textColor, painter->device()->devicePixelRatioF()));
+        hiddenIconTips.insert(node, { hiddenIcon.adjusted(-2, -2, 2, 2), ChannelDelegate::tr("Hidden Channel") });
+        rightReserve += hiddenIconSize + 4;
+    }
+
     QRect textRect = contentOpt.rect.adjusted(iconSize, 0, -rightReserve, 0);
     painter->setPen(textColor);
     QString elidedName = painter->fontMetrics().elidedText(
@@ -772,7 +909,7 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
 
     // unread pill for channels and servers (draws in the left margin)
     if ((node->opensChat() || node->type == ChannelNode::Type::Server) && node->isUnread &&
-        !node->isMuted)
+        !node->isMuted && !(hidden && hiddenOptions.muted))
         drawUnreadPill(painter, option);
 
     if (showUserLimit) {

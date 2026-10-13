@@ -9,6 +9,8 @@
 #include "Proto/ProtoWriter.hpp"
 
 #include <QDateTime>
+#include <QUrlQuery>
+#include <QPointer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLocale>
@@ -294,6 +296,121 @@ void Client::sendGatewayOp(int op, const Core::OrderedJson &d)
 {
     if (gateway)
         gateway->sendOp(op, d);
+}
+
+void Client::fetchStickerPacks(ResultCallback<QList<StickerPack>> callback)
+{
+    if (stickerPacks) {
+        callback(Core::Result<QList<StickerPack>>::makeOk(*stickerPacks));
+        return;
+    }
+    const QPointer<Client> self(this);
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("locale"), QStringLiteral("en-US"));
+    httpClient->get(QStringLiteral("/sticker-packs"), query, [self, callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching sticker packs failed:" << response.error;
+            callback(Core::Result<QList<StickerPack>>::makeError(response.error));
+            return;
+        }
+        QList<StickerPack> packs;
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("sticker_packs")).toArray();
+        for (const auto &value : list) {
+            const QJsonObject obj = value.toObject();
+            StickerPack pack;
+            pack.id = Snowflake(obj.value(QStringLiteral("id")).toString().toULongLong());
+            pack.name = obj.value(QStringLiteral("name")).toString();
+            for (const auto &sticker : obj.value(QStringLiteral("stickers")).toArray())
+                pack.stickers.append(Sticker::fromJson(sticker.toObject()));
+            packs.append(pack);
+        }
+        if (self)
+            self->stickerPacks = packs;
+        callback(Core::Result<QList<StickerPack>>::makeOk(packs));
+    });
+}
+
+void Client::fetchUser(Snowflake userId,
+                       std::function<void(const HttpResponse &, const std::optional<User> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/%1").arg(quint64(userId)), {}, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching a user failed:" << response.statusCode << response.error;
+            callback(response, std::nullopt);
+            return;
+        }
+        callback(response, User::fromJson(QJsonDocument::fromJson(response.body).object()));
+    });
+}
+
+void Client::fetchUserAffinities(
+        std::function<void(const HttpResponse &, const QList<QPair<Snowflake, double>> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/@me/affinities/v2/users"), {}, [callback](const HttpResponse &response) {
+        QList<QPair<Snowflake, double>> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching user affinities failed:" << response.statusCode << response.error;
+            callback(response, out);
+            return;
+        }
+        const QJsonArray list =
+                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("user_affinities")).toArray();
+        for (const QJsonValue &value : list) {
+            const QJsonObject a = value.toObject();
+            QString id = a.value(QStringLiteral("other_user_id")).toString();
+            if (id.isEmpty())
+                id = a.value(QStringLiteral("user_id")).toString();
+            if (id.isEmpty())
+                continue;
+            out.append({ Snowflake(id.toULongLong()), a.value(QStringLiteral("communication_rank")).toDouble() });
+        }
+        callback(response, out);
+    });
+}
+
+void Client::fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
+                                ResultCallback<QList<User>> callback)
+{
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("limit"), QStringLiteral("100"));
+    query.addQueryItem(QStringLiteral("type"), QString::number(type));
+    const QString endpoint = QStringLiteral("/channels/%1/messages/%2/reactions/%3")
+                                     .arg(quint64(channelId))
+                                     .arg(quint64(messageId))
+                                     .arg(QString::fromLatin1(QUrl::toPercentEncoding(emoji, ":")));
+    httpClient->get(endpoint, query, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching reaction users failed:" << response.error;
+            callback(Core::Result<QList<User>>::makeError(response.error));
+            return;
+        }
+        QList<User> users;
+        for (const auto &u : QJsonDocument::fromJson(response.body).array())
+            users.append(User::fromJson(u.toObject()));
+        callback(Core::Result<QList<User>>::makeOk(users));
+    });
+}
+
+void Client::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,
+                                     ThreadCallback callback)
+{
+    QJsonObject body;
+    body["name"] = name.left(100);
+    body["auto_archive_duration"] = 1440; // a day, Discord's default
+    const QString endpoint = QStringLiteral("/channels/%1/messages/%2/threads")
+                                     .arg(quint64(channelId))
+                                     .arg(quint64(messageId));
+    httpClient->post(endpoint, body, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Failed to create a thread:" << response.error;
+            if (callback)
+                callback(Core::Result<Channel>::makeError(response.error));
+            return;
+        }
+        if (callback)
+            callback(Core::Result<Channel>::makeOk(Channel::fromJson(QJsonDocument::fromJson(response.body).object())));
+    });
 }
 
 void Client::setSelfVideo(bool on)

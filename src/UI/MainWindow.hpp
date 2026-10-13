@@ -31,6 +31,7 @@ class ChatView;
 class PluginChatButtons;
 class ChatModel;
 class ForumBrowser;
+class HiddenChannelScreen;
 class ForumPostModel;
 class ThreadBrowserPopup;
 class ChannelTreeModel;
@@ -104,6 +105,10 @@ private:
     void openGuildSettings(Core::Snowflake accountId, Core::Snowflake guildId, GuildSettingsSection section);
     void showUserContextMenu(Core::ClientInstance *instance, Core::Snowflake userId, Core::Snowflake guildId, QPoint globalPos);
     void selectChannelInTree(Core::Snowflake accountId, Core::Snowflake channelId);
+#ifndef ACHERON_NO_VOICE
+    // Joins a voice channel or a DM's call
+    void joinVoiceNode(ChannelNode *node);
+#endif
 
 public:
     enum class ChannelListMode {
@@ -143,7 +148,8 @@ private:
     enum class ViewMode { TextChannel,
                           ForumBrowse,
                           ForumSplit,
-                          ThreadPopout };
+                          ThreadPopout,
+                          HiddenChannel }; // Qord: ShowHiddenChannels' lock screen
     void setViewMode(ViewMode mode);
     void setMemberListVisible(bool visible);
     void updateMemberListVisibility();
@@ -172,6 +178,7 @@ private:
     QPushButton *popOutButton = nullptr;
     QPushButton *closeThreadButton = nullptr;
     ForumBrowser *forumBrowser = nullptr;
+    HiddenChannelScreen *hiddenChannelScreen = nullptr; // Qord
     ForumPostModel *forumModel = nullptr;
     Core::Snowflake currentForumId;
     Core::Snowflake currentForumGuildId;
@@ -185,6 +192,10 @@ private:
     QWidget *leftSideWidget = nullptr;
     ServerRailView *serverRail = nullptr;
     ServerRailModel *serverRailModel = nullptr;
+    // Qord: BetterFolders' second rail with the open folders' servers
+    ServerRailView *folderSidebar = nullptr;
+    ServerRailModel *folderSidebarModel = nullptr;
+    void updateFolderSidebar();
     QLabel *guildHeaderLabel = nullptr;
 
     AccountsModel *accountsModel;
@@ -277,6 +288,8 @@ private:
     QString slashScopeKey() const;
     const Qord::SlashCommands::Index *slashIndex();
     bool trySendSlashCommand(const QString &text);
+    void requestAutocomplete(const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                             std::function<void(const QList<QPair<QString, QJsonValue>> &)> done);
     class FriendsPage *friendsPage = nullptr;
     QPushButton *friendsButton = nullptr;
     void showFriendsPage();
@@ -299,6 +312,20 @@ private:
     class GoLiveUi *goLiveUi = nullptr;
     class CameraUi *cameraUi = nullptr;
     void addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Core::Snowflake userId);
+    // Qord: Create Thread on messages: text and announcement channels, with permission
+    bool isSystemDm(Core::ClientInstance *instance, Core::Snowflake channelId) const;
+    bool canCreateThreadsIn(Core::ClientInstance *instance, Core::Snowflake channelId) const;
+    // Qord: ShowHiddenChannels. Shows the lock screen instead of a channel
+    // you can't see (or, when joining, a voice channel you can't join);
+    // false when the channel opens normally.
+    bool openHiddenChannel(Core::ClientInstance *instance, ChannelNode *node, ChannelNode *accountNode, bool joining);
+    void applyHiddenChannelDisplay();
+    void refreshHiddenChannelScreen();
+    Core::Snowflake hiddenChannelAccountId;
+    Core::Snowflake hiddenChannelGuildId;
+    Core::Snowflake hiddenChannelId;
+    bool hiddenChannelCanView = false;
+    void createThreadFromMessage(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
     UserPanel *userPanel = nullptr;
     QLabel *channelNameLabel = nullptr;
     QToolButton *pinsButton = nullptr;

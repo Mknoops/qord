@@ -75,9 +75,15 @@ PERMISSIONS = {
     "read_voice_states",
     "read_reactions",
     "read_expressions",
+    "read_server_permissions",
+    "show_hidden_channels",
+    "fetch_users",
+    "read_dms",
+    "control_audio",
+    "fetch_messages",
 }
 
-SETTING_TYPES = {"bool", "int", "string", "choice", "stringlist", "json"}
+SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json"}
 
 # Hook name -> call that must appear in client code (outside src/Plugins) for
 # the hook to count as wired into the running client. Must match PluginHost.
@@ -104,6 +110,17 @@ HOOK_DISPATCH = {
     "voiceStates": "dispatchVoiceStateChanged(",
     "messageClicks": "dispatchMessageClicked(",
     "reactionUsers": "dispatchReactionUsers(",
+    "profileRoleButtons": "dispatchProfileRoleButtons(",
+    "hiddenChannels": "dispatchHiddenChannelDisplay(",
+    "attachmentButtons": "dispatchAttachmentButtons(",
+    "channelTyping": "dispatchChannelTypingIndicator(",
+    "unknownMentions": "dispatchUserMentionHovered(",
+    "keyboardShortcuts": "dispatchShortcut(",
+    "messageAccessories": "dispatchMessageAccessories(",
+    "profileTabs": "dispatchProfileTabs(",
+    "dmPins": "dispatchDmPinLayout(",
+    "emojiSuggestions": "dispatchSortEmojiSuggestions(",
+    "friendsSections": "dispatchFriendsSections(",
 }
 
 MANIFEST_REQUIRED = {

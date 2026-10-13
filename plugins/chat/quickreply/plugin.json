@@ -1,0 +1,28 @@
+{
+  "id": "quickreply",
+  "equicordName": "QuickReply",
+  "equicordPath": "src/plugins/quickReply",
+  "name": "QuickReply",
+  "description": "Reply to (ctrl + up/down) and edit (ctrl + shift + up/down) messages via keybinds",
+  "categories": ["chat"],
+  "tags": ["Chat", "Shortcuts"],
+  "authors": ["fawn", "Ven", "pylix"],
+  "permissions": ["add_ui_elements", "read_relationships"],
+  "hooks": ["keyboardShortcuts"],
+  "settings": [
+    { "key": "shouldMention", "type": "choice", "default": "noReplyMention", "label": "Ping reply by default",
+      "description": "Ping reply by default",
+      "choices": [
+        { "value": "noReplyMention", "label": "Follow NoReplyMention plugin (if enabled)" },
+        { "value": "enabled", "label": "Enabled" },
+        { "value": "disabled", "label": "Disabled" }
+      ] },
+    { "key": "ignoreBlockedAndIgnored", "type": "bool", "default": true, "label": "Ignore blocked and ignored users",
+      "description": "Ignore messages by blocked/ignored users when navigating" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Ctrl+Up/Down (Cmd on macOS) moves the reply through the channel's messages, newest first, and Ctrl+Shift+Up/Down moves editing through your own; going past the newest ends the reply or edit. It starts from the reply or edit you already have, skips deleted messages kept on screen, ephemeral messages, message types Discord doesn't let you reply to, and (by default) blocked and ignored users, focuses the message box and scrolls a message near the edge of the chat into view. Nothing happens in a server channel you can't send in."
+}

@@ -1,0 +1,42 @@
+{
+  "id": "showhiddenchannels",
+  "equicordName": "ShowHiddenChannels",
+  "equicordPath": "src/plugins/showHiddenChannels",
+  "name": "ShowHiddenChannels",
+  "description": "Show channels that you do not have access to view.",
+  "categories": ["utility"],
+  "tags": ["Servers", "Utility"],
+  "authors": ["BigDuck", "Average React Enjoyer", "D3SOX", "Ven", "Nuckyz", "Nickyux", "rini", "Oggetto"],
+  "permissions": ["show_hidden_channels", "read_server_permissions", "add_ui_elements"],
+  "hooks": ["hiddenChannels"],
+  "settings": [
+    { "key": "channelStyle", "type": "choice", "default": "classic", "label": "Channel style",
+      "description": "The style used to display hidden channels.",
+      "choices": [
+        { "value": "classic", "label": "Classic" },
+        { "value": "muted", "label": "Muted" },
+        { "value": "unread", "label": "Show Unreads" },
+        { "value": "mutedUnread", "label": "Muted and Show Unreads" }
+      ] },
+    { "key": "showMode", "type": "choice", "default": "lockIcon", "label": "Show mode",
+      "description": "The mode used to display hidden channels.",
+      "choices": [
+        { "value": "lockIcon", "label": "Lock Icon replacing channel icon" },
+        { "value": "eyeIconRight", "label": "Eye icon on the right" },
+        { "value": "lockIconRight", "label": "Lock icon on the right" }
+      ] },
+    { "key": "defaultAllowedUsersAndRolesDropdownState", "type": "bool", "default": true,
+      "label": "Allowed users and roles open by default",
+      "description": "Whether the allowed users and roles dropdown on hidden channels should be open by default" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Hidden channels appear in the channel list where Discord would put them, marked as the show mode says. Selecting one shows the lock screen (what kind of channel it is, its settings, the roles and users that can see it, and Permission Details) instead of loading messages, and clicking a voice channel you can't see or join shows it instead of connecting. Hidden channels never become the channel a server opens on, and Qord never asks Discord for their messages. \"Show Unreads\" marks a hidden channel unread in the list without counting it toward the server.",
+  "gaps": [
+    "Discord's \"View Allowed Users and Roles\" header is drawn by Qord: roles and users with access, without Discord's member-count overflow",
+    "A custom default reaction emoji on a forum shows as \"a custom emoji\" (the plugin doesn't read your servers' emojis)",
+    "Qord has no keyboard channel switching or #channel autocomplete yet, so upstream's patches for those have nothing to change; a mention of a hidden channel opens its lock screen"
+  ]
+}

@@ -1,4 +1,5 @@
 #include "ServerRailModel.hpp"
+#include "Core/FolderSidebar.hpp"
 
 #include "ChannelNode.hpp"
 #include "ChannelTreeModel.hpp"
@@ -193,8 +194,109 @@ QModelIndex ServerRailModel::dmHeaderFor(const QModelIndex &accountIndex) const
     return {};
 }
 
+void ServerRailModel::makeFolderSidebarOf(ServerRailModel *main)
+{
+    mainModel = main;
+    main->sidebarModel = this;
+    connect(main, &ServerRailModel::foldersChanged, this, &ServerRailModel::rebuild);
+    rebuild();
+}
+
+void ServerRailModel::setFolderExpanded(Snowflake accountId, Snowflake folderId, bool expanded)
+{
+    const QString key = folderKey(accountId, folderId);
+    if (expandedFolders.contains(key) == expanded)
+        return;
+    if (expanded)
+        expandedFolders.insert(key);
+    else
+        expandedFolders.remove(key);
+    rebuild();
+    emit foldersChanged();
+}
+
+void ServerRailModel::collapseAllFolders()
+{
+    if (expandedFolders.isEmpty())
+        return;
+    expandedFolders.clear();
+    rebuild();
+    emit foldersChanged();
+}
+
+// Qord: BetterFolders' second rail, the servers of every open folder, each
+// group under its folder's icon if the setting says so
+void ServerRailModel::rebuildSidebar()
+{
+    const auto &options = Core::folderSidebarOptions();
+    const bool active = options.enabled && options.sidebar;
+    using FolderIcon = Core::FolderSidebarOptions::FolderIcon;
+    const bool showIcon = options.folderIcon == FolderIcon::Always ||
+                          (options.folderIcon == FolderIcon::MoreThanOneFolderExpanded &&
+                           mainModel->expandedFolders.size() > 1);
+    expandedFolders = mainModel->expandedFolders;
+    beginResetModel();
+    entries.clear();
+    const int accountRows = active ? source->rowCount({}) : 0;
+    for (int a = 0; a < accountRows; ++a) {
+        QModelIndex accIdx = source->index(a, 0, {});
+        if (typeOf(accIdx) != ChannelNode::Type::Account)
+            continue;
+        const Snowflake accountId = idOf(accIdx);
+        for (int c = 0; c < source->rowCount(accIdx); ++c) {
+            QModelIndex childIdx = source->index(c, 0, accIdx);
+            if (typeOf(childIdx) != ChannelNode::Type::Folder)
+                continue;
+            const Snowflake folderId = idOf(childIdx);
+            if (!expandedFolders.contains(folderKey(accountId, folderId)))
+                continue;
+            std::optional<quint64> folderColor;
+            const QVariant fcVar = childIdx.data(ChannelTreeModel::FolderColorRole);
+            if (fcVar.isValid())
+                folderColor = fcVar.toULongLong();
+            if (showIcon) {
+                RailEntry f;
+                f.kind = Kind::Folder;
+                f.accountId = accountId;
+                f.id = folderId;
+                f.name = childIdx.data(Qt::DisplayRole).toString();
+                f.srcIndex = childIdx;
+                f.unreadSrcIndex = childIdx;
+                f.folderColor = folderColor;
+                f.inFolderGroup = true;
+                f.folderIcons = computeFolderChildIcons(childIdx);
+                entries.push_back(f);
+            }
+            for (int g = 0; g < source->rowCount(childIdx); ++g) {
+                QModelIndex gIdx = source->index(g, 0, childIdx);
+                if (typeOf(gIdx) != ChannelNode::Type::Server)
+                    continue;
+                RailEntry e;
+                e.kind = Kind::Server;
+                e.accountId = accountId;
+                e.id = idOf(gIdx);
+                e.name = gIdx.data(Qt::DisplayRole).toString();
+                e.depth = 1;
+                e.srcIndex = gIdx;
+                e.unreadSrcIndex = gIdx;
+                e.folderColor = folderColor;
+                e.inFolderGroup = true;
+                entries.push_back(e);
+            }
+        }
+    }
+    endResetModel();
+}
+
 void ServerRailModel::rebuild()
 {
+    if (mainModel) {
+        rebuildSidebar();
+        return;
+    }
+    // Qord: with BetterFolders' sidebar, open folders' servers move there
+    const auto &folderOptions = Core::folderSidebarOptions();
+    const bool serversOnSidebar = folderOptions.enabled && folderOptions.sidebar && !folderOptions.keepIcons;
     beginResetModel();
     entries.clear();
 
@@ -252,7 +354,7 @@ void ServerRailModel::rebuild()
                 f.folderIcons = computeFolderChildIcons(childIdx);
                 entries.push_back(f);
 
-                if (expanded) {
+                if (expanded && !serversOnSidebar) {
                     int gcount = source->rowCount(childIdx);
                     for (int g = 0; g < gcount; ++g) {
                         QModelIndex gIdx = source->index(g, 0, childIdx);
@@ -280,12 +382,22 @@ void ServerRailModel::rebuild()
 
 void ServerRailModel::toggleFolder(Snowflake accountId, Snowflake folderId)
 {
+    if (mainModel) {
+        mainModel->toggleFolder(accountId, folderId);
+        return;
+    }
     QString key = folderKey(accountId, folderId);
-    if (expandedFolders.contains(key))
+    if (expandedFolders.contains(key)) {
         expandedFolders.remove(key);
-    else
+    } else {
+        // Qord: BetterFolders' "close other folders when opening a folder"
+        const auto &options = Core::folderSidebarOptions();
+        if (options.enabled && options.closeOthers)
+            expandedFolders.clear();
         expandedFolders.insert(key);
+    }
     rebuild();
+    emit foldersChanged();
 }
 
 bool ServerRailModel::isFolderExpanded(Snowflake accountId, Snowflake folderId) const
@@ -303,6 +415,12 @@ void ServerRailModel::setSelected(Kind kind, Snowflake accountId, Snowflake id)
     selectedGuildId = newGuild;
     selectedFolderId = (kind == Kind::Server) ? folderForGuild(accountId, id) : Snowflake();
     emitAllChanged();
+    if (sidebarModel)
+        sidebarModel->setSelected(kind, accountId, id);
+    // Qord: BetterFolders' "force a folder to open when switching to a server of that folder"
+    const auto &options = Core::folderSidebarOptions();
+    if (!mainModel && options.enabled && options.forceOpen && selectedFolderId.isValid())
+        setFolderExpanded(accountId, selectedFolderId, true);
 }
 
 Snowflake ServerRailModel::folderForGuild(Snowflake accountId, Snowflake guildId) const
@@ -338,6 +456,7 @@ void ServerRailModel::setExpandedFolderKeys(const QStringList &keys)
 {
     expandedFolders = QSet<QString>(keys.cbegin(), keys.cend());
     rebuild();
+    emit foldersChanged();
 }
 
 QString ServerRailModel::folderKey(Snowflake accountId, Snowflake folderId)

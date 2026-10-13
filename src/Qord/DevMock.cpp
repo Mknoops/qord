@@ -1,6 +1,7 @@
 #include "Qord/DevMock.hpp"
 
 #include <QHostAddress>
+#include <QStringList>
 
 namespace Qord::DevMock {
 
@@ -40,8 +41,13 @@ QUrl rewrite(const QUrl &url)
     if (!enabled())
         return url;
     const QString host = url.host();
-    if (host != QLatin1String("cdn.discordapp.com") && host != QLatin1String("media.discordapp.net")
-        && host != QLatin1String("discord.com"))
+    // Discord, plus the services plugins call: translation (Translate) and
+    // GitHub's API (ShowConnections)
+    static const QStringList hosts = { QStringLiteral("cdn.discordapp.com"), QStringLiteral("media.discordapp.net"),
+                                       QStringLiteral("discord.com"), QStringLiteral("translate-pa.googleapis.com"),
+                                       QStringLiteral("api-free.deepl.com"), QStringLiteral("api.deepl.com"),
+                                       QStringLiteral("translate.kagi.com"), QStringLiteral("api.github.com") };
+    if (!hosts.contains(host))
         return url;
     QUrl out = baseUrl();
     out.setPath(QStringLiteral("/cdn/") + host + url.path());

@@ -25,6 +25,8 @@ std::optional<SettingType> settingTypeFromString(const QString &name)
         return SettingType::StringList;
     if (name == QLatin1String("json"))
         return SettingType::Json;
+    if (name == QLatin1String("number"))
+        return SettingType::Number;
     return std::nullopt;
 }
 
@@ -43,6 +45,8 @@ QString settingTypeToString(SettingType type)
         return QStringLiteral("stringlist");
     case SettingType::Json:
         return QStringLiteral("json");
+    case SettingType::Number:
+        return QStringLiteral("number");
     }
     return {};
 }
@@ -58,9 +62,19 @@ QString SettingSpec::validate(const QJsonValue &value) const
         const double d = value.toDouble();
         if (d != double(qint64(d)))
             return QStringLiteral("expected a whole number");
-        if (minimum && qint64(d) < *minimum)
+        if (minimum && d < *minimum)
             return QStringLiteral("must be at least %1").arg(*minimum);
-        if (maximum && qint64(d) > *maximum)
+        if (maximum && d > *maximum)
+            return QStringLiteral("must be at most %1").arg(*maximum);
+        return {};
+    }
+    case SettingType::Number: {
+        if (!value.isDouble())
+            return QStringLiteral("expected a number");
+        const double d = value.toDouble();
+        if (minimum && d < *minimum)
+            return QStringLiteral("must be at least %1").arg(*minimum);
+        if (maximum && d > *maximum)
             return QStringLiteral("must be at most %1").arg(*maximum);
         return {};
     }
@@ -124,11 +138,29 @@ const SettingSpec *PluginSettings::spec(const QString &key) const
     return nullptr;
 }
 
+SecretStore *&PluginSettings::secretStore()
+{
+    static MemorySecretStore memory;
+    static SecretStore *store = &memory;
+    return store;
+}
+
+QString PluginSettings::secretKey(const QString &key) const
+{
+    return QStringLiteral("plugin_%1_%2").arg(id, key);
+}
+
 QJsonValue PluginSettings::value(const QString &key) const
 {
     const SettingSpec *s = spec(key);
     if (!s)
         return {};
+    if (s->secret) {
+        auto cached = secrets.constFind(key);
+        if (cached == secrets.constEnd())
+            cached = secrets.insert(key, secretStore() ? secretStore()->read(secretKey(key)) : QString());
+        return cached->isEmpty() ? s->defaultValue : QJsonValue(*cached);
+    }
     auto it = values.constFind(key);
     if (it != values.constEnd() && s->validate(*it).isEmpty())
         return *it;
@@ -151,6 +183,18 @@ QString PluginSettings::setValue(const QString &key, const QJsonValue &newValue)
     QString error = s->validate(newValue);
     if (!error.isEmpty())
         return error;
+    if (s->secret) {
+        const QString text = newValue.toString();
+        if (value(key).toString() == text)
+            return {};
+        SecretStore *store = secretStore();
+        if (!store || !(text.isEmpty() ? store->remove(secretKey(key)) : store->write(secretKey(key), text)))
+            return QStringLiteral("the system keychain could not store %1").arg(s->label);
+        secrets.insert(key, text);
+        if (onChange)
+            onChange(key);
+        return {};
+    }
     if (values.value(key) == newValue)
         return {};
     values.insert(key, newValue);
@@ -162,6 +206,10 @@ QString PluginSettings::setValue(const QString &key, const QJsonValue &newValue)
 
 void PluginSettings::reset(const QString &key)
 {
+    if (const SettingSpec *s = spec(key); s && s->secret) {
+        setValue(key, QString());
+        return;
+    }
     if (!values.contains(key))
         return;
     values.remove(key);
@@ -173,6 +221,7 @@ void PluginSettings::reset(const QString &key)
 void PluginSettings::load()
 {
     values = {};
+    secrets.clear();
     if (!storage)
         return;
     const QByteArray data = storage->read(QStringLiteral("settings-") + id);
@@ -187,7 +236,7 @@ void PluginSettings::load()
     // Keep only known keys; invalid values fall back to defaults in value()
     const QJsonObject stored = doc.object();
     for (const auto &s : specs)
-        if (stored.contains(s.key))
+        if (stored.contains(s.key) && !s.secret)
             values.insert(s.key, stored.value(s.key));
 }
 

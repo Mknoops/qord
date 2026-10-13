@@ -86,6 +86,8 @@ public:
     // Qord: the selected text (MessageClickActions' quotes), and editing a message by id
     QString selectedChatText() const;
     bool startEditingMessage(Core::Snowflake messageId);
+    [[nodiscard]] Core::Snowflake editingMessageId() const { return currentEditingMessageId; }
+    void stopEditingMessage() { cancelInlineEdit(); }
 
     ChatCursor selectionStart() const;
     ChatCursor selectionEnd() const;
@@ -94,10 +96,16 @@ public:
 
     void setCurrentUserId(Core::Snowflake userId);
     void setCanPinMessages(bool canPin);
+    // Qord: Create Thread on messages (a text channel, with permission)
+    void setCanCreateThreads(bool canCreate) { canCreateThreads = canCreate; }
     void setCanManageMessages(bool canManage);
+    // Qord: tells the plugin a name decoration at `pos` was clicked
+    bool clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool dryRun = false);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
+    // Qord: clickable name decorations (UserVoiceShow)
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
@@ -125,6 +133,14 @@ signals:
     void editMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId, const QString &currentContent);
     void deleteMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void pinMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
+    // Qord: suggestedName is the start of the message, as Discord prefills it
+    void createThreadRequested(Core::Snowflake channelId, Core::Snowflake messageId, const QString &suggestedName);
+    void openThreadRequested(Core::Snowflake threadId);
+    // Qord: an avatar on a reaction (WhoReacted)
+    void reactionUserClicked(Core::Snowflake userId);
+    // Qord: a user mention was clicked or the mouse entered one
+    void userMentionClicked(Core::Snowflake userId);
+    void userMentionHovered(Core::Snowflake userId, Core::Snowflake messageId);
     void replyToMessageRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void addReactionRequested(Core::Snowflake channelId, Core::Snowflake messageId);
     void cancelUploadRequested(Core::Snowflake channelId, Core::Snowflake messageId);
@@ -206,6 +222,7 @@ private:
     int hoveredRow;
     int hoveredChar;
     bool hoveredReplyBar = false;
+    QPair<Core::Snowflake, Core::Snowflake> hoveredMention; // Qord: message, user
 
     ChatCursor selectionAnchor;
     ChatCursor selectionHead;
@@ -221,6 +238,7 @@ private:
 
     Core::Snowflake currentUserId = Core::Snowflake::Invalid;
     bool canPinMessages = false;
+    bool canCreateThreads = false;
     bool canManageMessages = false;
 };
 } // namespace UI

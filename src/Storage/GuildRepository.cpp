@@ -40,13 +40,13 @@ void GuildRepository::saveGuild(const Discord::Guild &guild, QSqlDatabase &db)
 		 afk_timeout, system_channel_id, system_channel_flags, verification_level,
 		 explicit_content_filter, mfa_level, premium_progress_bar_enabled, additional_emoji_slots,
 		 additional_sticker_slots, splash, invites_disabled_until, dms_disabled_until,
-		 lockdown_duration_hours)
+		 lockdown_duration_hours, extra)
 		VALUES (:id, :name, :icon, :owner_id, :features, :premium_tier, :premium_subscription_count,
 		        :rules_channel_id, :default_message_notifications, :description, :banner, :afk_channel_id,
 		        :afk_timeout, :system_channel_id, :system_channel_flags, :verification_level,
 		        :explicit_content_filter, :mfa_level, :premium_progress_bar_enabled, :additional_emoji_slots,
 		        :additional_sticker_slots, :splash, :invites_disabled_until, :dms_disabled_until,
-		        :lockdown_duration_hours)
+		        :lockdown_duration_hours, :extra)
     )");
 
     q.bindValue(":id", static_cast<qint64>(guild.id.get()));
@@ -67,6 +67,7 @@ void GuildRepository::saveGuild(const Discord::Guild &guild, QSqlDatabase &db)
                                                    ? QVariant(incidents.invitesDisabledUntil->toString(Qt::ISODateWithMs))
                                                    : QVariant());
     q.bindValue(":dms_disabled_until", incidents.dmsDisabledUntil.hasValue() ? QVariant(incidents.dmsDisabledUntil->toString(Qt::ISODateWithMs)) : QVariant());
+    q.bindValue(":extra", guild.extraJson.isEmpty() ? QVariant() : guild.extraJson);
     q.bindValue(":lockdown_duration_hours", incidents.lockdownDurationHours.hasValue() ? QVariant(incidents.lockdownDurationHours.get()) : QVariant());
     q.bindValue(":afk_channel_id", snowflakeOrNull(guild.afkChannelId));
     bindOptional(q, ":afk_timeout", guild.afkTimeout);
@@ -107,7 +108,7 @@ std::optional<Discord::Guild> GuildRepository::getGuild(Core::Snowflake guildId)
                afk_timeout, system_channel_id, system_channel_flags, verification_level,
                explicit_content_filter, mfa_level, premium_progress_bar_enabled, additional_emoji_slots,
                additional_sticker_slots, splash, invites_disabled_until, dms_disabled_until,
-               lockdown_duration_hours
+               lockdown_duration_hours, extra
         FROM guilds WHERE id = :id
     )");
     q.bindValue(":id", static_cast<qint64>(guildId));
@@ -172,6 +173,7 @@ std::optional<Discord::Guild> GuildRepository::getGuild(Core::Snowflake guildId)
             incidents.lockdownDurationHours = q.value(24).toInt();
         guild.incidentsData = incidents;
     }
+    guild.extraJson = q.value(25).toString();
 
     return guild;
 }

@@ -1,4 +1,5 @@
 #include "MemberListDelegate.hpp"
+#include "Core/RoleColors.hpp"
 
 #include <QAbstractItemView>
 #include <QHelpEvent>
@@ -7,6 +8,7 @@
 #include <QToolTip>
 
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 
 #include "Core/MemberListManager.hpp"
 #include "Core/Theme/Icons.hpp"
@@ -104,7 +106,11 @@ void MemberListDelegate::paintGroup(QPainter *painter, const QStyleOptionViewIte
     font.setLetterSpacing(QFont::AbsoluteSpacing, 0.3);
     painter->setFont(font);
 
-    painter->setPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
+    // Qord: RoleColorEverywhere shows a role header in the role's color
+    const QColor roleColor = index.data(MemberListModel::GroupColorRole).value<QColor>();
+    painter->setPen(Core::roleColorOptions().memberListHeaders && roleColor.isValid() && roleColor != QColor(Qt::black)
+                            ? roleColor
+                            : Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
 
     QRect textRect = option.rect.adjusted(HorizontalPadding, 0, -HorizontalPadding, 0);
     textRect.setTop(textRect.top() + 6);
@@ -168,8 +174,10 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
     font.setWeight(QFont::Medium);
     painter->setFont(font);
 
+    // Qord: the role color is on the name, in a dot after it, or both
+    // (Discord's Role Colors setting, BetterRoleDot)
     QColor nameColor;
-    if (roleColor.isValid())
+    if (roleColor.isValid() && Core::roleColorOnName())
         nameColor = roleColor;
     else
         nameColor = option.palette.color(QPalette::Text);
@@ -187,6 +195,24 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
                                         Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),
                                         NameDecorations::Place::MemberList, dpr);
     }
+    // Qord: the role dot, then Discord's crown for the server owner, before
+    // plugin icons
+    if (index.data(MemberListModel::OwnerCrownRole).toBool()) {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        constexpr int CrownSize = 14;
+        decorations.prepend({ Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::Crown, CrownSize,
+                                                          QColor(0xf0, 0xb2, 0x32), dpr),
+                              QSize(CrownSize, CrownSize), tr("Server Owner") });
+    }
+    if (roleColor.isValid() && Core::roleDotAfterName()) {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        NameDecorations::Decoration dot;
+        dot.pixmap = Core::roleDotPixmap(roleColor, dpr);
+        dot.size = QSize(Core::RoleDotSize, Core::RoleDotSize);
+        if (Core::roleDotOptions().enabled)
+            dot.copyText = roleColor.name();
+        decorations.prepend(dot);
+    }
     const int decorationWidth = qMin(NameDecorations::width(decorations), textWidth / 2);
     QString elidedName = fm.elidedText(displayName, Qt::ElideRight, textWidth - decorationWidth);
     auto paintDecorations = [&](int lineTop, int lineHeight) {
@@ -196,9 +222,9 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
         }
         const QList<QRect> rects = NameDecorations::paint(*painter, decorations, x + fm.horizontalAdvance(elidedName),
                                                           lineTop + lineHeight / 2);
-        QList<QPair<QRect, QString>> tips;
+        QList<QPair<QRect, NameDecorations::Decoration>> tips;
         for (int i = 0; i < rects.size(); ++i)
-            tips.append({ rects[i], decorations[i].tooltip });
+            tips.append({ rects[i], decorations[i] });
         if (decorationRects.size() > 512)
             decorationRects.clear();
         decorationRects.insert(index.row(), tips);
@@ -276,14 +302,22 @@ bool MemberListDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, c
                                    const QModelIndex &index)
 {
     if (event && index.isValid()) {
-        for (const auto &[rect, tip] : decorationRects.value(index.row())) {
-            if (rect.contains(event->pos()) && !tip.isEmpty()) {
-                QToolTip::showText(event->globalPos(), tip, view ? view->viewport() : nullptr, rect);
+        for (const auto &[rect, decoration] : decorationRects.value(index.row())) {
+            if (rect.contains(event->pos()) && !decoration.tooltip.isEmpty()) {
+                QToolTip::showText(event->globalPos(), decoration.tooltip, view ? view->viewport() : nullptr, rect);
                 return true;
             }
         }
     }
     return QStyledItemDelegate::helpEvent(event, view, option, index);
+}
+
+std::optional<NameDecorations::Decoration> MemberListDelegate::clickableDecorationAt(int row, const QPoint &pos) const
+{
+    for (const auto &[rect, decoration] : decorationRects.value(row))
+        if (rect.contains(pos) && decoration.clickable())
+            return decoration;
+    return std::nullopt;
 }
 
 QString MemberListDelegate::activityIconName(Discord::ActivityType kind)

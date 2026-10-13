@@ -35,7 +35,7 @@ import sys
 import urllib.request
 import zlib
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mock_voice  # noqa: E402  (voice gateway, media and Go Live)
@@ -95,8 +95,12 @@ USERS = {
     "eve": user("200000000000000005", "eve_blocked", "Eve", "a5"),
     "bot": user("200000000000000006", "Qordbot", None, "a6", bot=True),
     "fay": user("200000000000000007", "fay", "Fay", "a7"),
+    # Discord's own account: official notices, no replies
+    "system": dict(user("643945264868098049", "discord", "Discord", None), system=True),
 }
 U = {k: v["id"] for k, v in USERS.items()}
+# Someone the client isn't told about at startup (ValidUser's "@unknown-user")
+STRANGER = user("200000000000000099", "gus", "Gus", "a8")
 
 STATUS = {"self": "online", "ava": "online", "ben": "idle", "cleo": "dnd", "dan": "offline",
           "eve": "online", "bot": "online", "fay": "online"}
@@ -157,9 +161,11 @@ CH = {
     "g2_text": "410000000000000001",
     "g2_general": "410000000000000002",
     "staff": "410000000000000003",
+    "staff_voice": "410000000000000005",
     "g2_voice": "410000000000000004",
     # DMs
     "dm_ava": "420000000000000001",
+    "dm_system": "420000000000000009",
     "group": "420000000000000002",
 }
 
@@ -167,7 +173,8 @@ ROLES = {
     G1: [
         role(G1, "@everyone", 0, 0, EVERYONE_PERMS),
         role("500000000000000001", "Admin", 0xE91E63, 3, 8, hoist=True),
-        role("500000000000000002", "Moderator", 0x3498DB, 2, EVERYONE_PERMS | (1 << 13), hoist=True),
+        dict(role("500000000000000002", "Moderator", 0x3498DB, 2, EVERYONE_PERMS | (1 << 13) | (1 << 1), hoist=True),
+             unicode_emoji="🛡️"),
         role("500000000000000003", "Bots", 0x9B59B6, 1, EVERYONE_PERMS, hoist=True),
     ],
     G2: [
@@ -179,7 +186,10 @@ ROLES = {
 GUILD_CHANNELS = {
     G1: [
         channel(CH["g1_info"], G1, 4, "Information", 0),
-        channel(CH["rules"], G1, 0, "rules", 0, CH["g1_info"], "Read these first."),
+        channel(CH["rules"], G1, 0, "rules", 0, CH["g1_info"], "Read these first.",
+                overwrites=[{"id": G1, "type": 0, "allow": "0", "deny": str(SEND)},
+                            {"id": "500000000000000002", "type": 0, "allow": str(SEND | (1 << 13)), "deny": "0"},
+                            {"id": U["ben"], "type": 1, "allow": str(1 << 6), "deny": "0"}]),
         channel(CH["announcements"], G1, 5, "announcements", 1, CH["g1_info"], "News about the project"),
         channel(CH["g1_text"], G1, 4, "Text Channels", 1),
         channel(CH["general"], G1, 0, "general", 0, CH["g1_text"],
@@ -197,8 +207,15 @@ GUILD_CHANNELS = {
         channel(CH["g2_general"], G2, 0, "general", 0, CH["g2_text"], "Welcome to Second Server"),
         channel(CH["staff"], G2, 0, "staff-only", 1, CH["g2_text"], "Hidden from regular members",
                 overwrites=[{"id": G2, "type": 0, "allow": "0", "deny": str(VIEW)},
-                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"}]),
+                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"},
+                            {"id": U["fay"], "type": 1, "allow": str(VIEW), "deny": "0"}],
+                nsfw=True, rate_limit_per_user=3605, default_auto_archive_duration=1440),
         channel(CH["g2_voice"], G2, 2, "Hangout", 1, CH["g2_text"], bitrate=64000, user_limit=0),
+        # Hidden from the tester too (ShowHiddenChannels)
+        channel(CH["staff_voice"], G2, 2, "Staff Voice", 2, CH["g2_text"], bitrate=96000, user_limit=0,
+                rtc_region="rotterdam", video_quality_mode=2,
+                overwrites=[{"id": G2, "type": 0, "allow": "0", "deny": str(VIEW)},
+                            {"id": "510000000000000001", "type": 0, "allow": str(VIEW), "deny": "0"}]),
     ],
 }
 
@@ -234,6 +251,7 @@ GUILDS = {
 
 PRIVATE_CHANNELS = [
     {"id": CH["dm_ava"], "type": 1, "recipient_ids": [U["ava"]], "last_message_id": None, "flags": 0},
+    {"id": CH["dm_system"], "type": 1, "recipient_ids": [U["system"]], "last_message_id": None, "flags": 0},
     {"id": CH["group"], "type": 3, "recipient_ids": [U["ben"], U["cleo"]], "name": "weekend plans",
      "icon": None, "owner_id": SELF_ID, "last_message_id": None, "flags": 0},
 ]
@@ -283,6 +301,20 @@ def attachment(name: str, w: int, h: int) -> dict:
             "width": w, "height": h, "content_type": "image/png"}
 
 
+# Text files (Discord's text preview, CopyFileContents)
+BUILD_LOG = "".join(f"[{i:02d}] step {i}: compiling module_{i}.cpp ... ok\n" for i in range(1, 31)).encode()
+BIG_TEXT = "".join(f"line {i:05d}: " + "lorem ipsum dolor sit amet " * 2 + "\n" for i in range(1, 1100)).encode()
+TEXT_FILES = {"build.log": BUILD_LOG, "notes-big.txt": BIG_TEXT}
+
+
+def text_attachment(name: str) -> dict:
+    aid = snowflake()
+    url = f"https://cdn.discordapp.com/attachments/{CH['dev']}/{aid}/{name}"
+    return {"id": aid, "filename": name, "size": len(TEXT_FILES[name]), "url": url,
+            "proxy_url": url.replace("cdn.discordapp.com", "media.discordapp.net"),
+            "content_type": "text/plain; charset=utf-8"}
+
+
 def message(cid: str, author: str, content: str, at_ms: int, **extra) -> dict:
     mid = snowflake(at_ms)
     ch_guild = next((g for g, chans in GUILD_CHANNELS.items() if any(c["id"] == cid for c in chans)), None)
@@ -308,11 +340,56 @@ def add(cid: str, author: str, content: str, minutes_ago: float, **extra) -> dic
     return m
 
 
+def user_settings_proto() -> str:
+    # QORD_MOCK_FOLDERS=1: Second Server in a "Work" folder (BetterFolders).
+    # PreloadedUserSettings.guild_folders = 14 { folders = 1 { guild_ids = 1,
+    # id = 2 (Int64Value), name = 3 (StringValue), color = 4 (UInt64Value) },
+    # guild_positions = 2 }
+    if os.environ.get("QORD_MOCK_FOLDERS") != "1":
+        return ""
+
+    def varint(n: int) -> bytes:
+        out = b""
+        while True:
+            b, n = n & 0x7F, n >> 7
+            out += bytes([b | (0x80 if n else 0)])
+            if not n:
+                return out
+
+    def field(number: int, payload: bytes) -> bytes:
+        return varint(number << 3 | 2) + varint(len(payload)) + payload
+
+    def fixed64s(*ids: str) -> bytes:
+        return b"".join(int(i).to_bytes(8, "little") for i in ids)
+
+    folder = (field(1, fixed64s(G2)) + field(2, varint(1 << 3) + varint(4242)) + field(3, field(1, b"Work"))
+              + field(4, varint(1 << 3) + varint(0x5865F2)))
+    folders = field(1, folder) + field(2, fixed64s(G1, G2))
+    return base64.b64encode(field(14, folders)).decode()
+
+
+def frecency_settings() -> str:
+    # FrecencyUserSettings with favorite_emojis = 5 { repeated string emojis = 1 }:
+    # the party_blob custom emoji and the sob Unicode emoji (FavoriteEmojiFirst)
+    def string_field(number: int, value: bytes) -> bytes:
+        return bytes([number << 3 | 2, len(value)]) + value
+    favorites = string_field(1, b"720000000000000003") + string_field(1, b"sob")
+    return base64.b64encode(string_field(5, favorites)).decode()
+
+
+def member_count(gid: str) -> int:
+    # QORD_MOCK_LARGE=1 reports Second Server as a 1,500-member server
+    # (ForceOwnerCrown: Qord hides the owner crown in large servers)
+    if gid == G2 and os.environ.get("QORD_MOCK_LARGE") == "1":
+        return 1500
+    return len(MEMBERS[gid])
+
+
 def seed_messages() -> None:
     g = CH["general"]
     add(g, "dan", "", 60 * 26, type=7)  # member join
     add(g, "ava", "morning everyone ☀️", 60 * 25)
-    add(g, "ben", "hey! did anyone try the new build?", 60 * 25 - 2)
+    build_question = add(g, "ben", "hey! did anyone try the new build?", 60 * 25 - 2)
     add(g, "ava", "yes, it starts in **under a second** and uses ~50 MB", 60 * 25 - 1)
     add(g, "cleo", "nice. the *plugin* page looks good too", 60 * 3)
     first = add(g, "cleo", "here's the snippet I used:\n```cpp\nint main() {\n    return 0;\n}\n```", 60 * 3 - 1)
@@ -353,12 +430,20 @@ def seed_messages() -> None:
         embeds=[{"type": "image", "url": fake_sticker,
                  "thumbnail": {"url": fake_sticker, "proxy_url": fake_sticker, "width": 160, "height": 160}}])
 
+    dev_lines = []
     for i in range(60):
         who = ["ava", "ben", "cleo", "dan"][i % 4]
-        add(CH["dev"], who, f"dev log line {i + 1}: refactored module {i % 7}", 60 * 48 - i * 30)
+        dev_lines.append(add(CH["dev"], who, f"dev log line {i + 1}: refactored module {i % 7}", 60 * 48 - i * 30))
 
     add(CH["media"], "ava", "screenshot of the new layout", 90, attachments=[attachment("layout.png", 480, 270)])
     add(CH["media"], "ben", "", 80, attachments=[attachment("diagram.png", 320, 320)])
+    add(CH["media"], "ava", f"ask <@{STRANGER['id']}> about the render farm", 78)
+    add(CH["media"], "cleo", "¿Alguien quiere probar la nueva versión esta noche?", 77)  # Translate
+    # MessageLinkEmbeds: links to a message in #general and to one in #development
+    add(CH["media"], "dan", f"context: https://discord.com/channels/{G1}/{g}/{build_question['id']} and "
+        f"https://discord.com/channels/{G1}/{CH['dev']}/{dev_lines[2]['id']}", 76)
+    add(CH["dev"], "ben", "here's the build log", 75, attachments=[text_attachment("build.log")])
+    add(CH["dev"], "cleo", "and my (long) notes", 74, attachments=[text_attachment("notes-big.txt")])
     add(CH["rules"], "self", "1. Be kind\n2. No spam\n3. Have fun", 60 * 400)
     add(CH["announcements"], "self", "**Qord 0.1** is out! 🎉", 60 * 100)
     add(CH["g2_general"], "ava", "welcome to the second server", 60 * 5)
@@ -366,6 +451,8 @@ def seed_messages() -> None:
     add(CH["dm_ava"], "ava", "hey, are you around later?", 60 * 6)
     add(CH["dm_ava"], "self", "yep, after 6", 60 * 6 - 3)
     add(CH["dm_ava"], "ava", "cool, ping me", 12)
+    add(CH["dm_system"], "system", "Your account's security settings were updated. If this wasn't you, "
+                                   "reset your password.", 60 * 30)
     add(CH["group"], "ben", "saturday or sunday?", 60 * 20)
     add(CH["group"], "cleo", "sunday works for me", 60 * 19)
 
@@ -415,9 +502,17 @@ COMMAND_INDEX = {
         {"id": "800000000000000003", "application_id": U["bot"], "version": "1", "type": 1, "name": "echo",
          "description": "Repeat some text", "options": [
              {"type": 3, "name": "text", "description": "What to say", "required": True}]},
+        # An autocomplete option (the bot suggests cities) and static choices
+        {"id": "800000000000000004", "application_id": U["bot"], "version": "1", "type": 1, "name": "weather",
+         "description": "Today's weather", "options": [
+             {"type": 3, "name": "city", "description": "Which city", "required": True, "autocomplete": True},
+             {"type": 3, "name": "units", "description": "Units", "required": False,
+              "choices": [{"name": "Celsius", "value": "c"}, {"name": "Fahrenheit", "value": "f"}]}]},
     ],
     "version": "1",
 }
+CITIES = [("Paris", "fr-75"), ("Pretoria", "za-pt"), ("Amsterdam", "nl-ams"), ("Berlin", "de-be"),
+          ("Barcelona", "es-bcn"), ("Portland", "us-pdx")]
 
 # FakeNitro: the self user has no Nitro, so the second server's emojis and
 # stickers are sent as links from the first
@@ -429,6 +524,35 @@ GUILD_EMOJIS = {
          {"id": "720000000000000003", "name": "party_blob", "animated": True, "available": True,
           "managed": False, "roles": [], "require_colons": True}],
 }
+# Discord's own packs: anyone can send these, anywhere (one Lottie, one PNG)
+STICKER_PACKS = [
+    {"id": "847199849233514549", "name": "Wumpus Beyond", "sku_id": "847199849233514547",
+     "cover_sticker_id": "749054660769218631", "description": "Wumpus's adventures", "banner_asset_id": None,
+     "stickers": [
+         {"id": "749054660769218631", "name": "Wave", "tags": "wumpus, hello, hi", "description": "Wumpus waves",
+          "format_type": 3, "type": 1, "pack_id": "847199849233514549", "available": True, "sort_value": 1},
+         {"id": "749054660769218632", "name": "Cheer", "tags": "wumpus, yay", "description": "Wumpus cheers",
+          "format_type": 1, "type": 1, "pack_id": "847199849233514549", "available": True, "sort_value": 2}]},
+]
+PACK_STICKERS = {st["id"]: st for pack in STICKER_PACKS for st in pack["stickers"]}
+
+# A tiny Lottie animation (a yellow circle) for Lottie stickers
+LOTTIE_STICKER = json.dumps({
+    "v": "5.5.2", "fr": 30, "ip": 0, "op": 30, "w": 160, "h": 160, "nm": "mock", "ddd": 0, "assets": [],
+    "layers": [{"ddd": 0, "ind": 1, "ty": 4, "nm": "circle", "sr": 1, "ip": 0, "op": 30, "st": 0, "bm": 0,
+                "ks": {"o": {"a": 0, "k": 100}, "r": {"a": 0, "k": 0}, "p": {"a": 0, "k": [80, 80, 0]},
+                       "a": {"a": 0, "k": [0, 0, 0]},
+                       "s": {"a": 0, "k": [100, 100, 100]}},
+                "shapes": [{"ty": "gr", "nm": "g", "it": [
+                    {"ty": "el", "nm": "e", "d": 1, "p": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [120, 120]}},
+                    {"ty": "fl", "nm": "f", "c": {"a": 0, "k": [0.996, 0.906, 0.361, 1]},
+                     "o": {"a": 0, "k": 100}, "r": 1},
+                    {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]},
+                     "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}}]}]}],
+}).encode()
+
+REACTORS: dict[tuple[str, str], list[dict]] = {}  # (message id, emoji name) -> users
+
 GUILD_STICKERS = {
     G2: [{"id": "700000000000000003", "name": "Far Dance", "tags": "dance", "description": None,
           "format_type": 1, "available": True, "guild_id": G2, "type": 2}],
@@ -515,7 +639,7 @@ def gateway_guild(gid: str) -> dict:
     return {
         "id": gid, "properties": props, "channels": chans, "roles": ROLES[gid], "emojis": GUILD_EMOJIS.get(gid, []),
         "stickers": GUILD_STICKERS.get(gid, []),
-        "threads": [], "members": [guild_member(gid, "self")], "member_count": len(MEMBERS[gid]),
+        "threads": [], "members": [guild_member(gid, "self")], "member_count": member_count(gid),
         "joined_at": iso(NOW - 900 * HOUR), "lazy": True, "large": False, "premium_subscription_count":
         props["premium_subscription_count"], "data_mode": "full", "version": 1,
         "guild_scheduled_events": [], "stage_instances": [], "activity_instances": [],
@@ -578,7 +702,7 @@ def ready_payload() -> dict:
         "relationships": RELATIONSHIPS,
         "read_state": {"version": 1, "partial": False, "entries": read_entries},
         "user_guild_settings": {"version": 1, "partial": False, "entries": list(GUILD_SETTINGS.values())},
-        "user_settings_proto": "",
+        "user_settings_proto": user_settings_proto(),
         "notes": {},
         "session_id": "mock-session",
         "resume_gateway_url": "",
@@ -617,7 +741,7 @@ def member_list_update(gid: str) -> dict:
             m["presence"] = dict(presence(key), user={"id": USERS[key]["id"]})
             items.append({"member": m})
     online = sum(1 for k in MEMBERS[gid] if STATUS[k] != "offline")
-    return {"guild_id": gid, "id": "everyone", "member_count": len(MEMBERS[gid]), "online_count": online,
+    return {"guild_id": gid, "id": "everyone", "member_count": member_count(gid), "online_count": online,
             "groups": group_list, "ops": [{"op": "SYNC", "range": [0, 99], "items": items}]}
 
 
@@ -760,11 +884,16 @@ async def run_gateway(conn: GatewayConn) -> None:
             elif op == 8:
                 gid = (d or {}).get("guild_id")
                 gids = gid if isinstance(gid, list) else [gid]
+                wanted = (d or {}).get("user_ids")
                 for g in gids:
                     if g in GUILDS:
+                        keys = [k for k in MEMBERS[g] if not wanted or U.get(k) in wanted]
+                        found = {U[k] for k in keys}
+                        log(f"gateway: members requested in {g}: {wanted or 'all'}")
                         await conn.dispatch("GUILD_MEMBERS_CHUNK", {
-                            "guild_id": g, "members": [guild_member(g, k) for k in MEMBERS[g]],
-                            "chunk_index": 0, "chunk_count": 1, "not_found": [],
+                            "guild_id": g, "members": [guild_member(g, k) for k in keys],
+                            "chunk_index": 0, "chunk_count": 1,
+                            "not_found": [u for u in (wanted or []) if u not in found],
                             "nonce": (d or {}).get("nonce")})
             else:
                 log(f"gateway: op {op} ignored")
@@ -787,13 +916,27 @@ def resolve_channel(name_or_id: str) -> str:
     return CH.get(name_or_id, name_or_id)
 
 
+# Connected accounts in profiles (ShowConnections)
+CONNECTED_ACCOUNTS = {
+    "ava": [
+        {"type": "github", "id": "1001", "name": "ava-codes", "verified": True, "visibility": 1},
+        {"type": "steam", "id": "76561190000000001", "name": "AvaPlays", "verified": True, "visibility": 1},
+        {"type": "xbox", "id": "2533270000000001", "name": "Ava Gamer", "verified": False, "visibility": 1},
+        {"type": "battlenet", "id": "1002", "name": "Ava#1234", "verified": False, "visibility": 1},
+        {"type": "domain", "id": "ava.example", "name": "ava.example", "verified": True, "visibility": 1},
+    ],
+}
+# GitHub's /users/{name}/orgs, as ShowConnections asks it (no real GitHub)
+GITHUB_ORGS = {"ava-codes": [{"login": "Equicord", "id": 1}, {"login": "qord-dev", "id": 2}]}
+
+
 def profile(uid: str) -> dict:
     key = next((k for k, u in USERS.items() if u["id"] == uid), None)
     u = USERS.get(key) if key else user(uid, "unknown", None)
     return {"user": dict(u, bio="Mock profile bio.", banner=None, accent_color=0x5865F2),
             "user_profile": {"bio": "Mock profile bio.", "accent_color": 0x5865F2, "pronouns": "",
                              "theme_colors": None, "banner": None},
-            "connected_accounts": [], "premium_since": None, "premium_type": 0,
+            "connected_accounts": CONNECTED_ACCOUNTS.get(key, []), "premium_since": None, "premium_type": 0,
             "mutual_guilds": [{"id": gid, "nick": None} for gid in GUILDS if key in MEMBERS[gid]],
             "mutual_friends_count": 1, "badges": [], "guild_badges": []}
 
@@ -837,6 +980,7 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             m["nonce"] = j.get("nonce")
             m["flags"] = int(j.get("flags", 0) or 0)
             stickers = [s for s in GUILD_STICKERS.get(GUILD_OF.get(cid, ""), []) if s["id"] in (j.get("sticker_ids") or [])]
+            stickers += [PACK_STICKERS[i] for i in (j.get("sticker_ids") or []) if i in PACK_STICKERS]
             if stickers:
                 m["sticker_items"] = [{"id": s["id"], "name": s["name"], "format_type": s["format_type"]}
                                       for s in stickers]
@@ -854,6 +998,33 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
                 f"allowed_mentions={j.get('allowed_mentions')}")
             await broadcast("MESSAGE_CREATE", m)
             return 200, m, "json"
+        if len(rest) == 3 and rest[0] == "messages" and rest[2] == "threads" and method == "POST":
+            # A thread started from a message: it takes the message's id
+            m = find_message(cid, rest[1])
+            if not m:
+                return 404, {"message": "Unknown Message", "code": 10008}, "json"
+            if m.get("flags", 0) & 32:
+                return 400, {"message": "A thread has already been created for this message", "code": 160004}, "json"
+            gid = GUILD_OF.get(cid)
+            name = (j.get("name") or "").strip()[:100]
+            if not name:
+                return 400, {"message": "Invalid Form Body", "code": 50035}, "json"
+            thread = {"id": m["id"], "type": 11, "guild_id": gid, "parent_id": cid, "name": name,
+                      "owner_id": SELF_ID, "last_message_id": None, "message_count": 0, "member_count": 1,
+                      "rate_limit_per_user": 0, "flags": 0, "total_message_sent": 0,
+                      "thread_metadata": {"archived": False, "locked": False,
+                                          "auto_archive_duration": j.get("auto_archive_duration", 1440),
+                                          "archive_timestamp": iso(int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))},
+                      "member": {"id": m["id"], "user_id": SELF_ID, "flags": 1,
+                                 "join_timestamp": iso(int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000))}}
+            MESSAGES.setdefault(thread["id"], [])
+            GUILD_OF[thread["id"]] = gid
+            await broadcast("THREAD_CREATE", dict(thread, newly_created=True))
+            m["flags"] = m.get("flags", 0) | 32  # HAS_THREAD
+            m["thread"] = thread
+            await broadcast("MESSAGE_UPDATE", m)
+            log(f"rest: thread {name!r} created from message {m['id']} in {cid}")
+            return 201, thread, "json"
         if len(rest) == 2 and rest[0] == "messages":
             mid = rest[1]
             m = find_message(cid, mid)
@@ -877,6 +1048,20 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             m = find_message(cid, mid)
             if not m:
                 return 404, {"message": "Unknown Message", "code": 10008}, "json"
+            # Who reacted (WhoReacted): seeded from the count, then kept up
+            name = emoji.split(":")[0]
+            r0 = next((r for r in m["reactions"] if r["emoji"]["name"] == name), None)
+            who = REACTORS.setdefault((mid, name), [
+                *[USERS[k] for k in ("ben", "cleo", "dan", "fay", "ava")][:max(0, (r0 or {}).get("count", 0)
+                                                                               - (1 if (r0 or {}).get("me") else 0))],
+                *([USERS["self"]] if (r0 or {}).get("me") else [])])
+            if method == "GET" and len(rest) == 4:
+                log(f"rest: reaction users {name} on {mid} -> {[u['username'] for u in who]}")
+                return 200, who, "json"
+            if method == "PUT" and USERS["self"] not in who:
+                who.append(USERS["self"])
+            if method == "DELETE" and USERS["self"] in who:
+                who.remove(USERS["self"])
             ev = {"user_id": SELF_ID, "channel_id": cid, "message_id": mid, "guild_id": m.get("guild_id"),
                   "emoji": {"id": None, "name": emoji}, "burst": False, "type": 0}
             r = next((r for r in m["reactions"] if r["emoji"]["name"] == emoji), None)
@@ -977,8 +1162,20 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         log(f"rest: guild settings {gid} <- {j}")
         await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
         return 200, settings, "json"
+    if parts[:5] == ["users", "@me", "affinities", "v2", "users"] and method == "GET":
+        # ImplicitRelationships: dan and a stranger you share no server with,
+        # plus friends and requests (which the plugin leaves out)
+        return 200, {"user_affinities": [
+            {"other_user_id": STRANGER["id"], "communication_rank": 0, "communication_probability": 0.9},
+            {"other_user_id": U["ben"], "communication_rank": 1, "communication_probability": 0.8},
+            {"other_user_id": U["dan"], "communication_rank": 2, "communication_probability": 0.5},
+            {"other_user_id": U["fay"], "communication_rank": 3, "communication_probability": 0.3},
+        ]}, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
         return await relationships(method, parts[3] if len(parts) > 3 else None, j)
+    if parts[:1] == ["users"] and len(parts) == 2 and method == "GET":
+        found = next((u for u in list(USERS.values()) + [STRANGER] if u["id"] == parts[1]), None)
+        return (200, found, "json") if found else (404, {"message": "Unknown User", "code": 10013}, "json")
     if parts[:1] == ["users"] and len(parts) >= 3 and parts[2] == "profile":
         return 200, profile(parts[1]), "json"
     if parts[:2] == ["users", "@me"] and method == "GET" and len(parts) == 2:
@@ -992,6 +1189,8 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
     if parts[:3] == ["users", "@me", "settings-proto"]:
         if method == "PATCH":
             log(f"rest: settings-proto/{parts[3] if len(parts) > 3 else '?'} patched ({len(body)} bytes)")
+        if len(parts) > 3 and parts[3] == "2":
+            return 200, {"settings": frecency_settings()}, "json"
         return 200, {"settings": ""}, "json"
     if len(parts) == 3 and parts[2] == "application-command-index" and parts[0] in ("guilds", "channels"):
         empty = {"applications": [], "application_commands": [], "version": "0"}
@@ -1013,7 +1212,20 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
             return out
         args = flat(data.get("options"))
         name = data.get("name")
-        if name == "ping":
+        if j.get("type") == 4:
+            # Autocomplete: the focused option's suggestions, over the gateway
+            focused = next((o for o in data.get("options", []) if o.get("focused")), {})
+            typed = str(focused.get("value", "")).lower()
+            choices = [{"name": c, "value": v} for c, v in CITIES if typed in c.lower()][:25]
+            await broadcast("APPLICATION_COMMAND_AUTOCOMPLETE_RESPONSE", {"nonce": j.get("nonce"), "choices": choices})
+            log(f"rest: autocomplete {focused.get('name')}={typed!r} -> {[c['name'] for c in choices]}")
+            return 204, None, "json"
+        if name == "weather":
+            city = next((c for c, v in CITIES if v == args.get("city")), None)
+            units = {"c": "°C", "f": "°F"}.get(args.get("units", "c"), "°C")
+            reply = (f"☀️ {city}: 21{units}" if city
+                     else f"I don't know a city called {args.get('city')!r} (pick one from the list)")
+        elif name == "ping":
             reply = "Pong! 🏓"
         elif name == "roll":
             reply = f"🎲 You rolled {random.randint(1, int(args.get('sides', 6) or 6))}"
@@ -1037,6 +1249,8 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
                       "gif_src": f"https://media.discordapp.net/mock-gifs/{i}.gif",
                       "preview": f"https://media.discordapp.net/mock-gifs/{i}.png", "width": 220, "height": 160}
                      for i, w in enumerate(hits)], "json"
+    if parts == ["sticker-packs"] and method == "GET":
+        return 200, {"sticker_packs": STICKER_PACKS}, "json"
     if len(parts) == 3 and parts[0] == "guilds" and parts[2] == "stickers" and method == "GET":
         return 200, GUILD_STICKERS.get(parts[1], []), "json"
     if parts[:1] == ["read-states"]:
@@ -1125,12 +1339,45 @@ def cdn(path: str) -> tuple[int, bytes, str]:
     key = path
     if "/attachments/" in path:
         name = path.rsplit("/", 1)[-1]
+        if name in TEXT_FILES:
+            return 200, TEXT_FILES[name], "text/plain; charset=utf-8"
         if name.startswith("diagram"):
             return 200, png(320, 320, (88, 101, 242), gradient=True), "image/png"
         return 200, png(480, 270, (235, 69, 158), gradient=True), "image/png"
+    if "/stickers/" in path and path.endswith(".json"):
+        return 200, LOTTIE_STICKER, "application/json"
     if "/embed/avatars/" in path:
         return 200, png(64, 64, (88, 101, 242)), "image/png"
     return 200, png(64, 64, colour_for(key.split("/")[4] if key.count("/") > 4 else key)), "image/png"
+
+
+# Translate plugin: fake Google / DeepL / Kagi answers (no real service)
+SPANISH = {"¿Alguien quiere probar la nueva versión esta noche?":
+           "Does anyone want to try the new version tonight?"}
+
+
+def fake_translation(text: str, to: str) -> tuple[str, str]:
+    if text in SPANISH and to.lower().startswith("en"):
+        return SPANISH[text], "es"
+    return f"[{to}] {text}", "en"
+
+
+def mock_translate(path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
+    if path.startswith("/cdn/translate-pa.googleapis.com/"):
+        text, source = fake_translation(query.get("query.text", [""])[0], query.get("query.targetLanguage", ["en"])[0])
+        return 200, json.dumps({"translation": text, "sourceLanguage": source}).encode(), "application/json"
+    req = json.loads(body or b"{}")
+    if "deepl.com/" in path:
+        if headers.get("authorization", "") != "DeepL-Auth-Key mock-key":
+            return 403, b"Forbidden", "text/plain"
+        text, source = fake_translation(req["text"][0], req.get("target_lang", "en"))
+        return 200, json.dumps({"translations": [{"detected_source_language": source.upper(),
+                                                  "text": text}]}).encode(), "application/json"
+    if "kagi_session=mock-session" not in headers.get("cookie", ""):
+        return 401, b"{}", "application/json"
+    text, source = fake_translation(req["text"], req.get("to", "en"))
+    return 200, json.dumps({"translation": text, "detected_language": {"label": "Spanish" if source == "es" else
+                                                                       "English"}}).encode(), "application/json"
 
 
 # ---------------------------------------------------------------------------
@@ -1186,7 +1433,16 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             url = urlsplit(target)
             query = parse_qs(url.query)
-            if url.path.startswith("/cdn/"):
+            if url.path.startswith("/cdn/api.github.com/users/") and url.path.endswith("/orgs"):
+                login = unquote(url.path.split("/")[4]).lower()
+                if login in GITHUB_ORGS:
+                    status, data, ctype = 200, json.dumps(GITHUB_ORGS[login]).encode(), "application/json"
+                else:
+                    status, data, ctype = 404, b'{"message":"Not Found"}', "application/json"
+            elif url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
+                                    "/cdn/api.deepl.com/", "/cdn/translate.kagi.com/")):
+                status, data, ctype = mock_translate(url.path, query, body, headers)
+            elif url.path.startswith("/cdn/"):
                 status, data, ctype = cdn(url.path)
             elif url.path == "/mock/dispatch" and method == "POST":
                 ev = json.loads(body)
@@ -1201,7 +1457,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 status, obj, _ = await handle_rest(method, url.path, query, body, headers)
                 data = b"" if obj is None else json.dumps(obj).encode()
                 ctype = "application/json"
-            reason = {200: "OK", 201: "Created", 204: "No Content", 404: "Not Found", 400: "Bad Request"}.get(status, "OK")
+            reason = {200: "OK", 201: "Created", 204: "No Content", 404: "Not Found", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 456: "Quota Exceeded"}.get(status, "OK")
             head = (f"HTTP/1.1 {status} {reason}\r\nContent-Type: {ctype}\r\n"
                     f"Content-Length: {len(data)}\r\nConnection: keep-alive\r\n\r\n")
             writer.write(head.encode() + data)

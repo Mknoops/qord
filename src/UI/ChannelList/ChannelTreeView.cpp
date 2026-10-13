@@ -1,4 +1,5 @@
 #include "ChannelTreeView.hpp"
+#include "Plugins/PluginHost.hpp"
 #include "ChannelFilterProxyModel.hpp"
 #include "ChannelTreeModel.hpp"
 #include "MentionJumpIndicator.hpp"
@@ -127,6 +128,16 @@ bool ChannelTreeView::handleMouseEventForExpansion(QMouseEvent *event)
         return false;
 
     auto nodeType = static_cast<ChannelNode::Type>(sourceIndex.data(ChannelTreeModel::TypeRole).toInt());
+    // Qord: PinDMs' headers collapse through the plugin
+    if (nodeType == ChannelNode::Type::DMPinHeader) {
+        const auto *node = static_cast<const ChannelNode *>(sourceIndex.internalPointer());
+        const Core::Snowflake accountId = sourceModel->accountIdFor(node);
+        const QString pluginId = sourceModel->dmPinPlugin(accountId);
+        if (event->type() == QEvent::MouseButtonPress && node->pinCollapsible && !pluginId.isEmpty())
+            if (auto *host = Qord::Plugins::PluginHost::instance())
+                host->dispatchDmPinHeaderClicked(pluginId, quint64(accountId), node->pinHeaderId);
+        return true;
+    }
     if (nodeType == ChannelNode::Type::Category) {
         sourceModel->toggleCollapsed(sourceIndex);
         proxy->invalidateFilter();
@@ -160,6 +171,35 @@ void ChannelTreeView::contextMenuEvent(QContextMenuEvent *event)
 
     if (nodeType == ChannelNode::Type::VoiceParticipant) {
         emit voiceParticipantContextMenuRequested(proxyIndex, event->globalPos());
+        return;
+    }
+
+    // Qord: PinDMs' header menu (Edit, Move, Delete Category)
+    if (nodeType == ChannelNode::Type::DMPinHeader) {
+        auto *sourceModel = qobject_cast<ChannelTreeModel *>(proxy->sourceModel());
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const auto *node = static_cast<const ChannelNode *>(sourceIndex.internalPointer());
+        if (!sourceModel || !host)
+            return;
+        const Core::Snowflake accountId = sourceModel->accountIdFor(node);
+        const QString pluginId = sourceModel->dmPinPlugin(accountId);
+        const QString headerId = node->pinHeaderId;
+        const auto items = host->dispatchDmPinHeaderMenu(pluginId, quint64(accountId), headerId);
+        if (items.isEmpty())
+            return;
+        QMenu menu(this);
+        for (const auto &item : items) {
+            if (item.id.isEmpty()) {
+                menu.addSeparator();
+                continue;
+            }
+            QAction *action = menu.addAction(item.label);
+            connect(action, &QAction::triggered, this, [pluginId, accountId, headerId, itemId = item.id]() {
+                if (auto *h = Qord::Plugins::PluginHost::instance())
+                    h->dispatchDmPinHeaderMenuAction(pluginId, quint64(accountId), headerId, itemId);
+            });
+        }
+        menu.exec(event->globalPos());
         return;
     }
 

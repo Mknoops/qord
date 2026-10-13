@@ -48,7 +48,44 @@ public:
         OwnerIdRole = Qt::UserRole + 15,
         PresenceBadgeRole = Qt::UserRole + 16,
         OwnMentionCountRole = Qt::UserRole + 17,
+        // Qord: false for channels (and voice channels) you can't see or join
+        CanViewRole = Qt::UserRole + 18,
+        CanConnectRole = Qt::UserRole + 19,
+        TypingIndicatorRole = Qt::UserRole + 20, // Qord: TypingIndicator (ChannelTyping)
+        DmPinRankRole = Qt::UserRole + 21, // Qord: PinDMs, QPoint(section, order) in the DM list
     };
+
+    // Qord: who is typing next to a channel (TypingIndicator)
+    struct ChannelTyping
+    {
+        QList<QPixmap> avatars; // at most three
+        int moreUsers = 0; // "+N"
+        bool dots = false;
+        QString tooltip;
+    };
+    struct TypingSource
+    {
+        std::function<QList<Snowflake>(Snowflake accountId, Snowflake channelId)> typers;
+        std::function<bool(Snowflake channelId)> isSelected;
+    };
+    void setTypingSource(TypingSource source) { typingSource = std::move(source); }
+    // Re-renders a channel whose typers changed
+    void typingChanged(Snowflake accountId, Snowflake channelId);
+
+    // Qord: how ShowHiddenChannels shows channels you can't see; when
+    // `show` is off they stay out of the list, as in Discord
+    struct HiddenChannelOptions
+    {
+        bool show = false;
+        enum class Icon { Lock, LockRight, EyeRight };
+        Icon icon = Icon::Lock;
+        bool muted = false; // drawn like a muted channel
+    };
+    static HiddenChannelOptions &hiddenChannelOptions()
+    {
+        static HiddenChannelOptions options;
+        return options;
+    }
 
     QModelIndex index(int row, int column, const QModelIndex &parentIndex) const override;
     QModelIndex parent(const QModelIndex &childIndex) const override;
@@ -81,6 +118,9 @@ public:
     void promoteTemporaryThread(Snowflake threadId);
     void invalidateGuildData(Snowflake guildId);
     void updateReadState(Snowflake channelId, Snowflake accountId);
+    // Qord: recomputes every channel's read state (ShowHiddenChannels'
+    // unread styles changed)
+    void refreshAllReadStates();
     void updatePresence(Snowflake accountId, const QList<Snowflake> &userIds);
     void updateForumBadge(Snowflake forumId, Snowflake accountId);
     void updateForumThreads(Snowflake forumId, Snowflake accountId);
@@ -103,9 +143,24 @@ public:
     QModelIndex dmHeaderIndex(Snowflake accountId);
     // Qord: every server of the account, folders included
     QList<Snowflake> guildIds(Snowflake accountId) const;
+    // Qord: the DM list's channels, newest message first (MutualGroupDMs)
+    QList<const ChannelNode *> dmChannels(Snowflake accountId) const;
+
+    // Qord: PinDMs groups the DM list: header rows for its categories and
+    // "Direct Messages", pinned DMs under them. Asks the plugins again.
+    void refreshDmPins();
+    // Whether a DM row shows (collapsed categories hide theirs, except the
+    // open one); whether DM rows sort by their last message within a group
+    [[nodiscard]] bool dmPinShows(const ChannelNode *node, Snowflake selectedAccountId,
+                                  Snowflake selectedChannelId) const;
+    [[nodiscard]] bool dmPinsSortByLastMessage(const ChannelNode *node) const;
+    // The plugin that groups the account's DMs (empty: none)
+    [[nodiscard]] QString dmPinPlugin(Snowflake accountId) const;
+    [[nodiscard]] Snowflake accountIdFor(const ChannelNode *node) const;
 
 signals:
     void totalMentionCountChanged(int count, int previousCount);
+    void dmPinsChanged(); // Qord: re-sort and re-filter the DM list
 
 private:
     static void collectMarkableChannelIds(ChannelNode *node, QList<Snowflake> &out);
@@ -136,12 +191,31 @@ private:
 
     std::unique_ptr<ChannelNode> root;
     QHash<Snowflake, ChannelNode *> accountNodes;
+    TypingSource typingSource;
     QHash<Snowflake, Snowflake> accountVoiceChannels;
     int publishedMentionCount = 0;
     mutable AvatarRequestTracker<QPersistentModelIndex> avatarTracker;
 
     Snowflake temporaryThreadId;
     Snowflake temporaryThreadAccount;
+
+    // Qord: PinDMs, per account
+    struct DmPins
+    {
+        QString pluginId;
+        bool sortByLastMessage = true;
+        bool sectionCollapsible = false;
+        bool sectionCollapsed = false;
+        int categoryCount = 0;
+        QSet<QString> collapsed; // category ids
+        QHash<Snowflake, QPair<int, int>> pinned; // channel -> (category, position)
+        QHash<Snowflake, QString> categoryOf;
+    };
+    QHash<Snowflake, DmPins> dmPins;
+    void applyDmPins(Snowflake accountId);
+    [[nodiscard]] QPoint dmPinRank(const ChannelNode *node) const;
 };
 } // namespace UI
 } // namespace Acheron
+
+Q_DECLARE_METATYPE(Acheron::UI::ChannelTreeModel::ChannelTyping)

@@ -7,6 +7,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include "Core/RoleColors.hpp"
+
 #include <QTest>
 
 using namespace Acheron::Core::Markdown;
@@ -140,6 +142,35 @@ private slots:
         QCOMPARE(render("</ban user:123>"), QStringLiteral("<span class=\"mention\">/ban user</span>"));
         // Existing rules still win where they apply
         QVERIFY(render("<@123>").contains("@123"));
+        // User mentions are links, so clicking one opens the profile
+        QCOMPARE(render("<@123>"), QStringLiteral("<a href=\"acheron://user/123\" class=\"mention\">@123</a>"));
+        parser.setUserResolver([](Acheron::Core::Snowflake id, Acheron::Core::Snowflake) {
+            return id == Acheron::Core::Snowflake(7) ? QStringLiteral("Ava") : QStringLiteral("unknown-user");
+        });
+        QCOMPARE(parser.toHtml(parser.parse("<@!7> and <@8>", state)),
+                 QStringLiteral("<a href=\"acheron://user/7\" class=\"mention\">@Ava</a> and "
+                                "<a href=\"acheron://user/8\" class=\"mention\">@unknown-user</a>"));
+        // RoleColorEverywhere: a member's mention in their role color
+        parser.setUserColorResolver([](Acheron::Core::Snowflake id, Acheron::Core::Snowflake channelId) {
+            return id == Acheron::Core::Snowflake(7) && channelId == Acheron::Core::Snowflake(9) ? QColor(0x3498db)
+                                                                                               : QColor();
+        });
+        QCOMPARE(parser.toHtml(parser.parse("<@7> <@8>", state)),
+                 QStringLiteral("<a href=\"acheron://user/7\" class=\"mention\" style=\"color: #3498db; "
+                                "background-color: rgba(52, 152, 219, 0.1);\">@Ava</a> "
+                                "<a href=\"acheron://user/8\" class=\"mention\">@unknown-user</a>"));
+    }
+
+    // CSS color-mix(in oklab, ...) for RoleColorEverywhere's message text
+    void oklabMix()
+    {
+        const QColor red(255, 0, 0), white(255, 255, 255);
+        QCOMPARE(Acheron::Core::mixOklab(red, 100, white).name(), QStringLiteral("#ff0000"));
+        QCOMPARE(Acheron::Core::mixOklab(red, 0, white).name(), QStringLiteral("#ffffff"));
+        const QColor mid = Acheron::Core::mixOklab(red, 50, white);
+        QVERIFY(mid.red() >= 250);
+        QVERIFY(mid.green() > 100 && mid.green() < 200);
+        QVERIFY(qAbs(mid.green() - mid.blue()) < 30);
     }
 
     void plainTextUnchanged()

@@ -178,6 +178,14 @@ public:
         Q_UNUSED(user);
         return {};
     }
+    // A decoration with a clickId was clicked. A double click reports the
+    // first click on its own, then one with doubleClick set.
+    virtual void onNameDecorationClicked(const QString &clickId, const DecorationContext &user, bool doubleClick)
+    {
+        Q_UNUSED(clickId);
+        Q_UNUSED(user);
+        Q_UNUSED(doubleClick);
+    }
 
     // Hook::ProfileImages: an avatar or banner in a profile was clicked.
     // Return true if the plugin handled it.
@@ -189,7 +197,7 @@ public:
 
     // Hook::ReactionUsers: the users to show on a reaction (nullopt shows none),
     // and live reaction changes
-    virtual std::optional<QList<Id>> reactionUsers(const ReactionContext &reaction)
+    virtual std::optional<ReactionUsers> reactionUsers(const ReactionContext &reaction)
     {
         Q_UNUSED(reaction);
         return std::nullopt;
@@ -213,6 +221,135 @@ public:
     {
         Q_UNUSED(connection);
         return std::nullopt;
+    }
+
+    // Hook::KeyboardShortcuts: return true when the key was used
+    virtual bool onShortcut(const ShortcutContext &shortcut)
+    {
+        Q_UNUSED(shortcut);
+        return false;
+    }
+
+    // Hook::UnknownMentions: the mouse entered a user mention
+    virtual void onUserMentionHovered(const MentionContext &mention) { Q_UNUSED(mention); }
+
+    // Hook::ChannelTyping: an indicator next to a channel someone is typing in
+    // (nullopt: none)
+    virtual std::optional<TypingIndicator> channelTypingIndicator(const ChannelTypingContext &channel)
+    {
+        Q_UNUSED(channel);
+        return std::nullopt;
+    }
+
+    // Hook::MessageAccessories: shown under a message (nullopt: nothing). A
+    // plugin re-renders the message (MessageService) when this changes.
+    virtual std::optional<MessageAccessory> messageAccessory(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return std::nullopt;
+    }
+    virtual void onMessageAccessoryAction(const QString &id, const MessageContext &message)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(message);
+    }
+
+    // Hook::EmojiSuggestions: reorder (or add to) the emoji autocomplete's
+    // suggestions, and items for an emoji right-clicked in the picker
+    virtual void sortEmojiSuggestions(EmojiAutocompleteContext &context) { Q_UNUSED(context); }
+    virtual QList<MenuItem> emojiContextMenuItems(const EmojiContext &emoji)
+    {
+        Q_UNUSED(emoji);
+        return {};
+    }
+    virtual void onEmojiContextMenuAction(const QString &id, const EmojiContext &emoji)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(emoji);
+    }
+
+    // Hook::FriendsSections: tabs added to the Friends page, and the page
+    // being opened (where Discord fetches relationships)
+    virtual QList<FriendsSection> friendsSections(const FriendsContext &friends)
+    {
+        Q_UNUSED(friends);
+        return {};
+    }
+    virtual void onFriendsPageOpened(const FriendsContext &friends) { Q_UNUSED(friends); }
+
+    // Hook::DmPins: how an account's DM list is grouped (nullopt: as Discord
+    // shows it), and its headers' clicks and menus. Category ids, or
+    // DmSectionHeaderId for "Direct Messages".
+    virtual std::optional<DmPinLayout> dmPinLayout(Id accountId)
+    {
+        Q_UNUSED(accountId);
+        return std::nullopt;
+    }
+    virtual void onDmPinHeaderClicked(Id accountId, const QString &headerId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+    }
+    virtual QList<MenuItem> dmPinHeaderMenu(Id accountId, const QString &headerId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+        return {};
+    }
+    virtual void onDmPinHeaderMenuAction(Id accountId, const QString &headerId, const QString &itemId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(headerId);
+        Q_UNUSED(itemId);
+    }
+
+    // Hook::ProfileTabs: tabs added to a user's profile, and a click on one
+    // of their rows
+    virtual QList<ProfileTab> profileTabs(const UserContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+    virtual void onProfileTabRowClicked(const QString &tabId, const QString &rowId, const UserContext &user)
+    {
+        Q_UNUSED(tabId);
+        Q_UNUSED(rowId);
+        Q_UNUSED(user);
+    }
+
+    // Hook::AttachmentButtons: buttons in a text file's preview (and its
+    // full view), once its start is loaded
+    virtual QList<ChatBarButton> attachmentButtons(const AttachmentContext &attachment)
+    {
+        Q_UNUSED(attachment);
+        return {};
+    }
+    virtual void onAttachmentButtonClicked(const QString &id, const AttachmentContext &attachment)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(attachment);
+    }
+
+    // Hook::HiddenChannels: show channels you can't see (nullopt: don't), and
+    // what selecting one shows instead of its messages
+    virtual std::optional<HiddenChannelDisplay> hiddenChannelDisplay() { return std::nullopt; }
+    virtual std::optional<LockScreen> hiddenChannelLockScreen(const HiddenChannelContext &channel)
+    {
+        Q_UNUSED(channel);
+        return std::nullopt;
+    }
+
+    // Hook::ProfileRoleButtons: small buttons next to "Roles" in a server
+    // member's profile (`user.guildId` is set)
+    virtual QList<ChatBarButton> profileRoleButtons(const UserContext &user)
+    {
+        Q_UNUSED(user);
+        return {};
+    }
+    virtual void onProfileRoleButtonClicked(const QString &id, const UserContext &user)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(user);
     }
 
     // Hook::UserContextMenu

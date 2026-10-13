@@ -88,9 +88,14 @@ qord_add_plugin(dontroundmytimestamps appearance SOURCES DontRoundMyTimestamps.c
 
 # Batch 5
 qord_add_plugin(viewicons media SOURCES ViewIcons.hpp ViewIcons.cpp)
+qord_add_plugin(whoreacted chat SOURCES WhoReacted.hpp WhoReacted.cpp)
 qord_add_plugin(readallnotificationsbutton utility SOURCES ReadAllNotificationsButton.cpp)
 qord_add_plugin(membercount utility SOURCES MemberCount.cpp)
 qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp PlatformIndicators.cpp)
+qord_add_plugin(uservoiceshow voice SOURCES UserVoiceShow.hpp UserVoiceShow.cpp)
+qord_add_plugin(showconnections appearance SOURCES ShowConnections.hpp ShowConnections.cpp)
+qord_add_plugin(betterroledot appearance SOURCES BetterRoleDot.cpp)
+qord_add_plugin(implicitrelationships utility SOURCES ImplicitRelationships.cpp)
 
 # Batch 6
 qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)
@@ -99,6 +104,26 @@ qord_add_plugin(messageclickactions chat SOURCES MessageClickActions.hpp Message
 # Batch 7
 qord_add_plugin(fakenitro chat SOURCES FakeNitro.hpp FakeNitro.cpp ApngToGif.hpp ApngToGif.cpp)
 target_link_libraries(qord_plugin_fakenitro PUBLIC Qt::Gui) # QImage/QPainter for animated stickers
+
+# Batch 8
+qord_add_plugin(permissionsviewer utility SOURCES PermissionsViewer.hpp PermissionsViewer.cpp)
+qord_add_plugin(showhiddenchannels utility SOURCES ShowHiddenChannels.hpp ShowHiddenChannels.cpp)
+qord_add_plugin(copyfilecontents utility SOURCES CopyFileContents.hpp CopyFileContents.cpp)
+qord_add_plugin(serverinfo utility SOURCES ServerInfo.hpp ServerInfo.cpp)
+qord_add_plugin(typingindicator appearance SOURCES TypingIndicator.hpp TypingIndicator.cpp)
+qord_add_plugin(validuser chat SOURCES ValidUser.hpp ValidUser.cpp)
+qord_add_plugin(quickreply chat SOURCES QuickReply.hpp QuickReply.cpp)
+qord_add_plugin(translate utility SOURCES Translate.hpp Translate.cpp Languages.cpp)
+qord_add_plugin(forceownercrown appearance SOURCES ForceOwnerCrown.cpp)
+qord_add_plugin(rolecoloreverywhere appearance SOURCES RoleColorEverywhere.cpp)
+qord_add_plugin(mutualgroupdms utility SOURCES MutualGroupDMs.cpp)
+qord_add_plugin(volumebooster voice SOURCES VolumeBooster.cpp)
+qord_add_plugin(pindms chat SOURCES PinDMs.hpp PinDMs.cpp)
+qord_add_plugin(imagezoom media SOURCES ImageZoom.cpp)
+qord_add_plugin(betterfolders appearance SOURCES BetterFolders.cpp)
+qord_add_plugin(messagelinkembeds chat SOURCES MessageLinkEmbeds.hpp MessageLinkEmbeds.cpp)
+qord_add_plugin(favoriteemojifirst chat SOURCES FavoriteEmojiFirst.hpp FavoriteEmojiFirst.cpp
+    UI_SOURCES AliasListWidget.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

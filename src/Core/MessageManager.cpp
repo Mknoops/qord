@@ -1,9 +1,11 @@
 #include "MessageManager.hpp"
+#include "RoleColors.hpp"
 
 #include <QDateTime>
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QPointer>
 #include <QUrl>
 
 #include <functional>
@@ -74,6 +76,9 @@ MessageManager::MessageManager(Snowflake accountId, Discord::Client *client,
     messageCache.setMaxCost(1'000);
 
     parser->setUserResolver([this](Snowflake userId, Snowflake sourceChannelId) {
+        // Qord: Discord's name for a user it doesn't know (ValidUser fixes these)
+        if (!this->userManager->getUser(userId))
+            return QStringLiteral("unknown-user");
         return this->userManager->getDisplayName(userId, this->client->getGuildIdForChannel(sourceChannelId));
     });
 
@@ -92,6 +97,7 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
     msg.qordHiddenAttachments.clear();
     msg.qordHiddenEmbeds.clear();
     msg.qordAddedStickers.clear();
+    msg.qordAddedEmbeds.clear();
     // Plugins may change how received messages look to this user (never the
     // stored message); synthesized system texts are left alone
     auto *plugins = Qord::Plugins::PluginHost::instance();
@@ -135,6 +141,67 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         if (auto annotation = plugins->dispatchAnnotateMessage(pluginContext(msg)))
             msg.parsedContentCached = annotatedHtml(*annotation, content, msg.channelId);
     }
+    // Qord: shown under the text (Translate)
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageAccessories))
+        for (const auto &entry : plugins->dispatchMessageAccessories(pluginContext(msg))) {
+            const auto &accessory = entry.accessory;
+            if (!accessory.content.isEmpty() || !accessory.footer.isEmpty() || !accessory.links.isEmpty())
+                msg.parsedContentCached += accessoryHtml(entry.pluginId, accessory, msg.channelId);
+            // Embeds as Discord's rich embeds; images of one embed share its url
+            // so the chat groups them (MessageLinkEmbeds)
+            int index = 0;
+            for (const auto &source : accessory.embeds) {
+                const QString groupUrl = QStringLiteral("qord-accessory://%1/%2/%3")
+                                                 .arg(entry.pluginId, QString::number(quint64(msg.id.get())))
+                                                 .arg(index++);
+                Discord::Embed embed;
+                embed.type = QStringLiteral("rich");
+                embed.url = groupUrl;
+                if (!source.description.isEmpty())
+                    embed.description = source.description;
+                if (source.timestamp.isValid())
+                    embed.timestamp = source.timestamp;
+                if (source.color)
+                    embed.color = int(source.color);
+                if (!source.authorName.isEmpty()) {
+                    Discord::EmbedAuthor author;
+                    author.name = source.authorName;
+                    if (!source.authorIconUrl.isEmpty()) {
+                        author.iconUrl = source.authorIconUrl;
+                        author.proxyIconUrl = source.authorIconUrl;
+                    }
+                    embed.author = author;
+                }
+                if (!source.footerText.isEmpty()) {
+                    Discord::EmbedFooter footer;
+                    footer.text = source.footerText;
+                    if (!source.footerIconUrl.isEmpty()) {
+                        footer.iconUrl = source.footerIconUrl;
+                        footer.proxyIconUrl = source.footerIconUrl;
+                    }
+                    embed.footer = footer;
+                }
+                auto image = [&](const auto &img) {
+                    Discord::EmbedMedia media;
+                    media.url = img.url;
+                    media.proxyUrl = img.url;
+                    media.width = img.width;
+                    media.height = img.height;
+                    media.contentType = QStringLiteral("image/png");
+                    return media;
+                };
+                if (!source.images.isEmpty())
+                    embed.image = image(source.images.first());
+                msg.qordAddedEmbeds.append(embed);
+                for (int i = 1; i < std::min<int>(source.images.size(), 4); ++i) {
+                    Discord::Embed extra;
+                    extra.type = QStringLiteral("image");
+                    extra.url = groupUrl;
+                    extra.image = image(source.images[i]);
+                    msg.qordAddedEmbeds.append(extra);
+                }
+            }
+        }
 
     if (msg.type.hasValue() && msg.type.get() == Discord::MessageType::THREAD_STARTER_MESSAGE &&
         msg.referencedMessage && msg.referencedMessage->content.hasValue() &&
@@ -191,6 +258,36 @@ QString MessageManager::annotatedHtml(const Qord::Plugins::MessageAnnotation &an
     return html;
 }
 
+QString MessageManager::accessoryHtml(const QString &pluginId, const Qord::Plugins::MessageAccessory &accessory,
+                                     Snowflake channelId) const
+{
+    QString html = QStringLiteral("<div style=\"color: #b5bac1;\">");
+    if (!accessory.content.isEmpty())
+        html += inlineHtml(accessory.content, channelId);
+    QStringList links;
+    for (const auto &link : accessory.links)
+        links.append(QStringLiteral("<a href=\"%1%2/%3\">%4</a>")
+                             .arg(QLatin1String(Qord::Plugins::MessageAccessoryHref), QString::fromLatin1(QUrl::toPercentEncoding(pluginId)),
+                                  QString::fromLatin1(QUrl::toPercentEncoding(link.id)), link.label.toHtmlEscaped()));
+    if (!accessory.footer.isEmpty() || !links.isEmpty()) {
+        QString footer = accessory.footer.toHtmlEscaped();
+        if (!links.isEmpty())
+            footer += (footer.isEmpty() ? QString() : QStringLiteral(" - ")) + links.join(QStringLiteral(" - "));
+        html += QStringLiteral("<br><span style=\"font-size: small;\">(") + footer + QStringLiteral(")</span>");
+    }
+    return html + QStringLiteral("</div>");
+}
+
+void MessageManager::setMentionColorResolver(std::function<QColor(Snowflake userId, Snowflake guildId)> resolver)
+{
+    parser->setUserColorResolver([this, resolver = std::move(resolver)](Snowflake userId, Snowflake sourceChannelId) {
+        if (!roleColorOptions().mentions || !resolver)
+            return QColor();
+        const Snowflake guildId = client->getGuildIdForChannel(sourceChannelId);
+        return guildId.isValid() ? resolver(userId, guildId) : QColor();
+    });
+}
+
 void MessageManager::setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver)
 {
     channelParentResolver = std::move(resolver);
@@ -208,6 +305,37 @@ void MessageManager::refreshMessage(Snowflake channelId, Snowflake messageId)
     parseMessageContent(msg);
     messageCache.insert(messageId, new Discord::Message(msg));
     emit messagesReceived({ true, Discord::Client::MessageLoadType::Created, channelId, { msg } });
+}
+
+std::optional<Discord::Message> MessageManager::findMessage(Snowflake messageId)
+{
+    if (auto *cached = messageCache.object(messageId))
+        return *cached;
+    if (const auto it = linkedMessages.constFind(messageId); it != linkedMessages.constEnd())
+        return *it;
+    return repo.getMessage(messageId);
+}
+
+void MessageManager::fetchLinkedMessage(Snowflake channelId, Snowflake messageId, std::function<void(bool)> done)
+{
+    QPointer<MessageManager> self(this);
+    client->fetchMessagesAround(channelId, messageId, 1, [self, messageId, done](const Result<QList<Discord::Message>> &result) {
+        if (!self)
+            return;
+        bool found = false;
+        if (result.success()) {
+            for (const auto &message : *result.value) {
+                if (message.id.get() != messageId)
+                    continue;
+                if (message.author.hasValue())
+                    self->userManager->saveUser(message.author.get());
+                self->linkedMessages.insert(messageId, message);
+                found = true;
+            }
+        }
+        if (done)
+            done(found);
+    });
 }
 
 void MessageManager::removeKeptMessage(Snowflake channelId, Snowflake messageId)
@@ -575,10 +703,11 @@ void MessageManager::addReaction(Snowflake channelId, Snowflake messageId, const
     client->addReaction(channelId, messageId, emoji, isBurst);
 }
 
-bool MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
-                                 Snowflake replyToMessageId,
-                                 const QList<PendingAttachment> &attachments,
-                                 bool mentionRepliedUser, bool runPlugins)
+MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, const QString &originalContent,
+                                                       Snowflake replyToMessageId,
+                                                       const QList<PendingAttachment> &attachments,
+                                                       bool mentionRepliedUser, bool runPlugins,
+                                                       std::function<void(bool sent)> deferredDone)
 {
     QString content = originalContent;
     auto *plugins = Qord::Plugins::PluginHost::instance();
@@ -591,11 +720,27 @@ bool MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
         out.content = content;
         plugins->dispatchBeforeSend(out);
         if (out.cancel)
-            return false;
+            return SendResult::Cancelled;
         content = out.content;
+        if (out.deferred) {
+            // Sent once the plugin has the final text (auto-translate)
+            QPointer<MessageManager> self(this);
+            out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser,
+                                   deferredDone](std::optional<QString> finalContent) {
+                bool sent = false;
+                if (self && finalContent && finalContent->trimmed().isEmpty() && attachments.isEmpty())
+                    sent = true;
+                else if (self && finalContent)
+                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, attachments,
+                                             mentionRepliedUser, false) == SendResult::Sent;
+                if (deferredDone)
+                    deferredDone(sent);
+            });
+            return SendResult::Deferred;
+        }
         // Nothing left to send (e.g. a rule replaced everything)
         if (content.trimmed().isEmpty() && attachments.isEmpty())
-            return true;
+            return SendResult::Sent;
     }
 
     // Like Discord's client: a leading "@silent " sends without notifying
@@ -675,12 +820,12 @@ bool MessageManager::sendMessage(Snowflake channelId, const QString &originalCon
     for (const auto &att : outgoing) {
         if (att.data.isEmpty() && att.filePath.isEmpty()) {
             emit messageErrored(nonce);
-            return true;
+            return SendResult::Sent;
         }
     }
 
     client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
-    return true;
+    return SendResult::Sent;
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)

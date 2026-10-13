@@ -1,7 +1,9 @@
 #include "MainWindow.hpp"
+#include "UI/Qord/HiddenChannelScreen.hpp"
 
 #include <QApplication>
 #include <QClipboard>
+#include <QPointer>
 #include <QGuiApplication>
 #include <QMessageBox>
 #include <QPointer>
@@ -25,6 +27,7 @@
 #include "ChannelList/ChannelTreeView.hpp"
 #include "ChannelList/ServerRailView.hpp"
 #include "ChannelList/ServerRailModel.hpp"
+#include "Core/FolderSidebar.hpp"
 #include "ChannelList/ServerRailDelegate.hpp"
 #include "TabBar/TabBar.hpp"
 #include "Accounts/AccountsWindow.hpp"
@@ -295,6 +298,10 @@ void MainWindow::onChannelSelectionChanged(const QModelIndex &current, const QMo
 
     channelTreeModel->clearTemporaryThread(node->id);
 
+    // Qord: a channel you can't see shows ShowHiddenChannels' lock screen
+    if (openHiddenChannel(selectedInstance, node, accountNode, false))
+        return;
+
     ChannelNode *forumNode = node->type == ChannelNode::Type::Thread ? node->parent : node;
 
     if (forumNode && forumNode->type == ChannelNode::Type::Forum) {
@@ -355,15 +362,20 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     showChannelTopic(instance, channelId);
     hideFriendsPage();
     channelToolbar->setVisible(true);
+    pinsButton->setEnabled(true); // Qord: off on a hidden channel's lock screen
     channelNameLabel->setText((isDm ? QStringLiteral("@ ") : (isThread ? QString() : QStringLiteral("# "))) + name);
     membersButton->setVisible(guildId.isValid());
 
     if (isDm) {
-        messageInput->setEnabled(true);
+        // Qord: Discord's system DM takes no replies
+        const bool systemDm = isSystemDm(instance, channelId);
+        messageInput->setEnabled(!systemDm);
         messageInput->setSendBlocked(false);
-        messageInput->setPlaceholder("Message @" + name);
+        messageInput->setPlaceholder(systemDm ? tr("This thread is reserved for official Discord notifications.")
+                                              : "Message @" + name);
         chatView->setCanPinMessages(true);
         chatView->setCanManageMessages(false);
+        chatView->setCanCreateThreads(false);
         slowModeIndicator->setSlowMode(channelId, 0, false);
         setMemberListVisible(false);
         instance->memberList()->clear();
@@ -387,6 +399,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
     messageInput->setSendBlocked(onCooldown);
     chatView->setCanPinMessages(canPin);
     chatView->setCanManageMessages(canManage);
+    chatView->setCanCreateThreads(canCreateThreadsIn(instance, channelId));
 
     if (archived)
         messageInput->setPlaceholder("This thread is archived");
@@ -477,6 +490,10 @@ void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
     auto *msgs = currentInstance->messages();
 
     memberListModel->setAccount(currentInstance->accountId());
+    memberListModel->setOwnerProvider([instance = QPointer<Core::ClientInstance>(currentInstance)](Snowflake guildId) {
+        const auto guild = instance ? instance->getGuild(guildId) : std::nullopt;
+        return guild ? guild->ownerId.get() : Snowflake::Invalid;
+    });
     memberListModel->setPresenceManager(currentInstance->presences());
     memberListModel->setManager(currentInstance->memberList());
 
@@ -503,6 +520,9 @@ void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
     typingTracker->setUserManager(currentInstance->users());
     typingTracker->setCurrentUserId(currentInstance->accountId());
 
+    // Qord: RoleColorEverywhere colors mentions with the member's role color
+    msgs->setMentionColorResolver(
+            [this](Snowflake userId, Snowflake guildId) { return resolveRoleColor(userId, guildId); });
     connect(msgs, &MessageManager::messagesReceived, chatModel, &ChatModel::handleIncomingMessages);
     connect(msgs, &MessageManager::messageErrored, chatModel, &ChatModel::handleMessageErrored);
     connect(msgs, &MessageManager::messageDeleted, chatModel, &ChatModel::handleMessageDeleted);
@@ -580,7 +600,14 @@ void MainWindow::setViewMode(ViewMode mode)
         threadHeader->setVisible(true);
         popOutButton->setText(tr("Back to forum"));
         break;
+    case ViewMode::HiddenChannel:
+        forumBrowser->setVisible(false);
+        threadPane->setVisible(false);
+        threadHeader->setVisible(false);
+        break;
     }
+    if (hiddenChannelScreen)
+        hiddenChannelScreen->setVisible(mode == ViewMode::HiddenChannel);
 
     updateMemberListVisibility();
 }
@@ -715,6 +742,7 @@ void MainWindow::openForumPost(Core::Snowflake threadId, Core::Snowflake guildId
                                          : tr("You do not have permission to send messages"));
     chatView->setCanPinMessages(false);
     chatView->setCanManageMessages(false);
+    chatView->setCanCreateThreads(false);
 
     switchChatChannel(threadId, guildId);
     Snowflake lastMsgId = currentInstance->readState()->getChannelLastMessageId(threadId);
@@ -1083,6 +1111,29 @@ void MainWindow::setupUi()
     serverRail->setGuildSettingsProvider(std::bind_front(&MainWindow::guildSettingsSections, this));
     connect(serverRail, &ServerRailView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
 
+    // Qord: BetterFolders' second rail; it only shows while the plugin is on
+    // and a folder is open
+    folderSidebarModel = new ServerRailModel(session, channelTreeModel, this);
+    folderSidebarModel->makeFolderSidebarOf(serverRailModel);
+    folderSidebar = new ServerRailView(this);
+    folderSidebar->setObjectName("FolderSidebar");
+    folderSidebar->setModel(folderSidebarModel);
+    folderSidebar->setItemDelegate(new ServerRailDelegate(folderSidebar));
+    folderSidebar->setFixedWidth(ServerRailDelegate::RailWidth);
+    folderSidebar->hide();
+    connect(folderSidebar, &ServerRailView::guildClicked, this, &MainWindow::onRailGuildClicked);
+    connect(folderSidebar, &ServerRailView::folderToggleClicked, this,
+            [this](Snowflake accountId, Snowflake folderId) { serverRailModel->toggleFolder(accountId, folderId); });
+    connect(folderSidebar, &ServerRailView::markAsReadRequested, this,
+            [this](Snowflake accountId, Snowflake id, bool isFolder) {
+                markIndexAsRead(accountId, isFolder ? channelTreeModel->folderIndex(accountId, id)
+                                                    : channelTreeModel->serverIndex(accountId, id));
+            });
+    connect(folderSidebar, &ServerRailView::leaveGuildRequested, this, &MainWindow::confirmAndLeaveGuild);
+    folderSidebar->setGuildSettingsProvider(std::bind_front(&MainWindow::guildSettingsSections, this));
+    connect(folderSidebar, &ServerRailView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
+    connect(serverRailModel, &ServerRailModel::foldersChanged, this, &MainWindow::updateFolderSidebar);
+
     guildHeaderLabel = new QLabel(this);
     guildHeaderLabel->setObjectName("GuildHeader");
     guildHeaderLabel->setFixedHeight(48);
@@ -1263,6 +1314,9 @@ void MainWindow::setupUi()
     centerSplitter = new QSplitter(Qt::Horizontal, rightSideWidget);
     centerSplitter->addWidget(forumBrowser);
     centerSplitter->addWidget(threadPane);
+    hiddenChannelScreen = new HiddenChannelScreen(rightSideWidget); // Qord: ShowHiddenChannels
+    hiddenChannelScreen->setVisible(false);
+    centerSplitter->addWidget(hiddenChannelScreen);
     centerSplitter->setStretchFactor(0, 1);
     centerSplitter->setStretchFactor(1, 1);
     centerSplitter->setSizes({ 350, 550 });
@@ -1434,10 +1488,28 @@ void MainWindow::setupUi()
         Snowflake replyTo = messageInput->replyTargetMessageId();
         if (!chatModel->isAtLatest())
             chatView->jumpToPresent();
-        if (!currentInstance->messages()->sendMessage(channelId, text, replyTo, attachments,
-                                                      messageInput->replyMentionEnabled())) {
+        using SendResult = Core::MessageManager::SendResult;
+        QPointer<MessageInput> input(messageInput);
+        const SendResult result = currentInstance->messages()->sendMessage(
+                channelId, text, replyTo, attachments, messageInput->replyMentionEnabled(), true,
+                [this, input, channelId](bool sent) {
+                    if (!input)
+                        return;
+                    input->setSending(false);
+                    // Cleared only if still showing that channel's draft
+                    if (sent && chatModel->getActiveChannelId() == channelId)
+                        input->clear();
+                });
+        if (result == SendResult::Cancelled) {
             // Qord: a plugin stopped the send; the text stays, like Discord
             messageInput->keepContentsAfterSend();
+            return;
+        }
+        if (result == SendResult::Deferred) {
+            // Qord: a plugin (auto-translate) finishes the send later; the box
+            // keeps the text, locked, until then
+            messageInput->keepContentsAfterSend();
+            messageInput->setSending(true);
             return;
         }
 
@@ -1652,47 +1724,9 @@ void MainWindow::setupUi()
     connect(channelTree, &ChannelTreeView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
 
 #ifndef ACHERON_NO_VOICE
-    connect(channelTree, &ChannelTreeView::joinVoiceChannelRequested, this,
-            [this](const QModelIndex &proxyIndex) {
-                QModelIndex sourceIndex = channelFilterProxy->mapToSource(proxyIndex);
-                auto *node = channelTreeModel->nodeFromIndex(sourceIndex);
-                if (!node)
-                    return;
-
-                bool isDM = (node->type == ChannelNode::Type::DMChannel);
-                bool isVoice = (node->type == ChannelNode::Type::VoiceChannel);
-                if (!isDM && !isVoice)
-                    return;
-
-                ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
-                if (!accountNode)
-                    return;
-
-                ClientInstance *instance = session->client(accountNode->id);
-                if (!instance)
-                    return;
-
-                if (!instance->discord()->getProxy().canRelayUdp()) {
-                    QMessageBox::warning(this,
-                                         tr("Voice unavailable"),
-                                         tr("This account uses an HTTP proxy, which cannot carry "
-                                            "voice traffic.<br>Switch it to a SOCKS5 proxy to use voice."));
-                    return;
-                }
-
-                if (isDM) {
-                    qCInfo(LogVoice) << "Joining DM call" << node->name << node->id;
-                    instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, userPanel->selfMute(), userPanel->selfDeaf());
-                } else {
-                    ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
-                    if (!guildNode)
-                        return;
-
-                    qCInfo(LogVoice) << "Joining voice channel" << node->name << node->id
-                                     << "in guild" << guildNode->id;
-                    instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, userPanel->selfMute(), userPanel->selfDeaf());
-                }
-            });
+    connect(channelTree, &ChannelTreeView::joinVoiceChannelRequested, this, [this](const QModelIndex &proxyIndex) {
+        joinVoiceNode(channelTreeModel->nodeFromIndex(channelFilterProxy->mapToSource(proxyIndex)));
+    });
 
     connect(channelTree, &ChannelTreeView::disconnectVoiceRequested, this,
             [this](const QModelIndex &proxyIndex) {
@@ -1741,6 +1775,9 @@ QWidget *MainWindow::buildLeftSide()
         railLayout->addWidget(addServerButton, 0, Qt::AlignHCenter);
         addServerButton->show();
         h->addWidget(railColumn, 0);
+        // Qord: BetterFolders' second rail
+        h->addWidget(folderSidebar, 0);
+        updateFolderSidebar();
 
         auto *secondary = new QWidget(container);
         secondary->setObjectName("ChannelSidebar");
@@ -1807,6 +1844,8 @@ void MainWindow::setChannelListMode(ChannelListMode mode)
     channelTree->hide();
     serverRail->setParent(this);
     serverRail->hide();
+    folderSidebar->setParent(this);
+    folderSidebar->hide();
     guildHeaderLabel->setParent(this);
     guildHeaderLabel->hide();
     // Qord widgets live in the left side too; keep them across the rebuild
@@ -1914,8 +1953,31 @@ void MainWindow::onRailAccountHomeSelected(Snowflake accountId)
     s.setValue("ui/rail/lastIsHome", true);
 }
 
+void MainWindow::updateFolderSidebar()
+{
+    const auto &options = Core::folderSidebarOptions();
+    const bool show = options.enabled && options.sidebar && serverRailModel->anyFolderExpanded() &&
+                      channelListMode == ChannelListMode::Classic;
+    if (folderSidebar->parentWidget() == this || folderSidebar->isVisibleTo(folderSidebar->parentWidget()) == show)
+        return;
+    folderSidebar->setVisible(show);
+    // The second rail widens the left pane instead of narrowing the channels
+    if (mainSplitter) {
+        QList<int> sizes = mainSplitter->sizes();
+        const int delta = show ? ServerRailDelegate::RailWidth : -ServerRailDelegate::RailWidth;
+        if (sizes.size() > 1 && sizes[1] > delta) {
+            sizes[0] += delta;
+            sizes[1] -= delta;
+            mainSplitter->setSizes(sizes);
+        }
+    }
+}
+
 void MainWindow::onRailAccountHomeClicked(Snowflake accountId)
 {
+    // Qord: BetterFolders' "close all folders when clicking on the home button"
+    if (Core::folderSidebarOptions().enabled && Core::folderSidebarOptions().closeAllHomeButton)
+        serverRailModel->collapseAllFolders();
     onRailAccountHomeSelected(accountId);
 
     auto it = lastViewedChannel.constFind(guildChannelKey(accountId, Snowflake::Invalid));
@@ -2003,6 +2065,15 @@ void MainWindow::applyPendingRailSelection(Snowflake accountId)
 
 void MainWindow::onRailGuildClicked(Snowflake accountId, Snowflake guildId)
 {
+    // Qord: BetterFolders closes folders when selecting servers
+    const auto &folderOptions = Core::folderSidebarOptions();
+    if (folderOptions.enabled) {
+        const Snowflake folderId = serverRailModel->folderOf(accountId, guildId);
+        if (!folderId.isValid() && folderOptions.closeAllFolders)
+            serverRailModel->collapseAllFolders();
+        else if (folderId.isValid() && folderOptions.closeServerFolder)
+            serverRailModel->setFolderExpanded(accountId, folderId, false);
+    }
     onRailGuildSelected(accountId, guildId);
 
     Snowflake channelId = resolveRailChannel(accountId, guildId);
@@ -2609,6 +2680,10 @@ void MainWindow::openSettingsWindow()
             setChannelListMode(classic ? ChannelListMode::Classic : ChannelListMode::Tree);
         });
         connect(settingsWindow, &SettingsWindow::channelListIndentChanged, this, &MainWindow::applyChannelIndent);
+        connect(settingsWindow, &SettingsWindow::roleStyleChanged, this, [this]() {
+            memberListView->viewport()->update();
+            chatView->viewport()->update();
+        });
         connect(settingsWindow, &SettingsWindow::animateEmojiChanged, this, [this](bool enabled) {
             chatView->frameAnimator()->setEmojiEnabled(enabled);
         });
@@ -2668,6 +2743,7 @@ void MainWindow::onChannelPermissionsChanged(Core::Snowflake channelId)
     messageInput->setSendBlocked(onCooldown);
     chatView->setCanPinMessages(canPin);
     chatView->setCanManageMessages(canManage);
+    chatView->setCanCreateThreads(canCreateThreadsIn(currentInstance, channelId));
 
     if (voiceLocked) {
         messageInput->setPlaceholder("You do not have permission to connect to this channel");
@@ -2873,6 +2949,53 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
 
     menu.exec(globalPos);
 }
+
+#ifndef ACHERON_NO_VOICE
+void MainWindow::joinVoiceNode(ChannelNode *node)
+{
+    if (!node)
+        return;
+
+    bool isDM = (node->type == ChannelNode::Type::DMChannel);
+    bool isVoice = (node->type == ChannelNode::Type::VoiceChannel);
+    if (!isDM && !isVoice)
+        return;
+
+    ChannelNode *accountNode = channelTreeModel->getAccountNodeFor(node);
+    if (!accountNode)
+        return;
+
+    ClientInstance *instance = session->client(accountNode->id);
+    if (!instance)
+        return;
+
+    // Qord: ShowHiddenChannels shows a voice channel you can't
+    // join instead of trying to
+    if (isVoice && openHiddenChannel(instance, node, accountNode, true))
+        return;
+
+    if (!instance->discord()->getProxy().canRelayUdp()) {
+        QMessageBox::warning(this,
+                             tr("Voice unavailable"),
+                             tr("This account uses an HTTP proxy, which cannot carry "
+                                "voice traffic.<br>Switch it to a SOCKS5 proxy to use voice."));
+        return;
+    }
+
+    if (isDM) {
+        qCInfo(LogVoice) << "Joining DM call" << node->name << node->id;
+        instance->discord()->sendVoiceStateUpdate(Snowflake::Invalid, node->id, userPanel->selfMute(), userPanel->selfDeaf());
+    } else {
+        ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
+        if (!guildNode)
+            return;
+
+        qCInfo(LogVoice) << "Joining voice channel" << node->name << node->id
+                         << "in guild" << guildNode->id;
+        instance->discord()->sendVoiceStateUpdate(guildNode->id, node->id, userPanel->selfMute(), userPanel->selfDeaf());
+    }
+}
+#endif
 
 void MainWindow::selectChannelInTree(Snowflake accountId, Snowflake channelId)
 {

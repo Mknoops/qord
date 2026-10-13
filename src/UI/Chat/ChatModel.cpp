@@ -1,5 +1,8 @@
 #include "ChatModel.hpp"
 
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Plugins/PluginHost.hpp"
+
 #include <QImageReader>
 
 #include <algorithm>
@@ -86,6 +89,13 @@ ChatModel::ChatModel(Core::ImageManager *imageManager, QObject *parent)
                     if (index.isValid())
                         emit dataChanged(index, index, { Qt::DecorationRole });
                 });
+
+                // Qord: reaction users' avatars (WhoReacted)
+                if (reactionAvatarUrls.remove(url)) {
+                    for (int row = 0; row < messages.size(); ++row)
+                        if (messages[row].reactions.hasValue() && !messages[row].reactions->isEmpty())
+                            emit dataChanged(index(row, 0), index(row, 0), { ReactionsRole });
+                }
 
                 if (Discord::Cdn::isEmojiUrl(url)) {
                     const QString srcPrefix = url.toString(QUrl::RemoveQuery);
@@ -220,6 +230,133 @@ void ChatModel::refreshRowsShowingSticker(const QUrl &stickerUrl)
         if (shown) {
             const QModelIndex idx = index(row, 0);
             emit dataChanged(idx, idx, { StickersRole });
+        }
+    }
+}
+
+bool ChatModel::isTextFile(const QString &filename, const QString &contentType)
+{
+    static const QSet<QString> extensions = {
+        QStringLiteral("txt"),  QStringLiteral("md"),   QStringLiteral("log"),  QStringLiteral("json"),
+        QStringLiteral("xml"),  QStringLiteral("yml"),  QStringLiteral("yaml"), QStringLiteral("toml"),
+        QStringLiteral("ini"),  QStringLiteral("cfg"),  QStringLiteral("conf"), QStringLiteral("csv"),
+        QStringLiteral("tsv"),  QStringLiteral("js"),   QStringLiteral("mjs"),  QStringLiteral("ts"),
+        QStringLiteral("jsx"),  QStringLiteral("tsx"),  QStringLiteral("py"),   QStringLiteral("c"),
+        QStringLiteral("h"),    QStringLiteral("cpp"),  QStringLiteral("hpp"),  QStringLiteral("cc"),
+        QStringLiteral("cs"),   QStringLiteral("java"), QStringLiteral("kt"),   QStringLiteral("go"),
+        QStringLiteral("rs"),   QStringLiteral("rb"),   QStringLiteral("php"),  QStringLiteral("sh"),
+        QStringLiteral("bash"), QStringLiteral("ps1"),  QStringLiteral("bat"),  QStringLiteral("lua"),
+        QStringLiteral("sql"),  QStringLiteral("html"), QStringLiteral("css"),  QStringLiteral("scss"),
+        QStringLiteral("diff"), QStringLiteral("patch"), QStringLiteral("swift"), QStringLiteral("dart"),
+        QStringLiteral("vue"),  QStringLiteral("cmake"), QStringLiteral("gradle"), QStringLiteral("properties"),
+    };
+    const QString type = contentType.section(QLatin1Char(';'), 0, 0).trimmed().toLower();
+    if (type == QLatin1String("image/svg+xml"))
+        return false;
+    if (type.startsWith(QLatin1String("text/")) || type == QLatin1String("application/json") ||
+        type == QLatin1String("application/xml") || type == QLatin1String("application/javascript"))
+        return true;
+    const int dot = filename.lastIndexOf(QLatin1Char('.'));
+    return dot > 0 && extensions.contains(filename.mid(dot + 1).toLower());
+}
+
+void ChatModel::loadTextPreview(Snowflake messageId, AttachmentData &data) const
+{
+    auto it = textPreviews.constFind(data.id);
+    if (it == textPreviews.constEnd()) {
+        if (!textLoader || suppressImageFetch)
+            return;
+        textPreviews.insert(data.id, {}); // loading
+        const Snowflake attachmentId = data.id;
+        const qint64 size = data.fileSizeBytes;
+        auto *self = const_cast<ChatModel *>(this);
+        textLoader(data.originalUrl, self, [self, messageId, attachmentId, size](bool ok, const QByteArray &bytes) {
+            TextPreview preview;
+            preview.loaded = ok;
+            if (ok) {
+                const QByteArray start = bytes.left(TextPreviewBytes);
+                preview.text = QString::fromUtf8(start);
+                preview.bytesLeft = qMax<qint64>(0, size - start.size());
+                // A character cut in two at the end of what was loaded
+                if (preview.bytesLeft > 0 && preview.text.endsWith(QChar::ReplacementCharacter))
+                    preview.text.chop(1);
+            }
+            self->textPreviews.insert(attachmentId, preview);
+            self->refreshAttachments(messageId);
+        });
+        return;
+    }
+    if (!it->loaded)
+        return;
+    data.textLoaded = true;
+    data.textPreview = it->text;
+    data.textBytesLeft = it->bytesLeft;
+    data.textExpanded = expandedTexts.contains(data.id);
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::AttachmentButtons))
+        for (const auto &entry : host->dispatchAttachmentButtons(attachmentContext(messageId, data)))
+            data.textButtons.append({ entry.pluginId, entry.button.id, entry.button.tooltip, entry.button.svg });
+}
+
+QList<Qord::Plugins::ChatMessageInfo> ChatModel::messageInfos() const
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const bool annotations = host && host->hasHook(Qord::Plugins::Hook::MessageHistory);
+    QList<Qord::Plugins::ChatMessageInfo> out;
+    for (const Discord::Message &msg : messages) {
+        Qord::Plugins::ChatMessageInfo info;
+        info.id = quint64(msg.id.get());
+        info.authorId = msg.author.hasValue() ? quint64(msg.author->id.get()) : 0;
+        info.type = msg.type.hasValue() ? int(msg.type.get()) : 0;
+        info.flags = msg.flags.hasValue() ? quint64(msg.flags.get().toInt()) : 0;
+        if (annotations)
+            if (const auto annotation = host->dispatchAnnotateMessage(Qord::Plugins::toMessageContext(
+                        msg, quint64(currentAccountId), Qord::Plugins::pluginId(currentGuildId))))
+                info.deleted = annotation->deleted;
+        out.append(info);
+    }
+    return out;
+}
+
+Qord::Plugins::AttachmentContext ChatModel::attachmentContext(Snowflake messageId, const AttachmentData &attachment) const
+{
+    Qord::Plugins::AttachmentContext context;
+    context.accountId = quint64(currentAccountId);
+    context.channelId = Qord::Plugins::pluginId(getActiveChannelId());
+    context.messageId = quint64(messageId);
+    context.attachmentId = quint64(attachment.id);
+    context.filename = attachment.filename;
+    context.contentType = attachment.contentType;
+    context.size = attachment.fileSizeBytes;
+    context.text = attachment.textPreview;
+    context.bytesLeft = attachment.textBytesLeft;
+    return context;
+}
+
+void ChatModel::toggleTextExpanded(Snowflake messageId, Snowflake attachmentId)
+{
+    if (!expandedTexts.remove(attachmentId))
+        expandedTexts.insert(attachmentId);
+    refreshAttachments(messageId);
+}
+
+void ChatModel::refreshAttachments(Snowflake messageId)
+{
+    for (int row = 0; row < messages.size(); ++row) {
+        if (messages[row].id.get() == messageId) {
+            sizeCache.remove(messageId);
+            emit dataChanged(index(row, 0), index(row, 0), { AttachmentsRole, CachedSizeRole });
+            return;
+        }
+    }
+}
+
+void ChatModel::refreshReactions(Snowflake messageId)
+{
+    for (int row = 0; row < messages.size(); ++row) {
+        if (messages[row].id.get() == messageId) {
+            sizeCache.remove(messageId);
+            emit dataChanged(index(row, 0), index(row, 0), { ReactionsRole, CachedSizeRole });
+            return;
         }
     }
 }
@@ -436,7 +573,12 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                                    " style=\"vertical-align: middle\">"
                                    " %2</a>")
                             .arg(QString::number(static_cast<quint64>(msg.id.get())),
-                                 tr("View Thread"));
+                                 // Qord: the thread's name and size, as Discord shows them
+                                 msg.threadName.isEmpty() ? tr("View Thread")
+                                 : msg.threadMessageCount >= 0
+                                         ? tr("%1 · %n Messages", nullptr, msg.threadMessageCount)
+                                                   .arg(msg.threadName.toHtmlEscaped())
+                                         : msg.threadName.toHtmlEscaped());
         }
 
         if (revealedSpoilerMessages.contains(msg.id.get()))
@@ -521,6 +663,12 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             } else {
                 data.displaySize = QSize();
                 data.isLoading = false;
+                // Qord: Discord's text file preview
+                if (!data.isAudio && data.fileSizeBytes > 0 && !data.originalUrl.isLocalFile() &&
+                    isTextFile(data.filename, data.contentType)) {
+                    data.isText = true;
+                    loadTextPreview(msg.id.get(), data);
+                }
             }
 
             result.append(data);
@@ -568,7 +716,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     }
     case EmbedsRole: {
         const Discord::Message &visible = msg.contentMessage();
-        if (!visible.embeds.hasValue() || visible.embeds->isEmpty())
+        // Qord: plus the embeds plugins add (MessageLinkEmbeds)
+        QList<Discord::Embed> allEmbeds = visible.embeds.hasValue() ? *visible.embeds : QList<Discord::Embed>();
+        allEmbeds += msg.qordAddedEmbeds;
+        if (allEmbeds.isEmpty())
             return QVariant();
 
         if (embedCache.contains(msg.id))
@@ -579,7 +730,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         QMap<QString, int> urlToEmbedIndex;
 
         int embedIndex = -1;
-        for (const auto &embed : *visible.embeds) {
+        for (const auto &embed : allEmbeds) {
             // Qord: plugins may hide an embed (FakeNitro's emoji and sticker links)
             if (++embedIndex, &visible == &msg && msg.qordHiddenEmbeds.contains(embedIndex))
                 continue;
@@ -866,6 +1017,48 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                 data.emojiPixmap = emojiPixmap;
                 data.isLoading = isLoading;
                 result.append(data);
+            }
+        }
+
+        // Qord: who reacted, from a plugin (WhoReacted); users that message
+        // filters hide (NoBlockedMessages) are left out, as upstream does
+        auto *plugins = Qord::Plugins::PluginHost::instance();
+        if (plugins && plugins->hasHook(Qord::Plugins::Hook::ReactionUsers)) {
+            const bool filtering = plugins->hasHook(Qord::Plugins::Hook::MessageFilter);
+            for (auto &data : result) {
+                Qord::Plugins::ReactionContext ctx;
+                ctx.accountId = quint64(currentAccountId);
+                ctx.guildId = quint64(currentGuildId);
+                ctx.channelId = msg.channelId.hasValue() ? quint64(msg.channelId.get()) : 0;
+                ctx.messageId = quint64(msg.id.get());
+                ctx.emojiName = data.emojiName;
+                ctx.emojiId = data.emojiId.isValid() ? quint64(data.emojiId) : 0; // 0: Unicode
+                ctx.type = data.isBurst ? 1 : 0;
+                ctx.reactionsOnMessage = int(msg.reactions->size());
+                const auto users = plugins->dispatchReactionUsers(ctx);
+                if (!users)
+                    continue;
+                data.usersClickable = users->clickable;
+                for (const auto id : users->users) {
+                    if (filtering) {
+                        Qord::Plugins::MessageContext author;
+                        author.accountId = ctx.accountId;
+                        author.channelId = ctx.channelId;
+                        author.guildId = ctx.guildId;
+                        author.authorId = id;
+                        if (plugins->dispatchShouldHideMessage(author))
+                            continue;
+                    }
+                    data.userIds.append(Core::Snowflake(id));
+                }
+                data.moreUsers = qMax(0, int(data.userIds.size()) - ReactionAvatarMax);
+                for (int i = 0; i < qMin(int(data.userIds.size()), ReactionAvatarMax); ++i) {
+                    const QUrl url = userAvatarResolver ? userAvatarResolver(data.userIds[i], currentGuildId) : QUrl();
+                    const QSize size(32, 32);
+                    if (url.isValid() && !imageManager->isCached(url, size))
+                        reactionAvatarUrls.insert(url);
+                    data.userAvatars.append(url.isValid() ? imageManager->get(url, size, currentAccountId) : QPixmap());
+                }
             }
         }
 

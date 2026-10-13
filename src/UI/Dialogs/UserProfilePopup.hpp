@@ -11,6 +11,7 @@
 #include "UI/StatusIndicator.hpp"
 
 class QFrame;
+class QHBoxLayout;
 class QLabel;
 class QPushButton;
 class QTabWidget;
@@ -60,11 +61,13 @@ private:
     void renderConnections();
     void renderMutualServers();
     void renderMutualFriends();
+    void addPluginTabs(); // Qord: tabs from plugins (MutualGroupDMs)
     void renderFriendStatus();
     void renderPresence();
     QUrl activityFallbackImage(const Discord::Activity &activity);
     void updateActivityTicker();
     void applyView();
+    void rebuildRoleButtons();
 
     void loadCachedNote();
     void saveNote();
@@ -130,6 +133,7 @@ private:
 
     QWidget *rolesSection = nullptr;
     QLabel *rolesLabel = nullptr;
+    QHBoxLayout *rolesButtons = nullptr;
 
     QTabWidget *rightTabs = nullptr;
 

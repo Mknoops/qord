@@ -16,6 +16,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QVBoxLayout>
@@ -314,6 +315,21 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
             addHelp();
             break;
         }
+        case SettingType::Number: {
+            auto *row = new QHBoxLayout;
+            row->addWidget(new QLabel(spec.label, editor));
+            auto *spin = new QDoubleSpinBox(editor);
+            spin->setDecimals(2);
+            spin->setSingleStep(0.1);
+            spin->setRange(spec.minimum.value_or(-1e9), spec.maximum.value_or(1e9));
+            spin->setValue(settings->numberValue(key));
+            connect(spin, &QDoubleSpinBox::editingFinished, editor, [spin, commit] { commit(spin->value()); });
+            row->addWidget(spin);
+            row->addStretch();
+            form->addLayout(row);
+            addHelp();
+            break;
+        }
         case SettingType::Choice: {
             auto *row = new QHBoxLayout;
             row->addWidget(new QLabel(spec.label, editor));
@@ -348,6 +364,11 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
                 form->addWidget(edit);
             } else {
                 auto *edit = new QLineEdit(settings->stringValue(key), editor);
+                if (spec.secret) {
+                    // Kept in the system keychain; shown hidden
+                    edit->setEchoMode(QLineEdit::Password);
+                    edit->setPlaceholderText(QObject::tr("Stored in the system keychain"));
+                }
                 connect(edit, &QLineEdit::editingFinished, editor, [edit, commit] { commit(edit->text()); });
                 form->addWidget(edit);
             }

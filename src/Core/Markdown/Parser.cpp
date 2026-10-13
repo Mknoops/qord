@@ -156,8 +156,21 @@ QString Parser::toHtmlInternal(const QList<AstNode> &nodes, bool jumboEmoji)
             else
                 displayName = node.content;
 
-            result += QString("<span class=\"mention\">@%1</span>")
-                              .arg(displayName.toHtmlEscaped());
+            // Qord: a link, so clicking a mention opens the profile, as in Discord;
+            // in the member's role color with RoleColorEverywhere (Discord's 10% background)
+            QString style;
+            if (userColorResolver) {
+                const QColor color = userColorResolver(Snowflake(node.content.toULongLong()),
+                                                       Snowflake(node.attributes["sourceChannelId"].toULongLong()));
+                if (color.isValid())
+                    style = QStringLiteral(" style=\"color: %1; background-color: rgba(%2, %3, %4, 0.1);\"")
+                                    .arg(color.name())
+                                    .arg(color.red())
+                                    .arg(color.green())
+                                    .arg(color.blue());
+            }
+            result += QString("<a href=\"acheron://user/%1\" class=\"mention\"%3>@%2</a>")
+                              .arg(node.content.toHtmlEscaped(), displayName.toHtmlEscaped(), style);
             continue;
         }
 

@@ -10,6 +10,12 @@
 
 class QPainter;
 
+namespace Qord {
+namespace Plugins {
+struct DecorationContext;
+} // namespace Plugins
+} // namespace Qord
+
 namespace Acheron {
 namespace Core {
 class Session;
@@ -33,6 +39,10 @@ public:
         QPixmap pixmap; // device pixels; size() is in logical pixels
         QSize size;
         QString tooltip;
+        QString pluginId; // with clickId: clickable
+        QString clickId;
+        QString copyText; // copied when clicked (BetterRoleDot's role dot)
+        [[nodiscard]] bool clickable() const { return !clickId.isEmpty() || !copyText.isEmpty(); }
     };
 
     explicit NameDecorations(Core::Session *session, QObject *parent = nullptr);
@@ -43,6 +53,10 @@ public:
 
     QList<Decoration> forUser(Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake userId, Place place,
                               qreal dpr);
+
+    // Tells the plugin that drew `decoration` it was clicked
+    void click(Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake userId, Place place,
+               const Decoration &decoration, bool doubleClick);
 
     static constexpr int Spacing = 4;
     // Width of the icons including the gap before each one
@@ -58,6 +72,9 @@ signals:
     void changed();
 
 private:
+    void dropUsers(quint64 accountId, const QList<Core::Snowflake> &userIds);
+    [[nodiscard]] bool context(Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake userId, Place place,
+                               Qord::Plugins::DecorationContext &out) const;
     QPixmap render(const QByteArray &svg, const QString &color, QSize size, qreal dpr);
 
     Core::Session *session;

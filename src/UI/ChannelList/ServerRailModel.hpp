@@ -56,6 +56,17 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
 
     void toggleFolder(Core::Snowflake accountId, Core::Snowflake folderId);
+    // Qord: BetterFolders
+    void setFolderExpanded(Core::Snowflake accountId, Core::Snowflake folderId, bool expanded);
+    void collapseAllFolders();
+    [[nodiscard]] bool anyFolderExpanded() const { return !expandedFolders.isEmpty(); }
+    [[nodiscard]] Core::Snowflake folderOf(Core::Snowflake accountId, Core::Snowflake guildId) const
+    {
+        return folderForGuild(accountId, guildId);
+    }
+    // This model becomes the second rail of `main`: the servers of main's
+    // open folders (BetterFolders' sidebar)
+    void makeFolderSidebarOf(ServerRailModel *main);
     [[nodiscard]] bool isFolderExpanded(Core::Snowflake accountId, Core::Snowflake folderId) const;
 
     void setSelected(Kind kind, Core::Snowflake accountId, Core::Snowflake id);
@@ -65,7 +76,14 @@ public:
 
     void rebuild();
 
+signals:
+    void foldersChanged(); // Qord: a folder opened or closed
+
 private:
+    void rebuildSidebar();
+    ServerRailModel *mainModel = nullptr; // set on the second rail
+    ServerRailModel *sidebarModel = nullptr; // set on the main rail
+
     struct RailEntry
     {
         Kind kind;

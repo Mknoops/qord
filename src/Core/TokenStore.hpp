@@ -20,6 +20,12 @@ public:
     static Result<QString> loadToken(Snowflake accountId);
     static bool deleteToken(Snowflake accountId);
 
+    // Qord: other secrets (a plugin's API key) under their own key. Values
+    // are never logged.
+    static Result<QString> loadSecret(const QString &key);
+    static bool saveSecret(const QString &key, const QString &value);
+    static bool deleteSecret(const QString &key);
+
 private:
     static QString keyForAccount(Snowflake accountId);
     static QString describeKeychainFailure(const QString &keychainError);

@@ -35,7 +35,10 @@ const char *IndexJson = R"({
     { "id": "6", "application_id": "900", "version": "16", "type": 1, "name": "warn", "description": "Warn",
       "options": [ { "type": 6, "name": "user", "description": "Who", "required": true },
                    { "type": 10, "name": "points", "description": "Points" },
-                   { "type": 7, "name": "where", "description": "Channel" } ] }
+                   { "type": 7, "name": "where", "description": "Channel" } ] },
+    { "id": "7", "application_id": "900", "version": "17", "type": 1, "name": "weather", "description": "Weather",
+      "options": [ { "type": 3, "name": "city", "description": "City", "required": true, "autocomplete": true },
+                   { "type": 4, "name": "days", "description": "Days" } ] }
   ]
 })";
 } // namespace
@@ -51,7 +54,7 @@ private slots:
 
     void parsesChatInputCommandsOnly()
     {
-        QCOMPARE(index.commands.size(), 5); // the user command (type 2) is not a slash command
+        QCOMPARE(index.commands.size(), 6); // the user command (type 2) is not a slash command
         QCOMPARE(index.commands.first().name, QStringLiteral("config"));
         QCOMPARE(index.commands.first().applicationName, QStringLiteral("Helper Bot"));
     }
@@ -61,11 +64,11 @@ private slots:
         QStringList names;
         for (const auto &c : suggest(index, QString()))
             names << c.name;
-        QCOMPARE(names, (QStringList { "config", "ping", "remind", "say", "warn" }));
+        QCOMPARE(names, (QStringList { "config", "ping", "remind", "say", "warn", "weather" }));
         names.clear();
         for (const auto &c : suggest(index, QStringLiteral("r")))
             names << c.name;
-        QCOMPARE(names, (QStringList { "remind", "warn" })); // prefix first, then contains
+        QCOMPARE(names, (QStringList { "remind", "warn", "weather" })); // prefix first, then contains
     }
 
     void usageText()
@@ -148,6 +151,69 @@ private slots:
         QVERIFY(build(index, QStringLiteral("/config role set role:<@&1> mode:Medium")).error.isEmpty() == false);
         QCOMPARE(build(index, QStringLiteral("/warn user: bob")).error, QStringLiteral("user must be a user mention"));
         QVERIFY(!find(index, QStringLiteral("hello")));
+    }
+
+    void focusFollowsTheLastOption()
+    {
+        const QString text = QStringLiteral("/config role set role:<@&5> mode:St");
+        const auto f = focus(index, text);
+        QVERIFY(f.has_value());
+        QCOMPARE(f->option->name, QStringLiteral("mode"));
+        QCOMPARE(f->typed, QStringLiteral("St"));
+        QCOMPARE(text.mid(f->valueStart), QStringLiteral("St"));
+        QVERIFY(f->autocompleteData.isEmpty()); // static choices: no request
+        const auto choices = matchingChoices(*f->option, f->typed);
+        QCOMPARE(choices.size(), 1);
+        QCOMPARE(choices[0].first, QStringLiteral("Strict"));
+        // An empty value lists them all; "oos" finds Loose by containing it
+        QCOMPARE(matchingChoices(*f->option, QString()).size(), 2);
+        QCOMPARE(matchingChoices(*f->option, QStringLiteral("oos")).first().first, QStringLiteral("Loose"));
+        // No option being written yet
+        QVERIFY(!focus(index, QStringLiteral("/remind ")).has_value());
+        QVERIFY(!focus(index, QStringLiteral("/nope a:b")).has_value());
+    }
+
+    void loneValueIsFocusedToo()
+    {
+        const auto f = focus(index, QStringLiteral("/say  hello there"));
+        QVERIFY(f.has_value());
+        QCOMPARE(f->option->name, QStringLiteral("text"));
+        QCOMPARE(f->typed, QStringLiteral("hello there"));
+    }
+
+    void autocompleteRequestData()
+    {
+        const auto f = focus(index, QStringLiteral("/weather days:3 city:Par"));
+        QVERIFY(f.has_value());
+        QVERIFY(f->option->autocomplete);
+        const QJsonObject d = f->autocompleteData;
+        QCOMPARE(d.value("name").toString(), QStringLiteral("weather"));
+        QCOMPARE(d.value("id").toString(), QStringLiteral("7"));
+        const QJsonArray options = d.value("options").toArray();
+        QCOMPARE(options.size(), 2);
+        QCOMPARE(options[0].toObject().value("name").toString(), QStringLiteral("days"));
+        QCOMPARE(options[0].toObject().value("value").toInt(), 3);
+        QVERIFY(!options[0].toObject().contains("focused"));
+        QCOMPARE(options[1].toObject().value("name").toString(), QStringLiteral("city"));
+        QCOMPARE(options[1].toObject().value("value").toString(), QStringLiteral("Par"));
+        QVERIFY(options[1].toObject().value("focused").toBool());
+        // Options that don't convert yet are left out, not an error
+        const auto partial = focus(index, QStringLiteral("/weather days:x city:P"));
+        QCOMPARE(partial->autocompleteData.value("options").toArray().size(), 1);
+    }
+
+    void picksSendTheirValue()
+    {
+        // The text shows the choice's name; the app gets its value
+        Picks picks;
+        picks.insert(QStringLiteral("city"), { QStringLiteral("Paris"), QStringLiteral("fr-75") });
+        const Built built = build(index, QStringLiteral("/weather city:Paris days:2"), picks);
+        QVERIFY2(built.ok, qPrintable(built.error));
+        const QJsonArray options = built.data.value("options").toArray();
+        QCOMPARE(options[0].toObject().value("value").toString(), QStringLiteral("fr-75"));
+        // Edited after picking: the text is sent as typed
+        const Built edited = build(index, QStringLiteral("/weather city:Parma"), picks);
+        QCOMPARE(edited.data.value("options").toArray()[0].toObject().value("value").toString(), QStringLiteral("Parma"));
     }
 };
 

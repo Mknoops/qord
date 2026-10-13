@@ -1,0 +1,21 @@
+{
+  "id": "validuser",
+  "equicordName": "ValidUser",
+  "equicordPath": "src/plugins/validUser",
+  "name": "ValidUser",
+  "description": "Fix mentions for unknown users showing up as '@unknown-user' (hover over a mention to fix it)",
+  "categories": ["chat"],
+  "tags": ["Chat", "Utility"],
+  "authors": ["Ven", "Dolfies"],
+  "permissions": ["fetch_users"],
+  "hooks": ["unknownMentions"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Hovering an \"@unknown-user\" mention asks Discord for that user (GET /users/{id}), at most five waiting at a time, newest first, one every 300 ms, waiting out rate limits, and the message then shows their name; a mention of a user Qord already knows is fixed at once. Clicking a mention opens the profile.",
+  "gaps": [
+    "Upstream also fills in the fetched user's profile badges (from their flags) for Discord's popout; Qord's profile loads the user's real profile instead"
+  ]
+}

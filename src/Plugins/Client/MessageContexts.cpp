@@ -48,6 +48,8 @@ MessageContext toMessageContext(const Message &msg, Id accountId, Id guildId, Id
     if (msg.referencedMessage && msg.referencedMessage->author.hasValue())
         c.referencedAuthorId = quint64(msg.referencedMessage->author->id.get());
     c.content = msg.content.hasValue() ? msg.content.get() : QString();
+    if (msg.snapshotMessage && msg.snapshotMessage->content.hasValue())
+        c.snapshotContent = msg.snapshotMessage->content.get();
     if (msg.timestamp.hasValue())
         c.timestamp = msg.timestamp.get();
     if (msg.editedTimestamp.hasValue())

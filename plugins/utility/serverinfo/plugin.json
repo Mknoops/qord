@@ -1,0 +1,30 @@
+{
+  "id": "serverinfo",
+  "equicordName": "ServerInfo",
+  "equicordPath": "src/plugins/serverInfo",
+  "name": "ServerInfo",
+  "description": "Allows you to view info about a server",
+  "categories": ["utility"],
+  "tags": ["Servers", "Utility"],
+  "authors": ["Ven", "Nuckyz", "Z1xus"],
+  "permissions": ["add_ui_elements", "read_server_permissions", "read_relationships"],
+  "hooks": ["channelContextMenu"],
+  "settings": [
+    { "key": "sorting", "type": "choice", "default": "displayname", "label": "Sorting",
+      "description": "Username or if applicable Display Name",
+      "choices": [
+        { "value": "username", "label": "Username" },
+        { "value": "displayname", "label": "Display Name" },
+        { "value": "none", "label": "Dont Sort" }
+      ] }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "\"Server Info\" in the server menu opens the server's icon, name, description and banner (click them to view them full size), its details (owner, creation and join dates, vanity link, locale, verification level, boosts, channels, roles) and your friends, mutual users, blocked and ignored users in it. Clicking a user opens their profile. Lists come from the members Qord has loaded; the friends, blocked and ignored users it lacks are asked for from Discord.",
+  "gaps": [
+    "Members Discord sends after the window opened appear the next time it is opened (upstream's list updates live)",
+    "User rows don't show online status"
+  ]
+}

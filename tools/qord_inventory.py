@@ -89,6 +89,7 @@ PERMISSIONS = {
     "read_dms",
     "control_audio",
     "fetch_messages",
+    "control_activity",
 }
 
 SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json"}
@@ -129,6 +130,7 @@ HOOK_DISPATCH = {
     "dmPins": "dispatchDmPinLayout(",
     "emojiSuggestions": "dispatchSortEmojiSuggestions(",
     "friendsSections": "dispatchFriendsSections(",
+    "userPanelButtons": "dispatchUserPanelButtons(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -166,6 +168,7 @@ HOOK_DOCS = {
     "dmPins": "How the DM list is grouped, with its headers and menus",
     "emojiSuggestions": "The emoji autocomplete's order, and items in the emoji picker's menu",
     "friendsSections": "Tabs on the Friends page",
+    "userPanelButtons": "Buttons next to mute and deafen, with a right-click menu",
 }
 
 MANIFEST_REQUIRED = {

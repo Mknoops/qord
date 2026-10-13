@@ -124,6 +124,7 @@ qord_add_plugin(betterfolders appearance SOURCES BetterFolders.cpp)
 qord_add_plugin(messagelinkembeds chat SOURCES MessageLinkEmbeds.hpp MessageLinkEmbeds.cpp)
 qord_add_plugin(favoriteemojifirst chat SOURCES FavoriteEmojiFirst.hpp FavoriteEmojiFirst.cpp
     UI_SOURCES AliasListWidget.cpp)
+qord_add_plugin(gameactivitytoggle utility SOURCES GameActivityToggle.hpp GameActivityToggle.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

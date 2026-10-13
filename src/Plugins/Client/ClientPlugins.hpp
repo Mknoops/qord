@@ -225,6 +225,20 @@ private:
     mutable SessionMessageLookup lookup;
 };
 
+class SessionActivity : public ActivitySettingsService
+{
+public:
+    explicit SessionActivity(Acheron::Core::Session *session) : session(session) {}
+    bool showCurrentGame(Id accountId) const override;
+    void setShowCurrentGame(Id accountId, bool show) override;
+    void fetchConnections(Id accountId, std::function<void(bool, const QList<ActivityConnection> &)> done) override;
+    void setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId, bool show,
+                                   std::function<void(bool)> done) override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionUsers : public UserLookupService
 {
 public:
@@ -342,6 +356,7 @@ private:
     QtAudioOptions audio;
     SessionMessageLookup messageLookup;
     SessionVoiceStates voiceStates;
+    SessionActivity activity;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

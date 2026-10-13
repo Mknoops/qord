@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 317 |
+| Not Started | 316 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 52 |
+| Tested | 53 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -142,7 +142,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FullSearchContext | `src/plugins/fullSearchContext` |  | Not Started |  |
 | FullUserInChatbox | `src/plugins/fullUserInChatbox` |  | Not Started |  |
 | FullVCPFP | `src/equicordplugins/fullVcPfp` |  | Not Started |  |
-| GameActivityToggle | `src/plugins/gameActivityToggle` |  | Not Started |  |
+| GameActivityToggle | `src/plugins/gameActivityToggle` | `plugins/utility/gameactivitytoggle` | Tested | The button sits before mute and deafen and switches Discord's "Share your detected activities with others" (status.show_current_game, synced to your other devices): "Disable Game Activity" while it's on, "Enable Game Activity" with a red glow and a red slash while it's off. With Spotify connected, right-click lists "Share Spotify Activity" (with the account name when there are several) to switch each account's sharing (PATCH /users/@me/connections/spotify/{id}); the menu reflects a change at once, as upstream keeps local overrides. wired; not yet verified in the running client. gaps: Qt's SVG renderer has no masks, so the off icon draws the slash over the controller without upstream's gap around it.; The "Equicord Toolbox" location has no counterpart: Qord has no toolbox, so the button is always in the user panel. |
 | Ghosted | `src/equicordplugins/ghosted` |  | Not Started |  |
 | GifCollections | `src/equicordplugins/gifCollections` |  | Not Started |  |
 | GifMaker | `src/equicordplugins/gifMaker` |  | Not Started |  |

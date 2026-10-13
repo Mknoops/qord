@@ -458,6 +458,23 @@ public:
     [[nodiscard]] virtual QString displayName(Id accountId, Id guildId, Id userId) const = 0;
 };
 
+// Whether others see what you play or listen to (GameActivityToggle).
+class ActivitySettingsService
+{
+public:
+    virtual ~ActivitySettingsService() = default;
+    // Discord's "Share your detected activities with others" (synced)
+    [[nodiscard]] virtual bool showCurrentGame(Id accountId) const = 0;
+    virtual void setShowCurrentGame(Id accountId, bool show) = 0;
+    // Your connected accounts (GET /users/@me/connections); `done` may run
+    // after the plugin stopped, so guard it
+    virtual void fetchConnections(Id accountId,
+                                  std::function<void(bool ok, const QList<ActivityConnection> &connections)> done) = 0;
+    // Whether a connected account (Spotify) shares its activity
+    virtual void setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId, bool show,
+                                           std::function<void(bool ok)> done) = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -477,6 +494,7 @@ struct Services
     AudioOptionsService *audio = nullptr;
     MessageLookupService *messageLookup = nullptr;
     VoiceStateDirectory *voiceStates = nullptr;
+    ActivitySettingsService *activity = nullptr;
 };
 
 } // namespace Plugins

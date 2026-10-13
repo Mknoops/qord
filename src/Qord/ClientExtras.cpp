@@ -119,6 +119,73 @@ void Client::setStatus(const QString &status, const QString &customText, const Q
                       });
 }
 
+bool Client::showCurrentGame() const
+{
+    if (settings.status && settings.status->showCurrentGame)
+        return *settings.status->showCurrentGame;
+    return true;
+}
+
+void Client::setShowCurrentGame(bool show)
+{
+    // Shown at once; Discord echoes the change to the other sessions
+    if (!settings.status)
+        settings.status = Proto::StatusSettings();
+    settings.status->showCurrentGame = show;
+    emit settingsChanged();
+
+    Proto::ProtoWriter value; // google.protobuf.BoolValue
+    if (show)
+        value.writeVarint(1, 1);
+    Proto::ProtoWriter statusSettings;
+    statusSettings.writeBytes(3, value.bytes());
+    Proto::ProtoWriter root;
+    root.writeBytes(11, statusSettings.bytes());
+    QJsonObject payload;
+    payload["settings"] = QString::fromLatin1(root.bytes().toBase64());
+    httpClient->patch("/users/@me/settings-proto/" + QString::number(int(UserSettingsProtoType::PRELOADED)), payload,
+                      [](const HttpResponse &response) {
+                          if (!response.success)
+                              qCWarning(LogDiscord) << "Failed to save activity sharing:" << response.statusCode
+                                                    << response.error;
+                      });
+}
+
+void Client::fetchOwnConnections(std::function<void(bool, const QList<OwnConnection> &)> callback)
+{
+    httpClient->get(QStringLiteral("/users/@me/connections"), {}, [callback](const HttpResponse &response) {
+        QList<OwnConnection> out;
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching connections failed:" << response.statusCode << response.error;
+            callback(false, out);
+            return;
+        }
+        for (const QJsonValue &value : QJsonDocument::fromJson(response.body).array()) {
+            const QJsonObject c = value.toObject();
+            out.append({ c.value(QStringLiteral("type")).toString(), c.value(QStringLiteral("id")).toString(),
+                         c.value(QStringLiteral("name")).toString(), c.value(QStringLiteral("show_activity")).toBool(),
+                         c.value(QStringLiteral("revoked")).toBool() });
+        }
+        callback(true, out);
+    });
+}
+
+void Client::setConnectionShowActivity(const QString &type, const QString &id, bool show,
+                                       std::function<void(bool)> callback)
+{
+    QJsonObject payload;
+    payload["show_activity"] = show;
+    const QString endpoint = QStringLiteral("/users/@me/connections/%1/%2")
+                                     .arg(QString::fromLatin1(QUrl::toPercentEncoding(type)),
+                                          QString::fromLatin1(QUrl::toPercentEncoding(id)));
+    httpClient->patch(endpoint, payload, [callback](const HttpResponse &response) {
+        if (!response.success)
+            qCWarning(LogDiscord) << "Changing connection activity failed:" << response.statusCode << response.error;
+        if (callback)
+            callback(response.success);
+    });
+}
+
 void Client::fetchPinnedMessages(Snowflake channelId, MessagesCallback callback)
 {
     QUrlQuery query;

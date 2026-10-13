@@ -303,6 +303,40 @@ public:
     QHash<Id, QString> names;
 };
 
+class FakeActivity : public ActivitySettingsService
+{
+public:
+    bool showCurrentGame(Id) const override { return showGame; }
+    void setShowCurrentGame(Id, bool show) override
+    {
+        showGame = show;
+        ++gameChanges;
+    }
+    void fetchConnections(Id, std::function<void(bool, const QList<ActivityConnection> &)> done) override
+    {
+        ++connectionFetches;
+        pendingFetches.append(std::move(done));
+    }
+    void setConnectionShowActivity(Id, const QString &type, const QString &id, bool show,
+                                   std::function<void(bool)> done) override
+    {
+        activityChanges.append({ type, id, show });
+        pendingChanges.append(std::move(done));
+    }
+    struct Change
+    {
+        QString type;
+        QString id;
+        bool show = false;
+    };
+    bool showGame = true;
+    int gameChanges = 0;
+    int connectionFetches = 0;
+    QList<std::function<void(bool, const QList<ActivityConnection> &)>> pendingFetches;
+    QList<Change> activityChanges;
+    QList<std::function<void(bool)>> pendingChanges;
+};
+
 class FakeAudio : public AudioOptionsService
 {
 public:
@@ -509,6 +543,7 @@ struct SinglePluginHost
         services.audio = &audio;
         services.messageLookup = &messageLookup;
         services.voiceStates = &voiceStates;
+        services.activity = &activity;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -539,6 +574,7 @@ struct SinglePluginHost
     FakeAudio audio;
     FakeMessageLookup messageLookup;
     FakeVoiceStates voiceStates;
+    FakeActivity activity;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

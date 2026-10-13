@@ -136,6 +136,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `dmPins` | How the DM list is grouped, with its headers and menus | `add_ui_elements` | PinDMs |
 | `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | FavoriteEmojiFirst |
 | `friendsSections` | Tabs on the Friends page | `read_relationships` | ImplicitRelationships |
+| `userPanelButtons` | Buttons next to mute and deafen, with a right-click menu | `add_ui_elements` | GameActivityToggle |
 <!-- END GENERATED: hooks -->
 
 ## Services
@@ -161,10 +162,11 @@ unless the plugin has the permission, so check before use.
 | `privateChannels()` | `read_dms` | Your DMs and group DMs |
 | `voiceStates()` | `read_voice_states` | Who is in voice where, muted or deafened |
 | `audio()` | `control_audio` | Voice volume limits |
+| `activity()` | `control_activity` | Whether Discord shares your game activity; your connections' activity sharing |
 | `displayOptions()` | `modify_displayed_messages` | Switches for how the client draws things (role colors, image lens, folders...) |
 
-`settings()` is always there. `refreshChatBar()`, `refreshDmList()` and
-`refreshFriends()` ask the client to query your hooks again after your state
+`settings()` is always there. `refreshChatBar()`, `refreshDmList()`,
+`refreshFriends()` and `refreshUserPanel()` ask the client to query your hooks again after your state
 changed. The full interfaces are in `src/Plugins/Services.hpp`.
 
 ## Settings

@@ -160,7 +160,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 52 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 53 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -176,6 +176,7 @@ These 52 native plugins are available now (out of the 369 in the pinned Equicord
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
 | **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
+| **GameActivityToggle** | A button next to mute and deafen that turns your game activity on and off; right-click for Spotify | add_ui_elements, control_activity |
 | **ImageZoom** | A magnifying lens in the image viewer (hold, scroll to zoom, Shift+scroll to resize) | modify_displayed_messages, add_ui_elements |
 | **ImplicitRelationships** | An "Implicit" tab on the Friends page: people you talk to who aren't your friends | read_relationships |
 | **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
@@ -219,7 +220,7 @@ These 52 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** GameActivityToggle, BetterSessions, ReviewDB, RelationshipNotifier, BlockKeywords, FollowVoiceUser. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** BetterSessions, ReviewDB, RelationshipNotifier, BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
 **Good first plugins** (the plugin API already covers them, so no client changes are needed): BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
@@ -259,7 +260,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 52 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 53 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

@@ -130,6 +130,7 @@ qord_add_plugin(reviewdb utility SOURCES ReviewDB.hpp ReviewDB.cpp)
 qord_add_plugin(relationshipnotifier utility SOURCES RelationshipNotifier.cpp)
 qord_add_plugin(blockkeywords chat SOURCES BlockKeywords.cpp)
 qord_add_plugin(followvoiceuser voice SOURCES FollowVoiceUser.cpp)
+qord_add_plugin(copyemojimarkdown emotes SOURCES CopyEmojiMarkdown.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

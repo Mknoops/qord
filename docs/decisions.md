@@ -177,6 +177,8 @@ and why, so it can be revisited deliberately.
 
 102. **Leaving voice, checkbox items in user menus; FollowVoiceUser.** `UiService::leaveVoice` disconnects an account from voice as the disconnect button does, and plugin items in a user's right-click menu can be checkboxes, as message menu items already could. FollowVoiceUser follows upstream: "Follow User" on a friend's menu (one person at a time), and while it is checked each time they join or move to a voice channel Qord joins it too, only while you are in voice unless "Only when in voice" is off, and with "Leave when user leaves" disconnects when they leave; following stops when they are no longer your friend. Who you follow isn't kept across restarts, as upstream. The mock can now move someone between voice channels or out of voice (`mock_discord.py voice`). Unit tested and checked against the mock (the menu, following Ava from Gaming to the Lounge); leaving with them is covered by the tests only. Not checked against Discord.
 
+103. **CopyEmojiMarkdown.** Follows upstream with the existing emoji picker menu (`emojiSuggestions`): "Copy Emoji Markdown" copies a server emoji as `<:name:id>` (`<a:name:id>` when animated, without the `~1` Discord adds to repeated names) and a standard emoji as the character, or `:name:` with "Copy Unicode" off, then says "Success! Copied emoji markdown.". Upstream reads animation from the image URL; Qord knows it from the emoji itself. The item has no copy icon. Unit tested and checked against the mock (copying Qord Dev's emoji and pasting it). Not checked against Discord.
+
 ## Core entries (planned, not yet evaluated in a batch)
 
 | Equicord core entry | Planned Qord responsibility |

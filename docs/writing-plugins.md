@@ -134,7 +134,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `messageAccessories` | Text, links and embeds shown under a message | `modify_displayed_messages` | MessageLinkEmbeds, Translate |
 | `profileTabs` | Tabs in user profiles | `add_ui_elements` | MutualGroupDMs, ReviewDB |
 | `dmPins` | How the DM list is grouped, with its headers and menus | `add_ui_elements` | PinDMs |
-| `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | FavoriteEmojiFirst |
+| `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | CopyEmojiMarkdown, FavoriteEmojiFirst |
 | `friendsSections` | Tabs on the Friends page | `read_relationships` | ImplicitRelationships |
 | `userPanelButtons` | Buttons next to mute and deafen, with a right-click menu | `add_ui_elements` | GameActivityToggle |
 | `deviceSessions` | How devices look in Settings → Devices, with buttons; new and changed sessions | `read_sessions` | BetterSessions |

@@ -1,0 +1,44 @@
+{
+  "id": "copyemojimarkdown",
+  "equicordName": "CopyEmojiMarkdown",
+  "equicordPath": "src/plugins/copyEmojiMarkdown",
+  "name": "CopyEmojiMarkdown",
+  "description": "Allows you to copy emojis as formatted string (<:blobcatcozy:1026533070955872337>)",
+  "summary": "\"Copy Emoji Markdown\" in the emoji picker's menu: <:name:id>, or the emoji itself",
+  "categories": [
+    "emotes",
+    "utility"
+  ],
+  "tags": [
+    "Emotes",
+    "Utility"
+  ],
+  "authors": [
+    "Happy enderman",
+    "Vishnya"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "write_clipboard"
+  ],
+  "hooks": [
+    "emojiSuggestions"
+  ],
+  "settings": [
+    {
+      "key": "copyUnicode",
+      "type": "bool",
+      "default": true,
+      "label": "Copy Unicode",
+      "description": "Copy the raw unicode character instead of :name: for default emojis (👽)"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Right-clicking an emoji in the emoji picker offers \"Copy Emoji Markdown\": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with \"Copy Unicode\" off; \"Success! Copied emoji markdown.\" confirms it.",
+  "gaps": [
+    "The menu item has no copy icon."
+  ]
+}

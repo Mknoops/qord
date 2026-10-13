@@ -160,6 +160,13 @@ PluginSettings *PluginHost::settings(const QString &id)
     return e->settings.get();
 }
 
+void PluginHost::dispatchSettingAction(const QString &pluginId, const QString &key)
+{
+    Entry *e = find(pluginId);
+    if (e && e->plugin && e->info.running)
+        guarded(pluginId, "onSettingAction", [&] { e->plugin->onSettingAction(key); });
+}
+
 void PluginHost::onSettingChanged(Entry &entry, const QString &key)
 {
     if (entry.plugin)
@@ -222,6 +229,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
     entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
     entry.context->onUserPanelChanged = [this] { emit userPanelChanged(); };
+    entry.context->onProfileTabsChanged = [this] { emit profileTabsChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);

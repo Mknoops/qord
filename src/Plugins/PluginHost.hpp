@@ -72,6 +72,8 @@ public:
     // edited before enabling. Created on first access.
     PluginSettings *settings(const QString &id);
 
+    // An "action" setting's button was clicked (only reaches a running plugin)
+    void dispatchSettingAction(const QString &pluginId, const QString &key);
     [[nodiscard]] bool hasHook(Hook hook) const { return !tables[hookIndex(hook)].empty(); }
     [[nodiscard]] QStringList pluginsForHook(Hook hook) const;
 
@@ -227,6 +229,8 @@ signals:
     void friendsChanged();
     // User panel buttons changed: ask dispatchUserPanelButtons again
     void userPanelChanged();
+    // Profile tabs changed (a plugin's data arrived): ask dispatchProfileTabs again
+    void profileTabsChanged();
 
 private:
     struct Entry

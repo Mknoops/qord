@@ -38,6 +38,17 @@ public:
     // as given and never logged. Unlike get(), a failed reply keeps its body.
     using Headers = QList<QPair<QByteArray, QByteArray>>;
     virtual Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) = 0;
+    // Any method ("GET", "PUT", "PATCH", "DELETE", ...) with headers and an
+    // optional body, for APIs that need them (ReviewDB). Like post(), a
+    // failed reply keeps its body.
+    virtual Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                           Callback callback)
+    {
+        if (method == "POST")
+            return post(url, headers, body, std::move(callback));
+        Q_UNUSED(body);
+        return get(url, std::move(callback));
+    }
     virtual void cancel(Handle handle) = 0;
 };
 
@@ -184,6 +195,28 @@ public:
     }
     // Opens Settings at Devices
     virtual void openDevicesSettings() {}
+    // A list window (ListDialogView); returns a handle to update or close it.
+    // Its events stop when the plugin stops, and its windows close.
+    virtual quint64 openListDialog(const ListDialogView &view, ListDialogEvents events)
+    {
+        Q_UNUSED(view);
+        Q_UNUSED(events);
+        return 0;
+    }
+    virtual void updateListDialog(quint64 handle, const ListDialogView &view)
+    {
+        Q_UNUSED(handle);
+        Q_UNUSED(view);
+    }
+    virtual void closeListDialog(quint64 handle) { Q_UNUSED(handle); }
+    // Discord's app authorization: shows the app and what it asks for, and if
+    // you authorize it `done` gets the redirect location (with the code);
+    // nullopt when you cancel or it fails. Needs authorize_apps.
+    virtual void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString> location)> done)
+    {
+        Q_UNUSED(request);
+        done(std::nullopt);
+    }
     // Joins a voice channel (or a DM's call) of the account you are viewing
     virtual void joinVoiceChannel(Id accountId, Id channelId)
     {

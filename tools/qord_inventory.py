@@ -91,9 +91,10 @@ PERMISSIONS = {
     "fetch_messages",
     "control_activity",
     "read_sessions",
+    "authorize_apps",
 }
 
-SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json"}
+SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action"}
 
 # Hook name -> call that must appear in client code (outside src/Plugins) for
 # the hook to count as wired into the running client. Must match PluginHost.

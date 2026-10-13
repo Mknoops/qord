@@ -136,6 +136,7 @@ private:
     QHBoxLayout *rolesButtons = nullptr;
 
     QTabWidget *rightTabs = nullptr;
+    QList<QWidget *> pluginTabWidgets; // Qord: plugins' profile tabs
 
     QTextEdit *noteEdit = nullptr;
     QVBoxLayout *connectionsLayout = nullptr;

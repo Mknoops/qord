@@ -221,6 +221,41 @@ void Client::logoutAuthSessions(const QStringList &idHashes, std::function<void(
     });
 }
 
+void Client::fetchOAuthApplication(const QUrlQuery &query, std::function<void(bool, const OAuthApp &)> callback)
+{
+    httpClient->get(QStringLiteral("/oauth2/authorize"), query, [callback](const HttpResponse &response) {
+        if (!response.success) {
+            qCWarning(LogDiscord) << "Fetching an OAuth2 application failed:" << response.statusCode << response.error;
+            callback(false, {});
+            return;
+        }
+        const QJsonObject app = QJsonDocument::fromJson(response.body).object().value(QStringLiteral("application")).toObject();
+        callback(true, { app.value(QStringLiteral("id")).toString(), app.value(QStringLiteral("name")).toString(),
+                         app.value(QStringLiteral("icon")).toString() });
+    });
+}
+
+void Client::authorizeOAuth(const QUrlQuery &query, quint64 permissions,
+                            std::function<void(bool, const QString &, const QString &)> callback)
+{
+    QJsonObject payload;
+    payload["permissions"] = QString::number(permissions);
+    payload["authorize"] = true;
+    payload["integration_type"] = 0;
+    QUrlQuery q = query;
+    httpClient->post(QStringLiteral("/oauth2/authorize?") + q.toString(QUrl::FullyEncoded), payload,
+                     [callback](const HttpResponse &response) {
+                         if (!response.success) {
+                             qCWarning(LogDiscord) << "Authorizing an app failed:" << response.statusCode;
+                             callback(false, {}, response.error);
+                             return;
+                         }
+                         const QString location =
+                                 QJsonDocument::fromJson(response.body).object().value(QStringLiteral("location")).toString();
+                         callback(!location.isEmpty(), location, {});
+                     });
+}
+
 void Client::fetchPinnedMessages(Snowflake channelId, MessagesCallback callback)
 {
     QUrlQuery query;

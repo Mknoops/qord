@@ -27,6 +27,8 @@ public:
     virtual void start(PluginContext &context) { Q_UNUSED(context); }
     virtual void stop() {}
     virtual void onSettingChanged(const QString &key) { Q_UNUSED(key); }
+    // An "action" setting's button was clicked in Settings → Plugins
+    virtual void onSettingAction(const QString &key) { Q_UNUSED(key); }
 
     // Hook::BeforeSend, Hook::BeforeEdit
     virtual void onBeforeSend(OutgoingMessage &message) { Q_UNUSED(message); }

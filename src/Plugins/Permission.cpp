@@ -72,6 +72,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "Change whether others see what you play or listen to") },
     { Permission::ReadSessions, "read_sessions",
       QT_TRANSLATE_NOOP("Qord::Plugins", "See the devices logged in to your account") },
+    { Permission::AuthorizeApps, "authorize_apps",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Ask you to log in to apps with your Discord account") },
 };
 
 struct HookInfo

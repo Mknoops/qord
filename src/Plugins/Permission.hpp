@@ -43,6 +43,7 @@ enum class Permission : quint32 {
     FetchMessages = 1u << 26, // PluginContext::messageLookup()
     ControlActivity = 1u << 27, // PluginContext::activity()
     ReadSessions = 1u << 28, // deviceSessions, PluginContext::sessions()
+    AuthorizeApps = 1u << 29, // UiService::authorizeApp
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)

@@ -104,6 +104,13 @@ public:
             onUserPanelChanged();
     }
     std::function<void()> onUserPanelChanged; // set by the host
+    // Asks open profiles to re-query their plugin tabs (Hook::ProfileTabs)
+    void refreshProfileTabs() const
+    {
+        if (onProfileTabsChanged)
+            onProfileTabsChanged();
+    }
+    std::function<void()> onProfileTabsChanged; // set by the host
     // Whether another plugin is enabled (Vencord's isPluginEnabled)
     [[nodiscard]] bool isPluginEnabled(const QString &pluginId) const
     {

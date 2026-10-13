@@ -36,6 +36,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/DevicesPage.cpp
     src/UI/Qord/NotificationCards.hpp
     src/UI/Qord/NotificationCards.cpp
+    src/UI/Qord/ListDialog.hpp
+    src/UI/Qord/ListDialog.cpp
     src/UI/Qord/PermissionsView.hpp
     src/UI/Qord/PermissionsView.cpp
     src/UI/Qord/HiddenChannelScreen.hpp

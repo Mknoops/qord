@@ -35,6 +35,23 @@ public:
         posts.append({ url, headers, body });
         return h;
     }
+    Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                   Callback callback) override
+    {
+        const Handle h = ++next;
+        requests.insert(h, { url, std::move(callback) });
+        urls.append(url);
+        calls.append({ method, url, headers, body });
+        return h;
+    }
+    struct Call
+    {
+        QByteArray method;
+        QUrl url;
+        Headers headers;
+        QByteArray body;
+    };
+    QList<Call> calls; // request()
     void cancel(Handle handle) override
     {
         if (requests.remove(handle))
@@ -149,6 +166,12 @@ public:
         ++dialogs;
     }
     void openUrl(const QUrl &url) override { opened.append(url); }
+    void openUserProfile(Id accountId, Id guildId, Id userId) override
+    {
+        Q_UNUSED(guildId);
+        profilesOpened.append({ accountId, userId });
+    }
+    QList<QPair<Id, Id>> profilesOpened;
     void showToast(const QString &text, ToastType type) override { toasts.append({ text, type }); }
     QList<QPair<QString, ToastType>> toasts;
     void showPermissions(const PermissionsView &view) override { permissionViews.append(view); }
@@ -217,6 +240,33 @@ public:
     QList<std::function<void()>> notificationClicks;
     void openDevicesSettings() override { ++devicesOpened; }
     int devicesOpened = 0;
+    void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done) override
+    {
+        authorizations.append(request);
+        pendingAuthorization = std::move(done);
+    }
+    QList<OAuthRequest> authorizations;
+    std::function<void(std::optional<QString>)> pendingAuthorization;
+    quint64 openListDialog(const ListDialogView &view, ListDialogEvents events) override
+    {
+        const quint64 handle = ++lastDialog;
+        listDialogs.insert(handle, view);
+        dialogEvents.insert(handle, std::move(events));
+        return handle;
+    }
+    void updateListDialog(quint64 handle, const ListDialogView &view) override
+    {
+        if (listDialogs.contains(handle))
+            listDialogs.insert(handle, view);
+    }
+    void closeListDialog(quint64 handle) override
+    {
+        listDialogs.remove(handle);
+        dialogEvents.remove(handle);
+    }
+    QHash<quint64, ListDialogView> listDialogs;
+    QHash<quint64, ListDialogEvents> dialogEvents;
+    quint64 lastDialog = 0;
     void promptText(const QString &title, const QString &, const QString &initial, int,
                     std::function<void(const QString &)> done) override
     {

@@ -311,6 +311,18 @@ public:
     void fetchAuthSessions(std::function<void(bool ok, const QList<AuthSession> &sessions)> callback);
     void logoutAuthSessions(const QStringList &idHashes, std::function<void(bool ok, const QString &error)> callback);
     [[nodiscard]] QString currentAuthSessionHash() const { return authSessionIdHash; }
+    // Qord: Discord's in-client app authorization (OAuth2 consent): the app
+    // asking (GET /oauth2/authorize), and authorizing it (POST), which
+    // answers with the redirect location carrying the code
+    struct OAuthApp
+    {
+        QString id;
+        QString name;
+        QString icon; // hash, for the app icon CDN URL
+    };
+    void fetchOAuthApplication(const QUrlQuery &query, std::function<void(bool ok, const OAuthApp &app)> callback);
+    void authorizeOAuth(const QUrlQuery &query, quint64 permissions,
+                        std::function<void(bool ok, const QString &location, const QString &error)> callback);
     void fetchPinnedMessages(Snowflake channelId, MessagesCallback callback);
     // Guild-wide when guildId is valid, else within channelId (DMs)
     void searchMessages(Snowflake guildId, Snowflake channelId, const QUrlQuery &query, JsonCallback callback);

@@ -109,7 +109,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `transformCopiedMessageLink` | Rewrite message links you copy | `modify_message_links` | NormalizeMessageLinks |
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
 | `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
-| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, PermissionsViewer, ShowMeYourName, ViewIcons |
+| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
 | `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
 | `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | NoBlockedMessages |
@@ -117,7 +117,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `linkWarnings` | Skip the "are you sure?" before opening a link | `trust_links` | AlwaysTrust |
 | `notifications` | Whether a message notifies you | `control_notifications` | OnePingPerDM |
 | `authorNames` | The name shown for a message's author | `modify_displayed_messages` | ShowMeYourName |
-| `channelContextMenu` | Items in a server's or channel's right-click menu | `add_ui_elements` | MessageLogger, PermissionsViewer, PinDMs, ServerInfo, ViewIcons |
+| `channelContextMenu` | Items in a server's or channel's right-click menu | `add_ui_elements` | MessageLogger, PermissionsViewer, PinDMs, ReviewDB, ServerInfo, ViewIcons |
 | `serverListButtons` | Buttons above the servers in the server list | `add_ui_elements` | ReadAllNotificationsButton |
 | `memberCounts` | Numbers above the member list and in server tooltips | `add_ui_elements` | MemberCount |
 | `userDecorations` | Icons after user names (clickable), in messages, the member list and profiles | `read_presences` | PlatformIndicators, UserVoiceShow |
@@ -132,7 +132,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `unknownMentions` | Hovering a mention of a user the client doesn't know | `fetch_users` | ValidUser |
 | `keyboardShortcuts` | Key presses in the chat | `add_ui_elements` | QuickReply |
 | `messageAccessories` | Text, links and embeds shown under a message | `modify_displayed_messages` | MessageLinkEmbeds, Translate |
-| `profileTabs` | Tabs in user profiles | `add_ui_elements` | MutualGroupDMs |
+| `profileTabs` | Tabs in user profiles | `add_ui_elements` | MutualGroupDMs, ReviewDB |
 | `dmPins` | How the DM list is grouped, with its headers and menus | `add_ui_elements` | PinDMs |
 | `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | FavoriteEmojiFirst |
 | `friendsSections` | Tabs on the Friends page | `read_relationships` | ImplicitRelationships |
@@ -147,9 +147,9 @@ unless the plugin has the permission, so check before use.
 
 | Accessor | Permission | What it gives |
 |---|---|---|
-| `network()` | `network` | HTTPS GET and POST; requests are cancelled when the plugin stops |
+| `network()` | `network` | HTTPS GET, POST and any other method (`request`); requests are cancelled when the plugin stops |
 | `clipboard()` | `write_clipboard` | Copy text |
-| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`) | Toasts, notifications, dialogs and forms, opening channels, profiles, images and settings, replying and editing, joining voice |
+| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications, dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining voice, logging in to a Discord app (OAuth2) |
 | `relationships()` | `read_relationships` | Friends, blocked and ignored users, user affinities |
 | `members()` | `read_guild_members` | A member's roles |
 | `guilds()` | `read_server_permissions` | Servers, channels, roles, permission overwrites, members |
@@ -168,7 +168,7 @@ unless the plugin has the permission, so check before use.
 | `displayOptions()` | `modify_displayed_messages` | Switches for how the client draws things (role colors, image lens, folders...) |
 
 `settings()` is always there. `refreshChatBar()`, `refreshDmList()`,
-`refreshFriends()` and `refreshUserPanel()` ask the client to query your hooks again after your state
+`refreshFriends()`, `refreshUserPanel()` and `refreshProfileTabs()` ask the client to query your hooks again after your state
 changed. The full interfaces are in `src/Plugins/Services.hpp`.
 
 ## Settings
@@ -185,6 +185,7 @@ them with `context->settings().boolValue("key")` (or `intValue`, `numberValue`,
 | `choice` | one of `choices` (`[{ "value": "...", "label": "..." }]`) | |
 | `stringlist` | a list of strings | |
 | `json` | anything, edited by a widget the plugin provides (`UI_SOURCES`) | |
+| `action` | none: a button that calls `onSettingAction(key)` | |
 
 Every setting needs `key`, `type`, `default` and `label`; `description` is shown
 under it, and `hidden` keeps it out of the page (state the plugin saves itself).

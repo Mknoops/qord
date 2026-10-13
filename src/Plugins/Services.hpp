@@ -223,6 +223,8 @@ public:
         Q_UNUSED(accountId);
         Q_UNUSED(channelId);
     }
+    // Disconnects the account from voice, as the disconnect button does
+    virtual void leaveVoice(Id accountId) { Q_UNUSED(accountId); }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {

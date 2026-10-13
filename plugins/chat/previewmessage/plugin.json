@@ -1,0 +1,35 @@
+{
+  "id": "previewmessage",
+  "equicordName": "PreviewMessage",
+  "equicordPath": "src/plugins/previewMessage",
+  "name": "PreviewMessage",
+  "description": "Lets you preview your message before sending it.",
+  "summary": "An eye button by the message box that shows your message, as only you can see it, before you send it",
+  "categories": [
+    "chat",
+    "utility"
+  ],
+  "tags": [
+    "Chat",
+    "Utility"
+  ],
+  "authors": [
+    "Syncxv"
+  ],
+  "permissions": [
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "chatBarButtons"
+  ],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "While the message box holds text (or files), an eye button, \"Preview Message\", appears beside it. Clicking it adds your message to the chat as Discord's \"Only you can see this\" messages look: from you, with your formatting, mentions and emojis rendered, and a \"Dismiss message\" link that removes it. Nothing is sent to Discord; the preview disappears when you switch channels or restart, as upstream's does.",
+  "gaps": [
+    "Attached files aren't shown in the preview, only the text; with files and no text, the button does nothing.",
+    "The eye icon is Material Icons' rather than Discord's."
+  ]
+}

@@ -156,10 +156,9 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     connect(textEdit, &ChatTextEdit::returnPressed, [this]() {
         if (sendBlocked || sending)
             return;
-        QString txt = textEdit->toPlainText().trimmed();
+        const QString txt = draftText();
         if (txt.isEmpty() && !attachmentPanel->hasAttachments())
             return;
-        txt = Core::UnicodeEmojiIndex::instance().translateNamesToSurrogates(txt);
         emit sendMessage(txt, attachmentPanel->attachments());
         if (keepAfterSend)
             keepAfterSend = false;
@@ -179,6 +178,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     connect(textEdit, &QTextEdit::textChanged, this, [this]() {
         if (!textEdit->document()->isEmpty())
             emit userTyping();
+        checkDraftEmpty();
     });
 
     autocomplete = new EmojiAutocomplete(textEdit, this);
@@ -186,6 +186,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     connect(textEdit, &ChatTextEdit::filesPasted, this, &MessageInput::queueAttachments);
     connect(textEdit, &ChatTextEdit::imagePasted, attachmentPanel, &AttachmentPreviewPanel::addImage);
     connect(attachmentPanel, &AttachmentPreviewPanel::attachmentsChanged, this, &MessageInput::adjustHeight);
+    connect(attachmentPanel, &AttachmentPreviewPanel::attachmentsChanged, this, &MessageInput::checkDraftEmpty);
 
     inputLayout->addWidget(textEdit);
 
@@ -359,6 +360,25 @@ void MessageInput::adjustHeight()
         totalHeight += attachmentPanel->sizeHint().height();
 
     setFixedHeight(totalHeight);
+}
+
+QString MessageInput::draftText() const
+{
+    return Core::UnicodeEmojiIndex::instance().translateNamesToSurrogates(textEdit->toPlainText().trimmed());
+}
+
+bool MessageInput::hasPendingAttachments() const
+{
+    return attachmentPanel->hasAttachments();
+}
+
+void MessageInput::checkDraftEmpty()
+{
+    const bool empty = textEdit->document()->isEmpty() && !attachmentPanel->hasAttachments();
+    if (empty == draftEmpty)
+        return;
+    draftEmpty = empty;
+    emit draftEmptyChanged(empty);
 }
 
 } // namespace UI

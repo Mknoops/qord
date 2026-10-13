@@ -108,7 +108,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `shouldMentionOnReply` | Whether a reply pings its author | `reply_mentions` | NoReplyMention |
 | `transformCopiedMessageLink` | Rewrite message links you copy | `modify_message_links` | NormalizeMessageLinks |
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
-| `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
+| `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, PreviewMessage, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
 | `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
 | `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
@@ -150,7 +150,7 @@ unless the plugin has the permission, so check before use.
 |---|---|---|
 | `network()` | `network` | HTTPS GET, POST and any other method (`request`); requests are cancelled when the plugin stops |
 | `clipboard()` | `write_clipboard` | Copy text |
-| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications (with an icon), dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining and leaving voice, logging in to a Discord app (OAuth2) |
+| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications (with an icon), dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining and leaving voice, local messages only you can see, logging in to a Discord app (OAuth2) |
 | `relationships()` | `read_relationships` | Friends, blocked and ignored users, user affinities |
 | `members()` | `read_guild_members` | A member's roles |
 | `guilds()` | `read_server_permissions` | Servers, channels, roles, permission overwrites, members |

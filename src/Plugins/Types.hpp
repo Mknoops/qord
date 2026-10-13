@@ -123,6 +123,10 @@ struct ChatContext
     enum class Click { Left, Middle, Right };
     Click click = Click::Left;
     bool shift = false; // Shift was held (Translate toggles auto-translate)
+    // The message box: its text as it would be sent, and whether files are
+    // attached. The bar asks again when the box empties or fills.
+    QString draft;
+    bool hasAttachments = false;
 };
 
 // About to tell Discord the user is typing.

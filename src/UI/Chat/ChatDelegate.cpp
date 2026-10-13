@@ -19,6 +19,7 @@
 #include "UI/Chat/MediaTarget.hpp"
 #include "UI/Chat/VideoControls.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 
 #include <QCache>
 
@@ -564,22 +565,33 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setFont(headerFont);
         QFontMetrics headerFm(headerFont);
 
+        // Qord: the role color is on the name, in a dot after it, or both
+        // (Discord's Role Colors setting, BetterRoleDot)
+        const QColor roleColor = index.data(ChatModel::UsernameColorRole).value<QColor>();
         QColor headerColor;
         if (option.state & QStyle::State_Selected) {
             headerColor = option.palette.highlightedText().color();
         } else {
-            QColor roleColor = index.data(ChatModel::UsernameColorRole).value<QColor>();
-            headerColor = roleColor.isValid() ? roleColor : option.palette.text().color();
+            headerColor = roleColor.isValid() && Core::roleColorOnName() ? roleColor : option.palette.text().color();
         }
 
         painter->setPen(headerColor);
         painter->drawText(layout.headerRect, Qt::AlignLeft | Qt::AlignTop, username);
 
-        // Qord: after the name come Discord's APP tag for bots, plugin icons
-        // (PlatformIndicators), then "Today at 3:45 PM"
+        // Qord: after the name come the role dot, Discord's APP tag for bots,
+        // plugin icons (PlatformIndicators), then "Today at 3:45 PM"
         QList<HeaderTip> tips;
         int afterName = layout.headerRect.left() + headerFm.horizontalAdvance(username);
         const int lineCenter = layout.headerRect.top() + headerFm.height() / 2;
+        if (roleColor.isValid() && Core::roleDotAfterName()) {
+            const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+            const QRect dotRect(afterName + 4, lineCenter - Core::RoleDotSize / 2, Core::RoleDotSize,
+                                Core::RoleDotSize);
+            painter->drawPixmap(dotRect, Core::roleDotPixmap(roleColor, dpr));
+            if (Core::roleDotOptions().enabled)
+                tips.append({ dotRect, QString(), QString(), QString(), 0, roleColor.name() });
+            afterName = dotRect.right() + 1;
+        }
         const Snowflake headerMessageId = index.data(ChatModel::MessageIdRole).toULongLong();
         const Discord::Message *headerMessage = chatModel ? chatModel->messageAt(index.row()) : nullptr;
         const bool isSystemUser = headerMessage && headerMessage->author.hasValue() && headerMessage->author->isSystem();

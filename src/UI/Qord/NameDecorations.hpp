@@ -41,7 +41,8 @@ public:
         QString tooltip;
         QString pluginId; // with clickId: clickable
         QString clickId;
-        [[nodiscard]] bool clickable() const { return !clickId.isEmpty(); }
+        QString copyText; // copied when clicked (BetterRoleDot's role dot)
+        [[nodiscard]] bool clickable() const { return !clickId.isEmpty() || !copyText.isEmpty(); }
     };
 
     explicit NameDecorations(Core::Session *session, QObject *parent = nullptr);

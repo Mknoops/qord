@@ -33,6 +33,8 @@ public:
         QString pluginId;
         QString clickId;
         quint64 userId = 0;
+        // A role dot that copies its color when clicked (BetterRoleDot)
+        QString copyText;
     };
     [[nodiscard]] QList<HeaderTip> headerTips(quint64 messageId) const { return lastHeaderTips.value(messageId); }
 

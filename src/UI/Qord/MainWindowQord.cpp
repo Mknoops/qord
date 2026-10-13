@@ -44,6 +44,7 @@
 #include "UI/Qord/HiddenChannelScreen.hpp"
 #include "UI/Qord/ServerInfoDialog.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/ChannelList/ChannelFilterProxyModel.hpp"
@@ -868,6 +869,9 @@ void MainWindow::setupQordFeatures()
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
             instance->markGuildsAsRead(channelTreeModel->guildIds(Snowflake(accountId)));
     };
+
+    // Discord's Role Colors setting (Appearance)
+    Core::roleStyle() = Core::roleStyleFromKey(QSettings().value("ui/roleStyle").toString());
 
     // Plugin surfaces: icons after names, member counts, server list buttons
     nameDecorations = new NameDecorations(session, this);

@@ -8,6 +8,7 @@
 #include <QToolTip>
 
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 
 #include "Core/MemberListManager.hpp"
 #include "Core/Theme/Icons.hpp"
@@ -173,8 +174,10 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
     font.setWeight(QFont::Medium);
     painter->setFont(font);
 
+    // Qord: the role color is on the name, in a dot after it, or both
+    // (Discord's Role Colors setting, BetterRoleDot)
     QColor nameColor;
-    if (roleColor.isValid())
+    if (roleColor.isValid() && Core::roleColorOnName())
         nameColor = roleColor;
     else
         nameColor = option.palette.color(QPalette::Text);
@@ -192,13 +195,23 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
                                         Core::Snowflake(index.data(MemberListModel::UserIdRole).toULongLong()),
                                         NameDecorations::Place::MemberList, dpr);
     }
-    // Qord: Discord's crown for the server owner, before plugin icons
+    // Qord: the role dot, then Discord's crown for the server owner, before
+    // plugin icons
     if (index.data(MemberListModel::OwnerCrownRole).toBool()) {
         const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
         constexpr int CrownSize = 14;
         decorations.prepend({ Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::Crown, CrownSize,
                                                           QColor(0xf0, 0xb2, 0x32), dpr),
                               QSize(CrownSize, CrownSize), tr("Server Owner") });
+    }
+    if (roleColor.isValid() && Core::roleDotAfterName()) {
+        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+        NameDecorations::Decoration dot;
+        dot.pixmap = Core::roleDotPixmap(roleColor, dpr);
+        dot.size = QSize(Core::RoleDotSize, Core::RoleDotSize);
+        if (Core::roleDotOptions().enabled)
+            dot.copyText = roleColor.name();
+        decorations.prepend(dot);
     }
     const int decorationWidth = qMin(NameDecorations::width(decorations), textWidth / 2);
     QString elidedName = fm.elidedText(displayName, Qt::ElideRight, textWidth - decorationWidth);

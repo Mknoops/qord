@@ -16,6 +16,7 @@ public:
 signals:
     void channelListModeChanged(bool classic);
     void channelListIndentChanged();
+    void roleStyleChanged();
     void animateEmojiChanged(bool enabled);
     void animateStickersChanged(bool enabled);
     void animationCacheLimitChanged(int megabytes);

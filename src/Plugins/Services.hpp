@@ -238,6 +238,14 @@ public:
     // Role colors in mentions, member list headers, voice users and message
     // text (all off by default)
     virtual void setRoleColors(const RoleColors &colors) { Q_UNUSED(colors); }
+    // The image viewer's magnifying lens (nullopt: off); `changed` gets the
+    // zoom and size the wheel set while magnifying
+    virtual void setImageLens(const std::optional<ImageLens> &lens,
+                              std::function<void(double zoom, int size)> changed)
+    {
+        Q_UNUSED(lens);
+        Q_UNUSED(changed);
+    }
 };
 
 class ReadStateService

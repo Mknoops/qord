@@ -10,6 +10,7 @@
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/RelationshipManager.hpp"
 #include "Core/Audio/VolumeLimit.hpp"
+#include "Core/ImageLens.hpp"
 #include "Core/OwnerCrown.hpp"
 #include "Core/RoleColors.hpp"
 #include "Core/Session.hpp"
@@ -450,6 +451,22 @@ void QtDisplayOptions::setForceOwnerCrown(bool force)
     Acheron::Core::forceOwnerCrown() = force;
     if (host)
         emit host->presentationChanged();
+}
+
+void QtDisplayOptions::setImageLens(const std::optional<ImageLens> &lens, std::function<void(double, int)> changed)
+{
+    auto &options = Acheron::Core::imageLensOptions();
+    options = {};
+    if (!lens)
+        return;
+    options.enabled = true;
+    options.zoom = lens->zoom;
+    options.size = lens->size;
+    options.zoomSpeed = lens->zoomSpeed;
+    options.square = lens->square;
+    options.nearestNeighbour = lens->nearestNeighbour;
+    options.invertScroll = lens->invertScroll;
+    options.changed = std::move(changed);
 }
 
 void QtDisplayOptions::setRoleColors(const RoleColors &colors)

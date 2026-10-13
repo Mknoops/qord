@@ -115,6 +115,7 @@ qord_add_plugin(rolecoloreverywhere appearance SOURCES RoleColorEverywhere.cpp)
 qord_add_plugin(mutualgroupdms utility SOURCES MutualGroupDMs.cpp)
 qord_add_plugin(volumebooster voice SOURCES VolumeBooster.cpp)
 qord_add_plugin(pindms chat SOURCES PinDMs.hpp PinDMs.cpp)
+qord_add_plugin(imagezoom media SOURCES ImageZoom.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

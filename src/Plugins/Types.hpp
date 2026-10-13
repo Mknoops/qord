@@ -374,6 +374,7 @@ struct MenuItem
     QString id;
     QString label;
     QList<MenuItem> children;
+    std::optional<bool> checked = std::nullopt; // a checkbox item (message menus)
 };
 
 // A message as plugins see it (from the client's cache).
@@ -749,6 +750,17 @@ struct DiffPart
     Kind kind = Kind::Unchanged;
     QString text;
     bool operator==(const DiffPart &o) const { return kind == o.kind && text == o.text; }
+};
+
+// ImageZoom's lens in the image viewer.
+struct ImageLens
+{
+    double zoom = 2.0;
+    int size = 100;
+    double zoomSpeed = 0.5;
+    bool square = false;
+    bool nearestNeighbour = false;
+    bool invertScroll = true;
 };
 
 // Where RoleColorEverywhere shows role colors.

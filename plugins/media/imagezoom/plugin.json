@@ -1,0 +1,90 @@
+{
+  "id": "imagezoom",
+  "equicordName": "ImageZoom",
+  "equicordPath": "src/plugins/imageZoom",
+  "name": "ImageZoom",
+  "description": "Lets you zoom in to images and gifs. Use scroll wheel to zoom in and shift + scroll wheel to increase lens radius / size",
+  "categories": [
+    "media"
+  ],
+  "tags": [
+    "Media",
+    "Utility"
+  ],
+  "authors": [
+    "Aria"
+  ],
+  "permissions": [
+    "modify_displayed_messages",
+    "add_ui_elements"
+  ],
+  "hooks": [
+    "messageContextMenu"
+  ],
+  "settings": [
+    {
+      "key": "saveZoomValues",
+      "type": "bool",
+      "default": true,
+      "label": "Save zoom values",
+      "description": "Whether to save zoom and lens size values"
+    },
+    {
+      "key": "invertScroll",
+      "type": "bool",
+      "default": true,
+      "label": "Invert scroll",
+      "description": "Invert scroll"
+    },
+    {
+      "key": "nearestNeighbour",
+      "type": "bool",
+      "default": false,
+      "label": "Nearest neighbour",
+      "description": "Use Nearest Neighbour Interpolation when scaling images"
+    },
+    {
+      "key": "square",
+      "type": "bool",
+      "default": false,
+      "label": "Square lens",
+      "description": "Make the lens square"
+    },
+    {
+      "key": "zoom",
+      "type": "number",
+      "default": 2,
+      "min": 1,
+      "max": 50,
+      "label": "Zoom",
+      "description": "Zoom of the lens"
+    },
+    {
+      "key": "size",
+      "type": "number",
+      "default": 100,
+      "min": 50,
+      "max": 1000,
+      "label": "Lens size",
+      "description": "Radius / Size of the lens"
+    },
+    {
+      "key": "zoomSpeed",
+      "type": "number",
+      "default": 0.5,
+      "min": 0.1,
+      "max": 5,
+      "label": "Zoom speed",
+      "description": "How fast the zoom / lens size changes"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "In the image viewer, holding the left button over the picture shows a round lens (square with \"Square lens\") magnifying it, following the cursor; the wheel changes its zoom and Shift+wheel its size, at the zoom speed, upwards by default (\"Invert scroll\"), and the values are kept for next time. While it is on, the right or middle button pans the picture and the wheel without the left button zooms the viewer as before. An image's message menu has Square Lens and Nearest Neighbour switches.",
+  "gaps": [
+    "Upstream's zoom, lens size and zoom speed sliders in the image menu are only in the plugin's settings (Qord menus have no sliders).",
+    "Animated images show their first frame in Qord's viewer, so the lens magnifies that frame."
+  ]
+}

@@ -292,6 +292,13 @@ public:
     void setMobileIndicatorForAnyStatus(bool any) override { mobileAnyStatus = any; }
     void setForceOwnerCrown(bool force) override { ownerCrown = force; }
     void setRoleColors(const RoleColors &colors) override { roleColors = colors; ++roleColorUpdates; }
+    void setImageLens(const std::optional<ImageLens> &value, std::function<void(double, int)> changed) override
+    {
+        lens = value;
+        lensChanged = std::move(changed);
+    }
+    std::optional<ImageLens> lens;
+    std::function<void(double, int)> lensChanged;
     RoleColors roleColors;
     int roleColorUpdates = 0;
     bool roundsDown = false;

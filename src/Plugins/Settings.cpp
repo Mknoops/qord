@@ -25,6 +25,8 @@ std::optional<SettingType> settingTypeFromString(const QString &name)
         return SettingType::StringList;
     if (name == QLatin1String("json"))
         return SettingType::Json;
+    if (name == QLatin1String("number"))
+        return SettingType::Number;
     return std::nullopt;
 }
 
@@ -43,6 +45,8 @@ QString settingTypeToString(SettingType type)
         return QStringLiteral("stringlist");
     case SettingType::Json:
         return QStringLiteral("json");
+    case SettingType::Number:
+        return QStringLiteral("number");
     }
     return {};
 }
@@ -58,9 +62,19 @@ QString SettingSpec::validate(const QJsonValue &value) const
         const double d = value.toDouble();
         if (d != double(qint64(d)))
             return QStringLiteral("expected a whole number");
-        if (minimum && qint64(d) < *minimum)
+        if (minimum && d < *minimum)
             return QStringLiteral("must be at least %1").arg(*minimum);
-        if (maximum && qint64(d) > *maximum)
+        if (maximum && d > *maximum)
+            return QStringLiteral("must be at most %1").arg(*maximum);
+        return {};
+    }
+    case SettingType::Number: {
+        if (!value.isDouble())
+            return QStringLiteral("expected a number");
+        const double d = value.toDouble();
+        if (minimum && d < *minimum)
+            return QStringLiteral("must be at least %1").arg(*minimum);
+        if (maximum && d > *maximum)
             return QStringLiteral("must be at most %1").arg(*maximum);
         return {};
     }

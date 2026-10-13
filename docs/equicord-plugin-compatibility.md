@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 325 |
+| Not Started | 324 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 44 |
+| Tested | 45 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -166,7 +166,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ILoveSpam | `src/plugins/iLoveSpam` |  | Not Started |  |
 | ImageFilename | `src/plugins/imageFilename` |  | Not Started |  |
 | ImageLink | `src/plugins/imageLink` |  | Not Started |  |
-| ImageZoom | `src/plugins/imageZoom` |  | Not Started |  |
+| ImageZoom | `src/plugins/imageZoom` | `plugins/media/imagezoom` | Tested | In the image viewer, holding the left button over the picture shows a round lens (square with "Square lens") magnifying it, following the cursor; the wheel changes its zoom and Shift+wheel its size, at the zoom speed, upwards by default ("Invert scroll"), and the values are kept for next time. While it is on, the right or middle button pans the picture and the wheel without the left button zooms the viewer as before. An image's message menu has Square Lens and Nearest Neighbour switches. wired; not yet verified in the running client. gaps: Upstream's zoom, lens size and zoom speed sliders in the image menu are only in the plugin's settings (Qord menus have no sliders).; Animated images show their first frame in Qord's viewer, so the lens magnifies that frame. |
 | ImplicitRelationships | `src/plugins/implicitRelationships` |  | Not Started |  |
 | Ingtoninator | `src/equicordplugins/ingtoninator` | `plugins/chat/ingtoninator` | Tested | Showing or hiding the button takes effect immediately; upstream needs a restart. wired; not yet verified in the running client. |
 | InRole | `src/equicordplugins/inRole` |  | Not Started |  |

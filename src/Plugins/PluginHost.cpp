@@ -229,6 +229,7 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
     entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
     entry.context->onUserPanelChanged = [this] { emit userPanelChanged(); };
+    entry.context->onServerListChanged = [this] { emit serverListChanged(); };
     entry.context->onProfileTabsChanged = [this] { emit profileTabsChanged(); };
     bool ok = true;
     try {

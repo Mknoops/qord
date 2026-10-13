@@ -533,6 +533,16 @@ public:
     [[nodiscard]] virtual QList<Id> accountIds() const = 0;
 };
 
+// Whether people are online (ServerListIndicators).
+class PresenceDirectory
+{
+public:
+    virtual ~PresenceDirectory() = default;
+    // "online", "idle", "dnd" or "offline" (also for people Qord has no
+    // presence for)
+    [[nodiscard]] virtual QString status(Id accountId, Id userId) const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -554,6 +564,7 @@ struct Services
     VoiceStateDirectory *voiceStates = nullptr;
     ActivitySettingsService *activity = nullptr;
     SessionService *sessions = nullptr;
+    PresenceDirectory *presences = nullptr;
 };
 
 } // namespace Plugins

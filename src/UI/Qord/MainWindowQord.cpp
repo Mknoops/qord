@@ -1099,6 +1099,7 @@ void MainWindow::setupQordFeatures()
             refreshPluginSurfaces();
         });
         connect(host, &Qord::Plugins::PluginHost::pluginStateChanged, this, [this]() { refreshPluginSurfaces(); });
+        connect(host, &Qord::Plugins::PluginHost::serverListChanged, this, [this]() { refreshPluginSurfaces(); });
     }
 
     // Sending a message ends the typing state, like the official client
@@ -1252,7 +1253,7 @@ void MainWindow::refreshPluginSurfaces()
                     accountId = instance->accountId();
                     break;
                 }
-        serverListButtons->refresh(accountId);
+        serverListButtons->refresh(accountId, int(channelTreeModel->guildIds(accountId).size()));
     }
     refreshMemberCountBar();
 }
@@ -1453,6 +1454,28 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
     if (nameDecorations)
         nameDecorations->watch(instance);
     connectMemberships(instance);
+    // ServerListIndicators: server list buttons follow presences, servers
+    // and friends (at most twice a second)
+    auto *serverListRefresh = new QTimer(this);
+    serverListRefresh->setSingleShot(true);
+    serverListRefresh->setInterval(500);
+    connect(serverListRefresh, &QTimer::timeout, this, [this]() { refreshPluginSurfaces(); });
+    connect(instance, &QObject::destroyed, serverListRefresh, &QObject::deleteLater);
+    const auto serverListChanged = [serverListRefresh]() {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (host && host->hasHook(Qord::Plugins::Hook::ServerListButtons))
+            serverListRefresh->start();
+    };
+    connect(instance->presences(), &Core::PresenceManager::presencesChanged, this,
+            [serverListChanged](const QList<Snowflake> &) { serverListChanged(); });
+    connect(instance->discord(), &Discord::Client::guildCreated, this,
+            [serverListChanged](const Discord::GatewayGuild &) { serverListChanged(); });
+    connect(instance->discord(), &Discord::Client::guildDeleted, this,
+            [serverListChanged](const Discord::GuildDelete &) { serverListChanged(); });
+    connect(instance->discord(), &Discord::Client::relationshipAdded, this,
+            [serverListChanged](const Discord::Relationship &) { serverListChanged(); });
+    connect(instance->discord(), &Discord::Client::relationshipRemoved, this,
+            [serverListChanged](const Discord::RelationshipPartial &) { serverListChanged(); });
     // BetterSessions: Discord reports your sessions (SESSIONS_REPLACE) after
     // logging in and when a device logs in or out; tell plugins when the set
     // of sessions changes

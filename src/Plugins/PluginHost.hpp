@@ -134,6 +134,9 @@ public:
     [[nodiscard]] std::optional<HiddenChannelDisplay> dispatchHiddenChannelDisplay();
     [[nodiscard]] std::optional<LockScreen> dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel);
     [[nodiscard]] QList<PluginButton> dispatchProfileRoleButtons(const UserContext &user);
+    void dispatchSortEmojiSuggestions(EmojiAutocompleteContext &context);
+    [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
+    void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
     // The first plugin with a layout decides it
     [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
     void dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId);

@@ -340,6 +340,15 @@ def add(cid: str, author: str, content: str, minutes_ago: float, **extra) -> dic
     return m
 
 
+def frecency_settings() -> str:
+    # FrecencyUserSettings with favorite_emojis = 5 { repeated string emojis = 1 }:
+    # the party_blob custom emoji and the sob Unicode emoji (FavoriteEmojiFirst)
+    def string_field(number: int, value: bytes) -> bytes:
+        return bytes([number << 3 | 2, len(value)]) + value
+    favorites = string_field(1, b"720000000000000003") + string_field(1, b"sob")
+    return base64.b64encode(string_field(5, favorites)).decode()
+
+
 def member_count(gid: str) -> int:
     # QORD_MOCK_LARGE=1 reports Second Server as a 1,500-member server
     # (ForceOwnerCrown: Qord hides the owner crown in large servers)
@@ -1120,6 +1129,8 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
     if parts[:3] == ["users", "@me", "settings-proto"]:
         if method == "PATCH":
             log(f"rest: settings-proto/{parts[3] if len(parts) > 3 else '?'} patched ({len(body)} bytes)")
+        if len(parts) > 3 and parts[3] == "2":
+            return 200, {"settings": frecency_settings()}, "json"
         return 200, {"settings": ""}, "json"
     if len(parts) == 3 and parts[2] == "application-command-index" and parts[0] in ("guilds", "channels"):
         empty = {"applications": [], "application_commands": [], "version": "0"}

@@ -13,6 +13,7 @@
 
 #include "Core/Emoji/EmojiMatch.hpp"
 #include "Core/Emoji/FrecencyTracker.hpp"
+#include "Plugins/Types.hpp"
 #include "Core/Snowflake.hpp"
 #include "Discord/Entities.hpp"
 #include "Discord/Events.hpp"
@@ -67,6 +68,13 @@ public:
         QList<EmojiMatch> emojis;
     };
     [[nodiscard]] QList<PickerSection> pickerSections(Snowflake channelId, bool forReaction);
+    // Qord: an emoji by frecency key (custom emoji id or Unicode name), if
+    // you can use it here
+    [[nodiscard]] std::optional<EmojiMatch> matchForKey(const QString &key, Snowflake channelId, bool forReaction);
+    // Qord: your Discord favorite emojis (same keys), in Discord's order
+    [[nodiscard]] const QStringList &favoriteEmojis() const { return favorites_; }
+    // Qord: an emoji as plugins see it
+    [[nodiscard]] Qord::Plugins::EmojiInfo emojiInfo(const QString &key, const EmojiMatch &match) const;
 
     // Qord: your servers' stickers, and lookups by id (src/Qord/EmojiPickerData.cpp)
     void setGuildStickers(Snowflake guildId, const QList<Discord::Sticker> &stickers);
@@ -146,6 +154,7 @@ private:
     bool customCandidatesDirty = true;
     QList<UnicodeCandidate> unicodeCandidateCache;
 
+    QStringList favorites_;
     FrecencyTracker chatTracker;
     FrecencyTracker reactionTracker;
 

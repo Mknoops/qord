@@ -208,6 +208,19 @@ FrecencyUserSettings FrecencyUserSettings::fromProto(ProtoReader &reader)
         case 1:
             settings.dataVersion = readDataVersion(nestedReader);
             break;
+        // FavoriteEmojis favorite_emojis { repeated string emojis = 1 }
+        case 5: {
+            QStringList emojis;
+            Tag inner;
+            while (nestedReader.readTag(inner)) {
+                if (inner.fieldNumber == 1 && inner.wireType == WireType::LENGTH_DELIMITED)
+                    emojis.append(readString(nestedReader));
+                else
+                    nestedReader.skipField(inner.wireType);
+            }
+            settings.favoriteEmojis = emojis;
+            break;
+        }
         // EmojiFrecency emoji_frecency
         case 6:
             settings.emojiFrecency = EmojiFrecency::fromProto(nestedReader);

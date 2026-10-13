@@ -752,6 +752,37 @@ struct DiffPart
     bool operator==(const DiffPart &o) const { return kind == o.kind && text == o.text; }
 };
 
+// An emoji in the autocomplete or the picker. key: a custom emoji's id, or a
+// Unicode emoji's name (Discord's frecency and favorites keys).
+struct EmojiInfo
+{
+    QString key;
+    QString name; // without colons (a custom emoji's original name)
+    Id customId = 0;
+    bool animated = false;
+    QString surrogates; // Unicode only
+    bool favorite = false; // in your Discord favorites
+};
+
+// The emoji autocomplete's suggestions for `:query`, best first. A plugin may
+// reorder them and add others by key (shown if you can use them here).
+struct EmojiAutocompleteContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    QString query;
+    bool forReaction = false;
+    QList<EmojiInfo> results;
+};
+
+// An emoji right-clicked in the emoji picker.
+struct EmojiContext
+{
+    Id accountId = 0;
+    Id channelId = 0;
+    EmojiInfo emoji;
+};
+
 // ImageZoom's lens in the image viewer.
 struct ImageLens
 {

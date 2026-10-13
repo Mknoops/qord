@@ -246,6 +246,20 @@ public:
         Q_UNUSED(message);
     }
 
+    // Hook::EmojiSuggestions: reorder (or add to) the emoji autocomplete's
+    // suggestions, and items for an emoji right-clicked in the picker
+    virtual void sortEmojiSuggestions(EmojiAutocompleteContext &context) { Q_UNUSED(context); }
+    virtual QList<MenuItem> emojiContextMenuItems(const EmojiContext &emoji)
+    {
+        Q_UNUSED(emoji);
+        return {};
+    }
+    virtual void onEmojiContextMenuAction(const QString &id, const EmojiContext &emoji)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(emoji);
+    }
+
     // Hook::DmPins: how an account's DM list is grouped (nullopt: as Discord
     // shows it), and its headers' clicks and menus. Category ids, or
     // DmSectionHeaderId for "Direct Messages".

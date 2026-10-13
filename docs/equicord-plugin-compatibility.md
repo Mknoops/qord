@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 308 |
+| Not Started | 307 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 61 |
+| Tested | 62 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -97,7 +97,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | CustomUserColors | `src/equicordplugins/customUserColors` |  | Not Started |  |
 | Dearrow | `src/plugins/dearrow` |  | Not Started |  |
 | Declutter | `src/equicordplugins/declutter` |  | Not Started |  |
-| DecodeBase64 | `src/equicordplugins/baseDecoder` |  | Not Started |  |
+| DecodeBase64 | `src/equicordplugins/baseDecoder` | `plugins/chat/decodebase64` | Tested | A message's right-click menu gets "Decode Base64" and "Copy Decoded". Like upstream, every run of four or more Base64 characters (with optional = padding) is decoded, and the ones that make valid UTF-8 text are kept. Decode Base64 shows them in a "Decoded Base64 Content" window, each in a code box with Copy ("Decoded content copied to clipboard!"); Copy Decoded copies them, one per line. A message with nothing to decode says "No Base64 content found in this message.". The click method setting puts the action it calls the left-click one first in the menu. wired; not yet verified in the running client. gaps: Qord has no plugin buttons on a message's hover bar yet, so the actions are in the right-click menu instead of a button that left- and right-clicks.; Copy Decoded copies all decoded parts, one per line; upstream copies each in turn, so only the last stays on the clipboard.; Non-ASCII text decodes properly as UTF-8; upstream shows it byte by byte. |
 | Decor | `src/plugins/decor` |  | Not Started |  |
 | DevCompanion | `src/plugins/devCompanion.dev` |  | Not Started |  |
 | DisableCallIdle | `src/plugins/disableCallIdle` |  | Not Started |  |

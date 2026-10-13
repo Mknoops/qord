@@ -134,6 +134,7 @@ qord_add_plugin(copyemojimarkdown emotes SOURCES CopyEmojiMarkdown.cpp)
 qord_add_plugin(serverlistindicators servers SOURCES ServerListIndicators.cpp)
 qord_add_plugin(previewmessage chat SOURCES PreviewMessage.cpp)
 qord_add_plugin(decodebase64 chat SOURCES DecodeBase64.cpp)
+qord_add_plugin(unitconverter utility SOURCES UnitConverter.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

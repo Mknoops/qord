@@ -208,6 +208,15 @@ public:
     void insertIntoMessageBox(const QString &text) override { inserted.append(text); }
     void pickTimestamp(std::function<void(const QString &)> done) override { pendingPick = std::move(done); }
     void openPluginSettings(const QString &pluginId) override { settingsOpened.append(pluginId); }
+    void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
+    {
+        notifications.append(notification);
+        notificationClicks.append(std::move(clicked));
+    }
+    QList<PluginNotification> notifications;
+    QList<std::function<void()>> notificationClicks;
+    void openDevicesSettings() override { ++devicesOpened; }
+    int devicesOpened = 0;
     void promptText(const QString &title, const QString &, const QString &initial, int,
                     std::function<void(const QString &)> done) override
     {
@@ -335,6 +344,22 @@ public:
     QList<std::function<void(bool, const QList<ActivityConnection> &)>> pendingFetches;
     QList<Change> activityChanges;
     QList<std::function<void(bool)>> pendingChanges;
+};
+
+class FakeSessions : public SessionService
+{
+public:
+    void fetchSessions(Id accountId, std::function<void(bool, const QList<DeviceSession> &)> done) override
+    {
+        fetches.append(accountId);
+        pending.append(std::move(done));
+    }
+    void refreshDevicesPage() override { ++refreshes; }
+    QList<Id> accountIds() const override { return accounts; }
+    QList<Id> accounts{ 1 };
+    QList<Id> fetches;
+    QList<std::function<void(bool, const QList<DeviceSession> &)>> pending;
+    int refreshes = 0;
 };
 
 class FakeAudio : public AudioOptionsService
@@ -544,6 +569,7 @@ struct SinglePluginHost
         services.messageLookup = &messageLookup;
         services.voiceStates = &voiceStates;
         services.activity = &activity;
+        services.sessions = &sessions;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -575,6 +601,7 @@ struct SinglePluginHost
     FakeMessageLookup messageLookup;
     FakeVoiceStates voiceStates;
     FakeActivity activity;
+    FakeSessions sessions;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

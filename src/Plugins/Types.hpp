@@ -885,6 +885,39 @@ struct ActivityConnection
     bool revoked = false;
 };
 
+// A device logged in to your account (Discord's Devices settings, GET
+// /auth/sessions).
+struct DeviceSession
+{
+    QString idHash;
+    QString os; // "Windows", "Android", ...
+    QString platform; // "Discord Client", "Chrome", ...
+    QString location;
+    qint64 lastUsedMs = 0; // approx_last_used_time, ms since the epoch
+    bool current = false; // the session Qord is using
+};
+
+// How a plugin shows a device in the Devices settings (BetterSessions).
+// Empty fields keep the client's.
+struct DeviceSessionView
+{
+    QString title; // instead of "OS · Platform"
+    bool isNew = false; // a red "NEW" badge after the title
+    QString iconColor; // the device icon's background ("#rrggbb")
+    QByteArray badgeSvg; // a small round badge on the icon, "currentColor" drawn dark
+    QString timeTooltip; // tooltip on the "last used" text
+    QList<MenuItem> buttons; // small buttons after the title ("Rename")
+};
+
+// A notification a plugin shows (Vencord's showNotification): a card in the
+// corner of the window, and a desktop notification while Qord isn't focused.
+struct PluginNotification
+{
+    QString title;
+    QString body;
+    bool permanent = false; // stays until closed or clicked (else 5 seconds)
+};
+
 // Someone Discord ranks you as talking to (GET /users/@me/affinities).
 struct UserAffinity
 {

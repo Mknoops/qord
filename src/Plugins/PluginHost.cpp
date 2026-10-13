@@ -979,6 +979,40 @@ void PluginHost::dispatchEmojiContextMenuAction(const QString &pluginId, const Q
         guarded(pluginId, "onEmojiContextMenuAction", [&] { plugin->onEmojiContextMenuAction(itemId, emoji); });
 }
 
+std::optional<QPair<QString, DeviceSessionView>> PluginHost::dispatchDeviceSessionView(Id accountId,
+                                                                                   const DeviceSession &session)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<DeviceSessionView> view;
+        guarded(tableIds[h][i], "deviceSessionView", [&] { view = tables[h][i]->deviceSessionView(accountId, session); });
+        if (view)
+            return qMakePair(tableIds[h][i], *view);
+    }
+    return std::nullopt;
+}
+
+void PluginHost::dispatchDeviceSessionButton(const QString &pluginId, Id accountId, const QString &buttonId,
+                                             const DeviceSession &session)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DeviceSessions, pluginId))
+        guarded(pluginId, "onDeviceSessionButton", [&] { plugin->onDeviceSessionButton(accountId, buttonId, session); });
+}
+
+void PluginHost::dispatchDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onDevicesPageClosed", [&] { tables[h][i]->onDevicesPageClosed(accountId, sessions); });
+}
+
+void PluginHost::dispatchDeviceSessionsChanged(Id accountId)
+{
+    const int h = hookIndex(Hook::DeviceSessions);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onDeviceSessionsChanged", [&] { tables[h][i]->onDeviceSessionsChanged(accountId); });
+}
+
 QList<PluginHost::PluginUserPanelButton> PluginHost::dispatchUserPanelButtons(const UserPanelContext &panel)
 {
     QList<PluginUserPanelButton> out;

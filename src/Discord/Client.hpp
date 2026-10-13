@@ -298,6 +298,19 @@ public:
     void fetchOwnConnections(std::function<void(bool ok, const QList<OwnConnection> &connections)> callback);
     void setConnectionShowActivity(const QString &type, const QString &id, bool show,
                                    std::function<void(bool ok)> callback);
+    // Qord: the devices logged in to the account (GET /auth/sessions), the
+    // one Qord is (from READY), and logging some out
+    struct AuthSession
+    {
+        QString idHash;
+        QDateTime lastUsed;
+        QString os;
+        QString platform;
+        QString location;
+    };
+    void fetchAuthSessions(std::function<void(bool ok, const QList<AuthSession> &sessions)> callback);
+    void logoutAuthSessions(const QStringList &idHashes, std::function<void(bool ok, const QString &error)> callback);
+    [[nodiscard]] QString currentAuthSessionHash() const { return authSessionIdHash; }
     void fetchPinnedMessages(Snowflake channelId, MessagesCallback callback);
     // Guild-wide when guildId is valid, else within channelId (DMs)
     void searchMessages(Snowflake guildId, Snowflake channelId, const QUrlQuery &query, JsonCallback callback);
@@ -477,6 +490,7 @@ private:
     QSet<Snowflake> applicationIconRequests;
 
     Proto::PreloadedUserSettings settings;
+    QString authSessionIdHash;
     User me;
 
     bool appFocused = true;

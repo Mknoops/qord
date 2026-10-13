@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 316 |
+| Not Started | 315 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 53 |
+| Tested | 54 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -48,7 +48,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterPlusReacts | `src/equicordplugins/betterPlusReacts` |  | Not Started |  |
 | BetterRoleContext | `src/plugins/betterRoleContext` |  | Not Started |  |
 | BetterRoleDot | `src/plugins/betterRoleDot` | `plugins/appearance/betterroledot` | Tested | With Appearance > Role colors set to "Show role colors next to names", the dot after a name in messages and the member list copies the role color ("#rrggbb", with "Copied to clipboard!") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does. wired; not yet verified in the running client. |
-| BetterSessions | `src/plugins/betterSessions` |  | Not Started |  |
+| BetterSessions | `src/plugins/betterSessions` | `plugins/utility/bettersessions` | Tested | In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on "3 hours ago", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name brings back "OS · Platform". When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each ("New session:" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll. wired; not yet verified in the running client. gaps: The rename dialog has no "Reset Name" button or placeholder; clearing the field does the same.; Discord's mobile badge icon is drawn with Material Icons' phone, which Discord's matches. |
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |
 | BiggerStreamPreview | `src/plugins/biggerStreamPreview` |  | Not Started |  |

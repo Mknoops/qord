@@ -91,6 +91,7 @@ From Acheron, extended by Qord:
 - **Channel header:** pinned messages, a member list toggle, message search, and the
   mentions inbox.
 - **User panel:** status, custom status, mute and deafen.
+- **Devices** (Settings): every device logged in to your account, and logging them out.
 - **Typing indicators:** both shown and sent.
 - **Notifications:** desktop notifications for DMs and mentions (tray and taskbar
   flash), a message chime, and per-server, per-channel and per-DM mute and
@@ -152,7 +153,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
   tabs, DM list grouping, attachments and keyboard shortcuts.
 - **Services** give plugins what they ask permission for: the network, the clipboard,
   servers and their permissions, relationships, DMs, voice states, messages,
-  translations' secret keys (kept in the system keychain), toasts and dialogs.
+  translations' secret keys (kept in the system keychain), toasts, notifications and dialogs.
 - **Tested:** every plugin has its own Qt Test (`tests/plugins/tst_<id>.cpp`), and
   `tools/check_equicord_plugins.py` derives each plugin's status from evidence in the
   repository rather than from hand-edited labels.
@@ -160,13 +161,14 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 53 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 54 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
 | **AlwaysTrust** | Removes the untrusted-domain popup | trust_links |
 | **BetterFolders** | Open server folders on a second rail, and rules for when folders open and close | modify_displayed_messages |
 | **BetterRoleDot** | Role dots (Appearance → Role colors → next to names) copy their color when clicked; optionally keep colored names too | modify_displayed_messages |
+| **BetterSessions** | Names for your devices in Settings → Devices, exact times, NEW badges, and a notification when a device logs in | read_sessions, add_ui_elements |
 | **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
 | **ClearURLs** | Removes tracking parameters from URLs you send | modify_outgoing_messages, network |
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
@@ -220,7 +222,7 @@ These 53 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** BetterSessions, ReviewDB, RelationshipNotifier, BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** ReviewDB, RelationshipNotifier, BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, ServerListIndicators. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
 **Good first plugins** (the plugin API already covers them, so no client changes are needed): BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
@@ -260,7 +262,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 53 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 54 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

@@ -645,6 +645,8 @@ void Client::onDisconnected(CloseCode code, const QString &reason)
 
 void Client::onGatewayReady(const Ready &data)
 {
+    if (data.authSessionIdHash.hasValue())
+        authSessionIdHash = data.authSessionIdHash.get();
     for (const auto &guild : data.guilds.get())
         indexGuildMappings(guild);
 

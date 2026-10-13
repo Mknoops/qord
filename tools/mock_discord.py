@@ -710,7 +710,7 @@ def ready_payload() -> dict:
         "country_code": "US",
         "sessions": [],
         "analytics_token": "",
-        "auth_session_id_hash": "",
+        "auth_session_id_hash": "mock-auth-desktop",
         "consents": {},
         "experiments": [], "guild_experiments": [], "connected_accounts": [], "geo_ordered_rtc_regions": [],
         "tutorial": None, "api_code_version": 1, "friend_suggestion_count": 0,
@@ -926,6 +926,16 @@ CONNECTED_ACCOUNTS = {
         {"type": "domain", "id": "ava.example", "name": "ava.example", "verified": True, "visibility": 1},
     ],
 }
+# Settings → Devices (GET /auth/sessions): this client, the phone in
+# SESSIONS_REPLACE, and an old browser login. `login` adds one.
+AUTH_SESSIONS = [
+    {"id_hash": "mock-auth-desktop", "approx_last_used_time": "2026-10-13T08:00:00+00:00",
+     "client_info": {"os": "Linux", "platform": "Discord Client", "location": "Amsterdam, North Holland, Netherlands"}},
+    {"id_hash": "mock-auth-phone", "approx_last_used_time": "2026-10-13T05:30:00+00:00",
+     "client_info": {"os": "Android", "platform": "Discord Android", "location": "Utrecht, Utrecht, Netherlands"}},
+    {"id_hash": "mock-auth-browser", "approx_last_used_time": "2026-09-28T19:12:00+00:00",
+     "client_info": {"os": "Windows", "platform": "Firefox", "location": "Berlin, Berlin, Germany"}},
+]
 OWN_CONNECTIONS = [
     {"type": "spotify", "id": "qordtester", "name": "Qord Tester", "verified": True, "revoked": False,
      "show_activity": True, "visibility": 1, "friend_sync": False, "integrations": []},
@@ -1168,6 +1178,13 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         log(f"rest: guild settings {gid} <- {j}")
         await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
         return 200, settings, "json"
+    if parts == ["auth", "sessions"] and method == "GET":
+        return 200, {"user_sessions": AUTH_SESSIONS}, "json"
+    if parts == ["auth", "sessions", "logout"] and method == "POST":
+        gone = set(j.get("session_id_hashes") or [])
+        AUTH_SESSIONS[:] = [x for x in AUTH_SESSIONS if x["id_hash"] not in gone]
+        log(f"rest: logged out {sorted(gone)}")
+        return 204, None, "json"
     if parts[:3] == ["users", "@me", "connections"]:
         # GameActivityToggle: your own connections, with Spotify sharing switchable
         if method == "GET" and len(parts) == 3:
@@ -1489,7 +1506,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 
 async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
-    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence."""
+    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence, /mock/login."""
     args = json.loads(body or b"{}")
     cid = resolve_channel(args.get("channel", "general"))
     who = args.get("user", "ava")
@@ -1538,6 +1555,20 @@ async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
             if who in MEMBERS[gid]:
                 await broadcast("PRESENCE_UPDATE", dict(presence(who, gid), user={"id": USERS[who]["id"]}))
         return 204, b"", "application/json"
+    if action == "login":
+        # A new device logs in: a new auth session, and SESSIONS_REPLACE
+        n = len(AUTH_SESSIONS) + 1
+        AUTH_SESSIONS.append({"id_hash": f"mock-auth-new-{n}", "approx_last_used_time": iso(now),
+                              "client_info": {"os": args.get("os", "Mac OS X"), "platform": args.get("platform", "Safari"),
+                                              "location": "Paris, Ile-de-France, France"}})
+        await broadcast("SESSIONS_REPLACE", [
+            {"session_id": "all", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "unknown", "os": "unknown"}},
+            {"session_id": "mock-session", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "desktop", "os": "windows"}},
+            {"session_id": f"mock-web-{n}", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "web", "os": "mac"}}])
+        return 204, b"", "application/json"
     return 404, b"{}", "application/json"
 
 
@@ -1566,6 +1597,9 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=int(os.environ.get("QORD_MOCK_PORT", "8765")))
     sub = ap.add_subparsers(dest="cmd")
+    login = sub.add_parser("login", help="a new device logs in to your account (BetterSessions)")
+    login.add_argument("--os", default="Mac OS X")
+    login.add_argument("--platform", default="Safari")
     for name in ("say", "edit", "delete", "typing", "presence"):
         p = sub.add_parser(name)
         p.add_argument("--channel", default="general")

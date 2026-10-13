@@ -174,6 +174,16 @@ public:
         Q_UNUSED(accountId);
         Q_UNUSED(channelId);
     }
+    // A notification card in the corner of the window (and a desktop
+    // notification while Qord isn't focused); `clicked` runs when it is
+    // clicked, before it closes
+    virtual void showNotification(const PluginNotification &notification, std::function<void()> clicked)
+    {
+        Q_UNUSED(notification);
+        Q_UNUSED(clicked);
+    }
+    // Opens Settings at Devices
+    virtual void openDevicesSettings() {}
     // Joins a voice channel (or a DM's call) of the account you are viewing
     virtual void joinVoiceChannel(Id accountId, Id channelId)
     {
@@ -475,6 +485,19 @@ public:
                                            std::function<void(bool ok)> done) = 0;
 };
 
+// The devices logged in to your account (BetterSessions).
+class SessionService
+{
+public:
+    virtual ~SessionService() = default;
+    // GET /auth/sessions; `done` may run after the plugin stopped, so guard it
+    virtual void fetchSessions(Id accountId, std::function<void(bool ok, const QList<DeviceSession> &sessions)> done) = 0;
+    // Asks Settings → Devices to show its devices again
+    virtual void refreshDevicesPage() = 0;
+    // The accounts logged in to Qord
+    [[nodiscard]] virtual QList<Id> accountIds() const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -495,6 +518,7 @@ struct Services
     MessageLookupService *messageLookup = nullptr;
     VoiceStateDirectory *voiceStates = nullptr;
     ActivitySettingsService *activity = nullptr;
+    SessionService *sessions = nullptr;
 };
 
 } // namespace Plugins

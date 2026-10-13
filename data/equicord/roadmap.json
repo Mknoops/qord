@@ -20,7 +20,7 @@
     {
       "name": "RelationshipNotifier",
       "effort": "medium",
-      "needs": "Relationship and server-removal events reaching plugins, and plugin notifications."
+      "needs": "Relationship and server-removal events reaching plugins (plugin notifications exist)."
     },
     {
       "name": "BlockKeywords",
@@ -65,7 +65,7 @@
     {
       "name": "KeywordNotify",
       "effort": "medium",
-      "needs": "Notifications for messages matching keywords (notifications hook), and a mentions-inbox tab for them."
+      "needs": "Messages matching keywords reaching plugins as notifications (UiService::showNotification exists), and a mentions-inbox tab for them."
     },
     {
       "name": "MessageLinkTooltip",

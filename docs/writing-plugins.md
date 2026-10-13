@@ -137,6 +137,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `emojiSuggestions` | The emoji autocomplete's order, and items in the emoji picker's menu | `add_ui_elements` | FavoriteEmojiFirst |
 | `friendsSections` | Tabs on the Friends page | `read_relationships` | ImplicitRelationships |
 | `userPanelButtons` | Buttons next to mute and deafen, with a right-click menu | `add_ui_elements` | GameActivityToggle |
+| `deviceSessions` | How devices look in Settings → Devices, with buttons; new and changed sessions | `read_sessions` | BetterSessions |
 <!-- END GENERATED: hooks -->
 
 ## Services
@@ -148,7 +149,7 @@ unless the plugin has the permission, so check before use.
 |---|---|---|
 | `network()` | `network` | HTTPS GET and POST; requests are cancelled when the plugin stops |
 | `clipboard()` | `write_clipboard` | Copy text |
-| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`) | Toasts, dialogs and forms, opening channels, profiles and images, replying and editing, joining voice |
+| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`) | Toasts, notifications, dialogs and forms, opening channels, profiles, images and settings, replying and editing, joining voice |
 | `relationships()` | `read_relationships` | Friends, blocked and ignored users, user affinities |
 | `members()` | `read_guild_members` | A member's roles |
 | `guilds()` | `read_server_permissions` | Servers, channels, roles, permission overwrites, members |
@@ -163,6 +164,7 @@ unless the plugin has the permission, so check before use.
 | `voiceStates()` | `read_voice_states` | Who is in voice where, muted or deafened |
 | `audio()` | `control_audio` | Voice volume limits |
 | `activity()` | `control_activity` | Whether Discord shares your game activity; your connections' activity sharing |
+| `sessions()` | `read_sessions` | The devices logged in to the account; refreshing Settings → Devices |
 | `displayOptions()` | `modify_displayed_messages` | Switches for how the client draws things (role colors, image lens, folders...) |
 
 `settings()` is always there. `refreshChatBar()`, `refreshDmList()`,

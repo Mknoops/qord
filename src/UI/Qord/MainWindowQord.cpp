@@ -835,6 +835,14 @@ void MainWindow::setupQordFeatures()
     });
 
     // Friends page: open a DM from it
+    // Plugin tabs' unknown users, asked for in every server (op 8 takes 100
+    // ids at a time); ones you share no server with stay unknown
+    friendsPage->requestUsers = [this](Core::ClientInstance *instance, const QList<Snowflake> &userIds) {
+        const QList<Snowflake> guildIds = channelTreeModel->guildIds(instance->accountId());
+        for (int i = 0; i < userIds.size(); i += 100)
+            for (const Snowflake guildId : guildIds)
+                instance->discord()->requestGuildMembers(guildId, userIds.mid(i, 100));
+    };
     connect(friendsPage, &FriendsPage::openDmRequested, this, [this](Snowflake userId) {
         Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
         if (!instance)

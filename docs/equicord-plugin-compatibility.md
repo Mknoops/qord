@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 318 |
+| Not Started | 317 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 51 |
+| Tested | 52 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -167,7 +167,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ImageFilename | `src/plugins/imageFilename` |  | Not Started |  |
 | ImageLink | `src/plugins/imageLink` |  | Not Started |  |
 | ImageZoom | `src/plugins/imageZoom` | `plugins/media/imagezoom` | Tested | In the image viewer, holding the left button over the picture shows a round lens (square with "Square lens") magnifying it, following the cursor; the wheel changes its zoom and Shift+wheel its size, at the zoom speed, upwards by default ("Invert scroll"), and the values are kept for next time. While it is on, the right or middle button pans the picture and the wheel without the left button zooms the viewer as before. An image's message menu has Square Lens and Nearest Neighbour switches. wired; not yet verified in the running client. gaps: Upstream's zoom, lens size and zoom speed sliders in the image menu are only in the plugin's settings (Qord menus have no sliders).; Animated images show their first frame in Qord's viewer, so the lens magnifies that frame. |
-| ImplicitRelationships | `src/plugins/implicitRelationships` |  | Not Started |  |
+| ImplicitRelationships | `src/plugins/implicitRelationships` | `plugins/utility/implicitrelationships` | Tested | The Friends page gets an "Implicit" tab after Blocked: the people Discord ranks you as talking to (GET /users/@me/affinities/v2/users, asked each time the Friends page opens, as upstream piggybacks Discord's relationship fetch) whom you have no relationship with, closest first or, without Sort by affinity, by name. People the client doesn't know are asked for in every server you are in (100 at a time) and shown when they arrive; ones you share no server with stay hidden, as upstream notes. Each row has a Message button. wired; not yet verified in the running client. |
 | Ingtoninator | `src/equicordplugins/ingtoninator` | `plugins/chat/ingtoninator` | Tested | Showing or hiding the button takes effect immediately; upstream needs a restart. wired; not yet verified in the running client. |
 | InRole | `src/equicordplugins/inRole` |  | Not Started |  |
 | InstantScreenshare | `src/equicordplugins/instantScreenshare` |  | Not Started |  |
@@ -352,7 +352,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | UserMessagesPronouns | `src/plugins/userMessagesPronouns` |  | Not Started |  |
 | UserPFP | `src/equicordplugins/userpfp` |  | Not Started |  |
 | UserpluginInstaller | `src/equicordplugins/userpluginInstaller.dev` |  | Not Started |  |
-| UserVoiceShow | `src/plugins/userVoiceShow` | `plugins/voice/uservoiceshow` | Tested | A speaker after names of people in voice (locked when you can't see or join the channel, deafened or muted icons otherwise), with a tooltip naming the channel and who is in it. Click opens the channel; double click joins it. Channels you can't see are skipped unless ShowHiddenChannels is on. wired; not yet verified in the running client. gaps: The tooltip lists names rather than upstream's row of avatars.; Upstream also puts the indicator on the friends list's action buttons; Qord has no friends list. |
+| UserVoiceShow | `src/plugins/userVoiceShow` | `plugins/voice/uservoiceshow` | Tested | A speaker after names of people in voice (locked when you can't see or join the channel, deafened or muted icons otherwise), with a tooltip naming the channel and who is in it. Click opens the channel; double click joins it. Channels you can't see are skipped unless ShowHiddenChannels is on. wired; not yet verified in the running client. gaps: The tooltip lists names rather than upstream's row of avatars.; Upstream also puts the indicator among the Friends list's row buttons; Qord's Friends page doesn't show it yet. |
 | USRBG | `src/plugins/usrbg` |  | Not Started |  |
 | ValidReply | `src/plugins/validReply` |  | Not Started |  |
 | ValidUser | `src/plugins/validUser` | `plugins/chat/validuser` | Tested | Hovering an "@unknown-user" mention asks Discord for that user (GET /users/{id}), at most five waiting at a time, newest first, one every 300 ms, waiting out rate limits, and the message then shows their name; a mention of a user Qord already knows is fixed at once. Clicking a mention opens the profile. wired; not yet verified in the running client. gaps: Upstream also fills in the fetched user's profile badges (from their flags) for Discord's popout; Qord's profile loads the user's real profile instead. |

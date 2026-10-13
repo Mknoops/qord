@@ -857,6 +857,30 @@ struct ImageLens
     bool invertScroll = true;
 };
 
+// Someone Discord ranks you as talking to (GET /users/@me/affinities).
+struct UserAffinity
+{
+    Id userId = 0;
+    double communicationRank = 0; // lower is closer
+};
+
+// The Friends page of an account.
+struct FriendsContext
+{
+    Id accountId = 0;
+};
+
+// A tab a plugin adds to the Friends page, after Blocked (ImplicitRelationships).
+struct FriendsSection
+{
+    QString id;
+    QString label; // the tab
+    QString countTitle; // above the list, %1 is the count ("Implicit — %1")
+    QString emptyText; // when it has nobody
+    QList<Id> userIds; // in order; the page asks for unknown users and shows them when they arrive
+    bool sortByName = false; // sort by name, as friends are, instead
+};
+
 // BetterRoleDot: role dots copy their color when clicked.
 struct RoleDot
 {

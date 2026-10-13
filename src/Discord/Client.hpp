@@ -251,6 +251,11 @@ public:
     void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
     // Qord: GET /users/{id} (ValidUser); `user` is set on success
     void fetchUser(Snowflake userId, std::function<void(const HttpResponse &response, const std::optional<User> &user)> callback);
+    // Qord: GET /users/@me/affinities/v2/users, the people Discord ranks you
+    // as talking to most (ImplicitRelationships): user id and communication
+    // rank, lowest first
+    void fetchUserAffinities(
+            std::function<void(const HttpResponse &response, const QList<QPair<Snowflake, double>> &affinities)> callback);
     // Qord: the first 100 users of a reaction (emoji: "name" or "name:id";
     // type 0 normal, 1 burst)
     void fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,

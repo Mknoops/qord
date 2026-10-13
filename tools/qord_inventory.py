@@ -120,6 +120,7 @@ HOOK_DISPATCH = {
     "profileTabs": "dispatchProfileTabs(",
     "dmPins": "dispatchDmPinLayout(",
     "emojiSuggestions": "dispatchSortEmojiSuggestions(",
+    "friendsSections": "dispatchFriendsSections(",
 }
 
 MANIFEST_REQUIRED = {

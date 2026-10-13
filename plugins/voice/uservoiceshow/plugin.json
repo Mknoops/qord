@@ -56,6 +56,6 @@
   "notes": "A speaker after names of people in voice (locked when you can't see or join the channel, deafened or muted icons otherwise), with a tooltip naming the channel and who is in it. Click opens the channel; double click joins it. Channels you can't see are skipped unless ShowHiddenChannels is on.",
   "gaps": [
     "The tooltip lists names rather than upstream's row of avatars.",
-    "Upstream also puts the indicator on the friends list's action buttons; Qord has no friends list."
+    "Upstream also puts the indicator among the Friends list's row buttons; Qord's Friends page doesn't show it yet."
   ]
 }

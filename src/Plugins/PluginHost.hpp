@@ -138,6 +138,8 @@ public:
     [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
     void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
     // The first plugin with a layout decides it
+    [[nodiscard]] QList<FriendsSection> dispatchFriendsSections(const FriendsContext &friends);
+    void dispatchFriendsPageOpened(const FriendsContext &friends);
     [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
     void dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId);
     [[nodiscard]] QList<MenuItem> dispatchDmPinHeaderMenu(const QString &pluginId, Id accountId, const QString &headerId);
@@ -204,6 +206,8 @@ signals:
     void presentationChanged();
     // How DM lists are grouped changed (PinDMs): ask dispatchDmPinLayout again
     void dmListChanged();
+    // The Friends page's plugin tabs changed: ask dispatchFriendsSections again
+    void friendsChanged();
 
 private:
     struct Entry

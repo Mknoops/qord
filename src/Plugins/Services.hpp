@@ -70,6 +70,21 @@ public:
         Q_UNUSED(kind);
         return {};
     }
+    // Whether you have any relationship with a user (friend, request, block)
+    [[nodiscard]] virtual bool hasRelationship(Id accountId, Id userId) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(userId);
+        return false;
+    }
+    // GET /users/@me/affinities/v2/users; `done` may run after the plugin
+    // stopped, so guard it
+    using AffinitiesCallback = std::function<void(bool ok, const QList<UserAffinity> &affinities)>;
+    virtual void fetchUserAffinities(Id accountId, AffinitiesCallback done) const
+    {
+        Q_UNUSED(accountId);
+        done(false, {});
+    }
 };
 
 class UiService

@@ -268,6 +268,15 @@ public:
         Q_UNUSED(emoji);
     }
 
+    // Hook::FriendsSections: tabs added to the Friends page, and the page
+    // being opened (where Discord fetches relationships)
+    virtual QList<FriendsSection> friendsSections(const FriendsContext &friends)
+    {
+        Q_UNUSED(friends);
+        return {};
+    }
+    virtual void onFriendsPageOpened(const FriendsContext &friends) { Q_UNUSED(friends); }
+
     // Hook::DmPins: how an account's DM list is grouped (nullopt: as Discord
     // shows it), and its headers' clicks and menus. Category ids, or
     // DmSectionHeaderId for "Direct Messages".

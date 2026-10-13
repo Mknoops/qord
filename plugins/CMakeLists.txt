@@ -95,6 +95,7 @@ qord_add_plugin(platformindicators appearance SOURCES PlatformIndicators.hpp Pla
 qord_add_plugin(uservoiceshow voice SOURCES UserVoiceShow.hpp UserVoiceShow.cpp)
 qord_add_plugin(showconnections appearance SOURCES ShowConnections.hpp ShowConnections.cpp)
 qord_add_plugin(betterroledot appearance SOURCES BetterRoleDot.cpp)
+qord_add_plugin(implicitrelationships utility SOURCES ImplicitRelationships.cpp)
 
 # Batch 6
 qord_add_plugin(calltimer utility SOURCES CallTimer.hpp CallTimer.cpp)

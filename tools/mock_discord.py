@@ -884,11 +884,16 @@ async def run_gateway(conn: GatewayConn) -> None:
             elif op == 8:
                 gid = (d or {}).get("guild_id")
                 gids = gid if isinstance(gid, list) else [gid]
+                wanted = (d or {}).get("user_ids")
                 for g in gids:
                     if g in GUILDS:
+                        keys = [k for k in MEMBERS[g] if not wanted or U.get(k) in wanted]
+                        found = {U[k] for k in keys}
+                        log(f"gateway: members requested in {g}: {wanted or 'all'}")
                         await conn.dispatch("GUILD_MEMBERS_CHUNK", {
-                            "guild_id": g, "members": [guild_member(g, k) for k in MEMBERS[g]],
-                            "chunk_index": 0, "chunk_count": 1, "not_found": [],
+                            "guild_id": g, "members": [guild_member(g, k) for k in keys],
+                            "chunk_index": 0, "chunk_count": 1,
+                            "not_found": [u for u in (wanted or []) if u not in found],
                             "nonce": (d or {}).get("nonce")})
             else:
                 log(f"gateway: op {op} ignored")
@@ -1157,6 +1162,15 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         log(f"rest: guild settings {gid} <- {j}")
         await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
         return 200, settings, "json"
+    if parts[:5] == ["users", "@me", "affinities", "v2", "users"] and method == "GET":
+        # ImplicitRelationships: dan and a stranger you share no server with,
+        # plus friends and requests (which the plugin leaves out)
+        return 200, {"user_affinities": [
+            {"other_user_id": STRANGER["id"], "communication_rank": 0, "communication_probability": 0.9},
+            {"other_user_id": U["ben"], "communication_rank": 1, "communication_probability": 0.8},
+            {"other_user_id": U["dan"], "communication_rank": 2, "communication_probability": 0.5},
+            {"other_user_id": U["fay"], "communication_rank": 3, "communication_probability": 0.3},
+        ]}, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
         return await relationships(method, parts[3] if len(parts) > 3 else None, j)
     if parts[:1] == ["users"] and len(parts) == 2 and method == "GET":

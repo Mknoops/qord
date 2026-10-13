@@ -122,9 +122,21 @@ public:
         std::sort(out.begin(), out.end());
         return out;
     }
+    bool hasRelationship(Id, Id userId) const override
+    {
+        return blocked.contains(userId) || friends.contains(userId) || others.contains(userId);
+    }
+    void fetchUserAffinities(Id accountId, AffinitiesCallback done) const override
+    {
+        affinityFetches.append(accountId);
+        pendingAffinities.append(std::move(done));
+    }
     QSet<Id> blocked;
     QSet<Id> ignored;
     QSet<Id> friends;
+    QSet<Id> others; // requests and the like
+    mutable QList<Id> affinityFetches;
+    mutable QList<AffinitiesCallback> pendingAffinities;
 };
 
 class FakeUi : public UiService

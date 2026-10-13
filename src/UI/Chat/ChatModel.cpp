@@ -488,10 +488,14 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         if (isFirstUnread(index.row())) // Qord: a new group starts after the NEW divider
             return true;
 
-        if (index.row() == 0)
+        // Qord: the message before, skipping ones hidden by plugins
+        int prev = index.row() - 1;
+        while (prev >= 0 && hiddenRowCheck && hiddenRowCheck(prev))
+            --prev;
+        if (prev < 0)
             return true;
 
-        const auto &prevMsg = messages[index.row() - 1];
+        const auto &prevMsg = messages[prev];
 
         if (prevMsg.author->id != msg.author->id)
             return true;
@@ -1648,6 +1652,18 @@ void ChatModel::invalidateDocCacheForMessage(Snowflake messageId)
             docCache.remove(embedFieldNameDocKey(messageId, ei, fi));
             docCache.remove(embedFieldValueDocKey(messageId, ei, fi));
         }
+    }
+}
+
+void ChatModel::rowVisibilityChanged(int row)
+{
+    for (int next = row + 1; next < int(messages.size()); ++next) {
+        if (hiddenRowCheck && hiddenRowCheck(next))
+            continue;
+        sizeCache.remove(messages[next].id);
+        const QModelIndex idx = index(next, 0);
+        emit dataChanged(idx, idx, { CachedSizeRole, ShowHeaderRole });
+        break;
     }
 }
 

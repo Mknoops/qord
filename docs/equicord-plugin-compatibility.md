@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 313 |
+| Not Started | 312 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 56 |
+| Tested | 57 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -52,7 +52,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |
 | BiggerStreamPreview | `src/plugins/biggerStreamPreview` |  | Not Started |  |
-| BlockKeywords | `src/equicordplugins/blockKeywords` |  | Not Started |  |
+| BlockKeywords | `src/equicordplugins/blockKeywords` | `plugins/chat/blockkeywords` | Tested | Messages whose text, or an embed's title or description, contains one of your comma-separated words (as a whole word, case-insensitive unless "Case sensitive" is on) are hidden from the chat, and so don't count as unread or notify. With "Use regex" each entry is a regular expression instead; commas inside [...] and {n,m} stay part of the pattern, as upstream. Regex Helper asks for a sample text and lists each pattern as matching (✓), not matching (✗) or invalid (⚠, with the reason). Changes apply at once, without upstream's restart. As upstream, a word that starts or ends with a symbol (such as c++) never matches, as whole-word matching needs letters or digits at its edges. wired; not yet verified in the running client. gaps: Qord has no collapsed "blocked message" row: matching messages are hidden outright, as NoBlockedMessages hides blocked users' messages.; Hidden messages never count as unread, so "Ignore blocked messages" off has no effect.; An invalid regular expression is skipped instead of stopping the plugin; Regex Helper shows why it is invalid.; Patterns are Qt (PCRE2) regular expressions, which match JavaScript's for everyday patterns. |
 | BlockKrisp | `src/equicordplugins/blockKrisp` |  | Not Started |  |
 | BlurNSFW | `src/plugins/blurNsfw` |  | Not Started |  |
 | BypassPinPrompt | `src/equicordplugins/bypassPinPrompt` |  | Not Started |  |

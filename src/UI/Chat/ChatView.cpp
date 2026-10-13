@@ -3,6 +3,7 @@
 #include "UI/Qord/Toast.hpp"
 #include "UI/Qord/TextFileDialog.hpp"
 
+#include <QPointer>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QRegularExpression>
@@ -207,6 +208,8 @@ void ChatView::setModel(QAbstractItemModel *model)
     connect(model, &QAbstractItemModel::dataChanged, this, &ChatView::onDataChanged);
 
     // Qord: plugins can hide messages (NoBlockedMessages)
+    if (auto *chatModel = qobject_cast<ChatModel *>(model))
+        chatModel->setHiddenRowCheck([view = QPointer<ChatView>(this)](int row) { return view && view->isRowHidden(row); });
     connect(model, &QAbstractItemModel::modelReset, this, [this] { applyMessageFilters(); });
     connect(model, &QAbstractItemModel::rowsInserted, this,
             [this](const QModelIndex &, int start, int end) { applyMessageFilters(start, end); });
@@ -241,8 +244,11 @@ void ChatView::applyMessageFilters(int first, int last)
             if (auto ctx = pluginContext(row))
                 hide = plugins->dispatchShouldHideMessage(*ctx);
         }
-        if (isRowHidden(row) != hide)
+        if (isRowHidden(row) != hide) {
             setRowHidden(row, hide);
+            if (auto *chatModel = qobject_cast<ChatModel *>(model()))
+                chatModel->rowVisibilityChanged(row);
+        }
     }
 }
 

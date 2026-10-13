@@ -109,7 +109,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `transformCopiedMessageLink` | Rewrite message links you copy | `modify_message_links` | NormalizeMessageLinks |
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
 | `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
-| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
+| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
 | `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
 | `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | BlockKeywords, NoBlockedMessages |
@@ -122,7 +122,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `memberCounts` | Numbers above the member list and in server tooltips | `add_ui_elements` | MemberCount |
 | `userDecorations` | Icons after user names (clickable), in messages, the member list and profiles | `read_presences` | PlatformIndicators, UserVoiceShow |
 | `profileImages` | Clicks on avatars and banners in profiles | `add_ui_elements` | ViewIcons |
-| `voiceStates` | Voice joins, moves and leaves; labels for people in voice | `read_voice_states` | CallTimer |
+| `voiceStates` | Voice joins, moves and leaves; labels for people in voice | `read_voice_states` | CallTimer, FollowVoiceUser |
 | `messageClicks` | Clicks on messages (double-click to edit, ...) | `add_ui_elements` | MessageClickActions |
 | `reactionUsers` | Who is shown inside a reaction | `read_reactions` | WhoReacted |
 | `profileRoleButtons` | Small buttons next to "Roles" in profiles | `add_ui_elements` | PermissionsViewer |
@@ -150,7 +150,7 @@ unless the plugin has the permission, so check before use.
 |---|---|---|
 | `network()` | `network` | HTTPS GET, POST and any other method (`request`); requests are cancelled when the plugin stops |
 | `clipboard()` | `write_clipboard` | Copy text |
-| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications (with an icon), dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining voice, logging in to a Discord app (OAuth2) |
+| `ui()` | `add_ui_elements` (`openUrl` also needs `open_links`, `authorizeApp` needs `authorize_apps`) | Toasts, notifications (with an icon), dialogs, forms and list windows, opening channels, profiles, images and settings, replying and editing, joining and leaving voice, logging in to a Discord app (OAuth2) |
 | `relationships()` | `read_relationships` | Friends, blocked and ignored users, user affinities |
 | `members()` | `read_guild_members` | A member's roles |
 | `guilds()` | `read_server_permissions` | Servers, channels, roles, permission overwrites, members |

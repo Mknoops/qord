@@ -170,6 +170,7 @@ public:
     void refreshLockScreen() override { inner->refreshLockScreen(); }
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
     void joinVoiceChannel(Id accountId, Id channelId) override { inner->joinVoiceChannel(accountId, channelId); }
+    void leaveVoice(Id accountId) override { inner->leaveVoice(accountId); }
     void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
     {
         // The click may come after the plugin stopped

@@ -547,11 +547,17 @@ void MainWindow::setupQordFeatures()
     Qord::Plugins::QtUiService::voiceJoiner() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
         joinVoiceNode(channelTreeModel->findChannelTreeNode(Snowflake(channelId), Snowflake(accountId)));
     };
+    Qord::Plugins::QtUiService::voiceLeaver() = [this](Qord::Plugins::Id accountId) {
+        Core::ClientInstance *instance = session->client(Snowflake(accountId));
+        if (instance && instance->isInVoice())
+            instance->discord()->sendVoiceStateUpdate(instance->voiceGuildId(), Snowflake::Invalid, false, false);
+    };
 #endif
     connect(this, &QObject::destroyed, []() {
         Qord::Plugins::QtPrivateChannels::provider() = nullptr;
         Qord::Plugins::QtUiService::channelOpener() = nullptr;
         Qord::Plugins::QtUiService::voiceJoiner() = nullptr;
+        Qord::Plugins::QtUiService::voiceLeaver() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;

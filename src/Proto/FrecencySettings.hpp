@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <cstdint>
 #include <optional>
 
@@ -36,6 +37,9 @@ struct FrecencyUserSettings
     std::optional<uint32_t> dataVersion;
     std::optional<EmojiFrecency> emojiFrecency;
     std::optional<EmojiFrecency> emojiReactionFrecency;
+    // Qord: FavoriteEmojis favorite_emojis = 5 (custom emoji ids, unicode
+    // emoji names), read only
+    std::optional<QStringList> favoriteEmojis;
 
     static FrecencyUserSettings fromProto(ProtoReader &reader);
 

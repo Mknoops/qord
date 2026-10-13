@@ -118,6 +118,7 @@ HOOK_DISPATCH = {
     "messageAccessories": "dispatchMessageAccessories(",
     "profileTabs": "dispatchProfileTabs(",
     "dmPins": "dispatchDmPinLayout(",
+    "emojiSuggestions": "dispatchSortEmojiSuggestions(",
 }
 
 MANIFEST_REQUIRED = {

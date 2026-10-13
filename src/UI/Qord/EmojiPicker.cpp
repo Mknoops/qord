@@ -4,11 +4,14 @@
 #include "Core/Emoji/EmojiManager.hpp"
 #include "Core/ImageManager.hpp"
 #include "Core/Theme/Manager.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Plugins/PluginHost.hpp"
 
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListView>
+#include <QMenu>
 #include <QPainter>
 #include <QGuiApplication>
 #include <QScreen>
@@ -142,6 +145,35 @@ EmojiPicker::EmojiPicker(Core::ImageManager *images, QWidget *parent)
 
     connect(search, &QLineEdit::textChanged, this, &EmojiPicker::rebuild);
     connect(view, &QListView::clicked, this, &EmojiPicker::pick);
+    // Qord: plugin items for an emoji (FavoriteEmojiFirst's Set Alias)
+    view->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(view, &QListView::customContextMenuRequested, this, [this](const QPoint &pos) {
+        const QModelIndex index = view->indexAt(pos);
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!index.isValid() || index.data(IsHeaderRole).toBool() || !instance || !host ||
+            !host->hasHook(Qord::Plugins::Hook::EmojiSuggestions))
+            return;
+        const Core::EmojiMatch match = matchFromIndex(index);
+        // The frecency key: a custom emoji's id, or the Unicode emoji's name
+        const QString key = match.isCustom() ? match.customId.toString() : match.insertText.mid(1, match.insertText.size() - 2);
+        Qord::Plugins::EmojiContext context;
+        context.accountId = quint64(instance->accountId());
+        context.channelId = Qord::Plugins::pluginId(channelId);
+        context.emoji = instance->emojis()->emojiInfo(key, match);
+        const auto items = host->dispatchEmojiContextMenuItems(context);
+        if (items.isEmpty())
+            return;
+        QMenu menu(this);
+        for (const auto &entry : items) {
+            QAction *action = menu.addAction(entry.item.label);
+            connect(action, &QAction::triggered, this, [this, pluginId = entry.pluginId, itemId = entry.item.id, context]() {
+                hide();
+                if (auto *h = Qord::Plugins::PluginHost::instance())
+                    h->dispatchEmojiContextMenuAction(pluginId, itemId, context);
+            });
+        }
+        menu.exec(view->viewport()->mapToGlobal(pos));
+    });
     connect(view, &QListView::activated, this, &EmojiPicker::pick);
     connect(view, &QListView::entered, this, [this](const QModelIndex &index) {
         if (!index.data(IsHeaderRole).toBool())

@@ -84,11 +84,12 @@ enum class Hook : quint32 {
     MessageAccessories = 1u << 28,
     ProfileTabs = 1u << 29,
     DmPins = 1u << 30,
+    EmojiSuggestions = 1u << 31,
 };
 Q_DECLARE_FLAGS(Hooks, Hook)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 31;
+constexpr int HookCount = 32;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

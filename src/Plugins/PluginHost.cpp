@@ -929,6 +929,34 @@ void PluginHost::dispatchProfileRoleButtonClicked(const QString &pluginId, const
         guarded(pluginId, "onProfileRoleButtonClicked", [&] { plugin->onProfileRoleButtonClicked(buttonId, user); });
 }
 
+void PluginHost::dispatchSortEmojiSuggestions(EmojiAutocompleteContext &context)
+{
+    const auto &table = tables[hookIndex(Hook::EmojiSuggestions)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::EmojiSuggestions)][i], "sortEmojiSuggestions",
+                [&] { table[i]->sortEmojiSuggestions(context); });
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchEmojiContextMenuItems(const EmojiContext &emoji)
+{
+    QList<PluginMenuItem> out;
+    const auto &table = tables[hookIndex(Hook::EmojiSuggestions)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::EmojiSuggestions)][i];
+        guarded(id, "emojiContextMenuItems", [&] {
+            for (const auto &item : table[i]->emojiContextMenuItems(emoji))
+                out.append({ id, item });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji)
+{
+    if (Plugin *plugin = tablePlugin(Hook::EmojiSuggestions, pluginId))
+        guarded(pluginId, "onEmojiContextMenuAction", [&] { plugin->onEmojiContextMenuAction(itemId, emoji); });
+}
+
 std::optional<QPair<QString, DmPinLayout>> PluginHost::dispatchDmPinLayout(Id accountId)
 {
     const auto &table = tables[hookIndex(Hook::DmPins)];

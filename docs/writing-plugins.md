@@ -110,7 +110,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
 | `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, PreviewMessage, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
 | `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
-| `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
+| `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | DecodeBase64, ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
 | `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | BlockKeywords, NoBlockedMessages |
 | `typing` | Whether to send, and show, typing | `control_typing` | SilentTyping |

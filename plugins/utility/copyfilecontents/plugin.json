@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/copyFileContents",
   "name": "CopyFileContents",
   "description": "Adds a button to text file attachments to copy their contents",
+  "summary": "A copy button on text file previews",
   "categories": ["utility"],
   "tags": ["Utility"],
   "authors": ["Obsidian", "Nuckyz"],

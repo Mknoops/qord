@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/translate",
   "name": "Translate",
   "description": "Translate messages with Google Translate, DeepL or Kagi.",
+  "summary": "Translate messages (shown under them) and, optionally, your own before sending, with Google, DeepL or Kagi",
   "categories": ["utility"],
   "tags": ["Chat", "Utility"],
   "authors": ["Ven", "AshtonMemer", "koish1"],

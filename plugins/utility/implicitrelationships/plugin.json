@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/implicitRelationships",
   "name": "ImplicitRelationships",
   "description": "Shows your implicit relationships in the Friends tab.",
+  "summary": "An \"Implicit\" tab on the Friends page: people you talk to who aren't your friends",
   "categories": ["utility"],
   "tags": ["Friends", "Servers"],
   "authors": ["Dolfies"],

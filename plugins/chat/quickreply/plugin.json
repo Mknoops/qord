@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/quickReply",
   "name": "QuickReply",
   "description": "Reply to (ctrl + up/down) and edit (ctrl + shift + up/down) messages via keybinds",
+  "summary": "Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard",
   "categories": ["chat"],
   "tags": ["Chat", "Shortcuts"],
   "authors": ["fawn", "Ven", "pylix"],

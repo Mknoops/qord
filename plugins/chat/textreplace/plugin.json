@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/textReplace",
   "name": "TextReplace",
   "description": "Replace text in your messages. You can find pre-made rules in the #textreplace-rules channel in Vencord's Server",
+  "summary": "Find-and-replace rules (plain text and regex) for your messages",
   "categories": ["chat", "utility"],
   "tags": ["Chat", "Customisation", "Utility"],
   "authors": ["AutumnVN", "TheKodeToad", "Etorix", "Ape"],

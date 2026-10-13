@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/normalizeMessageLinks",
   "name": "NormalizeMessageLinks",
   "description": "Strip canary/ptb from message links",
+  "summary": "Strips canary/ptb from message links",
   "categories": ["chat"],
   "tags": ["Chat"],
   "authors": ["bb010g"],

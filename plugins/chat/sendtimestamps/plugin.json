@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/sendTimestamps",
   "name": "SendTimestamps",
   "description": "Send timestamps easily via chat box button & text shortcuts. Read the extended description!",
+  "summary": "A chat-bar button and text shortcuts for Discord timestamps",
   "categories": ["chat", "commands"],
   "tags": ["Chat", "Commands"],
   "authors": ["V", "\\GGTyler\\", "Grzesiek11"],

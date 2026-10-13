@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/memberCount",
   "name": "MemberCount",
   "description": "Shows the number of online members, total members, and users in voice channels on the server - in the member list and tooltip.",
+  "summary": "Online, total and in-voice member counts in the member list",
   "categories": ["utility"],
   "tags": ["Servers", "Utility"],
   "authors": ["Ven", "Commandtechno", "Apexo"],

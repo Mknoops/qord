@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/showConnections",
   "name": "ShowConnections",
   "description": "Show connected accounts in user popouts",
+  "summary": "Connected accounts in profiles as a row of icons, with GitHub organizations",
   "categories": ["appearance"],
   "tags": ["Friends", "Appearance"],
   "authors": ["TheKodeToad"],

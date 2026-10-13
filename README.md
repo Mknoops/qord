@@ -2,6 +2,10 @@
 
 **A native Discord client with Equicord's plugins, and no browser inside.**
 
+[![Qord inventory](https://github.com/Mknoops/qord/actions/workflows/qord.yml/badge.svg?branch=qord)](https://github.com/Mknoops/qord/actions/workflows/qord.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE.txt)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 Qord is a desktop Discord client written in C++ with Qt Widgets. It is a fork of
 [Acheron](https://github.com/ouwou/acheron), and it re-implements the behavior of
 [Equicord](https://github.com/Equicord/Equicord) (a Vencord fork) plugins as native
@@ -13,6 +17,12 @@ each plugin should behave. Qord never runs or embeds it.
 > Most of the work has been checked against Qord's local mock server, and much of it
 > has not yet been verified against real Discord. See [Project status](#project-status)
 > for details.
+>
+> **Want to help?** Porting a plugin is the easiest way in: pick one from the
+> [roadmap](docs/roadmap.md) (the *good first* ones need no client changes), run
+> `python3 tools/new_plugin.py <EquicordName>` and follow [CONTRIBUTING.md](CONTRIBUTING.md).
+> You can build and test everything against the local mock server, without a Discord
+> account.
 
 ---
 
@@ -29,6 +39,7 @@ each plugin should behave. Qord never runs or embeds it.
 - [Project status](#project-status)
 - [Building](#building)
 - [Trying it without a Discord account](#trying-it-without-a-discord-account)
+- [Contributing](#contributing)
 - [Repository layout](#repository-layout)
 - [Documentation](#documentation)
 - [License and credits](#license-and-credits)
@@ -70,7 +81,8 @@ From Acheron, extended by Qord:
 - **Servers:** guild folders, unread and mention indicators, a red **NEW** divider at
   the first unread message, date dividers, and server management.
 - **Friends page:** Online / All / Pending / Blocked. You can add a friend, accept or
-  ignore a request, remove a friend, unblock someone, or send a message.
+  ignore a request, remove a friend, unblock someone, or send a message. Plugins can
+  add tabs (ImplicitRelationships adds *Implicit*).
 - **Add a Server:** create a server or join one with an invite.
 - **Emoji, GIF and sticker pickers:** frequently used emojis, per-server emojis, every
   Unicode emoji, and search. The same picker adds reactions.
@@ -118,6 +130,8 @@ From Acheron, extended by Qord:
   a gold highlight on messages that mention you, and a rounded message box with an
   upload button.
 - A theme manager. Acheron's own colour theming can be turned off.
+- **Role colors** as Discord's accessibility setting offers them: on names, as a dot
+  next to names, or not at all (Settings → Appearance).
 - Hover highlights on channel rows.
 
 ### Plugin system
@@ -134,21 +148,26 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
   dispatch costs one branch (benchmarked in the tests).
 - **Hooks** cover sending, editing, rendering, reply pings, copying links, chat bar
   buttons, context menus, typing, notifications, message clicks, voice states,
-  reactions and expressions.
+  reactions, expressions, clickable icons after names, profile tabs, Friends page
+  tabs, DM list grouping, attachments and keyboard shortcuts.
+- **Services** give plugins what they ask permission for: the network, the clipboard,
+  servers and their permissions, relationships, DMs, voice states, messages,
+  translations' secret keys (kept in the system keychain), toasts and dialogs.
 - **Tested:** every plugin has its own Qt Test (`tests/plugins/tst_<id>.cpp`), and
   `tools/check_equicord_plugins.py` derives each plugin's status from evidence in the
   repository rather than from hand-edited labels.
 
 ### Plugins
 
-These 30 native plugins are available now (out of the 369 in the pinned Equicord
-inventory). All are off by default.
+<!-- BEGIN GENERATED: plugin-table -->
+These 52 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
 | **AlwaysTrust** | Removes the untrusted-domain popup | trust_links |
-| **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
 | **BetterFolders** | Open server folders on a second rail, and rules for when folders open and close | modify_displayed_messages |
+| **BetterRoleDot** | Role dots (Appearance → Role colors → next to names) copy their color when clicked; optionally keep colored names too | modify_displayed_messages |
+| **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
 | **ClearURLs** | Removes tracking parameters from URLs you send | modify_outgoing_messages, network |
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
@@ -158,11 +177,12 @@ inventory). All are off by default.
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
 | **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
 | **ImageZoom** | A magnifying lens in the image viewer (hold, scroll to zoom, Shift+scroll to resize) | modify_displayed_messages, add_ui_elements |
+| **ImplicitRelationships** | An "Implicit" tab on the Friends page: people you talk to who aren't your friends | read_relationships |
 | **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
-| **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |
 | **MessageLinkEmbeds** | A preview under messages that link other messages | modify_displayed_messages, fetch_messages |
+| **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |
 | **MutualGroupDMs** | A "Mutual Groups" tab in profiles with the group DMs you share | add_ui_elements, read_dms |
 | **NoBlockedMessages** | Hides messages from blocked and ignored users completely | hide_messages, read_relationships |
 | **NoReplyMention** | Turns reply pings off by default | reply_mentions, read_guild_members |
@@ -178,6 +198,7 @@ inventory). All are off by default.
 | **RoleColorEverywhere** | Role colors in mentions, member list headers, voice users and (optionally) message text | modify_displayed_messages |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
 | **ServerInfo** | A server's details, and your friends, mutual users, blocked and ignored users in it | add_ui_elements, read_server_permissions, read_relationships |
+| **ShowConnections** | Connected accounts in profiles as a row of icons, with GitHub organizations | modify_displayed_messages, network |
 | **ShowHiddenChannels** | Shows channels you can't see, with a lock screen listing their settings and who can see them | show_hidden_channels, read_server_permissions, add_ui_elements |
 | **ShowMeYourName** | Shows any combination of nicknames, display names and usernames | modify_displayed_messages, add_ui_elements |
 | **SilentMessageToggle** | Chat-bar toggle for sending silent messages | modify_outgoing_messages, add_ui_elements |
@@ -188,14 +209,20 @@ inventory). All are off by default.
 | **TypingIndicator** | Who is typing, next to channels in the channel list | add_ui_elements, read_relationships, read_server_permissions |
 | **Unindent** | Trims leading indentation from code blocks | modify_outgoing_messages, modify_displayed_messages |
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |
+| **UserVoiceShow** | A speaker next to people in voice; click to open their channel, double-click to join | read_presences, read_voice_states, add_ui_elements |
 | **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
 | **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
 | **VolumeBooster** | User volume sliders go past 200% (up to 1,000%) | control_audio |
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
+<!-- END GENERATED: plugin-table -->
 
-**Up next:** GameActivityToggle, BetterSessions, ReviewDB.
+<!-- BEGIN GENERATED: up-next -->
+**Up next:** GameActivityToggle, BetterSessions, ReviewDB, RelationshipNotifier, BlockKeywords, FollowVoiceUser. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+
+**Good first plugins** (the plugin API already covers them, so no client changes are needed): BlockKeywords, FollowVoiceUser, CopyEmojiMarkdown, DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
+<!-- END GENERATED: up-next -->
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in
@@ -225,12 +252,15 @@ Blocked, with notes and known gaps) is in
 |---|---|
 | Base client (Acheron features) | Works |
 | Qord UI and core Discord features | Works against the mock server; partly checked on real Discord |
-| Plugins | 30 of 369 Tested (each has its own test); none yet marked Complete (verified in a logged-in client) |
 | Go Live | Picture and sound verified against the mock server; not yet tested on real Discord |
 | Camera video | Verified against the mock server on Linux; not yet tested with a real camera or on real Discord |
 | Windows build | Primary platform (MSVC, Qt 6.10) |
 | Linux build | Builds and passes all tests with CMake against Qt 6.10 and system libraries |
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
+
+<!-- BEGIN GENERATED: plugin-status -->
+**Plugins:** 52 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+<!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).
 
@@ -311,6 +341,24 @@ python tools/mock_discord.py delete --channel general
 
 ---
 
+## Contributing
+
+Contributions are welcome, and you don't need a Discord account or Windows to make
+one: everything builds on Linux and runs against the local mock server.
+
+- **Port a plugin.** [docs/roadmap.md](docs/roadmap.md) lists the next plugins, most
+  useful first; the *good first* ones need no client changes. `tools/new_plugin.py`
+  creates the manifest, source, test and build entries for you.
+- **Extend the client.** Many plugins wait on a hook, service or display option; the
+  roadmap says which. [docs/writing-plugins.md](docs/writing-plugins.md) explains how
+  hooks, permissions and services fit together.
+- **Report bugs or ask for a plugin** with the issue templates.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md): building, running the mock, testing,
+and what a pull request needs.
+
+---
+
 ## Repository layout
 
 | Path | What's there |
@@ -324,10 +372,14 @@ python tools/mock_discord.py delete --channel general
 | `data/equicord/` | Pinned Equicord inventory, source version and status overrides |
 | `tools/` | Mock server, inventory and status tools, Windows build and measurement scripts |
 | `qord.cmake` | Everything Qord adds to Acheron's build, in one `include()` |
-| `docs/` | Decisions, build steps, performance, plugin status rules, compatibility matrix |
+| `data/equicord/roadmap.json` | The plugins to port next, in order (renders `docs/roadmap.md`) |
+| `docs/` | Decisions, build steps, performance, plugin status rules, compatibility matrix, roadmap, plugin guide |
 
 ## Documentation
 
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute
+- [docs/writing-plugins.md](docs/writing-plugins.md): how to write a native plugin
+- [docs/roadmap.md](docs/roadmap.md): the plugins to port next
 - [docs/building.md](docs/building.md): building and testing on Windows
 - [docs/decisions.md](docs/decisions.md): architecture and design decisions
 - [docs/performance.md](docs/performance.md): startup and memory measurements, and budgets

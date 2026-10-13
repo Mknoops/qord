@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/talkInReverse",
   "name": "TalkInReverse",
   "description": "Reverses the message content before sending it.",
+  "summary": "Reverses your message before sending",
   "categories": ["chat"],
   "tags": ["Chat", "Fun"],
   "authors": ["Tolgchu"],

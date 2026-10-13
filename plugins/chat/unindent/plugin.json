@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/unindent",
   "name": "Unindent",
   "description": "Trims leading indentation from codeblocks",
+  "summary": "Trims leading indentation from code blocks",
   "categories": [
     "chat",
     "utility"

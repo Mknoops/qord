@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/messageLogger",
   "name": "MessageLogger",
   "description": "Temporarily logs deleted and edited messages.",
+  "summary": "Keeps deleted and edited messages visible for the session",
   "categories": [
     "chat",
     "utility"

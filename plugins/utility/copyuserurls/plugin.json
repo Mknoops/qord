@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/copyUserURLs",
   "name": "CopyUserURLs",
   "description": "Adds a 'Copy User URL' option to the user context menu.",
+  "summary": "\"Copy User URL\" in the user context menu",
   "categories": [
     "utility",
     "chat"

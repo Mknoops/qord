@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/validUser",
   "name": "ValidUser",
   "description": "Fix mentions for unknown users showing up as '@unknown-user' (hover over a mention to fix it)",
+  "summary": "Hover an \"@unknown-user\" mention to look the user up and show their name",
   "categories": ["chat"],
   "tags": ["Chat", "Utility"],
   "authors": ["Ven", "Dolfies"],

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to contribute
+    url: https://github.com/Mknoops/qord/blob/qord/CONTRIBUTING.md
+    about: Building, the mock server, writing a plugin, and what a pull request needs.

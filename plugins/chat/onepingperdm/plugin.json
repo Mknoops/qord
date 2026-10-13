@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/onePingPerDM",
   "name": "OnePingPerDM",
   "description": "If unread messages are sent by a user in DMs multiple times, you'll only receive one audio ping. Read the messages to reset the limit",
+  "summary": "Only one notification sound per DM until you read it",
   "categories": ["chat"],
   "tags": ["Notifications", "Customisation"],
   "authors": ["ProffDea"],

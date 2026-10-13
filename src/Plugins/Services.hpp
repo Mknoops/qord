@@ -225,6 +225,15 @@ public:
     }
     // Disconnects the account from voice, as the disconnect button does
     virtual void leaveVoice(Id accountId) { Q_UNUSED(accountId); }
+    // Shows a message from you that only this client sees, marked "Only you
+    // can see this" with "Dismiss message" (Vencord's sendBotMessage as
+    // yourself; PreviewMessage). Nothing is sent to Discord.
+    virtual void showLocalMessage(Id accountId, Id channelId, const QString &content)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(content);
+    }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {

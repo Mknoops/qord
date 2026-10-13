@@ -473,6 +473,16 @@ void ChatView::openLink(const QString &url)
         return;
     }
 
+    // Qord: "Dismiss message" under a message only you can see
+    if (url == QLatin1String(Core::MessageManager::DismissMessageHref)) {
+        const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
+        auto *chat = qobject_cast<ChatModel *>(model());
+        if (chat && idx.isValid())
+            emit dismissMessageRequested(chat->getActiveChannelId(),
+                                         Core::Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()));
+        return;
+    }
+
     // Qord: a link under a message from a plugin (Translate's "Dismiss")
     const QLatin1String accessory(Qord::Plugins::MessageAccessoryHref);
     if (url.startsWith(accessory)) {

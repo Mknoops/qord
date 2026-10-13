@@ -161,7 +161,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 60 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 61 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -198,6 +198,7 @@ These 60 native plugins are available now (out of the 369 in the pinned Equicord
 | **PinDMs** | Pin DMs into colored, collapsible categories at the top of the DM list | add_ui_elements |
 | **PlatformIndicators** | Desktop, mobile and web indicators next to users | read_presences, modify_displayed_messages |
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
+| **PreviewMessage** | An eye button by the message box that shows your message, as only you can see it, before you send it | add_ui_elements |
 | **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
 | **RelationshipNotifier** | A notification when a friend, group DM or server removes you, even while Qord was closed | read_memberships, read_relationships, add_ui_elements |
@@ -228,7 +229,7 @@ These 60 native plugins are available now (out of the 369 in the pinned Equicord
 <!-- END GENERATED: plugin-table -->
 
 <!-- BEGIN GENERATED: up-next -->
-**Up next:** PreviewMessage, DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
+**Up next:** DecodeBase64, UnitConverter, KeywordNotify, MessageLinkTooltip, ReplyTimestamp, CharacterCounter. The whole list, most useful first, is in [docs/roadmap.md](docs/roadmap.md).
 
 **Good first plugins** (the plugin API already covers them, so no client changes are needed): DecodeBase64, UnitConverter. See [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- END GENERATED: up-next -->
@@ -268,7 +269,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 60 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 61 of 369 ported and tested (each has its own test), 0 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

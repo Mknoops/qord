@@ -132,6 +132,7 @@ qord_add_plugin(blockkeywords chat SOURCES BlockKeywords.cpp)
 qord_add_plugin(followvoiceuser voice SOURCES FollowVoiceUser.cpp)
 qord_add_plugin(copyemojimarkdown emotes SOURCES CopyEmojiMarkdown.cpp)
 qord_add_plugin(serverlistindicators servers SOURCES ServerListIndicators.cpp)
+qord_add_plugin(previewmessage chat SOURCES PreviewMessage.cpp)
 
 # --- Generated registration -------------------------------------------------
 set(_decls "")

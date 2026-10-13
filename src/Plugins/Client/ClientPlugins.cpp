@@ -323,6 +323,18 @@ void QtUiService::leaveVoice(Id accountId)
         voiceLeaver()(accountId);
 }
 
+std::function<void(Id, Id, const QString &)> &QtUiService::localMessageShower()
+{
+    static std::function<void(Id, Id, const QString &)> shower;
+    return shower;
+}
+
+void QtUiService::showLocalMessage(Id accountId, Id channelId, const QString &content)
+{
+    if (localMessageShower())
+        localMessageShower()(accountId, channelId, content);
+}
+
 void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
 {
     multiplier = qBound(1.0, multiplier, 5.0);

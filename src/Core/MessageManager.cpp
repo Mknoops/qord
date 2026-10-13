@@ -203,6 +203,14 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
             }
         }
 
+    // Qord: Discord's footer for messages only you can see (slash command
+    // answers, PreviewMessage); dismissing one removes it from the chat
+    if (msg.flags.hasValue() && msg.flags->testFlag(Discord::MessageFlag::EPHEMERAL))
+        msg.parsedContentCached += QStringLiteral("<div style=\"color: #949ba4; font-size: small;\">%1 · "
+                                                 "<a href=\"%2\">%3</a></div>")
+                                           .arg(tr("Only you can see this"), QLatin1String(DismissMessageHref),
+                                                tr("Dismiss message"));
+
     if (msg.type.hasValue() && msg.type.get() == Discord::MessageType::THREAD_STARTER_MESSAGE &&
         msg.referencedMessage && msg.referencedMessage->content.hasValue() &&
         msg.referencedMessage->parsedContentCached.isEmpty())
@@ -336,6 +344,23 @@ void MessageManager::fetchLinkedMessage(Snowflake channelId, Snowflake messageId
         if (done)
             done(found);
     });
+}
+
+void MessageManager::addLocalMessage(Snowflake channelId, const QString &content)
+{
+    Discord::Message msg;
+    msg.id = Snowflake::generateNonce();
+    msg.channelId = channelId;
+    msg.content = content;
+    msg.timestamp = QDateTime::currentDateTimeUtc();
+    msg.author = client->getMe();
+    msg.type = Discord::MessageType::DEFAULT;
+    msg.flags = Discord::MessageFlags(Discord::MessageFlag::EPHEMERAL);
+    msg.attachments = QList<Discord::Attachment>();
+    msg.embeds = QList<Discord::Embed>();
+    parseMessageContent(msg);
+    messageCache.insert(msg.id, new Discord::Message(msg));
+    emit messagesReceived({ true, Discord::Client::MessageLoadType::Created, channelId, { msg } });
 }
 
 void MessageManager::removeKeptMessage(Snowflake channelId, Snowflake messageId)

@@ -27,6 +27,7 @@
 #include "ChannelList/ChannelTreeView.hpp"
 #include "ChannelList/ServerRailView.hpp"
 #include "ChannelList/ServerRailModel.hpp"
+#include "Core/FolderSidebar.hpp"
 #include "ChannelList/ServerRailDelegate.hpp"
 #include "TabBar/TabBar.hpp"
 #include "Accounts/AccountsWindow.hpp"
@@ -1110,6 +1111,29 @@ void MainWindow::setupUi()
     serverRail->setGuildSettingsProvider(std::bind_front(&MainWindow::guildSettingsSections, this));
     connect(serverRail, &ServerRailView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
 
+    // Qord: BetterFolders' second rail; it only shows while the plugin is on
+    // and a folder is open
+    folderSidebarModel = new ServerRailModel(session, channelTreeModel, this);
+    folderSidebarModel->makeFolderSidebarOf(serverRailModel);
+    folderSidebar = new ServerRailView(this);
+    folderSidebar->setObjectName("FolderSidebar");
+    folderSidebar->setModel(folderSidebarModel);
+    folderSidebar->setItemDelegate(new ServerRailDelegate(folderSidebar));
+    folderSidebar->setFixedWidth(ServerRailDelegate::RailWidth);
+    folderSidebar->hide();
+    connect(folderSidebar, &ServerRailView::guildClicked, this, &MainWindow::onRailGuildClicked);
+    connect(folderSidebar, &ServerRailView::folderToggleClicked, this,
+            [this](Snowflake accountId, Snowflake folderId) { serverRailModel->toggleFolder(accountId, folderId); });
+    connect(folderSidebar, &ServerRailView::markAsReadRequested, this,
+            [this](Snowflake accountId, Snowflake id, bool isFolder) {
+                markIndexAsRead(accountId, isFolder ? channelTreeModel->folderIndex(accountId, id)
+                                                    : channelTreeModel->serverIndex(accountId, id));
+            });
+    connect(folderSidebar, &ServerRailView::leaveGuildRequested, this, &MainWindow::confirmAndLeaveGuild);
+    folderSidebar->setGuildSettingsProvider(std::bind_front(&MainWindow::guildSettingsSections, this));
+    connect(folderSidebar, &ServerRailView::guildSettingsRequested, this, &MainWindow::openGuildSettings);
+    connect(serverRailModel, &ServerRailModel::foldersChanged, this, &MainWindow::updateFolderSidebar);
+
     guildHeaderLabel = new QLabel(this);
     guildHeaderLabel->setObjectName("GuildHeader");
     guildHeaderLabel->setFixedHeight(48);
@@ -1794,6 +1818,9 @@ QWidget *MainWindow::buildLeftSide()
         railLayout->addWidget(addServerButton, 0, Qt::AlignHCenter);
         addServerButton->show();
         h->addWidget(railColumn, 0);
+        // Qord: BetterFolders' second rail
+        h->addWidget(folderSidebar, 0);
+        updateFolderSidebar();
 
         auto *secondary = new QWidget(container);
         secondary->setObjectName("ChannelSidebar");
@@ -1860,6 +1887,8 @@ void MainWindow::setChannelListMode(ChannelListMode mode)
     channelTree->hide();
     serverRail->setParent(this);
     serverRail->hide();
+    folderSidebar->setParent(this);
+    folderSidebar->hide();
     guildHeaderLabel->setParent(this);
     guildHeaderLabel->hide();
     // Qord widgets live in the left side too; keep them across the rebuild
@@ -1967,8 +1996,31 @@ void MainWindow::onRailAccountHomeSelected(Snowflake accountId)
     s.setValue("ui/rail/lastIsHome", true);
 }
 
+void MainWindow::updateFolderSidebar()
+{
+    const auto &options = Core::folderSidebarOptions();
+    const bool show = options.enabled && options.sidebar && serverRailModel->anyFolderExpanded() &&
+                      channelListMode == ChannelListMode::Classic;
+    if (folderSidebar->parentWidget() == this || folderSidebar->isVisibleTo(folderSidebar->parentWidget()) == show)
+        return;
+    folderSidebar->setVisible(show);
+    // The second rail widens the left pane instead of narrowing the channels
+    if (mainSplitter) {
+        QList<int> sizes = mainSplitter->sizes();
+        const int delta = show ? ServerRailDelegate::RailWidth : -ServerRailDelegate::RailWidth;
+        if (sizes.size() > 1 && sizes[1] > delta) {
+            sizes[0] += delta;
+            sizes[1] -= delta;
+            mainSplitter->setSizes(sizes);
+        }
+    }
+}
+
 void MainWindow::onRailAccountHomeClicked(Snowflake accountId)
 {
+    // Qord: BetterFolders' "close all folders when clicking on the home button"
+    if (Core::folderSidebarOptions().enabled && Core::folderSidebarOptions().closeAllHomeButton)
+        serverRailModel->collapseAllFolders();
     onRailAccountHomeSelected(accountId);
 
     auto it = lastViewedChannel.constFind(guildChannelKey(accountId, Snowflake::Invalid));
@@ -2056,6 +2108,15 @@ void MainWindow::applyPendingRailSelection(Snowflake accountId)
 
 void MainWindow::onRailGuildClicked(Snowflake accountId, Snowflake guildId)
 {
+    // Qord: BetterFolders closes folders when selecting servers
+    const auto &folderOptions = Core::folderSidebarOptions();
+    if (folderOptions.enabled) {
+        const Snowflake folderId = serverRailModel->folderOf(accountId, guildId);
+        if (!folderId.isValid() && folderOptions.closeAllFolders)
+            serverRailModel->collapseAllFolders();
+        else if (folderId.isValid() && folderOptions.closeServerFolder)
+            serverRailModel->setFolderExpanded(accountId, folderId, false);
+    }
     onRailGuildSelected(accountId, guildId);
 
     Snowflake channelId = resolveRailChannel(accountId, guildId);

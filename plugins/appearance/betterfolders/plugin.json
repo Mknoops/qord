@@ -1,0 +1,111 @@
+{
+  "id": "betterfolders",
+  "equicordName": "BetterFolders",
+  "equicordPath": "src/plugins/betterFolders",
+  "name": "BetterFolders",
+  "description": "Shows server folders on dedicated sidebar and adds folder related improvements",
+  "categories": [
+    "appearance"
+  ],
+  "tags": [
+    "Organisation",
+    "Servers",
+    "Appearance"
+  ],
+  "authors": [
+    "Juby210",
+    "AutumnVN",
+    "Nuckyz"
+  ],
+  "permissions": [
+    "modify_displayed_messages"
+  ],
+  "hooks": [],
+  "settings": [
+    {
+      "key": "sidebar",
+      "type": "bool",
+      "default": true,
+      "label": "Sidebar",
+      "description": "Display servers from folder on dedicated sidebar"
+    },
+    {
+      "key": "sidebarAnim",
+      "type": "bool",
+      "default": true,
+      "label": "Sidebar animation",
+      "description": "Animate opening the folder sidebar"
+    },
+    {
+      "key": "closeAllFolders",
+      "type": "bool",
+      "default": false,
+      "label": "Close all folders",
+      "description": "Close all folders when selecting a server not in a folder"
+    },
+    {
+      "key": "closeAllHomeButton",
+      "type": "bool",
+      "default": false,
+      "label": "Close all folders on home",
+      "description": "Close all folders when clicking on the home button"
+    },
+    {
+      "key": "closeOthers",
+      "type": "bool",
+      "default": false,
+      "label": "Close other folders",
+      "description": "Close other folders when opening a folder"
+    },
+    {
+      "key": "closeServerFolder",
+      "type": "bool",
+      "default": false,
+      "label": "Close server folder",
+      "description": "Close folder when selecting a server in that folder"
+    },
+    {
+      "key": "forceOpen",
+      "type": "bool",
+      "default": false,
+      "label": "Force open",
+      "description": "Force a folder to open when switching to a server of that folder"
+    },
+    {
+      "key": "keepIcons",
+      "type": "bool",
+      "default": false,
+      "label": "Keep icons",
+      "description": "Keep showing guild icons in the primary guild bar folder when it's open in the BetterFolders sidebar"
+    },
+    {
+      "key": "showFolderIcon",
+      "type": "choice",
+      "default": "always",
+      "label": "Show folder icon",
+      "description": "Show the folder icon above the folder guilds in the BetterFolders sidebar",
+      "choices": [
+        {
+          "value": "never",
+          "label": "Never"
+        },
+        {
+          "value": "always",
+          "label": "Always"
+        },
+        {
+          "value": "more",
+          "label": "When more than one folder is expanded"
+        }
+      ]
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "With the sidebar on, opening a server folder shows its servers on a second rail beside the server list (under the folder's icon, by the setting), and the server list shows just the open folder unless \"Keep icons\" is on; the rail goes away when every folder is closed. The other settings close folders when you select a server outside them or in them, click the home button, or open another folder, and open a folder when you switch to one of its servers. It works with Qord's classic channel list (server list plus channels).",
+  "gaps": [
+    "The sidebar appears without upstream's opening animation (\"Sidebar animation\" does nothing yet)."
+  ]
+}

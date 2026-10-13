@@ -232,6 +232,7 @@ public:
     void setMobileIndicatorForAnyStatus(bool any) override;
     void setForceOwnerCrown(bool force) override;
     void setRoleColors(const RoleColors &colors) override;
+    void setFolderSidebar(const std::optional<FolderSidebar> &folders) override;
     void setImageLens(const std::optional<ImageLens> &lens, std::function<void(double, int)> changed) override;
     PluginHost *host = nullptr;
 };

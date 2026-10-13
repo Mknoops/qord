@@ -148,6 +148,7 @@ inventory). All are off by default.
 |---|---|---|
 | **AlwaysTrust** | Removes the untrusted-domain popup | trust_links |
 | **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
+| **BetterFolders** | Open server folders on a second rail, and rules for when folders open and close | modify_displayed_messages |
 | **ClearURLs** | Removes tracking parameters from URLs you send | modify_outgoing_messages, network |
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
@@ -193,7 +194,8 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** BetterFolders.
+**Up next:** MessageLinkEmbeds, UserVoiceShow, ShowConnections, BetterRoleDot, ImplicitRelationships,
+GameActivityToggle, BetterSessions, ReviewDB.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

@@ -48,6 +48,7 @@
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/ChannelList/ChannelFilterProxyModel.hpp"
 #include "UI/ChannelList/ChannelNode.hpp"
+#include "UI/ChannelList/ServerRailModel.hpp"
 #include "UI/MemberList/MemberListView.hpp"
 #include "UI/ImageViewer.hpp"
 #include "UI/ChannelList/ChannelDelegate.hpp"
@@ -502,6 +503,14 @@ void MainWindow::setupQordFeatures()
             out.append(quint64(id));
         return out;
     };
+    // BetterFolders: the server list and its second rail follow the plugin
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() {
+            serverRailModel->rebuild();
+            folderSidebarModel->rebuild();
+            updateFolderSidebar();
+        });
+
     // PinDMs: regroup the DM lists when the plugin changes them
     if (auto *host = Qord::Plugins::PluginHost::instance())
         connect(host, &Qord::Plugins::PluginHost::dmListChanged, channelTreeModel, &ChannelTreeModel::refreshDmPins);

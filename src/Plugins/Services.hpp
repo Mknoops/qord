@@ -238,6 +238,8 @@ public:
     // Role colors in mentions, member list headers, voice users and message
     // text (all off by default)
     virtual void setRoleColors(const RoleColors &colors) { Q_UNUSED(colors); }
+    // BetterFolders (nullopt: off)
+    virtual void setFolderSidebar(const std::optional<FolderSidebar> &folders) { Q_UNUSED(folders); }
     // The image viewer's magnifying lens (nullopt: off); `changed` gets the
     // zoom and size the wheel set while magnifying
     virtual void setImageLens(const std::optional<ImageLens> &lens,

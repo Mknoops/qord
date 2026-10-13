@@ -340,6 +340,34 @@ def add(cid: str, author: str, content: str, minutes_ago: float, **extra) -> dic
     return m
 
 
+def user_settings_proto() -> str:
+    # QORD_MOCK_FOLDERS=1: Second Server in a "Work" folder (BetterFolders).
+    # PreloadedUserSettings.guild_folders = 14 { folders = 1 { guild_ids = 1,
+    # id = 2 (Int64Value), name = 3 (StringValue), color = 4 (UInt64Value) },
+    # guild_positions = 2 }
+    if os.environ.get("QORD_MOCK_FOLDERS") != "1":
+        return ""
+
+    def varint(n: int) -> bytes:
+        out = b""
+        while True:
+            b, n = n & 0x7F, n >> 7
+            out += bytes([b | (0x80 if n else 0)])
+            if not n:
+                return out
+
+    def field(number: int, payload: bytes) -> bytes:
+        return varint(number << 3 | 2) + varint(len(payload)) + payload
+
+    def fixed64s(*ids: str) -> bytes:
+        return b"".join(int(i).to_bytes(8, "little") for i in ids)
+
+    folder = (field(1, fixed64s(G2)) + field(2, varint(1 << 3) + varint(4242)) + field(3, field(1, b"Work"))
+              + field(4, varint(1 << 3) + varint(0x5865F2)))
+    folders = field(1, folder) + field(2, fixed64s(G1, G2))
+    return base64.b64encode(field(14, folders)).decode()
+
+
 def frecency_settings() -> str:
     # FrecencyUserSettings with favorite_emojis = 5 { repeated string emojis = 1 }:
     # the party_blob custom emoji and the sob Unicode emoji (FavoriteEmojiFirst)
@@ -670,7 +698,7 @@ def ready_payload() -> dict:
         "relationships": RELATIONSHIPS,
         "read_state": {"version": 1, "partial": False, "entries": read_entries},
         "user_guild_settings": {"version": 1, "partial": False, "entries": list(GUILD_SETTINGS.values())},
-        "user_settings_proto": "",
+        "user_settings_proto": user_settings_proto(),
         "notes": {},
         "session_id": "mock-session",
         "resume_gateway_url": "",

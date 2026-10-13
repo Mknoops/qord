@@ -783,6 +783,21 @@ struct EmojiContext
     EmojiInfo emoji;
 };
 
+// BetterFolders: open server folders on a second rail, and when they open
+// and close.
+struct FolderSidebar
+{
+    bool sidebar = true;
+    bool closeAllFolders = false;
+    bool closeAllHomeButton = false;
+    bool closeOthers = false;
+    bool closeServerFolder = false;
+    bool forceOpen = false;
+    bool keepIcons = false;
+    enum class FolderIcon { Never, Always, MoreThanOneFolderExpanded };
+    FolderIcon folderIcon = FolderIcon::Always;
+};
+
 // ImageZoom's lens in the image viewer.
 struct ImageLens
 {

@@ -117,6 +117,7 @@ qord_add_plugin(volumebooster voice SOURCES VolumeBooster.cpp)
 qord_add_plugin(pindms chat SOURCES PinDMs.hpp PinDMs.cpp)
 qord_add_plugin(imagezoom media SOURCES ImageZoom.cpp)
 qord_add_plugin(betterfolders appearance SOURCES BetterFolders.cpp)
+qord_add_plugin(messagelinkembeds chat SOURCES MessageLinkEmbeds.hpp MessageLinkEmbeds.cpp)
 qord_add_plugin(favoriteemojifirst chat SOURCES FavoriteEmojiFirst.hpp FavoriteEmojiFirst.cpp
     UI_SOURCES AliasListWidget.cpp)
 

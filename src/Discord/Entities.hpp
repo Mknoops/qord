@@ -1339,6 +1339,7 @@ struct Message : Core::JsonUtils::JsonObject
     QList<int> qordHiddenAttachments;
     QList<int> qordHiddenEmbeds;
     QList<StickerItem> qordAddedStickers;
+    QList<Embed> qordAddedEmbeds; // after the message's own (MessageLinkEmbeds)
 
     // track for MESSAGE_UPDATE
     QSet<QString> presentKeys;

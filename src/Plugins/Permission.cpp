@@ -66,6 +66,8 @@ const PermissionInfo permissionTable[] = {
       QT_TRANSLATE_NOOP("Qord::Plugins", "See your DMs and group DMs") },
     { Permission::ControlAudio, "control_audio",
       QT_TRANSLATE_NOOP("Qord::Plugins", "Change how loud voice chat can play") },
+    { Permission::FetchMessages, "fetch_messages",
+      QT_TRANSLATE_NOOP("Qord::Plugins", "Load messages from other channels you can see") },
 };
 
 struct HookInfo

@@ -716,7 +716,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     }
     case EmbedsRole: {
         const Discord::Message &visible = msg.contentMessage();
-        if (!visible.embeds.hasValue() || visible.embeds->isEmpty())
+        // Qord: plus the embeds plugins add (MessageLinkEmbeds)
+        QList<Discord::Embed> allEmbeds = visible.embeds.hasValue() ? *visible.embeds : QList<Discord::Embed>();
+        allEmbeds += msg.qordAddedEmbeds;
+        if (allEmbeds.isEmpty())
             return QVariant();
 
         if (embedCache.contains(msg.id))
@@ -727,7 +730,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         QMap<QString, int> urlToEmbedIndex;
 
         int embedIndex = -1;
-        for (const auto &embed : *visible.embeds) {
+        for (const auto &embed : allEmbeds) {
             // Qord: plugins may hide an embed (FakeNitro's emoji and sticker links)
             if (++embedIndex, &visible == &msg && msg.qordHiddenEmbeds.contains(embedIndex))
                 continue;

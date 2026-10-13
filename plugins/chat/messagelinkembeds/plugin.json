@@ -1,0 +1,91 @@
+{
+  "id": "messagelinkembeds",
+  "equicordName": "MessageLinkEmbeds",
+  "equicordPath": "src/plugins/messageLinkEmbeds",
+  "name": "MessageLinkEmbeds",
+  "description": "Adds a preview to messages that link another message",
+  "categories": [
+    "chat"
+  ],
+  "tags": [
+    "Chat",
+    "Appearance"
+  ],
+  "authors": [
+    "TheSun",
+    "Ven",
+    "RyanCaoDev"
+  ],
+  "permissions": [
+    "modify_displayed_messages",
+    "fetch_messages"
+  ],
+  "hooks": [
+    "messageAccessories"
+  ],
+  "settings": [
+    {
+      "key": "messageBackgroundColor",
+      "type": "bool",
+      "default": false,
+      "label": "Message background color",
+      "description": "Background color for messages in rich embeds"
+    },
+    {
+      "key": "automodEmbeds",
+      "type": "choice",
+      "default": "never",
+      "label": "AutoMod embeds",
+      "description": "Use automod embeds instead of rich embeds (smaller but less info)",
+      "choices": [
+        {
+          "value": "always",
+          "label": "Always use automod embeds"
+        },
+        {
+          "value": "prefer",
+          "label": "Prefer automod embeds, but use rich embeds if some content can't be shown"
+        },
+        {
+          "value": "never",
+          "label": "Never use automod embeds"
+        }
+      ]
+    },
+    {
+      "key": "listMode",
+      "type": "choice",
+      "default": "blacklist",
+      "label": "List mode",
+      "description": "Whether to use ID list as blacklist or whitelist",
+      "choices": [
+        {
+          "value": "blacklist",
+          "label": "Blacklist"
+        },
+        {
+          "value": "whitelist",
+          "label": "Whitelist"
+        }
+      ]
+    },
+    {
+      "key": "idList",
+      "type": "string",
+      "default": "",
+      "multiline": true,
+      "label": "ID List",
+      "description": "Guild/channel/user IDs to blacklist or whitelist (separate with comma)"
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "A message with links to Discord messages (up to five) gets a preview of each under it: where it is (\"Server - #channel\", \"Direct Message - @name\" or \"Group DM\" with the server's, user's or group's icon), its text (or \"[no content, 2 attachments]\"), its images, its author and when it was sent, drawn as an embed. Messages Qord doesn't have are fetched one at a time, newest first, once each, and the preview appears when they arrive; channels you can't see are skipped, and the ID list leaves out (or, as a whitelist, keeps only) links in those servers or channels or from those users.",
+  "gaps": [
+    "Qord draws one style of preview for every \"AutoMod embeds\" setting and doesn't show the linked message's buttons or files; \"Message background color\" has no effect.",
+    "Mentions and channel links in the preview's text show as written.",
+    "There's no button to clear the linked message cache."
+  ]
+}

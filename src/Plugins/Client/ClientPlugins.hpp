@@ -195,6 +195,18 @@ public:
     static std::function<QList<PrivateChannelInfo>(Id accountId)> &provider(); // set by the main window
 };
 
+class SessionMessageLookup : public MessageLookupService
+{
+public:
+    explicit SessionMessageLookup(Acheron::Core::Session *session) : session(session) {}
+    std::optional<LinkedMessage> message(Id accountId, Id channelId, Id messageId) override;
+    void fetchMessage(Id accountId, Id channelId, Id messageId, std::function<void(bool)> done) override;
+    std::optional<LinkedChannel> channel(Id accountId, Id channelId) override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionUsers : public UserLookupService
 {
 public:
@@ -308,6 +320,7 @@ private:
     SessionUsers users;
     QtPrivateChannels privateChannels;
     QtAudioOptions audio;
+    SessionMessageLookup messageLookup;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

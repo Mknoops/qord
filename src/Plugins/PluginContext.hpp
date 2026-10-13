@@ -64,6 +64,9 @@ public:
     [[nodiscard]] UserLookupService *users();
     // Null without the read_dms permission.
     [[nodiscard]] const PrivateChannelDirectory *privateChannels() const;
+    // Null without the fetch_messages permission. Replies arriving after the
+    // plugin stopped are dropped.
+    [[nodiscard]] MessageLookupService *messageLookup();
     // Null without the control_audio permission.
     [[nodiscard]] AudioOptionsService *audio() const;
 
@@ -98,6 +101,7 @@ private:
     std::unique_ptr<UiService> scopedUi;
     std::unique_ptr<ReactionService> scopedReactions;
     std::unique_ptr<UserLookupService> scopedUsers;
+    std::unique_ptr<MessageLookupService> scopedMessageLookup;
 };
 
 } // namespace Plugins

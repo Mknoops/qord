@@ -1,0 +1,36 @@
+{
+  "id": "showconnections",
+  "equicordName": "ShowConnections",
+  "equicordPath": "src/plugins/showConnections",
+  "name": "ShowConnections",
+  "description": "Show connected accounts in user popouts",
+  "categories": ["appearance"],
+  "tags": ["Friends", "Appearance"],
+  "authors": ["TheKodeToad"],
+  "permissions": ["modify_displayed_messages", "network"],
+  "hooks": [],
+  "settings": [
+    { "key": "iconSize", "type": "int", "default": 32, "min": 8, "max": 128, "label": "Icon size",
+      "description": "Icon size (px)" },
+    { "key": "iconSpacing", "type": "choice", "default": "1", "label": "Icon margin",
+      "description": "Icon margin",
+      "choices": [
+        { "value": "0", "label": "Compact" },
+        { "value": "1", "label": "Cozy" },
+        { "value": "2", "label": "Roomy" }
+      ] },
+    { "key": "showGithubOrgs", "type": "bool", "default": true, "label": "Show GitHub organizations",
+      "description": "Show GitHub organizations the user is a member of" },
+    { "key": "showOnModal", "type": "bool", "default": true, "label": "Show on profile modal",
+      "description": "Show connected accounts in the full-size profile modal" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Profiles show connected accounts as a row of icons (size and margin are settings), each with a tooltip of the account name, a check when it is verified, and what clicking does: open the account's page, open Xbox's player page, or copy the name (\"Copied to clipboard!\"). With Show GitHub organizations, a GitHub account is followed by an icon per organization the user belongs to, from GitHub's public API (api.github.com/users/<name>/orgs, asked once per name while Qord runs).",
+  "gaps": [
+    "Qord has one profile window, which already lists connections; the plugin turns that list into icons, so Show on profile modal has nothing to switch.",
+    "The tooltip shows the verified check and the action as text rather than upstream's icons, and Qord's links come from its own platform table rather than Discord's."
+  ]
+}

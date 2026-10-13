@@ -30,6 +30,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/UserPanel.cpp
     src/UI/Qord/Toast.hpp
     src/UI/Qord/Toast.cpp
+    src/UI/Qord/FlowLayout.hpp
+    src/UI/Qord/FlowLayout.cpp
     src/UI/Qord/PermissionsView.hpp
     src/UI/Qord/PermissionsView.cpp
     src/UI/Qord/HiddenChannelScreen.hpp
@@ -118,6 +120,12 @@ if(BUILD_TESTS)
     endif()
     target_compile_definitions(TestQordMarkdown PRIVATE QORD_MARKDOWN_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/qord")
     add_test(NAME QordMarkdownTests COMMAND TestQordMarkdown)
+
+    qt_add_executable(TestFlowLayout tests/qord/tst_flow_layout.cpp src/UI/Qord/FlowLayout.cpp)
+    target_link_libraries(TestFlowLayout PRIVATE Qt::Core Qt::Gui Qt::Widgets Qt::Test)
+    target_include_directories(TestFlowLayout PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestFlowLayout PROPERTIES AUTOMOC ON)
+    add_test(NAME QordFlowLayoutTests COMMAND TestFlowLayout)
 
     qt_add_executable(TestSlashCommands tests/qord/tst_slash_commands.cpp src/Qord/SlashCommands.cpp)
     target_link_libraries(TestSlashCommands PRIVATE Qt::Core Qt::Test)

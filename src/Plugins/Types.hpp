@@ -857,6 +857,13 @@ struct ImageLens
     bool invertScroll = true;
 };
 
+// ShowConnections: a profile's connected accounts as a row of icons.
+struct CompactConnections
+{
+    int iconSize = 32; // px
+    int spacing = 6; // px between icons
+};
+
 // Where RoleColorEverywhere shows role colors.
 struct RoleColors
 {

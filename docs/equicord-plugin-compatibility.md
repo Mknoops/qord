@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 320 |
+| Not Started | 319 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 49 |
+| Tested | 50 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -292,7 +292,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ShikiCodeblocks | `src/plugins/shikiCodeblocks.desktop` |  | Not Started |  |
 | ShowAllMessageButtons | `src/plugins/showAllMessageButtons` |  | Not Started |  |
 | ShowBadgesInChat | `src/equicordplugins/showBadgesInChat` |  | Not Started |  |
-| ShowConnections | `src/plugins/showConnections` |  | Not Started |  |
+| ShowConnections | `src/plugins/showConnections` | `plugins/appearance/showconnections` | Tested | Profiles show connected accounts as a row of icons (size and margin are settings), each with a tooltip of the account name, a check when it is verified, and what clicking does: open the account's page, open Xbox's player page, or copy the name ("Copied to clipboard!"). With Show GitHub organizations, a GitHub account is followed by an icon per organization the user belongs to, from GitHub's public API (api.github.com/users/<name>/orgs, asked once per name while Qord runs). wired; not yet verified in the running client. gaps: Qord has one profile window, which already lists connections; the plugin turns that list into icons, so Show on profile modal has nothing to switch.; The tooltip shows the verified check and the action as text rather than upstream's icons, and Qord's links come from its own platform table rather than Discord's. |
 | ShowHiddenChannels | `src/plugins/showHiddenChannels` | `plugins/utility/showhiddenchannels` | Tested | Hidden channels appear in the channel list where Discord would put them, marked as the show mode says. Selecting one shows the lock screen (what kind of channel it is, its settings, the roles and users that can see it, and Permission Details) instead of loading messages, and clicking a voice channel you can't see or join shows it instead of connecting. Hidden channels never become the channel a server opens on, and Qord never asks Discord for their messages. "Show Unreads" marks a hidden channel unread in the list without counting it toward the server. wired; not yet verified in the running client. gaps: Discord's "View Allowed Users and Roles" header is drawn by Qord: roles and users with access, without Discord's member-count overflow; A custom default reaction emoji on a forum shows as "a custom emoji" (the plugin doesn't read your servers' emojis); Qord has no keyboard channel switching or #channel autocomplete yet, so upstream's patches for those have nothing to change; a mention of a hidden channel opens its lock screen. |
 | ShowHiddenThings | `src/plugins/showHiddenThings` |  | Not Started |  |
 | ShowMessageEmbeds | `src/equicordplugins/showMessageEmbeds` |  | Not Started |  |

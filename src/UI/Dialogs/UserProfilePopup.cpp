@@ -1,6 +1,8 @@
 #include "UserProfilePopup.hpp"
 
 #include <QApplication>
+#include <QClipboard>
+#include <QPointer>
 #include <QDesktopServices>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -39,6 +41,9 @@
 #include "Discord/Client.hpp"
 #include "UI/Chat/MessageTextBrowser.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/FlowLayout.hpp"
+#include "UI/Qord/Toast.hpp"
+#include "Core/CompactConnections.hpp"
 #include "Plugins/PluginHost.hpp"
 
 #include <QMouseEvent>
@@ -927,6 +932,71 @@ void UserProfilePopup::renderConnections()
         empty->setStyleSheet(QStringLiteral(
                 "color: palette(placeholder-text); font-size: 12px;"));
         connectionsLayout->addWidget(empty);
+        return;
+    }
+
+    // Qord: ShowConnections' row of icons
+    const auto &compact = Core::compactConnectionsOptions();
+    if (compact.enabled) {
+        auto *icons = new QWidget;
+        auto *flow = new FlowLayout(icons, compact.spacing);
+        const QSize size(compact.iconSize, compact.iconSize);
+        const QString muted = palette().color(QPalette::PlaceholderText).name();
+        auto makeIcon = [this, icons, size, muted](const QString &type, const QString &name, bool verified,
+                                                   const QString &hint, std::function<void()> act) {
+            auto *icon = new DecorationIcon(icons);
+            icon->setFixedSize(size);
+            icon->setCursor(Qt::PointingHandCursor);
+            const QUrl iconUrl = Discord::Cdn::connectionIcon(type);
+            if (iconUrl.isValid())
+                images->assign(icon, iconUrl, size, accountId());
+            icon->setToolTip(QStringLiteral("<b>%1</b>%2<br><span style=\"color:%3;\">%4</span>")
+                                     .arg(name.toHtmlEscaped(), verified ? QStringLiteral(" \u2713") : QString(),
+                                          muted, hint.toHtmlEscaped()));
+            icon->onClick = [act = std::move(act)](bool doubleClick) {
+                if (!doubleClick)
+                    act();
+            };
+            return icon;
+        };
+        for (const auto &c : profile.connectedAccounts.get()) {
+            const QString type = c.type.get();
+            const QString name = c.name.get();
+            const QUrl link = buildConnectionUrl(type, c.id.get(), name);
+            QWidget *icon = nullptr;
+            if (link.isValid()) {
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open link"),
+                                [link]() { QDesktopServices::openUrl(link); });
+            } else if (type == QLatin1String("xbox")) {
+                const QUrl xbox(QStringLiteral("https://www.xbox.com/en-US/play/user/") +
+                                QString::fromUtf8(QUrl::toPercentEncoding(name)));
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open on Xbox"),
+                                [xbox]() { QDesktopServices::openUrl(xbox); });
+            } else {
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Copy"), [this, name]() {
+                    QGuiApplication::clipboard()->setText(name);
+                    Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+                });
+            }
+            flow->addWidget(icon);
+            // The user's GitHub organizations, after their GitHub account
+            if (type == QLatin1String("github") && compact.githubOrgs) {
+                QPointer<QWidget> anchor = icon;
+                compact.githubOrgs(name, [anchor, flow, makeIcon](const QStringList &logins) {
+                    if (!anchor)
+                        return;
+                    int at = flow->indexOfWidget(anchor) + 1;
+                    for (const QString &login : logins) {
+                        const QUrl url(QStringLiteral("https://github.com/") + login);
+                        auto *org = makeIcon(QStringLiteral("github"), login, false, QObject::tr("Open link"),
+                                             [url]() { QDesktopServices::openUrl(url); });
+                        flow->insertWidget(at++, org);
+                        org->show();
+                    }
+                });
+            }
+        }
+        connectionsLayout->addWidget(icons);
         return;
     }
 

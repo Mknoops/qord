@@ -195,8 +195,8 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** ShowConnections, BetterRoleDot, ImplicitRelationships, GameActivityToggle,
-BetterSessions, ReviewDB.
+**Up next:** BetterRoleDot, ImplicitRelationships, GameActivityToggle, BetterSessions,
+ReviewDB.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

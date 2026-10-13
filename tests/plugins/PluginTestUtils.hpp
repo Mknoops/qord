@@ -356,6 +356,13 @@ public:
     std::optional<ImageLens> lens;
     void setFolderSidebar(const std::optional<FolderSidebar> &value) override { folders = value; }
     std::optional<FolderSidebar> folders;
+    void setCompactConnections(const std::optional<CompactConnections> &value, GithubOrgsLookup lookup) override
+    {
+        connections = value;
+        githubOrgs = std::move(lookup);
+    }
+    std::optional<CompactConnections> connections;
+    GithubOrgsLookup githubOrgs;
     std::function<void(double, int)> lensChanged;
     RoleColors roleColors;
     int roleColorUpdates = 0;

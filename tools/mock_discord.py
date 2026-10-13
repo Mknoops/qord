@@ -35,7 +35,7 @@ import sys
 import urllib.request
 import zlib
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mock_voice  # noqa: E402  (voice gateway, media and Go Live)
@@ -911,13 +911,27 @@ def resolve_channel(name_or_id: str) -> str:
     return CH.get(name_or_id, name_or_id)
 
 
+# Connected accounts in profiles (ShowConnections)
+CONNECTED_ACCOUNTS = {
+    "ava": [
+        {"type": "github", "id": "1001", "name": "ava-codes", "verified": True, "visibility": 1},
+        {"type": "steam", "id": "76561190000000001", "name": "AvaPlays", "verified": True, "visibility": 1},
+        {"type": "xbox", "id": "2533270000000001", "name": "Ava Gamer", "verified": False, "visibility": 1},
+        {"type": "battlenet", "id": "1002", "name": "Ava#1234", "verified": False, "visibility": 1},
+        {"type": "domain", "id": "ava.example", "name": "ava.example", "verified": True, "visibility": 1},
+    ],
+}
+# GitHub's /users/{name}/orgs, as ShowConnections asks it (no real GitHub)
+GITHUB_ORGS = {"ava-codes": [{"login": "Equicord", "id": 1}, {"login": "qord-dev", "id": 2}]}
+
+
 def profile(uid: str) -> dict:
     key = next((k for k, u in USERS.items() if u["id"] == uid), None)
     u = USERS.get(key) if key else user(uid, "unknown", None)
     return {"user": dict(u, bio="Mock profile bio.", banner=None, accent_color=0x5865F2),
             "user_profile": {"bio": "Mock profile bio.", "accent_color": 0x5865F2, "pronouns": "",
                              "theme_colors": None, "banner": None},
-            "connected_accounts": [], "premium_since": None, "premium_type": 0,
+            "connected_accounts": CONNECTED_ACCOUNTS.get(key, []), "premium_since": None, "premium_type": 0,
             "mutual_guilds": [{"id": gid, "nick": None} for gid in GUILDS if key in MEMBERS[gid]],
             "mutual_friends_count": 1, "badges": [], "guild_badges": []}
 
@@ -1405,7 +1419,13 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             url = urlsplit(target)
             query = parse_qs(url.query)
-            if url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
+            if url.path.startswith("/cdn/api.github.com/users/") and url.path.endswith("/orgs"):
+                login = unquote(url.path.split("/")[4]).lower()
+                if login in GITHUB_ORGS:
+                    status, data, ctype = 200, json.dumps(GITHUB_ORGS[login]).encode(), "application/json"
+                else:
+                    status, data, ctype = 404, b'{"message":"Not Found"}', "application/json"
+            elif url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
                                     "/cdn/api.deepl.com/", "/cdn/translate.kagi.com/")):
                 status, data, ctype = mock_translate(url.path, query, body, headers)
             elif url.path.startswith("/cdn/"):

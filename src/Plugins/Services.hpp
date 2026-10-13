@@ -254,6 +254,17 @@ public:
         Q_UNUSED(lens);
         Q_UNUSED(changed);
     }
+    // Profiles show connected accounts as icons (nullopt: as a list). With
+    // `githubOrgs`, a GitHub account is followed by its organizations: the
+    // profile asks for a user's and shows the logins `done` gets.
+    using GithubOrgsLookup =
+            std::function<void(const QString &githubName, std::function<void(const QStringList &logins)> done)>;
+    virtual void setCompactConnections(const std::optional<CompactConnections> &connections,
+                                       GithubOrgsLookup githubOrgs)
+    {
+        Q_UNUSED(connections);
+        Q_UNUSED(githubOrgs);
+    }
 };
 
 class ReadStateService

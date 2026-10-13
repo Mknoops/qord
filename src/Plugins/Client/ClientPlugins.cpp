@@ -14,6 +14,7 @@
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
 #endif
+#include "Core/CompactConnections.hpp"
 #include "Core/FolderSidebar.hpp"
 #include "Core/ImageLens.hpp"
 #include "Core/OwnerCrown.hpp"
@@ -644,6 +645,19 @@ void QtDisplayOptions::setImageLens(const std::optional<ImageLens> &lens, std::f
     options.nearestNeighbour = lens->nearestNeighbour;
     options.invertScroll = lens->invertScroll;
     options.changed = std::move(changed);
+}
+
+void QtDisplayOptions::setCompactConnections(const std::optional<CompactConnections> &connections,
+                                             GithubOrgsLookup githubOrgs)
+{
+    auto &options = Acheron::Core::compactConnectionsOptions();
+    options = {};
+    if (!connections)
+        return;
+    options.enabled = true;
+    options.iconSize = qBound(8, connections->iconSize, 128);
+    options.spacing = qBound(0, connections->spacing, 32);
+    options.githubOrgs = std::move(githubOrgs);
 }
 
 void QtDisplayOptions::setFolderSidebar(const std::optional<FolderSidebar> &folders)

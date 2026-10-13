@@ -262,6 +262,7 @@ public:
     void setRoleColors(const RoleColors &colors) override;
     void setFolderSidebar(const std::optional<FolderSidebar> &folders) override;
     void setImageLens(const std::optional<ImageLens> &lens, std::function<void(double, int)> changed) override;
+    void setCompactConnections(const std::optional<CompactConnections> &connections, GithubOrgsLookup githubOrgs) override;
     PluginHost *host = nullptr;
 };
 

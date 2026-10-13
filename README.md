@@ -364,7 +364,9 @@ one: everything builds on Linux and runs against the local mock server.
 - **Report bugs or ask for a plugin** with the issue templates.
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md): building, running the mock, testing,
-and what a pull request needs.
+and what a pull request needs. Everyone taking part follows the
+[code of conduct](CODE_OF_CONDUCT.md), and security problems are reported privately
+as [SECURITY.md](SECURITY.md) explains.
 
 ---
 

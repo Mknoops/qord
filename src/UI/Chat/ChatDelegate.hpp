@@ -29,6 +29,10 @@ public:
     {
         QRect rect;
         QString text;
+        // A clickable name decoration (UserVoiceShow)
+        QString pluginId;
+        QString clickId;
+        quint64 userId = 0;
     };
     [[nodiscard]] QList<HeaderTip> headerTips(quint64 messageId) const { return lastHeaderTips.value(messageId); }
 

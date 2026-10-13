@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 321 |
+| Not Started | 320 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 48 |
+| Tested | 49 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -352,7 +352,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | UserMessagesPronouns | `src/plugins/userMessagesPronouns` |  | Not Started |  |
 | UserPFP | `src/equicordplugins/userpfp` |  | Not Started |  |
 | UserpluginInstaller | `src/equicordplugins/userpluginInstaller.dev` |  | Not Started |  |
-| UserVoiceShow | `src/plugins/userVoiceShow` |  | Not Started |  |
+| UserVoiceShow | `src/plugins/userVoiceShow` | `plugins/voice/uservoiceshow` | Tested | A speaker after names of people in voice (locked when you can't see or join the channel, deafened or muted icons otherwise), with a tooltip naming the channel and who is in it. Click opens the channel; double click joins it. Channels you can't see are skipped unless ShowHiddenChannels is on. wired; not yet verified in the running client. gaps: The tooltip lists names rather than upstream's row of avatars.; Upstream also puts the indicator on the friends list's action buttons; Qord has no friends list. |
 | USRBG | `src/plugins/usrbg` |  | Not Started |  |
 | ValidReply | `src/plugins/validReply` |  | Not Started |  |
 | ValidUser | `src/plugins/validUser` | `plugins/chat/validuser` | Tested | Hovering an "@unknown-user" mention asks Discord for that user (GET /users/{id}), at most five waiting at a time, newest first, one every 300 ms, waiting out rate limits, and the message then shows their name; a mention of a user Qord already knows is fixed at once. Clicking a mention opens the profile. wired; not yet verified in the running client. gaps: Upstream also fills in the fetched user's profile badges (from their flags) for Discord's popout; Qord's profile loads the user's real profile instead. |

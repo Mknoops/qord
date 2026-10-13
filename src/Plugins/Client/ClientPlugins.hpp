@@ -138,6 +138,8 @@ public:
     static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window
     void openChannel(Id accountId, Id channelId) override;
     static std::function<void(Id, Id)> &channelOpener(); // set by the main window
+    void joinVoiceChannel(Id accountId, Id channelId) override;
+    static std::function<void(Id, Id)> &voiceJoiner(); // set by the main window
     static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
@@ -205,6 +207,20 @@ public:
 
 private:
     Acheron::Core::Session *session;
+};
+
+class SessionVoiceStates : public VoiceStateDirectory
+{
+public:
+    explicit SessionVoiceStates(Acheron::Core::Session *session) : session(session), lookup(session) {}
+    std::optional<UserVoiceState> voiceState(Id accountId, Id userId) const override;
+    QList<Id> channelUsers(Id accountId, Id channelId) const override;
+    std::optional<LinkedChannel> channel(Id accountId, Id channelId) const override;
+    QString displayName(Id accountId, Id guildId, Id userId) const override;
+
+private:
+    Acheron::Core::Session *session;
+    mutable SessionMessageLookup lookup;
 };
 
 class SessionUsers : public UserLookupService
@@ -321,6 +337,7 @@ private:
     QtPrivateChannels privateChannels;
     QtAudioOptions audio;
     SessionMessageLookup messageLookup;
+    SessionVoiceStates voiceStates;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

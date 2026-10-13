@@ -51,7 +51,7 @@ const PermissionInfo permissionTable[] = {
     { Permission::ReadPresences, "read_presences",
       QT_TRANSLATE_NOOP("Qord::Plugins", "See which devices people are online on") },
     { Permission::ReadVoiceStates, "read_voice_states",
-      QT_TRANSLATE_NOOP("Qord::Plugins", "See who joins and leaves voice channels") },
+      QT_TRANSLATE_NOOP("Qord::Plugins", "See who is in voice channels, and who joins and leaves them") },
     { Permission::ReadReactions, "read_reactions",
       QT_TRANSLATE_NOOP("Qord::Plugins", "See who reacted to messages") },
     { Permission::ReadExpressions, "read_expressions",

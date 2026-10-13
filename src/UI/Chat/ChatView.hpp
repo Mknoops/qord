@@ -99,9 +99,13 @@ public:
     // Qord: Create Thread on messages (a text channel, with permission)
     void setCanCreateThreads(bool canCreate) { canCreateThreads = canCreate; }
     void setCanManageMessages(bool canManage);
+    // Qord: tells the plugin a name decoration at `pos` was clicked
+    bool clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool dryRun = false);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
+    // Qord: clickable name decorations (UserVoiceShow)
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;

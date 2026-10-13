@@ -178,6 +178,14 @@ public:
         Q_UNUSED(user);
         return {};
     }
+    // A decoration with a clickId was clicked. A double click reports the
+    // first click on its own, then one with doubleClick set.
+    virtual void onNameDecorationClicked(const QString &clickId, const DecorationContext &user, bool doubleClick)
+    {
+        Q_UNUSED(clickId);
+        Q_UNUSED(user);
+        Q_UNUSED(doubleClick);
+    }
 
     // Hook::ProfileImages: an avatar or banner in a profile was clicked.
     // Return true if the plugin handled it.

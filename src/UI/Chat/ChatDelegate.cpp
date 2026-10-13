@@ -611,7 +611,8 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                       headerMessage->author->id.get(), NameDecorations::Place::Message, dpr);
             const QList<QRect> rects = NameDecorations::paint(*painter, decorations, afterName, lineCenter);
             for (int i = 0; i < rects.size(); ++i)
-                tips.append({ rects[i], decorations[i].tooltip });
+                tips.append({ rects[i], decorations[i].tooltip, decorations[i].pluginId, decorations[i].clickId,
+                              quint64(headerMessage->author->id.get()) });
             afterName += NameDecorations::width(decorations);
         }
 

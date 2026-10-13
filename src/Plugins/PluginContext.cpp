@@ -155,6 +155,7 @@ public:
     void showPermissions(const PermissionsView &view) override { inner->showPermissions(view); }
     void refreshLockScreen() override { inner->refreshLockScreen(); }
     void openChannel(Id accountId, Id channelId) override { inner->openChannel(accountId, channelId); }
+    void joinVoiceChannel(Id accountId, Id channelId) override { inner->joinVoiceChannel(accountId, channelId); }
     void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
                         std::function<void(const QHash<QString, QString> &)> done) override
     {
@@ -340,6 +341,13 @@ AudioOptionsService *PluginContext::audio() const
     if (!granted.testFlag(Permission::ControlAudio))
         return nullptr;
     return services.audio;
+}
+
+const VoiceStateDirectory *PluginContext::voiceStates() const
+{
+    if (!granted.testFlag(Permission::ReadVoiceStates))
+        return nullptr;
+    return services.voiceStates;
 }
 
 const PrivateChannelDirectory *PluginContext::privateChannels() const

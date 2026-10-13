@@ -62,6 +62,7 @@ qord_add_plugin_test(whoreacted)
 qord_add_plugin_test(readallnotificationsbutton)
 qord_add_plugin_test(membercount)
 qord_add_plugin_test(platformindicators)
+qord_add_plugin_test(uservoiceshow)
 
 qord_add_plugin_test(calltimer)
 qord_add_plugin_test(messageclickactions)

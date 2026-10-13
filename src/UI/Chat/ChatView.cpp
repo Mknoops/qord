@@ -1,4 +1,5 @@
 #include "ChatView.hpp"
+#include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/TextFileDialog.hpp"
 
 #include <QRegularExpression>
@@ -279,8 +280,40 @@ void ChatView::hideEvent(QHideEvent *event)
     updateHoveredMessage();
 }
 
+bool ChatView::clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool dryRun)
+{
+    auto *delegate = qobject_cast<ChatDelegate *>(itemDelegate());
+    auto *chat = qobject_cast<ChatModel *>(model());
+    auto *provider = NameDecorations::instance();
+    const QModelIndex idx = indexAt(pos);
+    if (!delegate || !chat || !provider || !idx.isValid())
+        return false;
+    for (const auto &tip : delegate->headerTips(idx.data(ChatModel::MessageIdRole).toULongLong())) {
+        if (tip.clickId.isEmpty() || !tip.rect.contains(pos))
+            continue;
+        if (!dryRun) {
+            NameDecorations::Decoration decoration;
+            decoration.pluginId = tip.pluginId;
+            decoration.clickId = tip.clickId;
+            provider->click(chat->getAccountId(), chat->getActiveGuildId(), Core::Snowflake(tip.userId),
+                            NameDecorations::Place::Message, decoration, doubleClick);
+        }
+        return true;
+    }
+    return false;
+}
+
+void ChatView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && clickHeaderDecoration(event->pos(), true))
+        return;
+    QListView::mouseDoubleClickEvent(event);
+}
+
 void ChatView::mousePressEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::LeftButton && clickHeaderDecoration(event->pos(), false))
+        return;
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
         QModelIndex idx = indexAt(pos);
@@ -389,6 +422,8 @@ void ChatView::mouseMoveEvent(QMouseEvent *event)
             shape = Qt::PointingHandCursor;
         }
     }
+    if (clickHeaderDecoration(pos, false, true))
+        shape = Qt::PointingHandCursor;
     if (viewport()->cursor().shape() != shape)
         viewport()->setCursor(shape);
 

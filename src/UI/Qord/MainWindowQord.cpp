@@ -537,9 +537,15 @@ void MainWindow::setupQordFeatures()
     Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
         selectChannelInTree(Snowflake(accountId), Snowflake(channelId));
     };
+#ifndef ACHERON_NO_VOICE
+    Qord::Plugins::QtUiService::voiceJoiner() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
+        joinVoiceNode(channelTreeModel->findChannelTreeNode(Snowflake(channelId), Snowflake(accountId)));
+    };
+#endif
     connect(this, &QObject::destroyed, []() {
         Qord::Plugins::QtPrivateChannels::provider() = nullptr;
         Qord::Plugins::QtUiService::channelOpener() = nullptr;
+        Qord::Plugins::QtUiService::voiceJoiner() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;
@@ -680,6 +686,9 @@ void MainWindow::setupQordFeatures()
     clickWatcher->onClick =          [this, clickWatcher](const QPoint &pos, int detail, Qt::MouseButton button) {
                                          auto *host = Qord::Plugins::PluginHost::instance();
                                          if (!host || !host->hasHook(Qord::Plugins::Hook::MessageClicks) || !currentInstance)
+                                             return;
+                                         // Clicks on name icons are theirs (UserVoiceShow)
+                                         if (chatView->clickHeaderDecoration(pos, false, true))
                                              return;
                                          const QModelIndex idx = chatView->indexAt(pos);
                                          const Discord::Message *msg = idx.isValid() ? chatModel->messageAt(idx.row()) : nullptr;

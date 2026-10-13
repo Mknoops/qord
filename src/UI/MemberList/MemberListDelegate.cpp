@@ -209,9 +209,9 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
         }
         const QList<QRect> rects = NameDecorations::paint(*painter, decorations, x + fm.horizontalAdvance(elidedName),
                                                           lineTop + lineHeight / 2);
-        QList<QPair<QRect, QString>> tips;
+        QList<QPair<QRect, NameDecorations::Decoration>> tips;
         for (int i = 0; i < rects.size(); ++i)
-            tips.append({ rects[i], decorations[i].tooltip });
+            tips.append({ rects[i], decorations[i] });
         if (decorationRects.size() > 512)
             decorationRects.clear();
         decorationRects.insert(index.row(), tips);
@@ -289,14 +289,22 @@ bool MemberListDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, c
                                    const QModelIndex &index)
 {
     if (event && index.isValid()) {
-        for (const auto &[rect, tip] : decorationRects.value(index.row())) {
-            if (rect.contains(event->pos()) && !tip.isEmpty()) {
-                QToolTip::showText(event->globalPos(), tip, view ? view->viewport() : nullptr, rect);
+        for (const auto &[rect, decoration] : decorationRects.value(index.row())) {
+            if (rect.contains(event->pos()) && !decoration.tooltip.isEmpty()) {
+                QToolTip::showText(event->globalPos(), decoration.tooltip, view ? view->viewport() : nullptr, rect);
                 return true;
             }
         }
     }
     return QStyledItemDelegate::helpEvent(event, view, option, index);
+}
+
+std::optional<NameDecorations::Decoration> MemberListDelegate::clickableDecorationAt(int row, const QPoint &pos) const
+{
+    for (const auto &[rect, decoration] : decorationRects.value(row))
+        if (rect.contains(pos) && decoration.clickable())
+            return decoration;
+    return std::nullopt;
 }
 
 QString MemberListDelegate::activityIconName(Discord::ActivityType kind)

@@ -159,6 +159,12 @@ public:
         Q_UNUSED(accountId);
         Q_UNUSED(channelId);
     }
+    // Joins a voice channel (or a DM's call) of the account you are viewing
+    virtual void joinVoiceChannel(Id accountId, Id channelId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+    }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {
@@ -411,6 +417,18 @@ public:
     [[nodiscard]] virtual QList<PrivateChannelInfo> privateChannels(Id accountId) const = 0;
 };
 
+// Who is in voice where (UserVoiceShow), from the client's voice states.
+class VoiceStateDirectory
+{
+public:
+    virtual ~VoiceStateDirectory() = default;
+    [[nodiscard]] virtual std::optional<UserVoiceState> voiceState(Id accountId, Id userId) const = 0;
+    [[nodiscard]] virtual QList<Id> channelUsers(Id accountId, Id channelId) const = 0;
+    [[nodiscard]] virtual std::optional<LinkedChannel> channel(Id accountId, Id channelId) const = 0;
+    // A user's name as the server (or, with no server, Discord) shows it
+    [[nodiscard]] virtual QString displayName(Id accountId, Id guildId, Id userId) const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -429,6 +447,7 @@ struct Services
     PrivateChannelDirectory *privateChannels = nullptr;
     AudioOptionsService *audio = nullptr;
     MessageLookupService *messageLookup = nullptr;
+    VoiceStateDirectory *voiceStates = nullptr;
 };
 
 } // namespace Plugins

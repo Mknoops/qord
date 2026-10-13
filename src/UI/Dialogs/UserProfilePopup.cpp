@@ -62,6 +62,30 @@ constexpr int ActivityTickMs = 1000;
 constexpr int ActivityImageRequestSize = 160;
 constexpr int LeftRightColumnHeight = 260;
 
+// Qord: a name decoration a plugin made clickable (UserVoiceShow)
+class DecorationIcon : public QLabel
+{
+public:
+    using QLabel::QLabel;
+    std::function<void(bool doubleClick)> onClick;
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        if (onClick && event->button() == Qt::LeftButton)
+            onClick(false);
+        else
+            QLabel::mousePressEvent(event);
+    }
+    void mouseDoubleClickEvent(QMouseEvent *event) override
+    {
+        if (onClick && event->button() == Qt::LeftButton)
+            onClick(true);
+        else
+            QLabel::mouseDoubleClickEvent(event);
+    }
+};
+
 class CroppedImageLabel : public QLabel
 {
 public:
@@ -216,6 +240,9 @@ UserProfilePopup::UserProfilePopup(Core::ImageManager *images, Core::ClientInsta
                     if (userIds.contains(this->userId))
                         renderPresence();
                 });
+        // Qord: plugin icons that follow other state (UserVoiceShow's voice)
+        if (auto *decorations = NameDecorations::instance())
+            connect(decorations, &NameDecorations::changed, this, [this]() { renderDecorations(); });
         connect(instance->users(), &Core::UserManager::noteChanged, this,
                 [this](Core::Snowflake id) {
                     if (id == this->userId)
@@ -618,11 +645,20 @@ void UserProfilePopup::renderDecorations()
     if (auto *provider = NameDecorations::instance())
         decorations = provider->forUser(accountId(), guildView ? guildId : Core::Snowflake(), userId,
                                         NameDecorations::Place::Profile, devicePixelRatioF());
+    const Core::Snowflake decorationGuild = guildView ? guildId : Core::Snowflake();
     for (const auto &d : decorations) {
-        auto *icon = new QLabel(decorationsRow);
+        auto *icon = new DecorationIcon(decorationsRow);
         icon->setPixmap(d.pixmap);
         icon->setFixedSize(d.size);
         icon->setToolTip(d.tooltip);
+        if (d.clickable()) {
+            icon->setCursor(Qt::PointingHandCursor);
+            icon->onClick = [this, d, decorationGuild](bool doubleClick) {
+                if (auto *provider = NameDecorations::instance())
+                    provider->click(accountId(), decorationGuild, userId, NameDecorations::Place::Profile, d,
+                                    doubleClick);
+            };
+        }
         layout->addWidget(icon);
     }
     decorationsRow->setVisible(!decorations.isEmpty());

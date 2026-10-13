@@ -381,6 +381,19 @@ public:
     virtual void refreshFilters() = 0;
 };
 
+// Messages and channels that links point at (MessageLinkEmbeds).
+class MessageLookupService
+{
+public:
+    virtual ~MessageLookupService() = default;
+    // A message the client has (loaded, stored, or fetched before)
+    [[nodiscard]] virtual std::optional<LinkedMessage> message(Id accountId, Id channelId, Id messageId) = 0;
+    // GET /channels/{channel}/messages?limit=1&around={message}; `done` says
+    // whether it came back
+    virtual void fetchMessage(Id accountId, Id channelId, Id messageId, std::function<void(bool found)> done) = 0;
+    [[nodiscard]] virtual std::optional<LinkedChannel> channel(Id accountId, Id channelId) = 0;
+};
+
 // How voice audio plays (VolumeBooster).
 class AudioOptionsService
 {
@@ -415,6 +428,7 @@ struct Services
     UserLookupService *users = nullptr;
     PrivateChannelDirectory *privateChannels = nullptr;
     AudioOptionsService *audio = nullptr;
+    MessageLookupService *messageLookup = nullptr;
 };
 
 } // namespace Plugins

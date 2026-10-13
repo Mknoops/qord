@@ -219,6 +219,39 @@ struct DmPinLayout
 // The "Direct Messages" header's id in the DM pin hooks
 inline const char *const DmSectionHeaderId = "dm-section";
 
+// A message from another channel, as MessageLinkEmbeds shows it.
+struct LinkedMessage
+{
+    Id channelId = 0;
+    Id messageId = 0;
+    Id authorId = 0;
+    QString authorName;
+    QString authorAvatarUrl;
+    QString content;
+    QDateTime timestamp;
+    struct Image
+    {
+        QString url;
+        int width = 0;
+        int height = 0;
+    };
+    QList<Image> images; // image attachments, image embeds and GIFs
+    int attachmentCount = 0;
+    int embedCount = 0;
+};
+
+// A channel as a link to it shows it.
+struct LinkedChannel
+{
+    Id channelId = 0;
+    Id guildId = 0; // 0 for DMs
+    int type = 0; // Discord's channel type
+    QString name; // the channel's, or for a DM the other user's
+    Id recipientId = 0; // a DM's other user
+    QString iconUrl; // the server's icon, the group's, or the DM user's avatar
+    bool canView = false; // you can see it (View Channel; always in DMs)
+};
+
 // A DM or group DM, as the DM list shows it.
 struct PrivateChannelInfo
 {
@@ -826,6 +859,25 @@ struct MessageAccessory
     QString footer; // small text under it, e.g. "translated from Spanish"
     // Links after the footer ("Dismiss"); a click calls onMessageAccessoryAction
     QList<MenuItem> links;
+    // Embeds shown after the message's own, drawn like Discord's
+    struct Embed
+    {
+        QString authorName;
+        QString authorIconUrl;
+        QString description; // markdown
+        QString footerText;
+        QString footerIconUrl;
+        QDateTime timestamp;
+        quint32 color = 0; // 0xRRGGBB; 0 for the default
+        struct Image
+        {
+            QString url;
+            int width = 0;
+            int height = 0;
+        };
+        QList<Image> images; // up to four
+    };
+    QList<Embed> embeds;
 };
 // How the chat links to an accessory's links: <href><plugin id>/<link id>
 inline constexpr const char *MessageAccessoryHref = "acheron://accessory/";

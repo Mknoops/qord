@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 322 |
+| Not Started | 321 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 47 |
+| Tested | 48 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -193,7 +193,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | MessageColors | `src/equicordplugins/messageColors` |  | Not Started |  |
 | MessageFetchTimer | `src/equicordplugins/messageFetchTimer` |  | Not Started |  |
 | MessageLatency | `src/plugins/messageLatency` |  | Not Started |  |
-| MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` |  | Not Started |  |
+| MessageLinkEmbeds | `src/plugins/messageLinkEmbeds` | `plugins/chat/messagelinkembeds` | Tested | A message with links to Discord messages (up to five) gets a preview of each under it: where it is ("Server - #channel", "Direct Message - @name" or "Group DM" with the server's, user's or group's icon), its text (or "[no content, 2 attachments]"), its images, its author and when it was sent, drawn as an embed. Messages Qord doesn't have are fetched one at a time, newest first, once each, and the preview appears when they arrive; channels you can't see are skipped, and the ID list leaves out (or, as a whitelist, keeps only) links in those servers or channels or from those users. wired; not yet verified in the running client. gaps: Qord draws one style of preview for every "AutoMod embeds" setting and doesn't show the linked message's buttons or files; "Message background color" has no effect.; Mentions and channel links in the preview's text show as written.; There's no button to clear the linked message cache. |
 | MessageLinkTooltip | `src/equicordplugins/messageLinkTooltip` |  | Not Started |  |
 | MessageLogger | `src/plugins/messageLogger` | `plugins/chat/messagelogger` | Tested | Logs live in memory (at most 5000 messages) and go away on restart or when the plugin is disabled, like upstream. IDs in the ignore lists are matched exactly (upstream does a substring test). The edit history window opens from the message context menu ("View Edit History") instead of by clicking "(edited)". wired; not yet verified in the running client. gaps: Collapsing deleted messages into a "N deleted messages" group (collapseDeleted) needs message grouping UI Qord does not have yet; Attachments removed by an edit are not kept (logDeletedAttachments); deleted messages keep theirs. |
 | MessageLoggerEnhanced | `src/equicordplugins/messageLoggerEnhanced` |  | Not Started |  |

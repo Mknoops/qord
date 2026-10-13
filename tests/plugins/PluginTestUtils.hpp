@@ -235,6 +235,32 @@ public:
     QList<QUrl> images;
 };
 
+class FakeMessageLookup : public MessageLookupService
+{
+public:
+    std::optional<LinkedMessage> message(Id, Id channelId, Id messageId) override
+    {
+        const auto it = messages.constFind(messageId);
+        if (it == messages.constEnd() || it->channelId != channelId)
+            return std::nullopt;
+        return *it;
+    }
+    void fetchMessage(Id, Id channelId, Id messageId, std::function<void(bool)> done) override
+    {
+        fetches.append({ channelId, messageId });
+        pending.append(std::move(done));
+    }
+    std::optional<LinkedChannel> channel(Id, Id channelId) override
+    {
+        const auto it = channels.constFind(channelId);
+        return it == channels.constEnd() ? std::nullopt : std::optional<LinkedChannel>(*it);
+    }
+    QHash<Id, LinkedMessage> messages;
+    QHash<Id, LinkedChannel> channels;
+    QList<QPair<Id, Id>> fetches;
+    QList<std::function<void(bool)>> pending;
+};
+
 class FakeAudio : public AudioOptionsService
 {
 public:
@@ -430,6 +456,7 @@ struct SinglePluginHost
         services.users = &users;
         services.privateChannels = &dms;
         services.audio = &audio;
+        services.messageLookup = &messageLookup;
         host = std::make_unique<PluginHost>(registry, &storage, services, dataDir.path());
         host->load();
         id = host->pluginIds().value(0);
@@ -458,6 +485,7 @@ struct SinglePluginHost
     FakeMessages messages;
     FakePrivateChannels dms;
     FakeAudio audio;
+    FakeMessageLookup messageLookup;
     FakeMessageActions messageActions;
     FakeDisplayOptions displayOptions;
     FakeReadStates readStates;

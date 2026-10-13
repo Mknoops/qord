@@ -40,6 +40,7 @@ enum class Permission : quint32 {
     FetchUsers = 1u << 23, // unknownMentions, PluginContext::users()
     ReadDms = 1u << 24, // PluginContext::privateChannels()
     ControlAudio = 1u << 25, // PluginContext::audio()
+    FetchMessages = 1u << 26, // PluginContext::messageLookup()
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)

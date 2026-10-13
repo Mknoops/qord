@@ -288,6 +288,44 @@ private:
 };
 } // namespace
 
+namespace {
+class ScopedMessageLookup : public MessageLookupService
+{
+public:
+    explicit ScopedMessageLookup(MessageLookupService *inner) : inner(inner), alive(std::make_shared<bool>(true)) {}
+    ~ScopedMessageLookup() override { *alive = false; }
+    std::optional<LinkedMessage> message(Id accountId, Id channelId, Id messageId) override
+    {
+        return inner->message(accountId, channelId, messageId);
+    }
+    void fetchMessage(Id accountId, Id channelId, Id messageId, std::function<void(bool)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->fetchMessage(accountId, channelId, messageId, [weak, done = std::move(done)](bool found) {
+            if (auto a = weak.lock(); a && *a)
+                done(found);
+        });
+    }
+    std::optional<LinkedChannel> channel(Id accountId, Id channelId) override
+    {
+        return inner->channel(accountId, channelId);
+    }
+
+private:
+    MessageLookupService *inner;
+    std::shared_ptr<bool> alive;
+};
+} // namespace
+
+MessageLookupService *PluginContext::messageLookup()
+{
+    if (!granted.testFlag(Permission::FetchMessages) || !services.messageLookup)
+        return nullptr;
+    if (!scopedMessageLookup)
+        scopedMessageLookup = std::make_unique<ScopedMessageLookup>(services.messageLookup);
+    return scopedMessageLookup.get();
+}
+
 UserLookupService *PluginContext::users()
 {
     if (!granted.testFlag(Permission::FetchUsers) || !services.users)

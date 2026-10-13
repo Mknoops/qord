@@ -4,6 +4,7 @@
 #include "Core/ClientInstance.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
 #include "Core/PermissionManager.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
 #include "Core/Logging.hpp"
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
@@ -262,6 +263,107 @@ void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
     Acheron::Core::Audio::userVolumeMultiplier() = multiplier;
     if (host)
         emit host->presentationChanged();
+}
+
+std::optional<LinkedMessage> SessionMessageLookup::message(Id accountId, Id channelId, Id messageId)
+{
+    using namespace Acheron;
+    Core::ClientInstance *instance = session->client(Core::Snowflake(accountId));
+    if (!instance)
+        return std::nullopt;
+    const auto found = instance->messages()->findMessage(Core::Snowflake(messageId));
+    if (!found || quint64(found->channelId.get()) != channelId)
+        return std::nullopt;
+    const Discord::Message &msg = *found;
+    LinkedMessage out;
+    out.channelId = channelId;
+    out.messageId = messageId;
+    out.content = msg.content.hasValue() ? msg.content.get() : QString();
+    if (msg.timestamp.hasValue())
+        out.timestamp = msg.timestamp.get();
+    const Core::Snowflake guildId = instance->discord()->getGuildIdForChannel(Core::Snowflake(channelId));
+    if (msg.author.hasValue()) {
+        out.authorId = quint64(msg.author->id.get());
+        out.authorName = instance->users()->getDisplayName(msg.author->id.get(), guildId);
+        out.authorAvatarUrl = instance->users()->getAvatarUrl(msg.author.get(), guildId, 64).toString();
+    }
+    if (msg.attachments.hasValue()) {
+        out.attachmentCount = int(msg.attachments->size());
+        for (const auto &att : msg.attachments.get())
+            if (att.contentType.hasValue() && att.contentType->startsWith(QLatin1String("image/")))
+                out.images.append({ att.proxyUrl.get(), att.width.hasValue() ? att.width.get() : 0,
+                                    att.height.hasValue() ? att.height.get() : 0 });
+    }
+    if (msg.embeds.hasValue()) {
+        out.embedCount = int(msg.embeds->size());
+        // Upstream's getImages: image embeds, and GIFs that aren't from Tenor
+        for (const auto &embed : msg.embeds.get()) {
+            const QString type = embed.type.hasValue() ? embed.type.get() : QString();
+            const auto &media = embed.image.hasValue() ? embed.image : embed.thumbnail;
+            const QString url = embed.url.hasValue() ? embed.url.get() : QString();
+            if (!media.hasValue())
+                continue;
+            const QString mediaUrl = media->proxyUrl.hasValue() ? media->proxyUrl.get() : media->url.get();
+            if (type == QLatin1String("image") ||
+                (type == QLatin1String("gifv") && !url.contains(QLatin1String("tenor.com/"))))
+                out.images.append({ mediaUrl, media->width.hasValue() ? media->width.get() : 0,
+                                    media->height.hasValue() ? media->height.get() : 0 });
+        }
+    }
+    return out;
+}
+
+void SessionMessageLookup::fetchMessage(Id accountId, Id channelId, Id messageId, std::function<void(bool)> done)
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance) {
+        done(false);
+        return;
+    }
+    instance->messages()->fetchLinkedMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId),
+                                             std::move(done));
+}
+
+std::optional<LinkedChannel> SessionMessageLookup::channel(Id accountId, Id channelId)
+{
+    using namespace Acheron;
+    Core::ClientInstance *instance = session->client(Core::Snowflake(accountId));
+    if (!instance)
+        return std::nullopt;
+    const auto channel = instance->getChannel(Core::Snowflake(channelId));
+    if (!channel)
+        return std::nullopt;
+    LinkedChannel out;
+    out.channelId = channelId;
+    out.type = channel->type.hasValue() ? int(channel->type.get()) : 0;
+    out.name = channel->name.hasValue() ? channel->name.get() : QString();
+    const bool isPrivate = out.type == int(Discord::ChannelType::DM) || out.type == int(Discord::ChannelType::GROUP_DM);
+    if (isPrivate) {
+        out.canView = true;
+        if (channel->type.get() == Discord::ChannelType::GROUP_DM) {
+            if (channel->icon.hasValue())
+                out.iconUrl = Discord::Cdn::channelIcon(Core::Snowflake(channelId), channel->icon.get(), 64).toString();
+        } else {
+            Core::Snowflake recipient;
+            if (channel->recipients.hasValue() && !channel->recipients->isEmpty())
+                recipient = channel->recipients->first().id.get();
+            else if (channel->recipientIds.hasValue() && !channel->recipientIds->isEmpty())
+                recipient = channel->recipientIds->first();
+            out.recipientId = quint64(recipient);
+            out.name = instance->users()->getDisplayName(recipient);
+            if (const auto user = instance->users()->getUser(recipient))
+                out.iconUrl = instance->users()->getAvatarUrl(*user, Core::Snowflake::Invalid, 64).toString();
+        }
+        return out;
+    }
+    const Core::Snowflake guildId = channel->guildId.hasValue() ? channel->guildId.get() : Core::Snowflake::Invalid;
+    out.guildId = Qord::Plugins::pluginId(guildId);
+    if (const auto guild = instance->getGuild(guildId))
+        if (guild->icon.hasValue())
+            out.iconUrl = Discord::Cdn::guildIcon(guildId, guild->icon.get(), 64).toString();
+    out.canView = instance->permissions()->hasChannelPermission(instance->accountId(), Core::Snowflake(channelId),
+                                                                 Discord::Permission::VIEW_CHANNEL);
+    return out;
 }
 
 std::function<QList<PrivateChannelInfo>(Id)> &QtPrivateChannels::provider()
@@ -1215,7 +1317,7 @@ public:
 
 ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     : members(session), relationships(session), messages(session), messageActions(session), expressions(session),
-      reactions(session), guilds(session), users(session)
+      reactions(session), guilds(session), users(session), messageLookup(session)
 {
     QElapsedTimer timer;
     timer.start();
@@ -1244,6 +1346,7 @@ ClientPlugins::ClientPlugins(Acheron::Core::Session *session)
     services.users = &users;
     services.privateChannels = &privateChannels;
     services.audio = &audio;
+    services.messageLookup = &messageLookup;
     pluginHost = std::make_unique<PluginHost>(registry, storage.get(), services,
                                               QDir(pluginDataDirectory()).filePath(QStringLiteral("data")));
     messages.host = pluginHost.get();

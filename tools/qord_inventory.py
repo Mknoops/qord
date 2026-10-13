@@ -80,6 +80,7 @@ PERMISSIONS = {
     "fetch_users",
     "read_dms",
     "control_audio",
+    "fetch_messages",
 }
 
 SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json"}

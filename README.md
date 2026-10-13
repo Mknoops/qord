@@ -162,6 +162,7 @@ inventory). All are off by default.
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
 | **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |
+| **MessageLinkEmbeds** | A preview under messages that link other messages | modify_displayed_messages, fetch_messages |
 | **MutualGroupDMs** | A "Mutual Groups" tab in profiles with the group DMs you share | add_ui_elements, read_dms |
 | **NoBlockedMessages** | Hides messages from blocked and ignored users completely | hide_messages, read_relationships |
 | **NoReplyMention** | Turns reply pings off by default | reply_mentions, read_guild_members |
@@ -194,7 +195,7 @@ inventory). All are off by default.
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** MessageLinkEmbeds, UserVoiceShow, ShowConnections, BetterRoleDot, ImplicitRelationships,
+**Up next:** UserVoiceShow, ShowConnections, BetterRoleDot, ImplicitRelationships,
 GameActivityToggle, BetterSessions, ReviewDB.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or

@@ -50,6 +50,10 @@ public:
     void setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver);
     // Qord: re-render a cached message (a plugin's view of it changed)
     void refreshMessage(Snowflake channelId, Snowflake messageId);
+    // Qord: a message the client has (loaded, stored, or fetched for a link)
+    [[nodiscard]] std::optional<Discord::Message> findMessage(Snowflake messageId);
+    // Qord: GET one message by id (MessageLinkEmbeds); kept apart from the chat
+    void fetchLinkedMessage(Snowflake channelId, Snowflake messageId, std::function<void(bool found)> done);
     // Qord: drop a message a plugin kept on screen after it was deleted
     void removeKeptMessage(Snowflake channelId, Snowflake messageId);
     void setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver);
@@ -128,6 +132,7 @@ public:
 private:
 
     QCache<Snowflake, Discord::Message> messageCache;
+    QHash<Snowflake, Discord::Message> linkedMessages; // Qord: fetched for links
     std::function<Snowflake(Snowflake)> channelParentResolver;
     QHash<Snowflake, MessageSegments> segments;
     QSet<Snowflake> fetchedChannels;

@@ -389,7 +389,7 @@ def seed_messages() -> None:
     g = CH["general"]
     add(g, "dan", "", 60 * 26, type=7)  # member join
     add(g, "ava", "morning everyone ☀️", 60 * 25)
-    add(g, "ben", "hey! did anyone try the new build?", 60 * 25 - 2)
+    build_question = add(g, "ben", "hey! did anyone try the new build?", 60 * 25 - 2)
     add(g, "ava", "yes, it starts in **under a second** and uses ~50 MB", 60 * 25 - 1)
     add(g, "cleo", "nice. the *plugin* page looks good too", 60 * 3)
     first = add(g, "cleo", "here's the snippet I used:\n```cpp\nint main() {\n    return 0;\n}\n```", 60 * 3 - 1)
@@ -430,14 +430,18 @@ def seed_messages() -> None:
         embeds=[{"type": "image", "url": fake_sticker,
                  "thumbnail": {"url": fake_sticker, "proxy_url": fake_sticker, "width": 160, "height": 160}}])
 
+    dev_lines = []
     for i in range(60):
         who = ["ava", "ben", "cleo", "dan"][i % 4]
-        add(CH["dev"], who, f"dev log line {i + 1}: refactored module {i % 7}", 60 * 48 - i * 30)
+        dev_lines.append(add(CH["dev"], who, f"dev log line {i + 1}: refactored module {i % 7}", 60 * 48 - i * 30))
 
     add(CH["media"], "ava", "screenshot of the new layout", 90, attachments=[attachment("layout.png", 480, 270)])
     add(CH["media"], "ben", "", 80, attachments=[attachment("diagram.png", 320, 320)])
     add(CH["media"], "ava", f"ask <@{STRANGER['id']}> about the render farm", 78)
     add(CH["media"], "cleo", "¿Alguien quiere probar la nueva versión esta noche?", 77)  # Translate
+    # MessageLinkEmbeds: links to a message in #general and to one in #development
+    add(CH["media"], "dan", f"context: https://discord.com/channels/{G1}/{g}/{build_question['id']} and "
+        f"https://discord.com/channels/{G1}/{CH['dev']}/{dev_lines[2]['id']}", 76)
     add(CH["dev"], "ben", "here's the build log", 75, attachments=[text_attachment("build.log")])
     add(CH["dev"], "cleo", "and my (long) notes", 74, attachments=[text_attachment("notes-big.txt")])
     add(CH["rules"], "self", "1. Be kind\n2. No spam\n3. Have fun", 60 * 400)

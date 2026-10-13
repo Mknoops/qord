@@ -564,14 +564,22 @@ GUILD_STICKERS = {
 GUILD_OF = {c["id"]: gid for gid, chans in GUILD_CHANNELS.items() for c in chans}
 
 
+# Who else is in the first server's voice channels (moved with `mock_discord.py voice`)
+OTHERS_VOICE = {"ava": CH["lounge"]}
+
+
+def other_voice_state(who: str, channel_id: str | None) -> dict:
+    # Ava streams a test picture (Go Live) with her camera on
+    return {"user_id": U[who], "channel_id": channel_id, "session_id": f"mock-voice-{who}", "guild_id": G1,
+            "self_mute": False, "self_deaf": False, "mute": False, "deaf": False, "suppress": False,
+            "self_video": who == "ava", "self_stream": who == "ava"}
+
+
 def voice_states(gid: str) -> list:
-    """Ava hangs out in the first server's voice channel (MemberCount's voice number),
-    streaming a test picture (Go Live) with her camera on."""
+    """Ava hangs out in the first server's voice channel (MemberCount's voice number)."""
     if gid != G1:
         return []
-    return [{"user_id": U["ava"], "channel_id": CH["lounge"], "session_id": "mock-voice-ava",
-             "self_mute": False, "self_deaf": False, "mute": False, "deaf": False, "suppress": False,
-             "self_video": True, "self_stream": True}]
+    return [other_voice_state(who, cid) for who, cid in OTHERS_VOICE.items()]
 
 
 VOICE: dict[str, Any] = {"endpoint": "", "guild_id": None, "channel_id": None}
@@ -1687,6 +1695,16 @@ async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
             if who in MEMBERS[gid]:
                 await broadcast("PRESENCE_UPDATE", dict(presence(who, gid), user={"id": USERS[who]["id"]}))
         return 204, b"", "application/json"
+    if action == "voice":
+        # Someone joins, moves to or leaves a voice channel (FollowVoiceUser)
+        target = args.get("to", "none")
+        cid = None if target == "none" else CH[target]
+        if cid:
+            OTHERS_VOICE[who] = cid
+        else:
+            OTHERS_VOICE.pop(who, None)
+        await broadcast("VOICE_STATE_UPDATE", dict(other_voice_state(who, cid), member=guild_member(G1, who)))
+        return 204, b"", "application/json"
     if action == "unfriend":
         # A friend removes you, or someone cancels their friend request
         rel = next((r for r in RELATIONSHIPS if r["id"] == USERS[who]["id"]), None)
@@ -1765,6 +1783,9 @@ def main(argv: list[str]) -> int:
     kick.add_argument("--guild", default="Second Server", help="its name or id")
     kick.add_argument("--outage", action="store_true", help="the server goes down instead (not a removal)")
     sub.add_parser("groupkick", help="you are removed from the group DM (RelationshipNotifier)")
+    voice = sub.add_parser("voice", help="someone joins, moves to or leaves a voice channel (FollowVoiceUser)")
+    voice.add_argument("--user", default="ava")
+    voice.add_argument("to", choices=["lounge", "gaming", "none"])
     for name in ("say", "edit", "delete", "typing", "presence"):
         p = sub.add_parser(name)
         p.add_argument("--channel", default="general")

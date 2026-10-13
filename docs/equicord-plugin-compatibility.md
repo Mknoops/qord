@@ -8,11 +8,11 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 
 | Status | Count |
 |---|---|
-| Not Started | 312 |
+| Not Started | 311 |
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 57 |
+| Tested | 58 |
 | Complete | 0 |
 | Blocked | 0 |
 | **Total** | 369 |
@@ -131,7 +131,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | FixImagesQuality | `src/plugins/fixImagesQuality` |  | Not Started |  |
 | FixSpotifyEmbeds | `src/plugins/fixSpotifyEmbeds.desktop` |  | Not Started |  |
 | FixYoutubeEmbeds | `src/plugins/fixYoutubeEmbeds.desktop` |  | Not Started |  |
-| FollowVoiceUser | `src/equicordplugins/followVoiceUser` |  | Not Started |  |
+| FollowVoiceUser | `src/equicordplugins/followVoiceUser` | `plugins/voice/followvoiceuser` | Tested | A friend's right-click menu gets a "Follow User" checkbox (one person at a time; checking someone else follows them instead, unchecking stops). While you follow them, each time they join or move to a voice channel Qord joins it too, as clicking it would, only while you are in voice yourself unless "Only when in voice" is off. With "Leave when user leaves", Qord disconnects when they leave voice. Following stops when they are no longer your friend, as upstream, and is forgotten when Qord or the plugin restarts. wired; not yet verified in the running client. gaps: Upstream's settings note ("This Plugin is used to follow a Friend/Friends into voice chat(s).") isn't shown. |
 | FontLoader | `src/equicordplugins/fontLoader` |  | Not Started |  |
 | ForceOwnerCrown | `src/plugins/forceOwnerCrown` | `plugins/appearance/forceownercrown` | Tested | Qord's member list shows a crown ("Server Owner") next to the server's owner, and leaves it out in servers of 1,000 members or more; with this plugin the crown shows in every server. wired; not yet verified in the running client. gaps: Discord's exact rule for hiding the crown isn't documented; Qord's 1,000-member limit is its own reading, and the crown isn't hidden when the owner is listed under a separately shown role. |
 | FrequentQuickSwitcher | `src/equicordplugins/frequentQuickSwitcher` |  | Not Started |  |

@@ -2947,6 +2947,10 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         }
         for (const auto &entry : plugins->dispatchUserContextMenuItems(user)) {
             QAction *action = menu.addAction(entry.item.label);
+            if (entry.item.checked) { // Qord: checkbox items (FollowVoiceUser)
+                action->setCheckable(true);
+                action->setChecked(*entry.item.checked);
+            }
             connect(action, &QAction::triggered, this, [pluginId = entry.pluginId, itemId = entry.item.id, user]() {
                 if (auto *host = Qord::Plugins::PluginHost::instance())
                     host->dispatchUserContextMenuAction(pluginId, itemId, user);

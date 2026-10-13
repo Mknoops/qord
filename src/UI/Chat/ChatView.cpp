@@ -1,4 +1,11 @@
 #include "ChatView.hpp"
+#include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/Toast.hpp"
+#include "UI/Qord/TextFileDialog.hpp"
+
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QRegularExpression>
 
 #include <QMenu>
 #include <QTextDocument>
@@ -276,8 +283,50 @@ void ChatView::hideEvent(QHideEvent *event)
     updateHoveredMessage();
 }
 
+bool ChatView::clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool dryRun)
+{
+    auto *delegate = qobject_cast<ChatDelegate *>(itemDelegate());
+    auto *chat = qobject_cast<ChatModel *>(model());
+    auto *provider = NameDecorations::instance();
+    const QModelIndex idx = indexAt(pos);
+    if (!delegate || !chat || !idx.isValid())
+        return false;
+    for (const auto &tip : delegate->headerTips(idx.data(ChatModel::MessageIdRole).toULongLong())) {
+        if ((tip.clickId.isEmpty() && tip.copyText.isEmpty()) || !tip.rect.contains(pos))
+            continue;
+        if (!tip.copyText.isEmpty()) {
+            // BetterRoleDot: copyWithToast(color)
+            if (!dryRun && !doubleClick) {
+                QGuiApplication::clipboard()->setText(tip.copyText);
+                Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+            }
+            return true;
+        }
+        if (!provider)
+            return false;
+        if (!dryRun) {
+            NameDecorations::Decoration decoration;
+            decoration.pluginId = tip.pluginId;
+            decoration.clickId = tip.clickId;
+            provider->click(chat->getAccountId(), chat->getActiveGuildId(), Core::Snowflake(tip.userId),
+                            NameDecorations::Place::Message, decoration, doubleClick);
+        }
+        return true;
+    }
+    return false;
+}
+
+void ChatView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && clickHeaderDecoration(event->pos(), true))
+        return;
+    QListView::mouseDoubleClickEvent(event);
+}
+
 void ChatView::mousePressEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::LeftButton && clickHeaderDecoration(event->pos(), false))
+        return;
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
         QModelIndex idx = indexAt(pos);
@@ -361,6 +410,19 @@ void ChatView::mouseMoveEvent(QMouseEvent *event)
 
     auto region = ChatLayout::hitTest(resolved, pos);
 
+    // Qord: hovering a user mention (ValidUser looks up unknown users)
+    if (region && region->kind == ChatLayout::HitRegion::Kind::TextLink &&
+        region->url.startsWith(QLatin1String("acheron://user/"))) {
+        const Core::Snowflake userId(region->url.mid(15).toULongLong());
+        const Core::Snowflake messageId(idx.data(ChatModel::MessageIdRole).toULongLong());
+        if (hoveredMention != qMakePair(messageId, userId)) {
+            hoveredMention = qMakePair(messageId, userId);
+            emit userMentionHovered(userId, messageId);
+        }
+    } else {
+        hoveredMention = {};
+    }
+
     video->updateHover(region ? MediaTargets::forRegion(resolved, *region) : MediaTarget(), pos);
 
     Qt::CursorShape shape = Qt::ArrowCursor;
@@ -373,6 +435,8 @@ void ChatView::mouseMoveEvent(QMouseEvent *event)
             shape = Qt::PointingHandCursor;
         }
     }
+    if (clickHeaderDecoration(pos, false, true))
+        shape = Qt::PointingHandCursor;
     if (viewport()->cursor().shape() != shape)
         viewport()->setCursor(shape);
 
@@ -400,6 +464,29 @@ void ChatView::openLink(const QString &url)
         const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
         if (auto *chat = qobject_cast<ChatModel *>(model()); chat && idx.isValid())
             chat->revealSpoilers(Core::Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()));
+        return;
+    }
+
+    // Qord: a link under a message from a plugin (Translate's "Dismiss")
+    const QLatin1String accessory(Qord::Plugins::MessageAccessoryHref);
+    if (url.startsWith(accessory)) {
+        const QStringList parts = url.mid(accessory.size()).split(QLatin1Char('/'));
+        const QModelIndex idx = indexAt(viewport()->mapFromGlobal(QCursor::pos()));
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (parts.size() == 2 && idx.isValid() && host)
+            if (auto ctx = pluginContext(idx.row()))
+                host->dispatchMessageAccessoryAction(QUrl::fromPercentEncoding(parts[0].toLatin1()),
+                                                     QUrl::fromPercentEncoding(parts[1].toLatin1()), *ctx);
+        return;
+    }
+
+    // Qord: a user mention opens the profile
+    const QLatin1String userMention("acheron://user/");
+    if (url.startsWith(userMention)) {
+        bool ok = false;
+        const quint64 id = url.mid(userMention.size()).toULongLong(&ok);
+        if (ok)
+            emit userMentionClicked(Core::Snowflake(id));
         return;
     }
 
@@ -475,6 +562,48 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
         QString emojiStr = r.emojiId.isValid() ? (r.emojiName + ":" + QString::number(r.emojiId))
                                                : r.emojiName;
         emit toggleReactionClicked(channelId, messageId, emojiStr, r.me, r.isBurst);
+        break;
+    }
+
+    case Kind::AttachmentTextButton: {
+        // Qord: a text file preview's buttons
+        if (region->index < 0 || region->index >= resolved.ctx.attachments.size())
+            break;
+        const AttachmentData att = resolved.ctx.attachments[region->index];
+        const Core::Snowflake messageId = resolved.ctx.messageId;
+        auto download = [this, att]() {
+            ConfirmPopup dialog(tr("Open File"),
+                                QString(tr("Do you want to open <b>%1</b> (%2) in your browser?"))
+                                        .arg(att.filename)
+                                        .arg(ChatLayout::formatFileSize(att.fileSizeBytes)),
+                                tr("Open"), this);
+            if (dialog.exec() == QDialog::Accepted)
+                QDesktopServices::openUrl(att.originalUrl);
+        };
+        auto pluginButton = [chatModel, att, messageId](int i) {
+            auto *host = Qord::Plugins::PluginHost::instance();
+            if (host && i >= 0 && i < att.textButtons.size())
+                host->dispatchAttachmentButtonClicked(att.textButtons[i].pluginId, att.textButtons[i].id,
+                                                      chatModel->attachmentContext(messageId, att));
+        };
+        if (region->subIndex == 0)
+            chatModel->toggleTextExpanded(messageId, att.id);
+        else if (region->subIndex == 1)
+            TextFileDialog::show(window(), att, pluginButton, download);
+        else if (region->subIndex == 2)
+            download();
+        else if (region->subIndex >= 100)
+            pluginButton(region->subIndex - 100);
+        break;
+    }
+
+    case Kind::ReactionUser: {
+        // Qord: an avatar on a reaction opens that user's profile
+        if (hasTextSelection() || region->index < 0 || region->index >= resolved.ctx.reactions.size())
+            break;
+        const ReactionData &r = resolved.ctx.reactions[region->index];
+        if (region->subIndex >= 0 && region->subIndex < r.userIds.size())
+            emit reactionUserClicked(r.userIds[region->subIndex]);
         break;
     }
 
@@ -622,6 +751,10 @@ bool ChatView::viewportEvent(QEvent *event)
         }
 
         const auto region = ChatLayout::hitTest(resolved, helpEvent->pos());
+        if (region && region->kind == ChatLayout::HitRegion::Kind::AttachmentTextButton && !region->url.isEmpty()) {
+            QToolTip::showText(helpEvent->globalPos(), region->url, viewport(), region->rect);
+            return true;
+        }
         if (region && region->kind == ChatLayout::HitRegion::Kind::Sticker) {
             QToolTip::showText(helpEvent->globalPos(), resolved.ctx.stickers[region->index].name, viewport(), region->rect);
             return true;
@@ -1187,6 +1320,33 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
         });
     }
 
+    // Qord: threads from messages, as in Discord
+    if (!keptDeleted && menuMessage && !index.data(ChatModel::IsPendingRole).toBool()) {
+        const bool hasThread = menuMessage->flags.hasValue() &&
+                               menuMessage->flags->testFlag(Discord::MessageFlag::HAS_THREAD);
+        if (hasThread) {
+            // A thread started from a message has the message's id
+            QAction *openThread = menu.addAction(tr("Open Thread"));
+            connect(openThread, &QAction::triggered, this, [this, messageId]() { emit openThreadRequested(messageId); });
+        } else if (canCreateThreads && !index.data(ChatModel::IsSystemMessageRole).toBool()) {
+            QString suggested = menuMessage->contentMessage().content.hasValue()
+                    ? menuMessage->contentMessage().content.get()
+                    : QString();
+            // Mentions and custom emojis are markup, not words: drop them
+            // (emojis keep their :name:)
+            static const QRegularExpression mentions(QStringLiteral("<(@[!&]?|#)\\d+>"));
+            static const QRegularExpression emojis(QStringLiteral("<a?(:\\w+:)\\d+>"));
+            suggested.replace(mentions, QString()).replace(emojis, QStringLiteral("\\1"));
+            suggested = suggested.simplified();
+            if (suggested.isEmpty() && menuMessage->author.hasValue())
+                suggested = menuMessage->author->username.hasValue() ? menuMessage->author->username.get() : QString();
+            QAction *createThread = menu.addAction(tr("Create Thread"));
+            connect(createThread, &QAction::triggered, this, [this, channelId, messageId, suggested]() {
+                emit createThreadRequested(channelId, messageId, suggested.left(100));
+            });
+        }
+    }
+
     if (!keptDeleted) {
         QAction *reactAction = menu.addAction(tr("Add Reaction"));
         connect(reactAction, &QAction::triggered, this, [this, channelId, messageId]() {
@@ -1222,6 +1382,10 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
                             return;
                         }
                         QAction *action = target->addAction(item.label);
+                        if (item.checked) {
+                            action->setCheckable(true);
+                            action->setChecked(*item.checked);
+                        }
                         connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, context = *ctx]() {
                             if (auto *host = Qord::Plugins::PluginHost::instance())
                                 host->dispatchMessageContextMenuAction(pluginId, itemId, context);

@@ -11,6 +11,56 @@
 namespace Acheron {
 namespace Core {
 
+namespace {
+EmojiMatch customMatch(const Snowflake &id, const QString &originalName, const QString &disambiguatedName,
+                       bool animated, const QUrl &imageUrl)
+{
+    EmojiMatch m;
+    m.insertText = (animated ? "<a:" : "<:") + originalName + ":" + id.toString() + ">";
+    m.displayLabel = ":" + disambiguatedName + ":";
+    m.customId = id;
+    m.imageUrl = imageUrl;
+    return m;
+}
+
+EmojiMatch unicodeMatch(const UnicodeEmoji &emoji)
+{
+    EmojiMatch m;
+    const QString name = UnicodeEmojiIndex::primaryName(emoji);
+    m.insertText = ":" + name + ":";
+    m.displayLabel = m.insertText;
+    m.surrogates = emoji.surrogates;
+    return m;
+}
+} // namespace
+
+std::optional<EmojiMatch> EmojiManager::matchForKey(const QString &key, Snowflake channelId, bool forReaction)
+{
+    UsabilityContext usability;
+    usability.channelId = channelId;
+    usability.selfId = client->getMe().id.get();
+    usability.premium = client->isPremium();
+    usability.channelGuildId = client->getGuildIdForChannel(channelId);
+    usability.bypass = !forReaction && expressionBypass().emojis;
+    bool numeric = false;
+    key.toULongLong(&numeric);
+    if (numeric) {
+        for (const CustomEmoji &custom : customEmojis()) {
+            if (custom.emoji.id.get().toString() == key) {
+                if (!isUsable(custom, usability))
+                    return std::nullopt;
+                return customMatch(custom.emoji.id.get(), custom.originalName, custom.disambiguatedName,
+                                   custom.emoji.animated.hasValue() && custom.emoji.animated.get(),
+                                   custom.emoji.getImageUrl());
+            }
+        }
+        return std::nullopt;
+    }
+    if (const UnicodeEmoji *emoji = UnicodeEmojiIndex::instance().byName(key))
+        return unicodeMatch(*emoji);
+    return std::nullopt;
+}
+
 QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channelId, bool forReaction)
 {
     UsabilityContext usability;
@@ -20,26 +70,21 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
     usability.bypass = !forReaction && expressionBypass().emojis;
 
-    const auto customMatch = [](const CustomEmoji &custom) {
-        const Snowflake id = custom.emoji.id.get();
-        const bool animated = custom.emoji.animated.hasValue() && custom.emoji.animated.get();
-        EmojiMatch m;
-        m.insertText = (animated ? "<a:" : "<:") + custom.originalName + ":" + id.toString() + ">";
-        m.displayLabel = ":" + custom.disambiguatedName + ":";
-        m.customId = id;
-        m.imageUrl = custom.emoji.getImageUrl();
-        return m;
-    };
-    const auto unicodeMatch = [](const UnicodeEmoji &emoji) {
-        EmojiMatch m;
-        const QString name = UnicodeEmojiIndex::primaryName(emoji);
-        m.insertText = ":" + name + ":";
-        m.displayLabel = m.insertText;
-        m.surrogates = emoji.surrogates;
-        return m;
+    const auto customMatchOf = [](const CustomEmoji &custom) {
+        return customMatch(custom.emoji.id.get(), custom.originalName, custom.disambiguatedName,
+                           custom.emoji.animated.hasValue() && custom.emoji.animated.get(), custom.emoji.getImageUrl());
     };
 
     QList<PickerSection> sections;
+
+    // Qord: your Discord favorites first, as Discord's picker shows them
+    PickerSection favorites;
+    favorites.title = QStringLiteral("Favorites");
+    for (const QString &key : favorites_)
+        if (const auto match = matchForKey(key, channelId, forReaction))
+            favorites.emojis.append(*match);
+    if (!favorites.emojis.isEmpty())
+        sections.append(favorites);
 
     // Frequently used, from the same frecency data Discord syncs
     FrecencyTracker &tracker = forReaction ? reactionTracker : chatTracker;
@@ -53,7 +98,7 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
         if (numeric) {
             for (const CustomEmoji &custom : customEmojis()) {
                 if (custom.emoji.id.get().toString() == key && isUsable(custom, usability)) {
-                    frequent.emojis.append(customMatch(custom));
+                    frequent.emojis.append(customMatchOf(custom));
                     break;
                 }
             }
@@ -78,7 +123,7 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
             section.title = guild->name.get();
         for (const CustomEmoji &custom : customEmojis()) {
             if (custom.guildId == guildId && isUsable(custom, usability))
-                section.emojis.append(customMatch(custom));
+                section.emojis.append(customMatchOf(custom));
         }
         if (!section.emojis.isEmpty())
             sections.append(section);

@@ -1,12 +1,15 @@
 #include "UserProfilePopup.hpp"
 
 #include <QApplication>
+#include <QClipboard>
+#include <QPointer>
 #include <QDesktopServices>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPushButton>
@@ -14,11 +17,14 @@
 #include <QScrollArea>
 #include <QSet>
 #include <QTabWidget>
+#include <QSvgRenderer>
 #include <QTextEdit>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
 #include <algorithm>
+#include <functional>
 
 #include <QDateTime>
 #include <QTimer>
@@ -35,6 +41,10 @@
 #include "Discord/Client.hpp"
 #include "UI/Chat/MessageTextBrowser.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "UI/Qord/FlowLayout.hpp"
+#include "UI/Qord/Toast.hpp"
+#include "Core/CompactConnections.hpp"
+#include "Core/RoleStyle.hpp"
 #include "Plugins/PluginHost.hpp"
 
 #include <QMouseEvent>
@@ -57,6 +67,30 @@ constexpr int BioFontPx = 12;
 constexpr int ActivityTickMs = 1000;
 constexpr int ActivityImageRequestSize = 160;
 constexpr int LeftRightColumnHeight = 260;
+
+// Qord: a name decoration a plugin made clickable (UserVoiceShow)
+class DecorationIcon : public QLabel
+{
+public:
+    using QLabel::QLabel;
+    std::function<void(bool doubleClick)> onClick;
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        if (onClick && event->button() == Qt::LeftButton)
+            onClick(false);
+        else
+            QLabel::mousePressEvent(event);
+    }
+    void mouseDoubleClickEvent(QMouseEvent *event) override
+    {
+        if (onClick && event->button() == Qt::LeftButton)
+            onClick(true);
+        else
+            QLabel::mouseDoubleClickEvent(event);
+    }
+};
 
 class CroppedImageLabel : public QLabel
 {
@@ -84,6 +118,21 @@ QString formatDate(const QDateTime &dt)
         return QStringLiteral("—");
     return QLocale::system().toString(dt.toLocalTime().date(), QStringLiteral("MMM d, yyyy"));
 }
+
+// Qord: a row in a plugin's profile tab
+class ClickableRow : public QWidget
+{
+public:
+    using QWidget::QWidget;
+    std::function<void()> onClick;
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        if (event->button() == Qt::LeftButton && rect().contains(event->pos()) && onClick)
+            onClick();
+    }
+};
 
 QString sectionHeading(const QString &text, const QColor &color)
 {
@@ -197,6 +246,9 @@ UserProfilePopup::UserProfilePopup(Core::ImageManager *images, Core::ClientInsta
                     if (userIds.contains(this->userId))
                         renderPresence();
                 });
+        // Qord: plugin icons that follow other state (UserVoiceShow's voice)
+        if (auto *decorations = NameDecorations::instance())
+            connect(decorations, &NameDecorations::changed, this, [this]() { renderDecorations(); });
         connect(instance->users(), &Core::UserManager::noteChanged, this,
                 [this](Core::Snowflake id) {
                     if (id == this->userId)
@@ -448,11 +500,28 @@ QWidget *UserProfilePopup::buildBody()
     auto *rolesHeading = new QLabel(rolesSection);
     rolesHeading->setText(sectionHeading(tr("Roles"), headingColor));
     rolesHeading->setTextFormat(Qt::RichText);
-    rolesLayout->addWidget(rolesHeading);
+    // Plugin buttons (PermissionsViewer) sit next to the heading
+    auto *rolesHeader = new QHBoxLayout;
+    rolesHeader->setContentsMargins(0, 0, 0, 0);
+    rolesHeader->setSpacing(2);
+    rolesHeader->addWidget(rolesHeading);
+    rolesButtons = new QHBoxLayout;
+    rolesButtons->setContentsMargins(0, 0, 0, 0);
+    rolesButtons->setSpacing(2);
+    rolesHeader->addLayout(rolesButtons);
+    rolesHeader->addStretch(1);
+    rolesLayout->addLayout(rolesHeader);
     rolesLabel = new QLabel(rolesSection);
     rolesLabel->setTextFormat(Qt::RichText);
     rolesLabel->setWordWrap(true);
     rolesLabel->setStyleSheet(QStringLiteral("font-size: 12px;"));
+    // BetterRoleDot: a role's dot copies its color
+    connect(rolesLabel, &QLabel::linkActivated, this, [this](const QString &link) {
+        if (!link.startsWith(QLatin1String("qord-copy:")))
+            return;
+        QGuiApplication::clipboard()->setText(link.mid(10));
+        Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+    });
     rolesLayout->addWidget(rolesLabel);
     leftCol->addWidget(rolesSection);
 
@@ -537,6 +606,7 @@ QWidget *UserProfilePopup::buildBody()
     rightTabs->addTab(mutualServersTab, tr("Mutual Servers"));
     if (!isBot())
         rightTabs->addTab(mutualFriendsTab, tr("Mutual Friends"));
+    addPluginTabs();
 
     rightCol->addWidget(rightTabs);
     rightCol->addStretch(1);
@@ -588,11 +658,20 @@ void UserProfilePopup::renderDecorations()
     if (auto *provider = NameDecorations::instance())
         decorations = provider->forUser(accountId(), guildView ? guildId : Core::Snowflake(), userId,
                                         NameDecorations::Place::Profile, devicePixelRatioF());
+    const Core::Snowflake decorationGuild = guildView ? guildId : Core::Snowflake();
     for (const auto &d : decorations) {
-        auto *icon = new QLabel(decorationsRow);
+        auto *icon = new DecorationIcon(decorationsRow);
         icon->setPixmap(d.pixmap);
         icon->setFixedSize(d.size);
         icon->setToolTip(d.tooltip);
+        if (d.clickable()) {
+            icon->setCursor(Qt::PointingHandCursor);
+            icon->onClick = [this, d, decorationGuild](bool doubleClick) {
+                if (auto *provider = NameDecorations::instance())
+                    provider->click(accountId(), decorationGuild, userId, NameDecorations::Place::Profile, d,
+                                    doubleClick);
+            };
+        }
         layout->addWidget(icon);
     }
     decorationsRow->setVisible(!decorations.isEmpty());
@@ -730,6 +809,8 @@ void UserProfilePopup::renderFromCachedData()
     displayNameLabel->setText(name.toHtmlEscaped());
     handleLabel->setText(tagHandle().toHtmlEscaped());
     botBadgeLabel->setVisible(isBot());
+    if (auto u = cachedUser(); u && u->isSystem()) // Qord
+        botBadgeLabel->setText(QStringLiteral("\u2713 SYSTEM"));
 
     int color = resolvedAccentColor();
     if (color != 0) {
@@ -862,6 +943,71 @@ void UserProfilePopup::renderConnections()
         return;
     }
 
+    // Qord: ShowConnections' row of icons
+    const auto &compact = Core::compactConnectionsOptions();
+    if (compact.enabled) {
+        auto *icons = new QWidget;
+        auto *flow = new FlowLayout(icons, compact.spacing);
+        const QSize size(compact.iconSize, compact.iconSize);
+        const QString muted = palette().color(QPalette::PlaceholderText).name();
+        auto makeIcon = [this, icons, size, muted](const QString &type, const QString &name, bool verified,
+                                                   const QString &hint, std::function<void()> act) {
+            auto *icon = new DecorationIcon(icons);
+            icon->setFixedSize(size);
+            icon->setCursor(Qt::PointingHandCursor);
+            const QUrl iconUrl = Discord::Cdn::connectionIcon(type);
+            if (iconUrl.isValid())
+                images->assign(icon, iconUrl, size, accountId());
+            icon->setToolTip(QStringLiteral("<b>%1</b>%2<br><span style=\"color:%3;\">%4</span>")
+                                     .arg(name.toHtmlEscaped(), verified ? QStringLiteral(" \u2713") : QString(),
+                                          muted, hint.toHtmlEscaped()));
+            icon->onClick = [act = std::move(act)](bool doubleClick) {
+                if (!doubleClick)
+                    act();
+            };
+            return icon;
+        };
+        for (const auto &c : profile.connectedAccounts.get()) {
+            const QString type = c.type.get();
+            const QString name = c.name.get();
+            const QUrl link = buildConnectionUrl(type, c.id.get(), name);
+            QWidget *icon = nullptr;
+            if (link.isValid()) {
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open link"),
+                                [link]() { QDesktopServices::openUrl(link); });
+            } else if (type == QLatin1String("xbox")) {
+                const QUrl xbox(QStringLiteral("https://www.xbox.com/en-US/play/user/") +
+                                QString::fromUtf8(QUrl::toPercentEncoding(name)));
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open on Xbox"),
+                                [xbox]() { QDesktopServices::openUrl(xbox); });
+            } else {
+                icon = makeIcon(type, name, c.verified.valueOr(false), tr("Copy"), [this, name]() {
+                    QGuiApplication::clipboard()->setText(name);
+                    Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+                });
+            }
+            flow->addWidget(icon);
+            // The user's GitHub organizations, after their GitHub account
+            if (type == QLatin1String("github") && compact.githubOrgs) {
+                QPointer<QWidget> anchor = icon;
+                compact.githubOrgs(name, [anchor, flow, makeIcon](const QStringList &logins) {
+                    if (!anchor)
+                        return;
+                    int at = flow->indexOfWidget(anchor) + 1;
+                    for (const QString &login : logins) {
+                        const QUrl url(QStringLiteral("https://github.com/") + login);
+                        auto *org = makeIcon(QStringLiteral("github"), login, false, QObject::tr("Open link"),
+                                             [url]() { QDesktopServices::openUrl(url); });
+                        flow->insertWidget(at++, org);
+                        org->show();
+                    }
+                });
+            }
+        }
+        connectionsLayout->addWidget(icons);
+        return;
+    }
+
     const QString linkColor = palette().color(QPalette::Link).name();
     const QString mutedColor = palette().color(QPalette::PlaceholderText).name();
     for (const auto &c : profile.connectedAccounts.get()) {
@@ -956,6 +1102,72 @@ void UserProfilePopup::renderMutualServers()
     mutualServersLayout->addStretch(1);
 }
 
+void UserProfilePopup::addPluginTabs()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::ProfileTabs))
+        return;
+    Qord::Plugins::UserContext user;
+    user.accountId = quint64(instance->accountId());
+    user.guildId = quint64(guildId);
+    user.userId = quint64(userId);
+    user.isBot = isBot();
+    constexpr int IconSize = 32;
+    for (const auto &entry : host->dispatchProfileTabs(user)) {
+        auto *scroll = new QScrollArea(rightTabs);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setWidgetResizable(true);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        auto *content = new QWidget;
+        auto *layout = new QVBoxLayout(content);
+        layout->setContentsMargins(8, 8, 8, 8);
+        layout->setSpacing(4);
+        scroll->setWidget(content);
+        if (entry.tab.rows.isEmpty()) {
+            auto *empty = new QLabel(entry.tab.emptyText.toHtmlEscaped(), content);
+            empty->setWordWrap(true);
+            empty->setAlignment(Qt::AlignCenter);
+            empty->setStyleSheet(QStringLiteral("font-size: 12px; color: palette(placeholder-text);"));
+            layout->addWidget(empty);
+        }
+        for (const auto &row : entry.tab.rows) {
+            auto *rowWidget = new ClickableRow(content);
+            rowWidget->setCursor(Qt::PointingHandCursor);
+            auto *rl = new QHBoxLayout(rowWidget);
+            rl->setContentsMargins(0, 2, 0, 2);
+            rl->setSpacing(8);
+            auto *icon = new QLabel(rowWidget);
+            icon->setFixedSize(IconSize, IconSize);
+            icon->setAlignment(Qt::AlignCenter);
+            icon->setStyleSheet(QStringLiteral("background-color: palette(button); border-radius: %1px; "
+                                               "color: palette(text); font-weight: bold;")
+                                        .arg(IconSize / 2));
+            if (!row.iconUrl.isEmpty())
+                images->assign(icon, QUrl(row.iconUrl), QSize(IconSize, IconSize), accountId());
+            else
+                icon->setText(row.iconText);
+            rl->addWidget(icon);
+            auto *text = new QLabel(QStringLiteral("<div style=\"font-size: 13px;\">%1</div>"
+                                                   "<div style=\"font-size: 11px; color: palette(placeholder-text);\">%2</div>")
+                                            .arg(row.title.toHtmlEscaped(), row.subtitle.toHtmlEscaped()),
+                                    rowWidget);
+            text->setTextFormat(Qt::RichText);
+            rl->addWidget(text, 1);
+            rowWidget->onClick = [this, pluginId = entry.pluginId, tabId = entry.tab.id, rowId = row.id, user]() {
+                close(); // like upstream, the profile closes first
+                if (auto *h = Qord::Plugins::PluginHost::instance())
+                    h->dispatchProfileTabRowClicked(pluginId, tabId, rowId, user);
+            };
+            layout->addWidget(rowWidget);
+        }
+        layout->addStretch(1);
+        rightTabs->addTab(scroll, entry.tab.title);
+        // As upstream does, tighter tabs so the plugin's tab fits beside Discord's
+        rightTabs->setStyleSheet(rightTabs->styleSheet().replace(QStringLiteral("padding: 5px 10px;"),
+                                                                 QStringLiteral("padding: 5px 5px;")));
+    }
+}
+
 void UserProfilePopup::renderMutualFriends()
 {
     clearLayout(mutualFriendsLayout);
@@ -968,6 +1180,46 @@ void UserProfilePopup::renderMutualFriends()
         mutualFriendsLayout->addWidget(l);
     }
     mutualFriendsLayout->addStretch(1);
+}
+
+void UserProfilePopup::rebuildRoleButtons()
+{
+    while (QLayoutItem *item = rolesButtons->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !host->hasHook(Qord::Plugins::Hook::ProfileRoleButtons))
+        return;
+    Qord::Plugins::UserContext user;
+    user.accountId = quint64(instance->accountId());
+    user.guildId = quint64(guildId);
+    user.userId = quint64(userId);
+    const QColor color = palette().color(QPalette::Text);
+    for (const auto &entry : host->dispatchProfileRoleButtons(user)) {
+        QByteArray svg = entry.button.svg;
+        svg.replace("currentColor", color.name().toLatin1());
+        QSvgRenderer renderer(svg);
+        const qreal dpr = devicePixelRatioF();
+        QPixmap pixmap(QSize(16, 16) * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        if (renderer.isValid()) {
+            QPainter painter(&pixmap);
+            renderer.render(&painter, QRectF(0, 0, 16, 16));
+        }
+        auto *button = new QToolButton(rolesSection);
+        button->setAutoRaise(true);
+        button->setIcon(QIcon(pixmap));
+        button->setIconSize(QSize(16, 16));
+        button->setToolTip(entry.button.tooltip);
+        button->setCursor(Qt::PointingHandCursor);
+        connect(button, &QToolButton::clicked, this, [pluginId = entry.pluginId, id = entry.button.id, user]() {
+            if (auto *h = Qord::Plugins::PluginHost::instance())
+                h->dispatchProfileRoleButtonClicked(pluginId, id, user);
+        });
+        rolesButtons->addWidget(button);
+    }
 }
 
 void UserProfilePopup::applyView()
@@ -987,6 +1239,7 @@ void UserProfilePopup::applyView()
         rolesSection->setVisible(false);
         return;
     }
+    rebuildRoleButtons();
 
     QList<Discord::Role> memberRoles = instance->getMemberRolesSorted(guildId, userId);
     if (memberRoles.isEmpty() && hasProfile && profile.guildMember.hasValue() && profile.guildMember.get().roles.hasValue()) {
@@ -1011,17 +1264,24 @@ void UserProfilePopup::applyView()
     }
 
     const QColor defaultRoleColor = palette().color(QPalette::Text);
+    // Qord: each role starts with a dot in its color, as Discord's do;
+    // BetterRoleDot makes it copy the color
+    const bool dotsCopy = Core::profileRoleDotsCopy();
     QStringList chips;
     for (const auto &role : memberRoles) {
         QColor color = role.hasColor() ? role.getColor() : defaultRoleColor;
+        const QString dot = dotsCopy ? QStringLiteral("<a href=\"qord-copy:%1\" style=\"color:%1; "
+                                                      "text-decoration:none;\">\u25CF</a>")
+                                               .arg(color.name())
+                                     : QStringLiteral("\u25CF");
         chips << QStringLiteral(
                          "<span style=\"color:%1; background-color:rgba(%2,%3,%4,40); "
-                         "padding:2px 7px; border-radius:6px;\">%5</span>")
+                         "padding:2px 7px; border-radius:6px;\">%5 %6</span>")
                          .arg(color.name())
                          .arg(color.red())
                          .arg(color.green())
                          .arg(color.blue())
-                         .arg(role.name.get().toHtmlEscaped());
+                         .arg(dot, role.name.get().toHtmlEscaped());
     }
     rolesLabel->setText(chips.join(QStringLiteral("&nbsp; ")));
 }

@@ -4,6 +4,9 @@
 #include <QStyledItemDelegate>
 
 #include "MemberListModel.hpp"
+#include "UI/Qord/NameDecorations.hpp"
+
+#include <optional>
 
 namespace Acheron {
 namespace UI {
@@ -22,6 +25,9 @@ public:
     bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
                    const QModelIndex &index) override;
 
+    // Qord: the clickable name decoration at `pos` in a row (UserVoiceShow)
+    [[nodiscard]] std::optional<NameDecorations::Decoration> clickableDecorationAt(int row, const QPoint &pos) const;
+
 private:
     void paintGroup(QPainter *painter, const QStyleOptionViewItem &option,
                     const QModelIndex &index) const;
@@ -34,7 +40,7 @@ private:
     static QString activityIconName(Discord::ActivityType kind);
 
     // Qord: where each row's name decorations were last painted
-    mutable QHash<int, QList<QPair<QRect, QString>>> decorationRects;
+    mutable QHash<int, QList<QPair<QRect, NameDecorations::Decoration>>> decorationRects;
 };
 
 } // namespace UI

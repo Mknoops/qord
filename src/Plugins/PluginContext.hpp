@@ -57,6 +57,20 @@ public:
     [[nodiscard]] ReactionService *reactions();
     // Null without the read_expressions permission.
     [[nodiscard]] ExpressionService *expressions() const;
+    // Null without the read_server_permissions permission.
+    [[nodiscard]] GuildDirectory *guilds() const;
+    // Null without the fetch_users permission. Replies arriving after the
+    // plugin stopped are dropped.
+    [[nodiscard]] UserLookupService *users();
+    // Null without the read_dms permission.
+    [[nodiscard]] const PrivateChannelDirectory *privateChannels() const;
+    // Null without the fetch_messages permission. Replies arriving after the
+    // plugin stopped are dropped.
+    [[nodiscard]] MessageLookupService *messageLookup();
+    // Null without the control_audio permission.
+    [[nodiscard]] AudioOptionsService *audio() const;
+    // Null without the read_voice_states permission.
+    [[nodiscard]] const VoiceStateDirectory *voiceStates() const;
 
     // Asks the client to re-query this plugin's chat bar buttons.
     void refreshChatBar() const
@@ -65,6 +79,26 @@ public:
             onChatBarChanged();
     }
     std::function<void()> onChatBarChanged; // set by the host
+    // Asks the client to re-query the DM list's grouping (Hook::DmPins)
+    void refreshDmList() const
+    {
+        if (onDmListChanged)
+            onDmListChanged();
+    }
+    std::function<void()> onDmListChanged; // set by the host
+    // Asks the client to re-query the Friends page's tabs (Hook::FriendsSections)
+    void refreshFriends() const
+    {
+        if (onFriendsChanged)
+            onFriendsChanged();
+    }
+    std::function<void()> onFriendsChanged; // set by the host
+    // Whether another plugin is enabled (Vencord's isPluginEnabled)
+    [[nodiscard]] bool isPluginEnabled(const QString &pluginId) const
+    {
+        return pluginEnabled && pluginEnabled(pluginId);
+    }
+    std::function<bool(const QString &pluginId)> pluginEnabled; // set by the host
 
     // Private writable directory for caches (created on demand).
     [[nodiscard]] QString dataDirectory() const;
@@ -81,6 +115,8 @@ private:
     std::unique_ptr<ScopedNetwork> scopedNetwork;
     std::unique_ptr<UiService> scopedUi;
     std::unique_ptr<ReactionService> scopedReactions;
+    std::unique_ptr<UserLookupService> scopedUsers;
+    std::unique_ptr<MessageLookupService> scopedMessageLookup;
 };
 
 } // namespace Plugins

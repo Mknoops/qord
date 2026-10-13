@@ -148,37 +148,54 @@ inventory). All are off by default.
 |---|---|---|
 | **AlwaysTrust** | Removes the untrusted-domain popup | trust_links |
 | **CallTimer** | Call timers for every user in voice channels and in the connection status | read_voice_states |
+| **BetterFolders** | Open server folders on a second rail, and rules for when folders open and close | modify_displayed_messages |
 | **ClearURLs** | Removes tracking parameters from URLs you send | modify_outgoing_messages, network |
+| **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
+| **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
+| **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
+| **ImageZoom** | A magnifying lens in the image viewer (hold, scroll to zoom, Shift+scroll to resize) | modify_displayed_messages, add_ui_elements |
 | **Ingtoninator** | Adds "ington" to a random word in your message | modify_outgoing_messages, add_ui_elements |
 | **MemberCount** | Online, total and in-voice member counts in the member list | add_ui_elements |
 | **MessageClickActions** | Double-click to edit or reply, hold Backspace and click to delete, and more | add_ui_elements, edit_messages, write_clipboard, open_links |
 | **MessageLogger** | Keeps deleted and edited messages visible for the session | log_messages, add_ui_elements |
+| **MessageLinkEmbeds** | A preview under messages that link other messages | modify_displayed_messages, fetch_messages |
+| **MutualGroupDMs** | A "Mutual Groups" tab in profiles with the group DMs you share | add_ui_elements, read_dms |
 | **NoBlockedMessages** | Hides messages from blocked and ignored users completely | hide_messages, read_relationships |
 | **NoReplyMention** | Turns reply pings off by default | reply_mentions, read_guild_members |
 | **NormalizeMessageLinks** | Strips canary/ptb from message links | modify_message_links |
 | **OnePingPerDM** | Only one notification sound per DM until you read it | control_notifications |
+| **PermissionsViewer** | "View Permissions" for members, channels and servers, and a member's permissions with the role granting each | add_ui_elements, read_server_permissions |
+| **PinDMs** | Pin DMs into colored, collapsible categories at the top of the DM list | add_ui_elements |
 | **PlatformIndicators** | Desktop, mobile and web indicators next to users | read_presences, modify_displayed_messages |
 | **PolishWording** | Tidies capitalisation and punctuation in your messages | modify_outgoing_messages |
+| **QuickReply** | Reply (Ctrl+Up/Down) and edit (Ctrl+Shift+Up/Down) messages from the keyboard | add_ui_elements, read_relationships |
 | **ReadAllNotificationsButton** | A button that marks every server as read | add_ui_elements, mark_read |
 | **ReverseImageSearch** | "Search Image" in image context menus | add_ui_elements, open_links |
+| **RoleColorEverywhere** | Role colors in mentions, member list headers, voice users and (optionally) message text | modify_displayed_messages |
 | **SendTimestamps** | A chat-bar button and text shortcuts for Discord timestamps | modify_outgoing_messages, add_ui_elements |
+| **ServerInfo** | A server's details, and your friends, mutual users, blocked and ignored users in it | add_ui_elements, read_server_permissions, read_relationships |
+| **ShowHiddenChannels** | Shows channels you can't see, with a lock screen listing their settings and who can see them | show_hidden_channels, read_server_permissions, add_ui_elements |
 | **ShowMeYourName** | Shows any combination of nicknames, display names and usernames | modify_displayed_messages, add_ui_elements |
 | **SilentMessageToggle** | Chat-bar toggle for sending silent messages | modify_outgoing_messages, add_ui_elements |
 | **SilentTyping** | Hides that you're typing | control_typing, add_ui_elements |
 | **TalkInReverse** | Reverses your message before sending | modify_outgoing_messages, add_ui_elements |
 | **TextReplace** | Find-and-replace rules (plain text and regex) for your messages | modify_outgoing_messages, modify_displayed_messages |
+| **Translate** | Translate messages (shown under them) and, optionally, your own before sending, with Google, DeepL or Kagi | add_ui_elements, network, modify_outgoing_messages, modify_displayed_messages |
+| **TypingIndicator** | Who is typing, next to channels in the channel list | add_ui_elements, read_relationships, read_server_permissions |
 | **Unindent** | Trims leading indentation from code blocks | modify_outgoing_messages, modify_displayed_messages |
 | **UnsuppressEmbeds** | Brings back suppressed embeds | add_ui_elements, edit_messages |
+| **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
 | **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
+| **VolumeBooster** | User volume sliders go past 200% (up to 1,000%) | control_audio |
+| **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |
 
-**Up next:** WhoReacted, PermissionsViewer, ShowHiddenChannels, CopyFileContents,
-ServerInfo, TypingIndicator, ValidUser, QuickReply and Translate.
+**Up next:** GameActivityToggle, BetterSessions, ReviewDB.
 
 The status of every Equicord plugin (Not Started, In Progress, Tested, Complete or
 Blocked, with notes and known gaps) is in

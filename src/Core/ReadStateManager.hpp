@@ -87,6 +87,13 @@ public:
     [[nodiscard]] Snowflake getChannelLastMessageId(Snowflake channelId) const;
 
     static bool isMuteActive(bool muted, const Discord::MuteConfig *muteConfig);
+    // Qord: whether channels you can't see show their unread state
+    // (ShowHiddenChannels), set by the main window
+    static bool &showHiddenUnreads()
+    {
+        static bool show = false;
+        return show;
+    }
     static int daysSinceDiscordEpoch();
 
 signals:

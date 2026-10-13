@@ -64,6 +64,10 @@ public:
     // send is cancelled (called from the sendMessage handler)
     void attachData(const QString &fileName, const QByteArray &data, const QString &mimeType);
     void keepContentsAfterSend() { keepAfterSend = true; }
+    // Qord: a plugin is finishing the send (auto-translate); the text can't
+    // be edited or sent again meanwhile
+    void setSending(bool sending);
+    [[nodiscard]] bool isSending() const { return sending; }
 
     [[nodiscard]] EmojiAutocomplete *emojiAutocomplete() const { return autocomplete; }
 
@@ -85,6 +89,7 @@ signals:
 
 private:
     ChatTextEdit *textEdit;
+    bool sending = false;
     QHBoxLayout *inputLayout;
     QWidget *replyBar;
     QLabel *replyLabel;

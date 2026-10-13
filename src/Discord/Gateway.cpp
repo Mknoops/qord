@@ -334,6 +334,10 @@ void Gateway::handleDispatch(const Inbound &data)
             emit gatewayStreamEvent(t, data.data.toObject());
             break;
         }
+        if (t == QLatin1String("APPLICATION_COMMAND_AUTOCOMPLETE_RESPONSE")) {
+            emit gatewayAutocompleteResponse(data.data.toObject());
+            break;
+        }
         qCInfo(LogDiscord) << "Unknown gateway event: " << t;
         break;
     default:

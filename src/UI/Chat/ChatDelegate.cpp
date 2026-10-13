@@ -1,4 +1,9 @@
 #include "ChatDelegate.hpp"
+#include "Core/RoleColors.hpp"
+
+#include <QLocale>
+#include <QPainterPath>
+#include <QSvgRenderer>
 
 #include "ChatModel.hpp"
 #include "ChatLayout.hpp"
@@ -14,6 +19,7 @@
 #include "UI/Chat/MediaTarget.hpp"
 #include "UI/Chat/VideoControls.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 
 #include <QCache>
 
@@ -57,8 +63,17 @@ static QColor bodyTextColor(const QStyleOptionViewItem &option, const QModelInde
         color.setAlpha(140);
         return color;
     }
-    return (option.state & QStyle::State_Selected) ? option.palette.highlightedText().color()
-                                                   : option.palette.text().color();
+    const QColor text = (option.state & QStyle::State_Selected) ? option.palette.highlightedText().color()
+                                                                 : option.palette.text().color();
+    // Qord: RoleColorEverywhere tints the text with the author's role color
+    // (not for failed sends, which would no longer stand out)
+    const auto &roleColors = Core::roleColorOptions();
+    if (roleColors.messages && roleColors.messageSaturation > 0) {
+        const QColor author = index.data(ChatModel::UsernameColorRole).value<QColor>();
+        if (author.isValid())
+            return Core::mixOklab(author, roleColors.messageSaturation, text);
+    }
+    return text;
 }
 
 static void applyTextSelection(QAbstractTextDocumentLayout::PaintContext &paintCtx, const ChatView *view,
@@ -550,31 +565,44 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setFont(headerFont);
         QFontMetrics headerFm(headerFont);
 
+        // Qord: the role color is on the name, in a dot after it, or both
+        // (Discord's Role Colors setting, BetterRoleDot)
+        const QColor roleColor = index.data(ChatModel::UsernameColorRole).value<QColor>();
         QColor headerColor;
         if (option.state & QStyle::State_Selected) {
             headerColor = option.palette.highlightedText().color();
         } else {
-            QColor roleColor = index.data(ChatModel::UsernameColorRole).value<QColor>();
-            headerColor = roleColor.isValid() ? roleColor : option.palette.text().color();
+            headerColor = roleColor.isValid() && Core::roleColorOnName() ? roleColor : option.palette.text().color();
         }
 
         painter->setPen(headerColor);
         painter->drawText(layout.headerRect, Qt::AlignLeft | Qt::AlignTop, username);
 
-        // Qord: after the name come Discord's APP tag for bots, plugin icons
-        // (PlatformIndicators), then "Today at 3:45 PM"
+        // Qord: after the name come the role dot, Discord's APP tag for bots,
+        // plugin icons (PlatformIndicators), then "Today at 3:45 PM"
         QList<HeaderTip> tips;
         int afterName = layout.headerRect.left() + headerFm.horizontalAdvance(username);
         const int lineCenter = layout.headerRect.top() + headerFm.height() / 2;
+        if (roleColor.isValid() && Core::roleDotAfterName()) {
+            const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+            const QRect dotRect(afterName + 4, lineCenter - Core::RoleDotSize / 2, Core::RoleDotSize,
+                                Core::RoleDotSize);
+            painter->drawPixmap(dotRect, Core::roleDotPixmap(roleColor, dpr));
+            if (Core::roleDotOptions().enabled)
+                tips.append({ dotRect, QString(), QString(), QString(), 0, roleColor.name() });
+            afterName = dotRect.right() + 1;
+        }
         const Snowflake headerMessageId = index.data(ChatModel::MessageIdRole).toULongLong();
         const Discord::Message *headerMessage = chatModel ? chatModel->messageAt(index.row()) : nullptr;
-        const bool isBot = headerMessage && headerMessage->author.hasValue() &&
-                           headerMessage->author->bot.hasValue() && headerMessage->author->bot.get();
+        const bool isSystemUser = headerMessage && headerMessage->author.hasValue() && headerMessage->author->isSystem();
+        const bool isBot = isSystemUser || (headerMessage && headerMessage->author.hasValue() &&
+                                            headerMessage->author->bot.hasValue() && headerMessage->author->bot.get());
         if (isBot) {
             QFont tagFont = option.font;
             tagFont.setPixelSize(10);
             tagFont.setBold(true);
-            const QString tag = QStringLiteral("APP");
+            // Discord's own account says SYSTEM, with the verified check
+            const QString tag = isSystemUser ? QStringLiteral("\u2713 SYSTEM") : QStringLiteral("APP");
             const QFontMetrics tagFm(tagFont);
             const QRect tagRect(afterName + 4, lineCenter - 8, tagFm.horizontalAdvance(tag) + 8, 15);
             painter->save();
@@ -595,7 +623,8 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                       headerMessage->author->id.get(), NameDecorations::Place::Message, dpr);
             const QList<QRect> rects = NameDecorations::paint(*painter, decorations, afterName, lineCenter);
             for (int i = 0; i < rects.size(); ++i)
-                tips.append({ rects[i], decorations[i].tooltip });
+                tips.append({ rects[i], decorations[i].tooltip, decorations[i].pluginId, decorations[i].clickId,
+                              quint64(headerMessage->author->id.get()) });
             afterName += NameDecorations::width(decorations);
         }
 
@@ -700,6 +729,12 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         if (att.isVoiceMessage) {
             if (auto target = MediaTargets::forAttachment(att, ChatLayout::audioBarRect(fileRect, true), chatModel))
                 paintMediaTarget(painter, option, *target, video);
+            continue;
+        }
+
+        // Qord: Discord's text file preview
+        if (att.isText && att.textLoaded) {
+            paintTextPreview(painter, option, fileRect, att);
             continue;
         }
 
@@ -1125,6 +1160,37 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(countColor);
         painter->drawText(reactionLayout.countRect, Qt::AlignLeft | Qt::AlignVCenter,
                           QString::number(reaction.count));
+
+        // Qord: who reacted (WhoReacted): round avatars, each ringed in the
+        // pill's colour so the overlaps stay apart, then "+N"
+        if (!reactionLayout.avatarRects.isEmpty()) {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing, true);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+            const QColor ring = option.palette.alternateBase().color();
+            for (int a = 0; a < reactionLayout.avatarRects.size() && a < reaction.userAvatars.size(); ++a) {
+                const QRectF r = reactionLayout.avatarRects[a];
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(ring);
+                painter->drawEllipse(r.adjusted(-1.5, -1.5, 1.5, 1.5));
+                QPainterPath clip;
+                clip.addEllipse(r);
+                painter->setClipPath(clip);
+                const QPixmap &avatar = reaction.userAvatars[a];
+                if (avatar.isNull())
+                    painter->fillRect(r, option.palette.mid());
+                else
+                    painter->drawPixmap(r, avatar, QRectF(avatar.rect()));
+                painter->setClipping(false);
+            }
+            if (reactionLayout.moreRect.isValid()) {
+                painter->setFont(countFont);
+                painter->setPen(option.palette.text().color());
+                painter->drawText(reactionLayout.moreRect, Qt::AlignLeft | Qt::AlignVCenter,
+                                  QStringLiteral("+%1").arg(reaction.moreUsers));
+            }
+            painter->restore();
+        }
     }
 
     if (animator)
@@ -1180,6 +1246,92 @@ QSize ChatDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInd
     }
 
     return size;
+}
+
+void ChatDelegate::paintTextPreview(QPainter *painter, const QStyleOptionViewItem &option, const QRect &box,
+                                    const AttachmentData &att) const
+{
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    QPainterPath shape;
+    shape.addRoundedRect(QRectF(box).adjusted(0.5, 0.5, -0.5, -0.5), 6, 6);
+    painter->fillPath(shape, option.palette.alternateBase());
+    painter->setPen(QPen(option.palette.mid().color(), 1));
+    painter->drawPath(shape);
+
+    const ChatLayout::TextPreviewButtons buttons = ChatLayout::textPreviewButtons(box, att);
+    const QFont mono = ChatLayout::textPreviewFont();
+    const QFontMetrics fm(mono);
+    painter->setFont(mono);
+    painter->setPen(option.palette.text().color());
+    const int textLeft = box.left() + 10;
+    const int textWidth = box.width() - 20;
+    int y = buttons.body.top() + 8;
+    for (const QString &line : ChatLayout::textPreviewLines(att)) {
+        painter->drawText(textLeft, y + fm.ascent(), fm.elidedText(line, Qt::ElideRight, textWidth));
+        y += fm.lineSpacing();
+    }
+    if (att.textExpanded && att.textBytesLeft > 0) {
+        painter->setPen(option.palette.placeholderText().color());
+        painter->drawText(textLeft, y + fm.ascent(),
+                          tr("%1 bytes left").arg(QLocale().toString(att.textBytesLeft)));
+    }
+
+    // Footer: name and size, then the buttons
+    painter->setPen(QPen(option.palette.mid().color(), 1));
+    painter->drawLine(buttons.footer.topLeft(), buttons.footer.topRight());
+    int buttonsLeft = buttons.download.left();
+    for (const QRect &rect : { buttons.view, buttons.expand })
+        if (!rect.isNull())
+            buttonsLeft = qMin(buttonsLeft, rect.left());
+    for (const QRect &rect : buttons.plugins)
+        buttonsLeft = qMin(buttonsLeft, rect.left());
+    QFont nameFont = option.font;
+    nameFont.setWeight(QFont::DemiBold);
+    painter->setFont(nameFont);
+    const QFontMetrics nameFm(nameFont);
+    QFont sizeFont = option.font;
+    sizeFont.setPointSize(sizeFont.pointSize() - 1);
+    const QFontMetrics sizeFm(sizeFont);
+    const QString size = ChatLayout::formatFileSize(att.fileSizeBytes);
+    const int nameWidth = qMax(0, buttonsLeft - textLeft - 12 - sizeFm.horizontalAdvance(size));
+    const QString name = nameFm.elidedText(att.filename, Qt::ElideMiddle, nameWidth);
+    const int baseline = buttons.footer.top() + (buttons.footer.height() + nameFm.ascent() - nameFm.descent()) / 2;
+    painter->setPen(option.palette.text().color());
+    painter->drawText(textLeft, baseline, name);
+    painter->setFont(sizeFont);
+    painter->setPen(option.palette.placeholderText().color());
+    painter->drawText(textLeft + nameFm.horizontalAdvance(name) + 8, baseline, size);
+
+    const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+    const QColor iconColor = option.palette.text().color();
+    auto drawIcon = [&](const QRect &rect, const QPixmap &icon) {
+        QRect glyph(0, 0, 18, 18);
+        glyph.moveCenter(rect.center());
+        painter->drawPixmap(glyph, icon);
+    };
+    drawIcon(buttons.download, Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::ArrowDown, 18, iconColor, dpr));
+    drawIcon(buttons.view, Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::Maximize, 18, iconColor, dpr));
+    if (!buttons.expand.isNull()) {
+        QPixmap chevron = Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::ChevronDown, 18, iconColor, dpr);
+        if (att.textExpanded)
+            chevron = chevron.transformed(QTransform().scale(1, -1));
+        drawIcon(buttons.expand, chevron);
+    }
+    for (int i = 0; i < buttons.plugins.size() && i < att.textButtons.size(); ++i) {
+        QByteArray svg = att.textButtons[i].svg;
+        svg.replace("currentColor", iconColor.name().toLatin1());
+        QSvgRenderer renderer(svg);
+        QPixmap icon(QSize(18, 18) * dpr);
+        icon.setDevicePixelRatio(dpr);
+        icon.fill(Qt::transparent);
+        if (renderer.isValid()) {
+            QPainter iconPainter(&icon);
+            renderer.render(&iconPainter, QRectF(0, 0, 18, 18));
+        }
+        drawIcon(buttons.plugins[i], icon);
+    }
+    painter->restore();
 }
 
 QString ChatDelegate::headerTimestamp(const QDateTime &timestamp)

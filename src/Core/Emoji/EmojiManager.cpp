@@ -1,4 +1,6 @@
 #include "Core/Emoji/EmojiManager.hpp"
+#include "Plugins/Client/MessageContexts.hpp"
+#include "Plugins/PluginHost.hpp"
 
 #include <algorithm>
 
@@ -300,6 +302,7 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
         double weight = 0;
         QString name;
         EmojiMatch match;
+        QString key; // Qord: frecency key, for plugins
     };
     QList<Scored> scored;
 
@@ -330,6 +333,7 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
         entry.match.insertText = ":" + primaryName + ":";
         entry.match.displayLabel = entry.match.insertText;
         entry.match.surrogates = candidate.emoji->surrogates;
+        entry.key = primaryName;
         scored.append(entry);
     }
 
@@ -349,6 +353,7 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
         entry.match.displayLabel = ":" + custom.disambiguatedName + ":";
         entry.match.customId = id;
         entry.match.imageUrl = custom.emoji.getImageUrl();
+        entry.key = id.toString();
         scored.append(entry);
     }
 
@@ -358,12 +363,57 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
         return a.name < b.name;
     });
 
+    // Qord: plugins may reorder all the matches, or add emojis by key
+    // (FavoriteEmojiFirst: favorites and aliases first)
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::EmojiSuggestions)) {
+        Qord::Plugins::EmojiAutocompleteContext context;
+        context.accountId = quint64(client->getMe().id.get());
+        context.channelId = Qord::Plugins::pluginId(channelId);
+        context.query = query;
+        context.forReaction = forReaction;
+        QHash<QString, EmojiMatch> byKey;
+        for (const Scored &entry : scored) {
+            byKey.insert(entry.key, entry.match);
+            context.results.append(emojiInfo(entry.key, entry.match));
+        }
+        plugins->dispatchSortEmojiSuggestions(context);
+        QList<EmojiMatch> results;
+        QSet<QString> seen;
+        for (const auto &info : context.results) {
+            if (results.size() >= std::max(maxResults, 0))
+                break;
+            if (seen.contains(info.key))
+                continue;
+            seen.insert(info.key);
+            if (const auto it = byKey.constFind(info.key); it != byKey.constEnd())
+                results.append(*it);
+            else if (const auto match = matchForKey(info.key, channelId, forReaction))
+                results.append(*match);
+        }
+        return results;
+    }
+
     QList<EmojiMatch> results;
     const int count = std::min<int>(scored.size(), std::max(maxResults, 0));
     results.reserve(count);
     for (int i = 0; i < count; i++)
         results.append(scored.at(i).match);
     return results;
+}
+
+Qord::Plugins::EmojiInfo EmojiManager::emojiInfo(const QString &key, const EmojiMatch &match) const
+{
+    Qord::Plugins::EmojiInfo info;
+    info.key = key;
+    info.customId = match.isCustom() ? quint64(match.customId) : 0;
+    info.surrogates = match.surrogates;
+    info.animated = match.insertText.startsWith(QLatin1String("<a:"));
+    // `:name:` or `<:name:id>`: the name without colons
+    const QString text = match.insertText;
+    info.name = match.isCustom() ? text.section(QLatin1Char(':'), 1, 1) : text.mid(1, text.size() - 2);
+    info.favorite = favorites_.contains(key);
+    return info;
 }
 
 void EmojiManager::trackUsage(const QString &key, bool reaction)
@@ -467,6 +517,11 @@ void EmojiManager::adoptSettings(const Proto::FrecencyUserSettings &settings, bo
 
     apply(chatTracker, settings.emojiFrecency);
     apply(reactionTracker, settings.emojiReactionFrecency);
+    // Qord: favorites (kept as they are when a partial update leaves them out)
+    if (settings.favoriteEmojis)
+        favorites_ = *settings.favoriteEmojis;
+    else if (!partial)
+        favorites_.clear();
 }
 
 void EmojiManager::replayPendingUsages()

@@ -98,6 +98,11 @@ public:
     using ForumPostDataCallback = std::function<void(const Core::Result<QHash<Snowflake, Message>> &)>;
     void fetchForumPostData(Snowflake forumId, const QList<Snowflake> &threadIds, ForumPostDataCallback callback);
 
+    // Qord: a thread started from a message (Create Thread); the result is
+    // the new thread channel
+    using ThreadCallback = std::function<void(const Core::Result<Channel> &)>;
+    void createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &name,
+                                 ThreadCallback callback);
     void joinThread(Snowflake threadId);
     void leaveThread(Snowflake threadId);
 
@@ -236,6 +241,25 @@ public:
     void deleteGuildEmoji(Snowflake guildId, Snowflake emojiId, ActionCallback callback);
 
     void fetchGuildStickers(Snowflake guildId, ResultCallback<QList<Sticker>> callback);
+    // Qord: Discord's own sticker packs, which anyone can send; fetched once
+    struct StickerPack
+    {
+        Snowflake id;
+        QString name;
+        QList<Sticker> stickers;
+    };
+    void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
+    // Qord: GET /users/{id} (ValidUser); `user` is set on success
+    void fetchUser(Snowflake userId, std::function<void(const HttpResponse &response, const std::optional<User> &user)> callback);
+    // Qord: GET /users/@me/affinities/v2/users, the people Discord ranks you
+    // as talking to most (ImplicitRelationships): user id and communication
+    // rank, lowest first
+    void fetchUserAffinities(
+            std::function<void(const HttpResponse &response, const QList<QPair<Snowflake, double>> &affinities)> callback);
+    // Qord: the first 100 users of a reaction (emoji: "name" or "name:id";
+    // type 0 normal, 1 burst)
+    void fetchReactionUsers(Snowflake channelId, Snowflake messageId, const QString &emoji, int type,
+                            ResultCallback<QList<User>> callback);
     void createGuildSticker(Snowflake guildId, const QString &name, const QString &tags, const QString &description,
                             const FileUpload &file, const QByteArray &originalMd5, ResultCallback<Sticker> callback);
     void modifyGuildSticker(Snowflake guildId, Snowflake stickerId, const QString &name, const QString &tags,
@@ -332,6 +356,7 @@ signals:
     void voiceStateUpdated(const VoiceState &event);
     void voiceServerUpdated(const VoiceServerUpdate &event);
     void streamEvent(const QString &type, const QJsonObject &data); // Qord: Go Live
+    void autocompleteResponse(const QJsonObject &data); // Qord: slash command option suggestions
     void relationshipAdded(const Relationship &event);
     void relationshipUpdated(const RelationshipPartial &event);
     void relationshipRemoved(const RelationshipPartial &event);
@@ -428,6 +453,7 @@ private:
     QHash<Snowflake, Snowflake> channelToGuild; // todo prob move this somewhere or just a cache
     QHash<Snowflake, PremiumTier> guildPremiumTiers;
     QSet<Snowflake> subscribedGuilds;
+    std::optional<QList<StickerPack>> stickerPacks; // Qord
     QHash<QString, std::shared_ptr<UploadState>> activeUploads; // by nonce
 
     QHash<Snowflake, QString> applicationIcons;

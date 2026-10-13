@@ -3,6 +3,7 @@
 #include "Types.hpp"
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QUrl>
@@ -33,6 +34,10 @@ public:
     // Asynchronous GET. The callback runs on the main thread unless the
     // request was cancelled.
     virtual Handle get(const QUrl &url, Callback callback) = 0;
+    // Asynchronous HTTPS POST. Headers may carry an API key: they are sent
+    // as given and never logged. Unlike get(), a failed reply keeps its body.
+    using Headers = QList<QPair<QByteArray, QByteArray>>;
+    virtual Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) = 0;
     virtual void cancel(Handle handle) = 0;
 };
 
@@ -58,22 +63,53 @@ public:
     virtual ~RelationshipDirectory() = default;
     [[nodiscard]] virtual bool isBlocked(Id accountId, Id userId) const = 0;
     [[nodiscard]] virtual bool isIgnored(Id accountId, Id userId) const = 0;
+    enum class Kind { Friend, Blocked, Ignored };
+    [[nodiscard]] virtual QList<Id> relationshipIds(Id accountId, Kind kind) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(kind);
+        return {};
+    }
+    // Whether you have any relationship with a user (friend, request, block)
+    [[nodiscard]] virtual bool hasRelationship(Id accountId, Id userId) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(userId);
+        return false;
+    }
+    // GET /users/@me/affinities/v2/users; `done` may run after the plugin
+    // stopped, so guard it
+    using AffinitiesCallback = std::function<void(bool ok, const QList<UserAffinity> &affinities)>;
+    virtual void fetchUserAffinities(Id accountId, AffinitiesCallback done) const
+    {
+        Q_UNUSED(accountId);
+        done(false, {});
+    }
 };
 
 class UiService
 {
 public:
+    // Discord's toasts (Vencord's showToast / Toasts.Type)
+    enum class ToastType { Message, Success, Failure };
     struct TextSection
     {
         QString title;
         QString text;
         bool monospace = false;
+        QString copiedToast; // shown (as a success toast) when Copy is used
     };
     virtual ~UiService() = default;
     // A read-only dialog with copyable sections.
     virtual void showTextDialog(const QString &title, const QList<TextSection> &sections) = 0;
     // Needs the open_links permission (PluginContext enforces it).
     virtual void openUrl(const QUrl &url) = 0;
+    // A short message at the bottom of the window that goes away by itself
+    virtual void showToast(const QString &text, ToastType type = ToastType::Message)
+    {
+        Q_UNUSED(text);
+        Q_UNUSED(type);
+    }
     // Inserts text at the cursor in the message box.
     virtual void insertIntoMessageBox(const QString &text) { Q_UNUSED(text); }
     // Discord's timestamp picker: date, time and format, with a preview.
@@ -82,6 +118,82 @@ public:
     virtual void pickTimestamp(std::function<void(const QString &markup)> done) { Q_UNUSED(done); }
     // Opens the Plugins settings page at this plugin.
     virtual void openPluginSettings(const QString &pluginId) { Q_UNUSED(pluginId); }
+    // PermissionsViewer's views: a list of roles, members and the owner with
+    // the permissions each grants or (for overwrites) allows and denies, and
+    // a member's permissions with the role that grants each, shown as a
+    // popout at the mouse
+    virtual void showPermissions(const PermissionsView &view) { Q_UNUSED(view); }
+    virtual void showMemberPermissions(const MemberPermissionsView &view) { Q_UNUSED(view); }
+    // ServerInfo's window, and a user's profile
+    virtual void showServerInfo(const ServerInfoView &view) { Q_UNUSED(view); }
+    virtual void openUserProfile(Id accountId, Id guildId, Id userId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        Q_UNUSED(userId);
+    }
+    // A dialog of searchable choices and switches (Translate's languages).
+    // Each change is reported right away through `changed` with the field's
+    // key and its new value (choice value, or "true"/"false" for a switch).
+    struct FormField
+    {
+        QString key;
+        QString label;
+        QString description;
+        QList<QPair<QString, QString>> choices; // value, label; empty: a switch
+        QString value; // the chosen value, or "true"/"false"
+        // showFormDialog only: a line of text, or a color (value: 0xRRGGBB
+        // as a decimal number) picked from swatches or freely
+        enum class Kind { Auto, Text, Color };
+        Kind kind = Kind::Auto;
+        QList<quint32> colors; // Color: the swatches
+    };
+    virtual void showForm(const QString &title, const QList<FormField> &fields,
+                          std::function<void(const QString &key, const QString &value)> changed)
+    {
+        Q_UNUSED(title);
+        Q_UNUSED(fields);
+        Q_UNUSED(changed);
+    }
+    // A dialog with a confirm button (PinDMs' New Category): `done` gets
+    // every field's value when it is confirmed (disabled while a text field
+    // is empty), and isn't called on cancel.
+    virtual void showFormDialog(const QString &title, const QList<FormField> &fields, const QString &confirmText,
+                                std::function<void(const QHash<QString, QString> &values)> done)
+    {
+        Q_UNUSED(title);
+        Q_UNUSED(fields);
+        Q_UNUSED(confirmText);
+        Q_UNUSED(done);
+    }
+    // Re-renders the lock screen of a hidden channel, if it is showing
+    virtual void refreshLockScreen() {}
+    // Opens a channel or DM of the account you are viewing
+    virtual void openChannel(Id accountId, Id channelId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+    }
+    // Joins a voice channel (or a DM's call) of the account you are viewing
+    virtual void joinVoiceChannel(Id accountId, Id channelId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+    }
+    // Re-asks for a message's attachment buttons (their state changed)
+    virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(channelId);
+        Q_UNUSED(messageId);
+    }
+    // The message box's reply and the message being edited, ended; the
+    // message box focused; a message scrolled into view if it is near the
+    // edge of the chat or out of it (QuickReply)
+    virtual void cancelReply() {}
+    virtual void cancelEditing() {}
+    virtual void focusMessageBox() {}
+    virtual void revealMessage(Id messageId) { Q_UNUSED(messageId); }
     // Starts editing one of your messages in the chat
     virtual void startEditing(const MessageContext &message) { Q_UNUSED(message); }
     // Replies to a message. With no explicit `mention`, the client decides
@@ -142,6 +254,35 @@ public:
     // Avatar status dots show the phone shape for users on mobile whatever
     // their status, instead of only when they are online
     virtual void setMobileIndicatorForAnyStatus(bool any) { Q_UNUSED(any); }
+    // The member list shows the server owner's crown even in large servers
+    virtual void setForceOwnerCrown(bool force) { Q_UNUSED(force); }
+    // Role colors in mentions, member list headers, voice users and message
+    // text (all off by default)
+    virtual void setRoleColors(const RoleColors &colors) { Q_UNUSED(colors); }
+    // BetterFolders (nullopt: off)
+    virtual void setFolderSidebar(const std::optional<FolderSidebar> &folders) { Q_UNUSED(folders); }
+    // The image viewer's magnifying lens (nullopt: off); `changed` gets the
+    // zoom and size the wheel set while magnifying
+    virtual void setImageLens(const std::optional<ImageLens> &lens,
+                              std::function<void(double zoom, int size)> changed)
+    {
+        Q_UNUSED(lens);
+        Q_UNUSED(changed);
+    }
+    // Role dots (Discord's "Show role colors next to names") copy their
+    // color when clicked (nullopt: they don't)
+    virtual void setRoleDot(const std::optional<RoleDot> &dot) { Q_UNUSED(dot); }
+    // Profiles show connected accounts as icons (nullopt: as a list). With
+    // `githubOrgs`, a GitHub account is followed by its organizations: the
+    // profile asks for a user's and shows the logins `done` gets.
+    using GithubOrgsLookup =
+            std::function<void(const QString &githubName, std::function<void(const QStringList &logins)> done)>;
+    virtual void setCompactConnections(const std::optional<CompactConnections> &connections,
+                                       GithubOrgsLookup githubOrgs)
+    {
+        Q_UNUSED(connections);
+        Q_UNUSED(githubOrgs);
+    }
 };
 
 class ReadStateService
@@ -151,6 +292,52 @@ public:
     // Marks every unread channel, voice channel and joined thread in every
     // server as read, like Discord's "Mark As Read" on all servers at once.
     virtual void markAllServersRead(Id accountId) = 0;
+};
+
+// Servers' roles, owners and channel permission overwrites, and members
+// (PermissionsViewer); everything comes from the client's cache.
+class GuildDirectory
+{
+public:
+    virtual ~GuildDirectory() = default;
+    [[nodiscard]] virtual std::optional<GuildInfo> guild(Id accountId, Id guildId) const = 0;
+    [[nodiscard]] virtual std::optional<ChannelInfo> channel(Id accountId, Id channelId) const = 0;
+    // nullopt when the user isn't known; isMember says whether they are in
+    // the server
+    [[nodiscard]] virtual std::optional<MemberInfo> member(Id accountId, Id guildId, Id userId) const = 0;
+    // Asks Discord for members the cache lacks (op 8); they arrive later
+    virtual void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) = 0;
+    // Your servers, and a server's members the client has loaded
+    [[nodiscard]] virtual QList<Id> guildIds(Id accountId) const
+    {
+        Q_UNUSED(accountId);
+        return {};
+    }
+    [[nodiscard]] virtual QList<Id> memberIds(Id accountId, Id guildId) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        return {};
+    }
+};
+
+// Users on Discord (ValidUser): whether the client knows one, fetching one
+// (GET /users/{id}; the client keeps what it gets), and re-rendering a
+// message once it does
+class UserLookupService
+{
+public:
+    struct Result
+    {
+        bool ok = false;
+        int status = 0; // HTTP status, 429 when rate limited
+        int retryAfterMs = 0;
+    };
+    using Callback = std::function<void(const Result &)>;
+    virtual ~UserLookupService() = default;
+    [[nodiscard]] virtual bool isKnown(Id accountId, Id userId) const = 0;
+    virtual void fetchUser(Id accountId, Id userId, Callback done) = 0;
+    virtual void refreshMessage(Id accountId, Id channelId, Id messageId) = 0;
 };
 
 // Emojis, stickers and what you may use where.
@@ -229,6 +416,48 @@ public:
     virtual void refreshFilters() = 0;
 };
 
+// Messages and channels that links point at (MessageLinkEmbeds).
+class MessageLookupService
+{
+public:
+    virtual ~MessageLookupService() = default;
+    // A message the client has (loaded, stored, or fetched before)
+    [[nodiscard]] virtual std::optional<LinkedMessage> message(Id accountId, Id channelId, Id messageId) = 0;
+    // GET /channels/{channel}/messages?limit=1&around={message}; `done` says
+    // whether it came back
+    virtual void fetchMessage(Id accountId, Id channelId, Id messageId, std::function<void(bool found)> done) = 0;
+    [[nodiscard]] virtual std::optional<LinkedChannel> channel(Id accountId, Id channelId) = 0;
+};
+
+// How voice audio plays (VolumeBooster).
+class AudioOptionsService
+{
+public:
+    virtual ~AudioOptionsService() = default;
+    // User volume sliders go up to 200% times this (1 to 5)
+    virtual void setUserVolumeMultiplier(double multiplier) = 0;
+};
+
+// Your DMs and group DMs, newest first (Discord's sorted private channels).
+class PrivateChannelDirectory
+{
+public:
+    virtual ~PrivateChannelDirectory() = default;
+    [[nodiscard]] virtual QList<PrivateChannelInfo> privateChannels(Id accountId) const = 0;
+};
+
+// Who is in voice where (UserVoiceShow), from the client's voice states.
+class VoiceStateDirectory
+{
+public:
+    virtual ~VoiceStateDirectory() = default;
+    [[nodiscard]] virtual std::optional<UserVoiceState> voiceState(Id accountId, Id userId) const = 0;
+    [[nodiscard]] virtual QList<Id> channelUsers(Id accountId, Id channelId) const = 0;
+    [[nodiscard]] virtual std::optional<LinkedChannel> channel(Id accountId, Id channelId) const = 0;
+    // A user's name as the server (or, with no server, Discord) shows it
+    [[nodiscard]] virtual QString displayName(Id accountId, Id guildId, Id userId) const = 0;
+};
+
 struct Services
 {
     NetworkService *network = nullptr;
@@ -242,6 +471,12 @@ struct Services
     ReadStateService *readStates = nullptr;
     ReactionService *reactions = nullptr;
     ExpressionService *expressions = nullptr;
+    GuildDirectory *guilds = nullptr;
+    UserLookupService *users = nullptr;
+    PrivateChannelDirectory *privateChannels = nullptr;
+    AudioOptionsService *audio = nullptr;
+    MessageLookupService *messageLookup = nullptr;
+    VoiceStateDirectory *voiceStates = nullptr;
 };
 
 } // namespace Plugins

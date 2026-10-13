@@ -39,9 +39,15 @@ private slots:
         QCOMPARE(h.ui.dialogSections[0].text, QStringLiteral("**hi** <@123>"));
         QCOMPARE(h.ui.dialogSections[1].text, message().rawJson);
         QVERIFY(h.ui.dialogSections[1].monospace);
+        // upstream's copyWithToast messages for the modal's copy buttons
+        QCOMPARE(h.ui.dialogSections[0].copiedToast, QStringLiteral("Content copied to clipboard!"));
+        QCOMPARE(h.ui.dialogSections[1].copiedToast, QStringLiteral("Message data copied to clipboard!"));
 
         h.host->dispatchMessageContextMenuAction(h.id, items[1].item.id, message());
         QCOMPARE(h.clipboard.text, QStringLiteral("**hi** <@123>"));
+        QCOMPARE(h.ui.toasts.size(), 1);
+        QCOMPARE(h.ui.toasts[0].first, QStringLiteral("Copied to clipboard!"));
+        QCOMPARE(h.ui.toasts[0].second, UiService::ToastType::Success);
     }
 
     void emptyContentShowsOnlyData()

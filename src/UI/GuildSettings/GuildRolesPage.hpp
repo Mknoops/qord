@@ -30,6 +30,16 @@ class QTreeWidget;
 namespace Acheron {
 namespace UI {
 
+// Discord's permission names and descriptions, in the order of its role
+// settings (also used by PermissionsViewer)
+struct PermissionText
+{
+    quint64 bit = 0;
+    QString title;
+    QString description;
+};
+QList<PermissionText> permissionTexts();
+
 class UnsavedChangesBar;
 
 class GuildRolesPage : public GuildSettingsPage

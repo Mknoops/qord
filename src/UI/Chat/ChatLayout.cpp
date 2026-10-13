@@ -1,5 +1,7 @@
 #include "ChatLayout.hpp"
 
+#include <QFontDatabase>
+
 #include "UI/Chat/VideoControls.hpp"
 
 #include "Core/Theme/Fonts.hpp"
@@ -561,8 +563,65 @@ EmbedLayout calculateEmbedLayout(const EmbedData &embed, const QFont &font, int 
     return layout;
 }
 
+QFont textPreviewFont()
+{
+    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    font.setPixelSize(13);
+    return font;
+}
+
+QStringList textPreviewLines(const AttachmentData &att)
+{
+    QString text = att.textPreview;
+    text.replace(QLatin1String("\r\n"), QLatin1String("\n"));
+    text.replace(QLatin1Char('\t'), QLatin1String("    "));
+    QStringList lines = text.split(QLatin1Char('\n'));
+    if (lines.size() > 1 && lines.last().isEmpty())
+        lines.removeLast(); // the file's final newline
+    const int shown = att.textExpanded ? textPreviewExpandedLines() : textPreviewCollapsedLines();
+    return lines.mid(0, shown);
+}
+
+bool textPreviewCanExpand(const AttachmentData &att)
+{
+    int lines = int(att.textPreview.count(QLatin1Char('\n')));
+    if (!att.textPreview.endsWith(QLatin1Char('\n')))
+        ++lines;
+    return lines > textPreviewCollapsedLines() || att.textBytesLeft > 0;
+}
+
+TextPreviewButtons textPreviewButtons(const QRect &box, const AttachmentData &att)
+{
+    TextPreviewButtons out;
+    out.footer = QRect(box.left(), box.bottom() - textPreviewFooterHeight() + 1, box.width(), textPreviewFooterHeight());
+    out.body = QRect(box.left(), box.top(), box.width(), box.height() - textPreviewFooterHeight());
+    constexpr int size = 24;
+    constexpr int gap = 4;
+    int right = out.footer.right() - 8;
+    const int top = out.footer.top() + (out.footer.height() - size) / 2;
+    auto next = [&]() {
+        QRect rect(right - size + 1, top, size, size);
+        right -= size + gap;
+        return rect;
+    };
+    out.download = next();
+    out.view = next();
+    if (textPreviewCanExpand(att))
+        out.expand = next();
+    for (int i = 0; i < att.textButtons.size(); ++i)
+        out.plugins.append(next());
+    return out;
+}
+
 int attachmentBoxHeight(const AttachmentData &att)
 {
+    if (att.isText && att.textLoaded) {
+        const int lineHeight = QFontMetrics(textPreviewFont()).lineSpacing();
+        int lines = int(textPreviewLines(att).size());
+        if (att.textExpanded && att.textBytesLeft > 0)
+            ++lines; // "N bytes left"
+        return 8 + lines * lineHeight + 8 + textPreviewFooterHeight();
+    }
     if (att.isAudio)
         return att.isVoiceMessage ? VideoControls::barHeight()
                                   : fileAttachmentHeight() + VideoControls::barHeight();
@@ -861,8 +920,9 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
             if (!ctx.attachments[i].isMedia()) {
                 const auto &att = ctx.attachments[i];
                 const int boxHeight = attachmentBoxHeight(att);
-                const int boxWidth = att.isVoiceMessage ? std::min(fileWidth, voiceMessageWidth())
-                                                        : fileWidth;
+                const int boxWidth = att.isVoiceMessage                 ? std::min(fileWidth, voiceMessageWidth())
+                                     : att.isText && att.textLoaded ? std::min(textWidth, textPreviewWidth())
+                                                                    : fileWidth;
 
                 AttachmentLayout attLayout;
                 attLayout.index = i;
@@ -948,7 +1008,15 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
             const auto &reaction = ctx.reactions[i];
 
             int countTextWidth = reactionFm.horizontalAdvance(QString::number(reaction.count));
-            int pillWidth = reactionPillPadding() + reactionEmojiSize() + 4 + countTextWidth + reactionPillPadding();
+            // Qord: avatars of who reacted, overlapping, then "+N"
+            constexpr int AvatarPx = 16;
+            constexpr int AvatarStep = 12;
+            const int avatars = int(reaction.userAvatars.size());
+            const QString more = reaction.moreUsers > 0 ? QStringLiteral("+%1").arg(reaction.moreUsers) : QString();
+            const int moreWidth = more.isEmpty() ? 0 : reactionFm.horizontalAdvance(more) + 4;
+            const int avatarsWidth = avatars ? 6 + AvatarPx + (avatars - 1) * AvatarStep + moreWidth : 0;
+            int pillWidth = reactionPillPadding() + reactionEmojiSize() + 4 + countTextWidth + avatarsWidth +
+                            reactionPillPadding();
 
             // wrap to next row if needed
             if (currentX + pillWidth > maxX && currentX > textLeft) {
@@ -970,6 +1038,11 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
             rl.pillRect = pillRect;
             rl.emojiRect = emojiRect;
             rl.countRect = countRect;
+            for (int a = 0; a < avatars; ++a)
+                rl.avatarRects.append(QRect(countRect.right() + 1 + 6 + a * AvatarStep,
+                                            currentY + (rowHeight - AvatarPx) / 2, AvatarPx, AvatarPx));
+            if (!more.isEmpty())
+                rl.moreRect = QRect(rl.avatarRects.last().right() + 4, currentY, moreWidth - 4, rowHeight);
             layout.reactionLayouts.append(rl);
 
             currentX += pillWidth + reactionSpacing();
@@ -1034,6 +1107,20 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
     }
     for (const auto &al : layout.fileLayouts) {
         const AttachmentData &att = ctx.attachments[al.index];
+        if (att.isText && att.textLoaded) {
+            const TextPreviewButtons buttons = textPreviewButtons(al.rect, att);
+            if (!buttons.expand.isNull())
+                layout.hitRegions.append({ HitRegion::Kind::AttachmentTextButton, buttons.expand, al.index, 0,
+                                           att.textExpanded ? QObject::tr("Collapse") : QObject::tr("Expand") });
+            layout.hitRegions.append({ HitRegion::Kind::AttachmentTextButton, buttons.view, al.index, 1,
+                                       QObject::tr("View whole file") });
+            layout.hitRegions.append({ HitRegion::Kind::AttachmentTextButton, buttons.download, al.index, 2,
+                                       QObject::tr("Download") });
+            for (int i = 0; i < buttons.plugins.size(); ++i)
+                layout.hitRegions.append({ HitRegion::Kind::AttachmentTextButton, buttons.plugins[i], al.index, 100 + i,
+                                           att.textButtons[i].tooltip });
+            continue;
+        }
         if (!att.isAudio) {
             layout.hitRegions.append({ HitRegion::Kind::AttachmentFile, al.rect, al.index, -1, {} });
             continue;
@@ -1051,8 +1138,13 @@ MessageLayout calculateMessageLayout(const LayoutContext &ctx)
     for (const auto &sl : layout.stickerLayouts)
         layout.hitRegions.append({ HitRegion::Kind::Sticker, sl.rect, sl.stickerIndex, -1, {} });
 
-    for (const auto &rl : layout.reactionLayouts)
+    for (const auto &rl : layout.reactionLayouts) {
+        // Avatars first, so a click on one finds it before the pill
+        if (rl.reactionIndex < ctx.reactions.size() && ctx.reactions[rl.reactionIndex].usersClickable)
+            for (int a = int(rl.avatarRects.size()) - 1; a >= 0; --a)
+                layout.hitRegions.append({ HitRegion::Kind::ReactionUser, rl.avatarRects[a], rl.reactionIndex, a, {} });
         layout.hitRegions.append({ HitRegion::Kind::Reaction, rl.pillRect, rl.reactionIndex, -1, {} });
+    }
 
     return layout;
 }

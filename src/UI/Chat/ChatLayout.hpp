@@ -71,6 +71,39 @@ constexpr int voiceMessageWidth() noexcept
     return 300;
 }
 int attachmentBoxHeight(const AttachmentData &att);
+
+// Qord: Discord's text file preview: the first lines of the file above a
+// footer with its name, size and buttons
+constexpr int textPreviewWidth() noexcept
+{
+    return 520;
+}
+constexpr int textPreviewFooterHeight() noexcept
+{
+    return 40;
+}
+constexpr int textPreviewCollapsedLines() noexcept
+{
+    return 6;
+}
+constexpr int textPreviewExpandedLines() noexcept
+{
+    return 100;
+}
+QFont textPreviewFont();
+// The lines shown, after tabs are expanded
+QStringList textPreviewLines(const AttachmentData &att);
+[[nodiscard]] bool textPreviewCanExpand(const AttachmentData &att);
+struct TextPreviewButtons
+{
+    QRect body;
+    QRect footer;
+    QRect expand; // null when there is nothing more to show
+    QRect view;
+    QRect download;
+    QList<QRect> plugins;
+};
+TextPreviewButtons textPreviewButtons(const QRect &box, const AttachmentData &att);
 QRect audioBarRect(const QRect &attachmentBox, bool voiceMessage);
 constexpr int maxAttachmentWidth() noexcept
 {
@@ -189,6 +222,8 @@ struct ReactionLayout
     QRect pillRect;
     QRect emojiRect;
     QRect countRect;
+    QList<QRect> avatarRects; // Qord: who reacted (WhoReacted)
+    QRect moreRect; // "+N" past the avatars
 };
 
 struct AttachmentLayout
@@ -222,6 +257,10 @@ struct HitRegion
         EmbedFieldName,
         EmbedFieldValue,
         Reaction,
+        ReactionUser, // Qord: an avatar on a reaction (index: reaction, subIndex: user)
+        // Qord: a text file preview's button (index: attachment; subIndex: 0
+        // expand, 1 view, 2 download, 100 + n plugin button n; url: tooltip)
+        AttachmentTextButton,
         Sticker,
 
         TextLink,

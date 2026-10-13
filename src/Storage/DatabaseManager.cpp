@@ -178,6 +178,8 @@ void DatabaseManager::setupCacheTables(const QString &connName)
 	        "invites_disabled_until" TEXT,
 	        "dms_disabled_until" TEXT,
 	        "lockdown_duration_hours" INTEGER,
+
+	        "extra" TEXT,
 	        PRIMARY KEY("id")
         )
     )");
@@ -198,6 +200,7 @@ void DatabaseManager::setupCacheTables(const QString &connName)
 	        "default_sort_order" INTEGER,
 	        "flags" INTEGER,
 	        "topic" TEXT,
+	        "extra" TEXT,
 	        PRIMARY KEY("id")
         );
     )");

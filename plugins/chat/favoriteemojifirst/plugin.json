@@ -1,0 +1,45 @@
+{
+  "id": "favoriteemojifirst",
+  "equicordName": "FavoriteEmojiFirst",
+  "equicordPath": "src/plugins/favEmojiFirst",
+  "name": "FavoriteEmojiFirst",
+  "description": "Puts your favorite emoji first in the emoji autocomplete and also has emoji alias.",
+  "categories": [
+    "chat"
+  ],
+  "tags": [
+    "Emotes",
+    "Customisation"
+  ],
+  "authors": [
+    "Aria",
+    "Ven",
+    "justjxke"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "modify_outgoing_messages"
+  ],
+  "hooks": [
+    "emojiSuggestions",
+    "onBeforeSend"
+  ],
+  "settings": [
+    {
+      "key": "aliases",
+      "type": "json",
+      "default": {},
+      "label": "Aliases",
+      "description": "Manage your emoji aliases."
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Your Discord favorite emojis come first in the emoji autocomplete (Qord now reads them, and the emoji picker shows them in a Favorites section). Right-click an emoji in the picker for \"Set alias\" (or \"Edit alias\"): your own name for it, 2 to 32 lowercase letters, numbers or underscores, one per emoji. Typing :alias suggests the emoji first (an exact alias before favorites, aliases starting with what you typed after them), and :alias: in a message is sent as the emoji. The plugin's settings list your aliases, to rename or remove, and can delete them all.",
+  "gaps": [
+    "Set alias is only in the emoji picker; upstream also offers it on emojis in messages and in the message box.",
+    "Favoriting or unfavoriting an emoji isn't possible from Qord yet (favorites are read from Discord)."
+  ]
+}

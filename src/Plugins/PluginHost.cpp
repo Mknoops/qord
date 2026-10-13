@@ -170,15 +170,21 @@ void PluginHost::onSettingChanged(Entry &entry, const QString &key)
 
 void PluginHost::notifyHooksChanged(Hooks hooks)
 {
-    if (hooks.testFlag(Hook::TransformIncomingContent))
+    if (hooks.testFlag(Hook::TransformIncomingContent) || hooks.testFlag(Hook::MessageAccessories))
         emit displayTransformsChanged();
     if (hooks.testFlag(Hook::ChatBarButtons))
         emit chatBarChanged();
+    if (hooks.testFlag(Hook::DmPins))
+        emit dmListChanged();
+    if (hooks.testFlag(Hook::FriendsSections))
+        emit friendsChanged();
     if (hooks.testFlag(Hook::MessageFilter) || hooks.testFlag(Hook::MessageHistory))
         emit messageFiltersChanged();
     if (hooks.testFlag(Hook::AuthorNames) || hooks.testFlag(Hook::Typing) || hooks.testFlag(Hook::ServerListButtons) ||
         hooks.testFlag(Hook::MemberCounts) || hooks.testFlag(Hook::UserDecorations) ||
-        hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers))
+        hooks.testFlag(Hook::VoiceStates) || hooks.testFlag(Hook::ReactionUsers) ||
+        hooks.testFlag(Hook::HiddenChannels) || hooks.testFlag(Hook::AttachmentButtons) ||
+        hooks.testFlag(Hook::ChannelTyping))
         emit presentationChanged();
 }
 
@@ -210,6 +216,9 @@ bool PluginHost::start(Entry &entry, QString *error)
     entry.context = std::make_unique<PluginContext>(m.id, s, entry.info.granted & m.permissions, services,
                                                     QDir(dataDir).filePath(m.id));
     entry.context->onChatBarChanged = [this] { emit chatBarChanged(); };
+    entry.context->onDmListChanged = [this] { emit dmListChanged(); };
+    entry.context->pluginEnabled = [this](const QString &pluginId) { return isEnabled(pluginId); };
+    entry.context->onFriendsChanged = [this] { emit friendsChanged(); };
     bool ok = true;
     try {
         plugin->start(*entry.context);
@@ -716,8 +725,23 @@ QList<NameDecoration> PluginHost::dispatchNameDecorations(const DecorationContex
     QList<NameDecoration> out;
     const int h = hookIndex(Hook::UserDecorations);
     for (size_t i = 0; i < tables[h].size(); ++i)
-        guarded(tableIds[h][i], "nameDecorations", [&] { out += tables[h][i]->nameDecorations(user); });
+        guarded(tableIds[h][i], "nameDecorations", [&] {
+            QList<NameDecoration> decorations = tables[h][i]->nameDecorations(user);
+            for (auto &d : decorations)
+                d.pluginId = tableIds[h][i];
+            out += decorations;
+        });
     return out;
+}
+
+void PluginHost::dispatchNameDecorationClicked(const QString &pluginId, const QString &clickId,
+                                               const DecorationContext &user, bool doubleClick)
+{
+    const int h = hookIndex(Hook::UserDecorations);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        if (tableIds[h][i] == pluginId)
+            guarded(tableIds[h][i], "onNameDecorationClicked",
+                    [&] { tables[h][i]->onNameDecorationClicked(clickId, user, doubleClick); });
 }
 
 bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
@@ -732,11 +756,11 @@ bool PluginHost::dispatchProfileImageClicked(const ProfileImageContext &image)
     return false;
 }
 
-std::optional<QList<Id>> PluginHost::dispatchReactionUsers(const ReactionContext &reaction)
+std::optional<ReactionUsers> PluginHost::dispatchReactionUsers(const ReactionContext &reaction)
 {
     const int h = hookIndex(Hook::ReactionUsers);
     for (size_t i = 0; i < tables[h].size(); ++i) {
-        std::optional<QList<Id>> users;
+        std::optional<ReactionUsers> users;
         guarded(tableIds[h][i], "reactionUsers", [&] { users = tables[h][i]->reactionUsers(reaction); });
         if (users)
             return users;
@@ -800,6 +824,235 @@ void PluginHost::dispatchUserContextMenuAction(const QString &pluginId, const QS
 {
     if (Plugin *plugin = tablePlugin(Hook::UserContextMenu, pluginId))
         guarded(pluginId, "onUserContextMenuAction", [&] { plugin->onUserContextMenuAction(itemId, user); });
+}
+
+bool PluginHost::dispatchShortcut(const ShortcutContext &shortcut)
+{
+    const auto &table = tables[hookIndex(Hook::KeyboardShortcuts)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        bool used = false;
+        guarded(tableIds[hookIndex(Hook::KeyboardShortcuts)][i], "onShortcut", [&] { used = table[i]->onShortcut(shortcut); });
+        if (used)
+            return true;
+    }
+    return false;
+}
+
+void PluginHost::dispatchUserMentionHovered(const MentionContext &mention)
+{
+    const auto &table = tables[hookIndex(Hook::UnknownMentions)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::UnknownMentions)][i], "onUserMentionHovered",
+                [&] { table[i]->onUserMentionHovered(mention); });
+}
+
+std::optional<TypingIndicator> PluginHost::dispatchChannelTypingIndicator(const ChannelTypingContext &channel)
+{
+    const auto &table = tables[hookIndex(Hook::ChannelTyping)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<TypingIndicator> out;
+        guarded(tableIds[hookIndex(Hook::ChannelTyping)][i], "channelTypingIndicator",
+                [&] { out = table[i]->channelTypingIndicator(channel); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
+}
+
+QList<PluginHost::PluginAccessory> PluginHost::dispatchMessageAccessories(const MessageContext &message)
+{
+    QList<PluginAccessory> out;
+    const auto &table = tables[hookIndex(Hook::MessageAccessories)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::MessageAccessories)][i];
+        guarded(id, "messageAccessory", [&] {
+            if (auto accessory = table[i]->messageAccessory(message))
+                out.append({ id, *accessory });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchMessageAccessoryAction(const QString &pluginId, const QString &actionId,
+                                                const MessageContext &message)
+{
+    if (Plugin *plugin = tablePlugin(Hook::MessageAccessories, pluginId))
+        guarded(pluginId, "onMessageAccessoryAction", [&] { plugin->onMessageAccessoryAction(actionId, message); });
+}
+
+QList<PluginHost::PluginButton> PluginHost::dispatchAttachmentButtons(const AttachmentContext &attachment)
+{
+    QList<PluginButton> out;
+    const auto &table = tables[hookIndex(Hook::AttachmentButtons)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::AttachmentButtons)][i];
+        guarded(id, "attachmentButtons", [&] {
+            for (const auto &button : table[i]->attachmentButtons(attachment))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
+                                                 const AttachmentContext &attachment)
+{
+    if (Plugin *plugin = tablePlugin(Hook::AttachmentButtons, pluginId))
+        guarded(pluginId, "onAttachmentButtonClicked", [&] { plugin->onAttachmentButtonClicked(buttonId, attachment); });
+}
+
+std::optional<HiddenChannelDisplay> PluginHost::dispatchHiddenChannelDisplay()
+{
+    const auto &table = tables[hookIndex(Hook::HiddenChannels)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<HiddenChannelDisplay> out;
+        guarded(tableIds[hookIndex(Hook::HiddenChannels)][i], "hiddenChannelDisplay",
+                [&] { out = table[i]->hiddenChannelDisplay(); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
+}
+
+std::optional<LockScreen> PluginHost::dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel)
+{
+    const auto &table = tables[hookIndex(Hook::HiddenChannels)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        std::optional<LockScreen> out;
+        guarded(tableIds[hookIndex(Hook::HiddenChannels)][i], "hiddenChannelLockScreen",
+                [&] { out = table[i]->hiddenChannelLockScreen(channel); });
+        if (out)
+            return out;
+    }
+    return std::nullopt;
+}
+
+QList<PluginHost::PluginButton> PluginHost::dispatchProfileRoleButtons(const UserContext &user)
+{
+    QList<PluginButton> out;
+    const auto &table = tables[hookIndex(Hook::ProfileRoleButtons)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::ProfileRoleButtons)][i];
+        guarded(id, "profileRoleButtons", [&] {
+            for (const auto &button : table[i]->profileRoleButtons(user))
+                out.append({ id, button });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchProfileRoleButtonClicked(const QString &pluginId, const QString &buttonId,
+                                                  const UserContext &user)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ProfileRoleButtons, pluginId))
+        guarded(pluginId, "onProfileRoleButtonClicked", [&] { plugin->onProfileRoleButtonClicked(buttonId, user); });
+}
+
+void PluginHost::dispatchSortEmojiSuggestions(EmojiAutocompleteContext &context)
+{
+    const auto &table = tables[hookIndex(Hook::EmojiSuggestions)];
+    for (size_t i = 0; i < table.size(); ++i)
+        guarded(tableIds[hookIndex(Hook::EmojiSuggestions)][i], "sortEmojiSuggestions",
+                [&] { table[i]->sortEmojiSuggestions(context); });
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchEmojiContextMenuItems(const EmojiContext &emoji)
+{
+    QList<PluginMenuItem> out;
+    const auto &table = tables[hookIndex(Hook::EmojiSuggestions)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::EmojiSuggestions)][i];
+        guarded(id, "emojiContextMenuItems", [&] {
+            for (const auto &item : table[i]->emojiContextMenuItems(emoji))
+                out.append({ id, item });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji)
+{
+    if (Plugin *plugin = tablePlugin(Hook::EmojiSuggestions, pluginId))
+        guarded(pluginId, "onEmojiContextMenuAction", [&] { plugin->onEmojiContextMenuAction(itemId, emoji); });
+}
+
+QList<FriendsSection> PluginHost::dispatchFriendsSections(const FriendsContext &friends)
+{
+    QList<FriendsSection> out;
+    const int h = hookIndex(Hook::FriendsSections);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        guarded(tableIds[h][i], "friendsSections", [&] {
+            for (FriendsSection section : tables[h][i]->friendsSections(friends)) {
+                // Ids are per plugin
+                section.id = tableIds[h][i] + QLatin1Char('/') + section.id;
+                out.append(section);
+            }
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchFriendsPageOpened(const FriendsContext &friends)
+{
+    const int h = hookIndex(Hook::FriendsSections);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "onFriendsPageOpened", [&] { tables[h][i]->onFriendsPageOpened(friends); });
+}
+
+std::optional<QPair<QString, DmPinLayout>> PluginHost::dispatchDmPinLayout(Id accountId)
+{
+    const auto &table = tables[hookIndex(Hook::DmPins)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::DmPins)][i];
+        std::optional<DmPinLayout> layout;
+        guarded(id, "dmPinLayout", [&] { layout = table[i]->dmPinLayout(accountId); });
+        if (layout)
+            return qMakePair(id, *layout);
+    }
+    return std::nullopt;
+}
+
+void PluginHost::dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "onDmPinHeaderClicked", [&] { plugin->onDmPinHeaderClicked(accountId, headerId); });
+}
+
+QList<MenuItem> PluginHost::dispatchDmPinHeaderMenu(const QString &pluginId, Id accountId, const QString &headerId)
+{
+    QList<MenuItem> out;
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "dmPinHeaderMenu", [&] { out = plugin->dmPinHeaderMenu(accountId, headerId); });
+    return out;
+}
+
+void PluginHost::dispatchDmPinHeaderMenuAction(const QString &pluginId, Id accountId, const QString &headerId,
+                                               const QString &itemId)
+{
+    if (Plugin *plugin = tablePlugin(Hook::DmPins, pluginId))
+        guarded(pluginId, "onDmPinHeaderMenuAction",
+                [&] { plugin->onDmPinHeaderMenuAction(accountId, headerId, itemId); });
+}
+
+QList<PluginHost::PluginProfileTab> PluginHost::dispatchProfileTabs(const UserContext &user)
+{
+    QList<PluginProfileTab> out;
+    const auto &table = tables[hookIndex(Hook::ProfileTabs)];
+    for (size_t i = 0; i < table.size(); ++i) {
+        const QString &id = tableIds[hookIndex(Hook::ProfileTabs)][i];
+        guarded(id, "profileTabs", [&] {
+            for (const auto &tab : table[i]->profileTabs(user))
+                out.append({ id, tab });
+        });
+    }
+    return out;
+}
+
+void PluginHost::dispatchProfileTabRowClicked(const QString &pluginId, const QString &tabId, const QString &rowId,
+                                              const UserContext &user)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ProfileTabs, pluginId))
+        guarded(pluginId, "onProfileTabRowClicked", [&] { plugin->onProfileTabRowClicked(tabId, rowId, user); });
 }
 
 } // namespace Plugins

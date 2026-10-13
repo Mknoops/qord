@@ -161,6 +161,9 @@ void VoiceClient::stop()
     localRtxSsrc = 0;
     videoCodecAssigned = false;
     depacketizers.clear();
+    pacer.clear();
+    if (pacerTimer)
+        pacerTimer->stop();
     selectedMode.clear();
     sessionKey.clear();
 
@@ -513,6 +516,10 @@ void VoiceClient::setVideoActive(bool active, int width, int height, int fps, in
     if (!gateway || !localVideoSsrc)
         return;
     gateway->sendVideo(localSsrc, localVideoSsrc, localRtxSsrc, active, width, height, fps, maxBitrate);
+    if (active)
+        pacer.setBitrate(maxBitrate);
+    if (!pacerClock.isValid())
+        pacerClock.start();
     // Discord's clients mark a stream connection speaking while it sends
     // media; on the call's own connection the microphone decides that
     if (videoStreamType == QLatin1String("screen"))
@@ -530,6 +537,8 @@ void VoiceClient::sendVideoFrame(const QByteArray &annexB, quint32 timestamp)
     if (currentState != State::Connected || !encryption || !udpTransport || !localVideoSsrc || annexB.isEmpty())
         return;
 
+    if (!pacerClock.isValid())
+        pacerClock.start();
     QByteArray frame = annexB;
     if (isDaveEnabled()) {
         auto *enc = daveSession->encryptor();
@@ -566,8 +575,31 @@ void VoiceClient::sendVideoFrame(const QByteArray &annexB, quint32 timestamp)
         const QByteArray sealed = encryption->encrypt(clear, ext.body + payloads[i]);
         if (sealed.isEmpty())
             return;
-        udpTransport->send(clear + sealed);
+        pacer.push(clear + sealed, pacerClock.elapsed());
     }
+    pumpPacer();
+}
+
+void VoiceClient::pumpPacer()
+{
+    if (!udpTransport) {
+        pacer.clear();
+        return;
+    }
+    const qint64 now = pacerClock.elapsed();
+    for (const QByteArray &packet : pacer.take(now))
+        udpTransport->send(packet);
+    const int delay = pacer.nextDelayMs(now);
+    if (delay < 0)
+        return;
+    if (!pacerTimer) {
+        pacerTimer = new QTimer(this);
+        pacerTimer->setSingleShot(true);
+        pacerTimer->setTimerType(Qt::PreciseTimer);
+        connect(pacerTimer, &QTimer::timeout, this, &VoiceClient::pumpPacer);
+    }
+    if (!pacerTimer->isActive())
+        pacerTimer->start(qMax(1, delay));
 }
 
 void VoiceClient::onVideoOp(const QJsonObject &data)

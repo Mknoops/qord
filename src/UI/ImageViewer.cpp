@@ -1,4 +1,7 @@
 #include "ImageViewer.hpp"
+#include "Core/ImageLens.hpp"
+
+#include <QPainterPath>
 
 #include <QPainter>
 #include <QMouseEvent>
@@ -117,6 +120,8 @@ void ImageViewer::paintEvent(QPaintEvent *event)
                     scaledSize.width(), scaledSize.height());
 
     painter.drawPixmap(destRect, currentImage, QRectF(QPointF(0, 0), currentImage.size()));
+    if (lensActive)
+        paintLens(painter, destRect);
 
     if (isLoadingFull) {
         painter.setPen(Qt::white);
@@ -126,9 +131,39 @@ void ImageViewer::paintEvent(QPaintEvent *event)
 
     // help text
     painter.setPen(QColor(255, 255, 255, 150));
-    painter.drawText(
-            rect().adjusted(10, 0, -10, -10), Qt::AlignBottom | Qt::AlignHCenter,
-            tr("Scroll to zoom  |  Drag to pan  |  Esc or click outside to close  |  R to reset"));
+    painter.drawText(rect().adjusted(10, 0, -10, -10), Qt::AlignBottom | Qt::AlignHCenter,
+                     Core::imageLensOptions().enabled
+                             ? tr("Hold to magnify (scroll: zoom, Shift+scroll: lens size)  |  Scroll to zoom  |  "
+                                  "Right-drag to pan  |  Esc or click outside to close  |  R to reset")
+                             : tr("Scroll to zoom  |  Drag to pan  |  Esc or click outside to close  |  R to reset"));
+}
+
+// Qord: ImageZoom. The part of the picture under the cursor, lensZoom times
+// larger than shown, in a round (or square) lens centred on the cursor.
+void ImageViewer::paintLens(QPainter &painter, const QRectF &imageRect)
+{
+    const auto &options = Core::imageLensOptions();
+    const QRectF lens(lensPos.x() - lensSize / 2.0, lensPos.y() - lensSize / 2.0, lensSize, lensSize);
+    const QRectF magnified(lensPos - (lensPos - imageRect.topLeft()) * lensZoom, imageRect.size() * lensZoom);
+    painter.save();
+    QPainterPath clip;
+    if (options.square)
+        clip.addRect(lens);
+    else
+        clip.addEllipse(lens);
+    painter.setClipPath(clip);
+    painter.fillRect(lens, QColor(0, 0, 0));
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, !options.nearestNeighbour);
+    painter.drawPixmap(magnified, currentImage, QRectF(QPointF(0, 0), currentImage.size()));
+    painter.setClipping(false);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(QColor(128, 128, 128), 2));
+    painter.setBrush(Qt::NoBrush);
+    if (options.square)
+        painter.drawRect(lens);
+    else
+        painter.drawEllipse(lens);
+    painter.restore();
 }
 
 void ImageViewer::mousePressEvent(QMouseEvent *event)
@@ -141,18 +176,37 @@ void ImageViewer::mousePressEvent(QMouseEvent *event)
                          center.y() - scaledSize.height() / 2.0, scaledSize.width(),
                          scaledSize.height());
 
-        if (imageRect.contains(event->pos())) {
+        if (imageRect.contains(event->pos()) && Core::imageLensOptions().enabled) {
+            // Qord: ImageZoom's lens, from the saved zoom and size each time
+            lensActive = true;
+            lensZoom = Core::imageLensOptions().zoom;
+            lensSize = Core::imageLensOptions().size;
+            lensPos = event->pos();
+            setCursor(Qt::BlankCursor);
+            update();
+        } else if (imageRect.contains(event->pos())) {
             isPanning = true;
             lastMousePos = event->pos();
             setCursor(Qt::ClosedHandCursor);
         } else {
             close();
         }
+    } else if ((event->button() == Qt::RightButton || event->button() == Qt::MiddleButton) &&
+               Core::imageLensOptions().enabled) {
+        // With the lens on the left button, the others pan
+        isPanning = true;
+        lastMousePos = event->pos();
+        setCursor(Qt::ClosedHandCursor);
     }
 }
 
 void ImageViewer::mouseMoveEvent(QMouseEvent *event)
 {
+    if (lensActive) {
+        lensPos = event->pos();
+        update();
+        return;
+    }
     if (isPanning) {
         QPointF delta = event->pos() - lastMousePos;
         panOffset += delta;
@@ -163,7 +217,13 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event)
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton && isPanning) {
+    if (event->button() == Qt::LeftButton && lensActive) {
+        lensActive = false;
+        unsetCursor();
+        update();
+        return;
+    }
+    if (isPanning) {
         isPanning = false;
         setCursor(Qt::OpenHandCursor);
     }
@@ -176,6 +236,22 @@ void ImageViewer::wheelEvent(QWheelEvent *event)
 #else
     QPointF mousePos = event->posF();
 #endif
+    // Qord: ImageZoom. While magnifying, the wheel changes the lens (deltaY
+    // as in the web: 100 per notch, positive scrolling down)
+    if (lensActive) {
+        auto &options = Core::imageLensOptions();
+        const double deltaY = -event->angleDelta().y() * 100.0 / 120.0;
+        const double direction = options.invertScroll ? -1.0 : 1.0;
+        if (event->modifiers().testFlag(Qt::ShiftModifier))
+            lensSize = qMax(50, int(lensSize + deltaY * direction * options.zoomSpeed));
+        else
+            lensZoom = qMax(1.0, lensZoom + deltaY / 100.0 * direction * options.zoomSpeed);
+        // A copy: saving the values can install a new callback
+        if (const auto changed = options.changed)
+            changed(lensZoom, lensSize);
+        update();
+        return;
+    }
     QPointF beforeZoom = widgetToImage(mousePos);
 
     qreal factor = event->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15;

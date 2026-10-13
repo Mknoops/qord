@@ -1,0 +1,18 @@
+{
+  "id": "copyfilecontents",
+  "equicordName": "CopyFileContents",
+  "equicordPath": "src/plugins/copyFileContents",
+  "name": "CopyFileContents",
+  "description": "Adds a button to text file attachments to copy their contents",
+  "categories": ["utility"],
+  "tags": ["Utility"],
+  "authors": ["Obsidian", "Nuckyz"],
+  "permissions": ["add_ui_elements", "write_clipboard"],
+  "hooks": ["attachmentButtons"],
+  "settings": [],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The copy button sits in a text file's preview and in its \"View whole file\" window. It copies with a \"Copied to clipboard!\" toast and shows a check mark for two seconds; a file Qord loaded only the start of (over 50,000 bytes) can't be copied, as upstream says, \"File too large to copy\"."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "whoreacted",
+  "equicordName": "WhoReacted",
+  "equicordPath": "src/plugins/whoReacted",
+  "name": "WhoReacted",
+  "description": "Renders the avatars of users who reacted to a message",
+  "categories": ["chat", "appearance"],
+  "tags": ["Reactions", "Chat", "Appearance"],
+  "authors": ["Ven", "KannaDev", "newwares", "paige"],
+  "permissions": ["read_reactions"],
+  "hooks": ["reactionUsers"],
+  "settings": [
+    { "key": "clickableAvatars", "type": "bool", "default": true, "label": "Clickable avatars",
+      "description": "While this is enabled, clicking a reacting user's avatar will open their profile instead of adding the reaction" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "gaps": [],
+  "notes": "Up to five avatars and \"+N\" next to each reaction's count, on messages with at most ten reactions, as upstream. Reactions are fetched one at a time, newest first, 250 ms apart, and kept up to date as people react; users NoBlockedMessages hides are left out. The setting applies at once (upstream needs a restart)."
+}

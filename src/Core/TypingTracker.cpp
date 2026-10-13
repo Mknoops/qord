@@ -50,6 +50,7 @@ void TypingTracker::addTyper(Snowflake channelId, Snowflake userId,
     }
     if (!found) {
         typers.append(entry);
+        emit channelTypersChanged(channelId);
     }
 
     if (channelId == activeChannel) {
@@ -65,6 +66,7 @@ void TypingTracker::removeTyper(Snowflake channelId, Snowflake userId)
     if (it != typers.end()) {
         typers.erase(it);
         emit typersChanged();
+        emit channelTypersChanged(channelId);
     }
 }
 
@@ -72,6 +74,15 @@ void TypingTracker::clear()
 {
     channelTypers.clear();
     emit typersChanged();
+    emit channelTypersChanged(Snowflake::Invalid);
+}
+
+QList<Snowflake> TypingTracker::typers(Snowflake channelId) const
+{
+    QList<Snowflake> out;
+    for (const auto &entry : channelTypers.value(channelId))
+        out.append(entry.userId);
+    return out;
 }
 
 QList<TyperInfo> TypingTracker::getActiveTypers() const
@@ -109,6 +120,8 @@ void TypingTracker::cleanupExpired()
 
         if (list.size() != before && it.key() == activeChannel)
             activeChannelChanged = true;
+        if (list.size() != before)
+            emit channelTypersChanged(it.key());
 
         if (list.isEmpty()) {
             it = channelTypers.erase(it);

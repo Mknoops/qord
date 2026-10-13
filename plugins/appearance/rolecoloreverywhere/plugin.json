@@ -1,0 +1,39 @@
+{
+  "id": "rolecoloreverywhere",
+  "equicordName": "RoleColorEverywhere",
+  "equicordPath": "src/plugins/roleColorEverywhere",
+  "name": "RoleColorEverywhere",
+  "description": "Adds the top role color anywhere possible",
+  "categories": ["appearance"],
+  "tags": ["Roles", "Appearance"],
+  "authors": ["KingFish", "lewisakura", "AutumnVN", "Kyuuhachi", "jamesbt365"],
+  "permissions": ["modify_displayed_messages"],
+  "hooks": [],
+  "settings": [
+    { "key": "chatMentions", "type": "bool", "default": true, "label": "Chat mentions",
+      "description": "Show role colors in chat mentions (including in the message box)" },
+    { "key": "memberList", "type": "bool", "default": true, "label": "Member list",
+      "description": "Show role colors in member list role headers" },
+    { "key": "voiceUsers", "type": "bool", "default": true, "label": "Voice users",
+      "description": "Show role colors in the voice chat user list" },
+    { "key": "reactorsList", "type": "bool", "default": true, "label": "Reactors list",
+      "description": "Show role colors in the reactors list" },
+    { "key": "pollResults", "type": "bool", "default": true, "label": "Poll results",
+      "description": "Show role colors in the poll results" },
+    { "key": "colorChatMessages", "type": "bool", "default": false, "label": "Color chat messages",
+      "description": "Color chat messages based on the author's role color" },
+    { "key": "messageSaturation", "type": "int", "default": 30, "min": 0, "max": 100, "label": "Message saturation",
+      "description": "Intensity of message coloring." }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "User mentions in messages show in the member's top role color on a 10% background of it, member list role headers in their role's color, people in voice channels in their role color, and, with \"Color chat messages\", message text mixed with the author's role color (CSS color-mix in oklab, at the saturation setting; not failed sends). Changes apply at once, where upstream needs a restart.",
+  "gaps": [
+    "Mentions typed in the message box aren't colored (Qord's message box shows them as text).",
+    "Qord has no reactors list or poll voter list, so those two settings do nothing yet.",
+    "Thread member lists aren't covered (Qord shows the channel's member list in threads).",
+    "CustomUserColors' colors aren't used, as that plugin isn't ported."
+  ]
+}

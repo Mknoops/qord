@@ -28,6 +28,18 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Core/Markdown/QordRules.cpp
     src/UI/Qord/UserPanel.hpp
     src/UI/Qord/UserPanel.cpp
+    src/UI/Qord/Toast.hpp
+    src/UI/Qord/Toast.cpp
+    src/UI/Qord/FlowLayout.hpp
+    src/UI/Qord/FlowLayout.cpp
+    src/UI/Qord/PermissionsView.hpp
+    src/UI/Qord/PermissionsView.cpp
+    src/UI/Qord/HiddenChannelScreen.hpp
+    src/UI/Qord/HiddenChannelScreen.cpp
+    src/UI/Qord/TextFileDialog.hpp
+    src/UI/Qord/TextFileDialog.cpp
+    src/UI/Qord/ServerInfoDialog.hpp
+    src/UI/Qord/ServerInfoDialog.cpp
     src/UI/Qord/MessageListPopup.hpp
     src/UI/Qord/MessageListPopup.cpp
     src/UI/Qord/MainWindowQord.cpp
@@ -54,6 +66,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Qord/SlashCommands.cpp
     src/Qord/Video/H264Rtp.hpp
     src/Qord/Video/H264Rtp.cpp
+    src/Qord/Video/Pacer.hpp
+    src/Qord/Video/Pacer.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE qord_builtin_plugins qord_builtin_plugin_widgets)
 # Video (Go Live, cameras) needs ffmpeg's H.264 encoders and decoder, and voice
@@ -107,6 +121,12 @@ if(BUILD_TESTS)
     target_compile_definitions(TestQordMarkdown PRIVATE QORD_MARKDOWN_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/qord")
     add_test(NAME QordMarkdownTests COMMAND TestQordMarkdown)
 
+    qt_add_executable(TestQordUi tests/qord/tst_qord_ui.cpp src/UI/Qord/FlowLayout.cpp)
+    target_link_libraries(TestQordUi PRIVATE Qt::Core Qt::Gui Qt::Widgets Qt::Test)
+    target_include_directories(TestQordUi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestQordUi PROPERTIES AUTOMOC ON)
+    add_test(NAME QordUiTests COMMAND TestQordUi)
+
     qt_add_executable(TestSlashCommands tests/qord/tst_slash_commands.cpp src/Qord/SlashCommands.cpp)
     target_link_libraries(TestSlashCommands PRIVATE Qt::Core Qt::Test)
     target_include_directories(TestSlashCommands PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -121,6 +141,12 @@ if(BUILD_TESTS)
     target_include_directories(TestLogRedaction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     set_target_properties(TestLogRedaction PROPERTIES AUTOMOC ON)
     add_test(NAME QordLogRedactionTests COMMAND TestLogRedaction)
+
+    qt_add_executable(TestPacer tests/qord/tst_pacer.cpp src/Qord/Video/Pacer.cpp)
+    target_link_libraries(TestPacer PRIVATE Qt::Core Qt::Test)
+    target_include_directories(TestPacer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestPacer PROPERTIES AUTOMOC ON)
+    add_test(NAME QordPacerTests COMMAND TestPacer)
 
     qt_add_executable(TestH264Rtp tests/qord/tst_h264_rtp.cpp src/Qord/Video/H264Rtp.cpp)
     target_link_libraries(TestH264Rtp PRIVATE Qt::Core Qt::Test)

@@ -2,6 +2,9 @@
 
 #include "Core/ClientInstance.hpp"
 #include "Core/Presence/PresenceManager.hpp"
+#ifndef ACHERON_NO_VOICE
+#include "Core/Audio/VoiceManager.hpp"
+#endif
 #include "Core/Session.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "Core/UserManager.hpp"
@@ -31,10 +34,12 @@ Qord::Plugins::DecorationContext::Place pluginPlace(NameDecorations::Place place
     return Qord::Plugins::DecorationContext::Place::Message;
 }
 
-// "#rrggbb", or "status:<status>" for the theme's status colour
+// "#rrggbb", "status:<status>" for the theme's status colour, or "icon"
 QColor resolveColor(const QString &color)
 {
     using Core::Theme::Token;
+    if (color == QLatin1String("icon"))
+        return Core::Theme::Manager::instance().color(Token::MutedText);
     if (!color.startsWith(QLatin1String("status:")))
         return QColor(color);
     const QString status = color.mid(7);
@@ -82,24 +87,41 @@ void NameDecorations::watch(Core::ClientInstance *instance)
     const quint64 accountId = quint64(instance->accountId());
     watched.insert(accountId);
     connect(instance->presences(), &Core::PresenceManager::presencesChanged, this,
-            [this, accountId](const QList<Core::Snowflake> &userIds) {
-                if (cache.isEmpty())
-                    return;
-                bool dropped = false;
-                const QString accountPrefix = QString::number(accountId) + QLatin1Char('/');
-                for (auto it = cache.begin(); it != cache.end();) {
-                    const QStringList parts = it.key().split(QLatin1Char('/'));
-                    if (it.key().startsWith(accountPrefix) && parts.size() == 4 &&
-                        userIds.contains(Core::Snowflake(parts[2].toULongLong()))) {
-                        it = cache.erase(it);
-                        dropped = true;
-                    } else {
-                        ++it;
-                    }
-                }
-                if (dropped)
-                    emit changed();
-            });
+            [this, accountId](const QList<Core::Snowflake> &userIds) { dropUsers(accountId, userIds); });
+#ifndef ACHERON_NO_VOICE
+    // UserVoiceShow: icons follow voice states
+    if (auto *voice = instance->voice()) {
+        // (the tooltip lists who else is there)
+        connect(voice, &Core::Audio::VoiceManager::channelVoiceMemberChanged, this,
+                [this, accountId, voice](Core::Snowflake channelId, Core::Snowflake userId, bool) {
+                    dropUsers(accountId, voice->channelVoiceUsers(channelId) << userId);
+                });
+        connect(voice, &Core::Audio::VoiceManager::participantVoiceStateChanged, this,
+                [this, accountId](Core::Snowflake, Core::Snowflake userId) { dropUsers(accountId, { userId }); });
+        connect(voice, &Core::Audio::VoiceManager::voiceStateChanged, this,
+                [this, accountId, instance]() { dropUsers(accountId, { instance->accountId() }); });
+    }
+#endif
+}
+
+void NameDecorations::dropUsers(quint64 accountId, const QList<Core::Snowflake> &userIds)
+{
+    if (cache.isEmpty())
+        return;
+    bool dropped = false;
+    const QString accountPrefix = QString::number(accountId) + QLatin1Char('/');
+    for (auto it = cache.begin(); it != cache.end();) {
+        const QStringList parts = it.key().split(QLatin1Char('/'));
+        if (it.key().startsWith(accountPrefix) && parts.size() == 4 &&
+            userIds.contains(Core::Snowflake(parts[2].toULongLong()))) {
+            it = cache.erase(it);
+            dropped = true;
+        } else {
+            ++it;
+        }
+    }
+    if (dropped)
+        emit changed();
 }
 
 void NameDecorations::invalidate()
@@ -159,29 +181,47 @@ QList<NameDecorations::Decoration> NameDecorations::forUser(Core::Snowflake acco
         return cached.value();
 
     QList<Decoration> out;
-    Core::ClientInstance *instance = session ? session->client(accountId) : nullptr;
-    if (instance) {
-        Qord::Plugins::DecorationContext ctx;
-        ctx.accountId = quint64(accountId);
-        ctx.guildId = Qord::Plugins::pluginId(guildId);
-        ctx.userId = quint64(userId);
-        ctx.place = pluginPlace(place);
-        ctx.isSelf = userId == instance->accountId();
-        if (const auto user = instance->users()->getUser(userId))
-            ctx.isBot = user->bot.hasValue() && user->bot.get();
-        ctx.clientStatus = instance->presences()->clientPlatforms(userId, guildId);
-        if (ctx.isSelf)
-            for (const auto &s : instance->presences()->ownSessions())
-                ctx.ownSessions.append({ s.client, s.status.hasValue() ? s.status.get() : QString() });
+    Qord::Plugins::DecorationContext ctx;
+    if (context(accountId, guildId, userId, place, ctx)) {
         for (const auto &d : host->dispatchNameDecorations(ctx)) {
             const QSize size(qBound(1, d.width, 64), qBound(1, d.height, 64));
-            out.append({ render(d.svg, d.color, size, dpr), size, d.tooltip });
+            out.append({ render(d.svg, d.color, size, dpr), size, d.tooltip, d.pluginId, d.clickId });
         }
     }
     if (cache.size() > 4096)
         cache.clear();
     cache.insert(key, out);
     return out;
+}
+
+bool NameDecorations::context(Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake userId, Place place,
+                              Qord::Plugins::DecorationContext &ctx) const
+{
+    Core::ClientInstance *instance = session ? session->client(accountId) : nullptr;
+    if (!instance)
+        return false;
+    ctx.accountId = quint64(accountId);
+    ctx.guildId = Qord::Plugins::pluginId(guildId);
+    ctx.userId = quint64(userId);
+    ctx.place = pluginPlace(place);
+    ctx.isSelf = userId == instance->accountId();
+    if (const auto user = instance->users()->getUser(userId))
+        ctx.isBot = user->bot.hasValue() && user->bot.get();
+    ctx.clientStatus = instance->presences()->clientPlatforms(userId, guildId);
+    if (ctx.isSelf)
+        for (const auto &s : instance->presences()->ownSessions())
+            ctx.ownSessions.append({ s.client, s.status.hasValue() ? s.status.get() : QString() });
+    return true;
+}
+
+void NameDecorations::click(Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake userId, Place place,
+                            const Decoration &decoration, bool doubleClick)
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    Qord::Plugins::DecorationContext ctx;
+    if (!host || !decoration.clickable() || !context(accountId, guildId, userId, place, ctx))
+        return;
+    host->dispatchNameDecorationClicked(decoration.pluginId, decoration.clickId, ctx, doubleClick);
 }
 
 int NameDecorations::width(const QList<Decoration> &decorations)

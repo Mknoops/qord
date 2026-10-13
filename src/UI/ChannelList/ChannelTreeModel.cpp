@@ -5,11 +5,13 @@
 
 #include <Core/ClientInstance.hpp>
 #include <Core/ForumManager.hpp>
+#include <Core/PermissionManager.hpp>
 #include <Core/Presence/PresenceBadge.hpp>
 #include <Core/ReadStateManager.hpp>
 #include <Core/Logging.hpp>
 #include <Discord/CdnUrls.hpp>
 #include <Discord/Enums.hpp>
+#include <Plugins/PluginHost.hpp>
 #include <Storage/DatabaseManager.hpp>
 #include <Storage/ChannelRepository.hpp>
 #include <Storage/UserRepository.hpp>
@@ -219,6 +221,66 @@ QVariant ChannelTreeModel::data(const QModelIndex &index, int role) const
     }
     if (role == OwnerIdRole)
         return static_cast<quint64>(node->ownerId);
+    if (role == DmPinRankRole)
+        return dmPinRank(node);
+
+    if (role == TypingIndicatorRole) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const bool typingRow = node->type == ChannelNode::Type::Channel || node->type == ChannelNode::Type::VoiceChannel ||
+                               node->type == ChannelNode::Type::Thread || node->type == ChannelNode::Type::DMChannel;
+        if (!typingRow || !typingSource.typers || !host || !host->hasHook(Qord::Plugins::Hook::ChannelTyping))
+            return {};
+        ChannelNode *accNode = getAccountNodeFor(node);
+        if (!accNode)
+            return {};
+        const QList<Snowflake> typers = typingSource.typers(accNode->id, node->id);
+        if (typers.isEmpty())
+            return {};
+        ChannelNode *guildNode = findGuildNode(node);
+        Qord::Plugins::ChannelTypingContext context;
+        context.accountId = quint64(accNode->id);
+        context.guildId = guildNode ? quint64(guildNode->id) : 0;
+        context.channelId = quint64(node->id);
+        context.selected = typingSource.isSelected && typingSource.isSelected(node->id);
+        context.muted = node->isMuted;
+        for (const Snowflake id : typers)
+            context.typers.append(quint64(id));
+        const auto indicator = host->dispatchChannelTypingIndicator(context);
+        if (!indicator)
+            return {};
+        ChannelTyping out;
+        out.dots = indicator->dots;
+        out.tooltip = indicator->tooltip;
+        auto *instance = session->client(accNode->id);
+        for (int i = 0; i < indicator->avatars.size(); ++i) {
+            if (i >= 3) {
+                out.moreUsers = int(indicator->avatars.size()) - 3;
+                break;
+            }
+            const Snowflake userId(indicator->avatars[i]);
+            const auto user = instance ? instance->users()->getUser(userId) : std::nullopt;
+            const QUrl url = user ? Discord::Cdn::userAvatar(userId, user->avatar.valueOr(), 32)
+                                  : Discord::Cdn::defaultUserAvatar(userId, 32);
+            out.avatars.append(avatarTracker.fetch(session->getImageManager(), url, QSize(16, 16), index, accNode->id,
+                                                   Core::PinGroup::ChannelList));
+        }
+        return QVariant::fromValue(out);
+    }
+
+    if (role == CanViewRole || role == CanConnectRole) {
+        const bool voice = node->type == ChannelNode::Type::VoiceChannel;
+        if (node->type != ChannelNode::Type::Channel && !voice && node->type != ChannelNode::Type::Forum)
+            return true;
+        if (role == CanConnectRole && !voice)
+            return true;
+        ChannelNode *accNode = getAccountNodeFor(node);
+        auto *instance = accNode ? session->client(accNode->id) : nullptr;
+        if (!instance || !instance->permissions())
+            return true;
+        return instance->permissions()->hasChannelPermission(
+                accNode->id, node->id,
+                role == CanViewRole ? Discord::Permission::VIEW_CHANNEL : Discord::Permission::CONNECT);
+    }
 
     if (role == PresenceBadgeRole) {
         if ((node->type != ChannelNode::Type::DMChannel &&
@@ -476,6 +538,9 @@ void ChannelTreeModel::populateFromReady(const Discord::Ready &ready)
 
     refreshReadStates(accNode, instance);
     publishTotalMentionCount();
+    // Qord: PinDMs
+    applyDmPins(ready.user->id);
+    emit dmPinsChanged();
 }
 
 ChannelNode *ChannelTreeModel::getAccountNodeFor(ChannelNode *node)
@@ -967,6 +1032,161 @@ QList<Snowflake> ChannelTreeModel::guildIds(Snowflake accountId) const
                     out.append(inner->id);
     }
     return out;
+}
+
+QList<const ChannelNode *> ChannelTreeModel::dmChannels(Snowflake accountId) const
+{
+    QList<const ChannelNode *> out;
+    const ChannelNode *accNode = accountNodes.value(accountId, nullptr);
+    if (!accNode)
+        return out;
+    for (const auto &child : accNode->children)
+        if (child->type == ChannelNode::Type::DMHeader)
+            for (const auto &dm : child->children)
+                if (dm->type == ChannelNode::Type::DMChannel)
+                    out.append(dm.get());
+    std::stable_sort(out.begin(), out.end(), [](const ChannelNode *a, const ChannelNode *b) {
+        return quint64(a->lastMessageId) > quint64(b->lastMessageId);
+    });
+    return out;
+}
+
+Snowflake ChannelTreeModel::accountIdFor(const ChannelNode *node) const
+{
+    while (node && node->type != ChannelNode::Type::Account)
+        node = node->parent;
+    return node ? node->id : Snowflake::Invalid;
+}
+
+QString ChannelTreeModel::dmPinPlugin(Snowflake accountId) const
+{
+    const auto it = dmPins.constFind(accountId);
+    return it == dmPins.constEnd() ? QString() : it->pluginId;
+}
+
+void ChannelTreeModel::refreshDmPins()
+{
+    for (auto it = accountNodes.constBegin(); it != accountNodes.constEnd(); ++it)
+        applyDmPins(it.key());
+    emit dmPinsChanged();
+}
+
+void ChannelTreeModel::applyDmPins(Snowflake accountId)
+{
+    ChannelNode *accNode = accountNodes.value(accountId, nullptr);
+    if (!accNode)
+        return;
+    ChannelNode *dmHeader = nullptr;
+    for (const auto &child : accNode->children)
+        if (child->type == ChannelNode::Type::DMHeader)
+            dmHeader = child.get();
+    if (!dmHeader)
+        return;
+
+    // Drop the old header rows
+    for (int row = int(dmHeader->children.size()) - 1; row >= 0; --row) {
+        if (dmHeader->children[row]->type != ChannelNode::Type::DMPinHeader)
+            continue;
+        beginRemoveRows(indexForNode(dmHeader), row, row);
+        dmHeader->children.erase(dmHeader->children.begin() + row);
+        endRemoveRows();
+    }
+    dmPins.remove(accountId);
+
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const auto result = host && host->hasHook(Qord::Plugins::Hook::DmPins)
+                                ? host->dispatchDmPinLayout(quint64(accountId))
+                                : std::nullopt;
+    if (!result || result->second.categories.isEmpty())
+        return;
+    const auto &layout = result->second;
+    DmPins pins;
+    pins.pluginId = result->first;
+    pins.sortByLastMessage = layout.sortByLastMessage;
+    pins.sectionCollapsible = layout.dmSectionCollapsible;
+    pins.sectionCollapsed = layout.dmSectionCollapsible && layout.dmSectionCollapsed;
+    pins.categoryCount = int(layout.categories.size());
+
+    std::vector<std::unique_ptr<ChannelNode>> headers;
+    auto header = [&](const QString &id, const QString &name, quint32 color, bool collapsed, bool collapsible = true) {
+        auto node = std::make_unique<ChannelNode>();
+        node->type = ChannelNode::Type::DMPinHeader;
+        node->pinHeaderId = id;
+        node->name = name;
+        node->pinColor = color;
+        node->collapsed = collapsed;
+        node->pinCollapsible = collapsible;
+        headers.push_back(std::move(node));
+    };
+    for (int i = 0; i < layout.categories.size(); ++i) {
+        const auto &category = layout.categories[i];
+        header(category.id, category.name, category.color, category.collapsed);
+        if (category.collapsed)
+            pins.collapsed.insert(category.id);
+        for (int j = 0; j < category.channelIds.size(); ++j) {
+            const Snowflake channelId(category.channelIds[j]);
+            pins.pinned.insert(channelId, { i, j });
+            pins.categoryOf.insert(channelId, category.id);
+        }
+    }
+    header(QString::fromLatin1(Qord::Plugins::DmSectionHeaderId), tr("Direct Messages"), 0, pins.sectionCollapsed,
+           pins.sectionCollapsible);
+    dmPins.insert(accountId, pins);
+
+    const int first = int(dmHeader->children.size());
+    beginInsertRows(indexForNode(dmHeader), first, first + int(headers.size()) - 1);
+    for (auto &node : headers)
+        dmHeader->addChild(std::move(node));
+    endInsertRows();
+}
+
+QPoint ChannelTreeModel::dmPinRank(const ChannelNode *node) const
+{
+    if (!node || (node->type != ChannelNode::Type::DMChannel && node->type != ChannelNode::Type::DMPinHeader))
+        return {};
+    const auto it = dmPins.constFind(accountIdFor(node));
+    if (it == dmPins.constEnd())
+        return {};
+    if (node->type == ChannelNode::Type::DMPinHeader) {
+        if (node->pinHeaderId == QLatin1String(Qord::Plugins::DmSectionHeaderId))
+            return { it->categoryCount, -1 };
+        // Categories in the order their headers were added
+        int index = 0;
+        for (const auto &child : node->parent->children) {
+            if (child.get() == node)
+                break;
+            if (child->type == ChannelNode::Type::DMPinHeader)
+                ++index;
+        }
+        return { index, -1 };
+    }
+    const auto pin = it->pinned.constFind(node->id);
+    if (pin == it->pinned.constEnd())
+        return { it->categoryCount, 0 };
+    return { pin->first, it->sortByLastMessage ? 0 : pin->second };
+}
+
+bool ChannelTreeModel::dmPinsSortByLastMessage(const ChannelNode *node) const
+{
+    const auto it = dmPins.constFind(accountIdFor(node));
+    return it == dmPins.constEnd() || it->sortByLastMessage;
+}
+
+bool ChannelTreeModel::dmPinShows(const ChannelNode *node, Snowflake selectedAccountId,
+                                  Snowflake selectedChannelId) const
+{
+    if (!node || node->type != ChannelNode::Type::DMChannel)
+        return true;
+    const Snowflake accountId = accountIdFor(node);
+    const auto it = dmPins.constFind(accountId);
+    if (it == dmPins.constEnd())
+        return true;
+    if (accountId == selectedAccountId && node->id == selectedChannelId)
+        return true; // the open DM stays visible
+    const auto category = it->categoryOf.constFind(node->id);
+    if (category == it->categoryOf.constEnd())
+        return !it->sectionCollapsed;
+    return !it->collapsed.contains(*category);
 }
 
 QModelIndex ChannelTreeModel::dmHeaderIndex(Snowflake accountId)
@@ -1678,6 +1898,22 @@ void ChannelTreeModel::aggregateChildren(ChannelNode *node)
     if (node->type == ChannelNode::Type::Server || node->type == ChannelNode::Type::Folder ||
         node->type == ChannelNode::Type::DMHeader)
         node->isUnread = node->countsForGuildUnread;
+}
+
+void ChannelTreeModel::typingChanged(Snowflake accountId, Snowflake channelId)
+{
+    if (ChannelNode *node = findChannelTreeNode(channelId, accountId)) {
+        const QModelIndex idx = indexForNode(node);
+        if (idx.isValid())
+            emit dataChanged(idx, idx, { TypingIndicatorRole });
+    }
+}
+
+void ChannelTreeModel::refreshAllReadStates()
+{
+    for (auto it = accountNodes.cbegin(); it != accountNodes.cend(); ++it)
+        if (auto *instance = session->client(it.key()))
+            refreshReadStates(it.value(), instance);
 }
 
 void ChannelTreeModel::refreshReadStates(ChannelNode *node, Core::ClientInstance *instance)

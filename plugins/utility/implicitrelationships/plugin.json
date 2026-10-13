@@ -1,0 +1,21 @@
+{
+  "id": "implicitrelationships",
+  "equicordName": "ImplicitRelationships",
+  "equicordPath": "src/plugins/implicitRelationships",
+  "name": "ImplicitRelationships",
+  "description": "Shows your implicit relationships in the Friends tab.",
+  "categories": ["utility"],
+  "tags": ["Friends", "Servers"],
+  "authors": ["Dolfies"],
+  "permissions": ["read_relationships"],
+  "hooks": ["friendsSections"],
+  "settings": [
+    { "key": "sortByAffinity", "type": "bool", "default": true, "label": "Sort by affinity",
+      "description": "Whether to sort implicit relationships by their affinity to you." }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "The Friends page gets an \"Implicit\" tab after Blocked: the people Discord ranks you as talking to (GET /users/@me/affinities/v2/users, asked each time the Friends page opens, as upstream piggybacks Discord's relationship fetch) whom you have no relationship with, closest first or, without Sort by affinity, by name. People the client doesn't know are asked for in every server you are in (100 at a time) and shown when they arrive; ones you share no server with stay hidden, as upstream notes. Each row has a Message button."
+}

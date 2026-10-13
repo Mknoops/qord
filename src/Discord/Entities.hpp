@@ -27,6 +27,7 @@ struct User : Core::JsonUtils::JsonObject
     Field<QString, false, true> globalName;
     Field<QString, false, true> avatar;
     Field<bool, true> bot;
+    bool system = false; // Qord: Discord's own account (official notices)
     Field<QString, true, true> banner;
     Field<int, true, true> accentColor;
     Field<int, true> publicFlags;
@@ -42,6 +43,7 @@ struct User : Core::JsonUtils::JsonObject
         get(obj, "global_name", user.globalName);
         get(obj, "avatar", user.avatar);
         get(obj, "bot", user.bot);
+        user.system = obj.value(QStringLiteral("system")).toBool();
         get(obj, "banner", user.banner);
         get(obj, "accent_color", user.accentColor);
         get(obj, "public_flags", user.publicFlags);
@@ -50,6 +52,11 @@ struct User : Core::JsonUtils::JsonObject
         get(obj, "mfa_enabled", user.mfaEnabled);
         return user;
     }
+
+    // Qord: Discord's system account, which sends official notices. Its id
+    // is fixed, and cached users may not carry the flag.
+    static constexpr quint64 SystemUserId = 643945264868098049ull;
+    [[nodiscard]] bool isSystem() const { return system || (id.hasValue() && quint64(id.get()) == SystemUserId); }
 
     QString tag() const
     {
@@ -620,6 +627,12 @@ struct Channel : Core::JsonUtils::JsonObject
 
     // available_tags persistence
     QString availableTagsJson;
+    // Qord: settings only a few views show (ShowHiddenChannels' lock screen),
+    // kept as Discord sent them: nsfw, bitrate, rtc_region,
+    // video_quality_mode, default_auto_archive_duration,
+    // default_thread_rate_limit_per_user, default_forum_layout,
+    // default_reaction_emoji, last_pin_timestamp
+    QString extraJson;
 
     static Channel fromJson(const QJsonObject &obj)
     {
@@ -655,6 +668,16 @@ struct Channel : Core::JsonUtils::JsonObject
             QJsonDocument doc(obj.value("available_tags").toArray());
             channel.availableTagsJson = QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
         }
+        static const char *const extraKeys[] = { "nsfw", "bitrate", "rtc_region", "video_quality_mode",
+                                                 "default_auto_archive_duration",
+                                                 "default_thread_rate_limit_per_user", "default_forum_layout",
+                                                 "default_reaction_emoji", "last_pin_timestamp" };
+        QJsonObject extra;
+        for (const char *key : extraKeys)
+            if (obj.contains(QLatin1String(key)))
+                extra.insert(QLatin1String(key), obj.value(QLatin1String(key)));
+        if (!extra.isEmpty())
+            channel.extraJson = QString::fromUtf8(QJsonDocument(extra).toJson(QJsonDocument::Compact));
 
         return channel;
     }
@@ -773,6 +796,7 @@ struct Guild : Core::JsonUtils::JsonObject
     Field<bool, true> premiumProgressBarEnabled;
     Field<GuildPremiumFeatures, true, true> premiumFeatures;
     Field<GuildIncidentsData, true, true> incidentsData;
+    QString extraJson; // Qord: vanity_url_code and preferred_locale (ServerInfo)
 
     static Guild fromJson(const QJsonObject &obj)
     {
@@ -800,6 +824,13 @@ struct Guild : Core::JsonUtils::JsonObject
         get(obj, "premium_progress_bar_enabled", guild.premiumProgressBarEnabled);
         get(obj, "premium_features", guild.premiumFeatures);
         get(obj, "incidents_data", guild.incidentsData);
+        // Qord: settings only ServerInfo shows, as Discord sent them
+        QJsonObject extra;
+        for (const char *key : { "vanity_url_code", "preferred_locale" })
+            if (obj.contains(QLatin1String(key)))
+                extra.insert(QLatin1String(key), obj.value(QLatin1String(key)));
+        if (!extra.isEmpty())
+            guild.extraJson = QString::fromUtf8(QJsonDocument(extra).toJson(QJsonDocument::Compact));
         return guild;
     }
 
@@ -1282,6 +1313,9 @@ struct Message : Core::JsonUtils::JsonObject
     QString interactionUserName;
     Core::Snowflake interactionUserId;
     bool pinned = false; // Qord
+    // Qord: the thread started from this message (HAS_THREAD), when known
+    QString threadName;
+    int threadMessageCount = -1;
 
     std::shared_ptr<Message> snapshotMessage;
 
@@ -1305,6 +1339,7 @@ struct Message : Core::JsonUtils::JsonObject
     QList<int> qordHiddenAttachments;
     QList<int> qordHiddenEmbeds;
     QList<StickerItem> qordAddedStickers;
+    QList<Embed> qordAddedEmbeds; // after the message's own (MessageLinkEmbeds)
 
     // track for MESSAGE_UPDATE
     QSet<QString> presentKeys;
@@ -1355,6 +1390,9 @@ struct Message : Core::JsonUtils::JsonObject
                 message.interactionUserName = user.value(QStringLiteral("username")).toString();
             message.interactionUserId = Core::Snowflake(user.value(QStringLiteral("id")).toString().toULongLong());
             message.pinned = obj.value(QStringLiteral("pinned")).toBool();
+            const QJsonObject thread = obj.value(QStringLiteral("thread")).toObject();
+            message.threadName = thread.value(QStringLiteral("name")).toString();
+            message.threadMessageCount = thread.value(QStringLiteral("message_count")).toInt(-1);
         }
         get(obj, "channel_id", message.channelId);
         get(obj, "author", message.author);
@@ -1413,6 +1451,10 @@ struct Message : Core::JsonUtils::JsonObject
             type = update.type;
         if (present.contains(QStringLiteral("flags")))
             flags = update.flags;
+        if (present.contains(QStringLiteral("thread"))) { // Qord
+            threadName = update.threadName;
+            threadMessageCount = update.threadMessageCount;
+        }
         if (present.contains(QStringLiteral("mentions")))
             mentions = update.mentions;
         if (present.contains(QStringLiteral("mention_roles")))

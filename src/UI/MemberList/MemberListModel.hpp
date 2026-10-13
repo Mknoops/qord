@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include <QAbstractListModel>
 #include <QPixmap>
 #include <QPointer>
@@ -39,7 +41,15 @@ public:
         ActivityRole,
         AccountIdRole, // Qord: for name decorations
         GuildIdRole,
+        OwnerCrownRole, // Qord: the server owner's crown is shown
     };
+
+    // Qord: the crown next to a server's owner. Like Discord, it is left out
+    // in large servers (Qord's limit: LargeServerCrownLimit members) unless a
+    // plugin forces it (ForceOwnerCrown, Core::forceOwnerCrown).
+    static constexpr int LargeServerCrownLimit = 1000;
+    using OwnerProvider = std::function<Core::Snowflake(Core::Snowflake guildId)>;
+    void setOwnerProvider(OwnerProvider provider) { ownerProvider = std::move(provider); }
 
     explicit MemberListModel(Core::ImageManager *imageManager, QObject *parent = nullptr);
 
@@ -73,6 +83,8 @@ private:
     Core::Snowflake accountId;
 
     mutable AvatarRequestTracker<QPersistentModelIndex> avatarTracker;
+    OwnerProvider ownerProvider;
+    mutable QHash<Core::Snowflake, Core::Snowflake> owners; // by guild
 };
 
 } // namespace UI

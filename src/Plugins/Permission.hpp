@@ -35,6 +35,12 @@ enum class Permission : quint32 {
     ReadVoiceStates = 1u << 18, // voiceStates
     ReadReactions = 1u << 19, // reactionUsers, PluginContext::reactions()
     ReadExpressions = 1u << 20, // PluginContext::expressions()
+    ReadServerPermissions = 1u << 21, // PluginContext::guilds()
+    ShowHiddenChannels = 1u << 22, // hiddenChannels
+    FetchUsers = 1u << 23, // unknownMentions, PluginContext::users()
+    ReadDms = 1u << 24, // PluginContext::privateChannels()
+    ControlAudio = 1u << 25, // PluginContext::audio()
+    FetchMessages = 1u << 26, // PluginContext::messageLookup()
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -47,34 +53,93 @@ const QList<Permission> &allPermissions();
 
 // Hooks a plugin can implement. Each one requires a permission.
 // Keep in sync with HOOK_DISPATCH in tools/qord_inventory.py.
-enum class Hook : quint32 {
-    BeforeSend = 1u << 0,
-    BeforeEdit = 1u << 1,
-    ShouldMentionOnReply = 1u << 2,
-    TransformCopiedMessageLink = 1u << 3,
-    TransformIncomingContent = 1u << 4,
-    ChatBarButtons = 1u << 5,
-    UserContextMenu = 1u << 6,
-    MessageContextMenu = 1u << 7,
-    MessageHistory = 1u << 8,
-    MessageFilter = 1u << 9,
-    Typing = 1u << 10,
-    LinkWarnings = 1u << 11,
-    Notifications = 1u << 12,
-    AuthorNames = 1u << 13,
-    ChannelContextMenu = 1u << 14,
-    ServerListButtons = 1u << 15,
-    MemberCounts = 1u << 16,
-    UserDecorations = 1u << 17,
-    ProfileImages = 1u << 18,
-    VoiceStates = 1u << 19,
-    MessageClicks = 1u << 20,
-    ReactionUsers = 1u << 21,
+enum class Hook : quint64 {
+    BeforeSend = Q_UINT64_C(1) << 0,
+    BeforeEdit = Q_UINT64_C(1) << 1,
+    ShouldMentionOnReply = Q_UINT64_C(1) << 2,
+    TransformCopiedMessageLink = Q_UINT64_C(1) << 3,
+    TransformIncomingContent = Q_UINT64_C(1) << 4,
+    ChatBarButtons = Q_UINT64_C(1) << 5,
+    UserContextMenu = Q_UINT64_C(1) << 6,
+    MessageContextMenu = Q_UINT64_C(1) << 7,
+    MessageHistory = Q_UINT64_C(1) << 8,
+    MessageFilter = Q_UINT64_C(1) << 9,
+    Typing = Q_UINT64_C(1) << 10,
+    LinkWarnings = Q_UINT64_C(1) << 11,
+    Notifications = Q_UINT64_C(1) << 12,
+    AuthorNames = Q_UINT64_C(1) << 13,
+    ChannelContextMenu = Q_UINT64_C(1) << 14,
+    ServerListButtons = Q_UINT64_C(1) << 15,
+    MemberCounts = Q_UINT64_C(1) << 16,
+    UserDecorations = Q_UINT64_C(1) << 17,
+    ProfileImages = Q_UINT64_C(1) << 18,
+    VoiceStates = Q_UINT64_C(1) << 19,
+    MessageClicks = Q_UINT64_C(1) << 20,
+    ReactionUsers = Q_UINT64_C(1) << 21,
+    ProfileRoleButtons = Q_UINT64_C(1) << 22,
+    HiddenChannels = Q_UINT64_C(1) << 23,
+    AttachmentButtons = Q_UINT64_C(1) << 24,
+    ChannelTyping = Q_UINT64_C(1) << 25,
+    UnknownMentions = Q_UINT64_C(1) << 26,
+    KeyboardShortcuts = Q_UINT64_C(1) << 27,
+    MessageAccessories = Q_UINT64_C(1) << 28,
+    ProfileTabs = Q_UINT64_C(1) << 29,
+    DmPins = Q_UINT64_C(1) << 30,
+    EmojiSuggestions = Q_UINT64_C(1) << 31,
+    FriendsSections = Q_UINT64_C(1) << 32,
 };
-Q_DECLARE_FLAGS(Hooks, Hook)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Hooks)
 
-constexpr int HookCount = 22;
+// A set of hooks. QFlags holds at most 32 bits on Qt 5, so this is our own.
+class Hooks
+{
+public:
+    constexpr Hooks() = default;
+    constexpr Hooks(Hook hook) : bits(quint64(hook)) {}
+
+    [[nodiscard]] constexpr bool testFlag(Hook hook) const
+    {
+        return quint64(hook) != 0 && (bits & quint64(hook)) == quint64(hook);
+    }
+    Hooks &setFlag(Hook hook, bool on = true)
+    {
+        bits = on ? (bits | quint64(hook)) : (bits & ~quint64(hook));
+        return *this;
+    }
+    [[nodiscard]] constexpr quint64 toUInt64() const { return bits; }
+    constexpr explicit operator bool() const { return bits != 0; }
+    constexpr bool operator!() const { return bits == 0; }
+
+    constexpr Hooks operator|(Hooks other) const { return fromBits(bits | other.bits); }
+    constexpr Hooks operator&(Hooks other) const { return fromBits(bits & other.bits); }
+    Hooks &operator|=(Hooks other)
+    {
+        bits |= other.bits;
+        return *this;
+    }
+    Hooks &operator&=(Hooks other)
+    {
+        bits &= other.bits;
+        return *this;
+    }
+    constexpr bool operator==(Hooks other) const { return bits == other.bits; }
+    constexpr bool operator!=(Hooks other) const { return bits != other.bits; }
+
+private:
+    static constexpr Hooks fromBits(quint64 value)
+    {
+        Hooks h;
+        h.bits = value;
+        return h;
+    }
+    quint64 bits = 0;
+};
+
+constexpr Hooks operator|(Hook a, Hook b)
+{
+    return Hooks(a) | Hooks(b);
+}
+
+constexpr int HookCount = 33;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

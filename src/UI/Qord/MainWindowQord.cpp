@@ -19,7 +19,11 @@
 #include "UI/Qord/ExpressionPicker.hpp"
 #include "UI/Qord/SlashCommandPopup.hpp"
 #include <QJsonDocument>
+#include <QCursor>
 #include <QToolTip>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 #include "UI/Qord/FriendsPage.hpp"
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -29,15 +33,23 @@
 #include "Plugins/Client/MessageContexts.hpp"
 #include "UI/TypingIndicator.hpp"
 #include "Core/TypingTracker.hpp"
+#include "Core/ImageManager.hpp"
+#include "Core/NetworkRequest.hpp"
 #include "UI/Qord/AddServerDialog.hpp"
 #include "UI/Qord/DesktopNotifier.hpp"
 #include "UI/Qord/MessageListPopup.hpp"
 #include "UI/Qord/UserPanel.hpp"
+#include "UI/Qord/Toast.hpp"
+#include "UI/Qord/PermissionsView.hpp"
+#include "UI/Qord/HiddenChannelScreen.hpp"
+#include "UI/Qord/ServerInfoDialog.hpp"
 #include "UI/Qord/NameDecorations.hpp"
+#include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/ChannelList/ChannelFilterProxyModel.hpp"
 #include "UI/ChannelList/ChannelNode.hpp"
+#include "UI/ChannelList/ServerRailModel.hpp"
 #include "UI/MemberList/MemberListView.hpp"
 #include "UI/ImageViewer.hpp"
 #include "UI/ChannelList/ChannelDelegate.hpp"
@@ -61,6 +73,10 @@
 #include "Core/MemberListManager.hpp"
 
 #include <QDateTime>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QInputDialog>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QMenu>
 #include "Core/ReadStateManager.hpp"
@@ -69,6 +85,24 @@
 
 namespace Acheron {
 namespace UI {
+
+namespace {
+// Lets a callback see key presses first (QuickReply's shortcuts)
+class KeyFilter : public QObject
+{
+public:
+    KeyFilter(QObject *parent, std::function<bool(QKeyEvent *)> onKey) : QObject(parent), onKey(std::move(onKey)) {}
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::KeyPress && onKey(static_cast<QKeyEvent *>(event)))
+            return true;
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    std::function<bool(QKeyEvent *)> onKey;
+};
+} // namespace
 
 using Core::Snowflake;
 using Core::Theme::Token;
@@ -159,6 +193,86 @@ void MainWindow::addGoLiveItems(QMenu *menu, Core::ClientInstance *instance, Sno
 #endif
 }
 
+bool MainWindow::isSystemDm(Core::ClientInstance *instance, Snowflake channelId) const
+{
+    const auto channel = instance ? instance->getChannel(channelId) : std::nullopt;
+    if (!channel)
+        return false;
+    if (channel->recipients.hasValue())
+        for (const auto &user : channel->recipients.get())
+            if (user.isSystem())
+                return true;
+    if (channel->recipientIds.hasValue())
+        for (const Snowflake id : channel->recipientIds.get())
+            if (quint64(id) == Discord::User::SystemUserId)
+                return true;
+    return false;
+}
+
+bool MainWindow::canCreateThreadsIn(Core::ClientInstance *instance, Snowflake channelId) const
+{
+    if (!instance)
+        return false;
+    const auto channel = instance->getChannel(channelId);
+    if (!channel || channel->isThread() || !channel->type.hasValue())
+        return false;
+    const auto type = channel->type.get();
+    if (type != Discord::ChannelType::GUILD_TEXT && type != Discord::ChannelType::GUILD_NEWS)
+        return false;
+    return instance->permissions()->hasChannelPermission(instance->accountId(), channelId,
+                                                         Discord::Permission::CREATE_PUBLIC_THREADS);
+}
+
+void MainWindow::createThreadFromMessage(Snowflake channelId, Snowflake messageId, const QString &suggestedName)
+{
+    if (!currentInstance)
+        return;
+    QInputDialog dialog(this);
+    dialog.setWindowTitle(tr("Create Thread"));
+    dialog.setLabelText(tr("Thread name"));
+    dialog.setTextValue(suggestedName);
+    if (auto *edit = dialog.findChild<QLineEdit *>()) {
+        edit->setMaxLength(100); // Discord's limit
+        edit->setMinimumWidth(400);
+    }
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    const QString name = dialog.textValue().trimmed();
+    if (name.isEmpty())
+        return;
+    const QPointer<Core::ClientInstance> instance(currentInstance);
+    const QPointer<MainWindow> self(this);
+    currentInstance->discord()->createThreadFromMessage(
+            channelId, messageId, name, [self, instance](const Core::Result<Discord::Channel> &result) {
+                if (!self || !instance)
+                    return;
+                if (!result.success()) {
+                    QMessageBox::warning(self, tr("Create Thread"), tr("Couldn't create the thread: %1").arg(result.error));
+                    return;
+                }
+                const Snowflake threadId = result.value->id.get();
+                // THREAD_CREATE brings the thread into the channel list; it may
+                // come before or after this reply
+                if (instance->getChannel(threadId)) {
+                    self->navigateToChannel(threadId);
+                    return;
+                }
+                auto connection = std::make_shared<QMetaObject::Connection>();
+                *connection = connect(instance->discord(), &Discord::Client::threadCreated, self,
+                                      [self, threadId, connection](const Discord::ChannelCreate &event) {
+                                          if (event.channel->id.get() != threadId)
+                                              return;
+                                          disconnect(*connection);
+                                          QTimer::singleShot(0, self, [self, threadId]() {
+                                              if (self)
+                                                  self->navigateToChannel(threadId);
+                                          });
+                                      });
+                // Don't wait forever for an event that may never come
+                QTimer::singleShot(10000, self, [connection]() { disconnect(*connection); });
+            });
+}
+
 void MainWindow::setupQordFeatures()
 {
     applyQordSurfaces();
@@ -179,6 +293,13 @@ void MainWindow::setupQordFeatures()
         ChannelDelegate::setCameraProvider(nullptr);
     });
 #endif
+    // RoleColorEverywhere: voice participants in their role color
+    ChannelDelegate::setNameColorProvider([this](quint64 accountId, quint64 guildId, quint64 userId) {
+        if (!currentInstance || quint64(currentInstance->accountId()) != accountId)
+            return QColor();
+        return resolveRoleColor(Snowflake(userId), Snowflake(guildId));
+    });
+    connect(this, &QObject::destroyed, []() { ChannelDelegate::setNameColorProvider(nullptr); });
 #ifndef ACHERON_NO_VOICE
     // As in Discord: clicking a voice channel joins it, clicking someone who
     // is live opens their stream
@@ -207,6 +328,293 @@ void MainWindow::setupQordFeatures()
 #endif
     });
 #endif
+    // Toasts, for plugins (Vencord's showToast) and the client: over the
+    // window in front, so one opened from a dialog shows on the dialog
+    Qord::Plugins::QtUiService::toastShower() = [this](const QString &text, Qord::Plugins::UiService::ToastType type) {
+        QWidget *active = QApplication::activeWindow();
+        Toast::show(active ? active : this, text, Toast::Type(int(type)));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::toastShower() = nullptr; });
+
+    // Text file previews: the start of the file (a Range request, so a large
+    // file isn't downloaded), and plugin buttons on them (CopyFileContents)
+    chatModel->setTextLoader([this](const QUrl &url, QObject *context,
+                                    std::function<void(bool, const QByteArray &)> done) {
+        QNetworkAccessManager *network =
+                session->getImageManager()->networkManagerFor(currentInstance ? currentInstance->accountId() : Snowflake());
+        if (!network || !url.isValid()) {
+            done(false, {});
+            return;
+        }
+        QNetworkRequest request = Core::networkRequest(url); // the mock's CDN in mock mode
+        request.setRawHeader("Range", "bytes=0-" + QByteArray::number(ChatModel::TextPreviewBytes - 1));
+        QNetworkReply *reply = network->get(request);
+        connect(reply, &QNetworkReply::finished, context, [reply, done]() {
+            reply->deleteLater();
+            const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            const bool ok = reply->error() == QNetworkReply::NoError && (status == 200 || status == 206);
+            done(ok, ok ? reply->read(ChatModel::TextPreviewBytes) : QByteArray());
+        });
+    });
+    Qord::Plugins::QtUiService::attachmentRefresher() = [this](Qord::Plugins::Id accountId,
+                                                               Qord::Plugins::Id channelId,
+                                                               Qord::Plugins::Id messageId) {
+        if (currentInstance && quint64(currentInstance->accountId()) == accountId &&
+            quint64(chatModel->getActiveChannelId()) == channelId)
+            chatModel->refreshAttachments(Snowflake(messageId));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::attachmentRefresher() = nullptr; });
+
+    // QuickReply: Ctrl(+Shift)+Up/Down anywhere in this window go to
+    // plugins first, and the chat controls they use
+    Qord::Plugins::QtUiService::chatControls() = {
+        [this]() { messageInput->clearReplyTarget(); },
+        [this]() { chatView->stopEditingMessage(); },
+        [this]() { messageInput->editor()->setFocus(); },
+        [this](Qord::Plugins::Id messageId) {
+            const int row = chatModel->rowForMessage(Snowflake(messageId));
+            if (row < 0)
+                return;
+            const QModelIndex idx = chatModel->index(row, 0);
+            const QRect rect = chatView->visualRect(idx);
+            // Within 150 px of the edge, or out of view: bring it in (upstream's jumpIfOffScreen)
+            if (rect.isNull() || rect.bottom() < 150 || rect.top() - chatView->viewport()->height() >= -150)
+                chatView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        },
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::chatControls() = {}; });
+    qApp->installEventFilter(new KeyFilter(this, [this](QKeyEvent *event) {
+        if (event->key() != Qt::Key_Up && event->key() != Qt::Key_Down)
+            return false;
+        const auto mods = event->modifiers();
+#ifdef Q_OS_MACOS
+        const bool other = mods & Qt::AltModifier;
+#else
+        const bool other = (mods & Qt::AltModifier) || (mods & Qt::MetaModifier);
+#endif
+        if (!(mods & Qt::ControlModifier) || other || !isActiveWindow() || !currentInstance)
+            return false;
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host || !host->hasHook(Qord::Plugins::Hook::KeyboardShortcuts) || !chatModel->getActiveChannelId().isValid())
+            return false;
+        Qord::Plugins::ShortcutContext shortcut;
+        shortcut.accountId = quint64(currentInstance->accountId());
+        shortcut.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
+        shortcut.channelId = quint64(chatModel->getActiveChannelId());
+        shortcut.key = event->key() == Qt::Key_Up ? Qord::Plugins::ShortcutContext::Key::Up
+                                                  : Qord::Plugins::ShortcutContext::Key::Down;
+        shortcut.shift = mods & Qt::ShiftModifier;
+        shortcut.canSend = messageInput->isEnabled();
+        shortcut.replyingTo = Qord::Plugins::pluginId(messageInput->replyTargetMessageId());
+        shortcut.editing = Qord::Plugins::pluginId(chatView->editingMessageId());
+        const auto infos = chatModel->messageInfos();
+        for (int row = 0; row < infos.size(); ++row)
+            if (!chatView->isRowHidden(row)) // hidden by a plugin (NoBlockedMessages)
+                shortcut.messages.append(infos[row]);
+        return host->dispatchShortcut(shortcut);
+    }));
+
+    // Mentions: clicking one opens the profile; hovering one shown as
+    // "@unknown-user" lets ValidUser look the user up
+    connect(chatView, &ChatView::userMentionClicked, this, [this](Snowflake userId) {
+        if (currentInstance)
+            showUserProfile(currentInstance, userId, chatModel->getActiveGuildId());
+    });
+    connect(chatView, &ChatView::userMentionHovered, this, [this](Snowflake userId, Snowflake messageId) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!currentInstance || !host || !host->hasHook(Qord::Plugins::Hook::UnknownMentions))
+            return;
+        const QString unknown = QStringLiteral("acheron://user/%1\" class=\"mention\">@unknown-user").arg(quint64(userId));
+        for (int row = 0; row < chatModel->rowCount(); ++row) {
+            const QModelIndex idx = chatModel->index(row, 0);
+            if (Snowflake(idx.data(ChatModel::MessageIdRole).toULongLong()) != messageId)
+                continue;
+            if (idx.data(ChatModel::HtmlRole).toString().contains(unknown)) {
+                Qord::Plugins::MentionContext mention;
+                mention.accountId = quint64(currentInstance->accountId());
+                mention.channelId = quint64(chatModel->getActiveChannelId());
+                mention.messageId = quint64(messageId);
+                mention.userId = quint64(userId);
+                host->dispatchUserMentionHovered(mention);
+            }
+            break;
+        }
+    });
+
+    // TypingIndicator: who is typing next to channels in the list. The
+    // dots animate only while someone types and the plugin is on.
+    channelTreeModel->setTypingSource({ [this](Snowflake accountId, Snowflake channelId) {
+                                           if (!currentInstance || currentInstance->accountId() != accountId)
+                                               return QList<Snowflake>();
+                                           return typingTracker->typers(channelId);
+                                       },
+                                        [this](Snowflake channelId) { return chatModel->getActiveChannelId() == channelId; } });
+    auto *typingAnimation = new QTimer(this);
+    typingAnimation->setInterval(150);
+    connect(typingAnimation, &QTimer::timeout, this, [this]() {
+        ++ChannelDelegate::typingPhase();
+        channelTree->viewport()->update();
+    });
+    auto updateTyping = [this, typingAnimation](Snowflake channelId) {
+        if (currentInstance && channelId.isValid())
+            channelTreeModel->typingChanged(currentInstance->accountId(), channelId);
+        else
+            channelTree->viewport()->update();
+        auto *host = Qord::Plugins::PluginHost::instance();
+        const bool animate =
+                typingTracker->anyTypers() && host && host->hasHook(Qord::Plugins::Hook::ChannelTyping);
+        if (animate && !typingAnimation->isActive())
+            typingAnimation->start();
+        else if (!animate)
+            typingAnimation->stop();
+    };
+    connect(typingTracker, &Core::TypingTracker::channelTypersChanged, this, updateTyping);
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this,
+                [updateTyping]() { updateTyping(Snowflake::Invalid); });
+
+    // ServerInfo: its window, profiles, and the servers for mutual users
+    Qord::Plugins::QtUiService::serverInfoShower() = [this](const Qord::Plugins::ServerInfoView &view) {
+        ServerInfoDialog::Actions actions;
+        const Snowflake accountId(view.accountId);
+        const Snowflake guildId(view.guildId);
+        actions.loadImage = [this, accountId](const QUrl &url, QObject *context,
+                                              std::function<void(const QPixmap &)> done) {
+            session->getImageManager()->fetch(url, accountId, context, [done](const QByteArray &data) {
+                QPixmap pixmap;
+                if (pixmap.loadFromData(data))
+                    done(pixmap);
+            });
+        };
+        actions.openImage = [this](const QUrl &url) { openImageInViewer(url); };
+        actions.openProfile = [this, accountId, guildId](Qord::Plugins::Id userId) {
+            if (Core::ClientInstance *instance = session->client(accountId))
+                showUserProfile(instance, Snowflake(userId), guildId);
+        };
+        ServerInfoDialog::show(this, view, actions);
+    };
+    Qord::Plugins::QtUiService::profileOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id guildId,
+                                                         Qord::Plugins::Id userId) {
+        if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
+            showUserProfile(instance, Snowflake(userId), Snowflake(guildId));
+    };
+    Qord::Plugins::SessionGuilds::guildIdsProvider() = [this](Qord::Plugins::Id accountId) {
+        QList<Qord::Plugins::Id> out;
+        for (const Snowflake id : channelTreeModel->guildIds(Snowflake(accountId)))
+            out.append(quint64(id));
+        return out;
+    };
+    // BetterFolders: the server list and its second rail follow the plugin
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() {
+            serverRailModel->rebuild();
+            folderSidebarModel->rebuild();
+            updateFolderSidebar();
+        });
+
+    // PinDMs: regroup the DM lists when the plugin changes them
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::dmListChanged, channelTreeModel, &ChannelTreeModel::refreshDmPins);
+    connect(channelTreeModel, &ChannelTreeModel::dmPinsChanged, this, [this]() { channelFilterProxy->invalidate(); });
+
+    // MutualGroupDMs: the DM list, and opening a group from a profile
+    Qord::Plugins::QtPrivateChannels::provider() = [this](Qord::Plugins::Id accountId) {
+        QList<Qord::Plugins::PrivateChannelInfo> out;
+        Core::ClientInstance *instance = session->client(Snowflake(accountId));
+        for (const ChannelNode *node : channelTreeModel->dmChannels(Snowflake(accountId))) {
+            Qord::Plugins::PrivateChannelInfo info;
+            info.channelId = quint64(node->id);
+            const auto channel = instance ? instance->getChannel(node->id) : std::nullopt;
+            info.isGroup = channel ? channel->type == Discord::ChannelType::GROUP_DM : !node->dmRecipientId.isValid();
+            info.name = node->name;
+            if (!node->TEMP_iconHash.isEmpty())
+                info.iconUrl = Discord::Cdn::channelIcon(node->id, node->TEMP_iconHash, 64).toString();
+            for (const Snowflake id : node->recipientIds)
+                info.recipientIds.append(quint64(id));
+            out.append(info);
+        }
+        return out;
+    };
+    Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
+        selectChannelInTree(Snowflake(accountId), Snowflake(channelId));
+    };
+#ifndef ACHERON_NO_VOICE
+    Qord::Plugins::QtUiService::voiceJoiner() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
+        joinVoiceNode(channelTreeModel->findChannelTreeNode(Snowflake(channelId), Snowflake(accountId)));
+    };
+#endif
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtPrivateChannels::provider() = nullptr;
+        Qord::Plugins::QtUiService::channelOpener() = nullptr;
+        Qord::Plugins::QtUiService::voiceJoiner() = nullptr;
+        Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
+        Qord::Plugins::QtUiService::profileOpener() = nullptr;
+        Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;
+    });
+
+    // ShowHiddenChannels: the list follows the plugin, and its lock screen
+    // loads avatars and can be re-rendered by the plugin
+    hiddenChannelScreen->setImageLoader([this](const QUrl &url, QObject *context,
+                                               std::function<void(const QPixmap &)> done) {
+        session->getImageManager()->fetch(url, hiddenChannelAccountId, context, [done](const QByteArray &data) {
+            QPixmap pixmap;
+            if (pixmap.loadFromData(data))
+                done(pixmap);
+        });
+    });
+    Qord::Plugins::QtUiService::lockScreenRefresher() = [this]() { refreshHiddenChannelScreen(); };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::QtUiService::lockScreenRefresher() = nullptr; });
+    if (auto *host = Qord::Plugins::PluginHost::instance()) {
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this, [this]() { applyHiddenChannelDisplay(); });
+        connect(host, &Qord::Plugins::PluginHost::pluginStateChanged, this, [this]() { applyHiddenChannelDisplay(); });
+    }
+    applyHiddenChannelDisplay();
+
+    // PermissionsViewer: its dialog (with role icons and avatars) and the
+    // member popout, shown at the mouse
+    Qord::Plugins::QtUiService::permissionsShower() = [this](const Qord::Plugins::PermissionsView &view) {
+        const Snowflake accountId(view.accountId);
+        PermissionsView::showDialog(view, [this, accountId](const QUrl &url, QObject *context,
+                                                            std::function<void(const QPixmap &)> done) {
+            session->getImageManager()->fetch(url, accountId, context, [done](const QByteArray &data) {
+                QPixmap pixmap;
+                if (pixmap.loadFromData(data))
+                    done(pixmap);
+            });
+        });
+    };
+    Qord::Plugins::QtUiService::memberPermissionsShower() = [](const Qord::Plugins::MemberPermissionsView &view) {
+        PermissionsView::showMemberPopout(view, QCursor::pos());
+    };
+    connect(this, &QObject::destroyed, []() {
+        Qord::Plugins::QtUiService::permissionsShower() = nullptr;
+        Qord::Plugins::QtUiService::memberPermissionsShower() = nullptr;
+    });
+
+    // WhoReacted: avatars by user id, re-rendering a message whose reaction
+    // users arrived, and an avatar click opening the profile
+    chatModel->setUserAvatarResolver([this](Snowflake userId, Snowflake guildId) -> QUrl {
+        if (!currentInstance)
+            return {};
+        const auto user = currentInstance->users()->getUser(userId);
+        return user ? currentInstance->users()->getAvatarUrl(*user, guildId, 64) : QUrl();
+    });
+    Qord::Plugins::SessionReactions::onChanged() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId,
+                                                          Qord::Plugins::Id messageId) {
+        if (currentInstance && quint64(currentInstance->accountId()) == accountId &&
+            quint64(chatModel->getActiveChannelId()) == channelId)
+            chatModel->refreshReactions(Snowflake(messageId));
+    };
+    connect(this, &QObject::destroyed, []() { Qord::Plugins::SessionReactions::onChanged() = nullptr; });
+    connect(chatView, &ChatView::reactionUserClicked, this, [this](Snowflake userId) {
+        if (currentInstance)
+            showUserProfile(currentInstance, userId, chatModel->getActiveGuildId());
+    });
+
+    // Threads from messages
+    connect(chatView, &ChatView::createThreadRequested, this, &MainWindow::createThreadFromMessage);
+    connect(chatView, &ChatView::openThreadRequested, this, &MainWindow::navigateToChannel);
+
     // Hover highlights on channel rows, like Discord
     channelTree->setMouseTracking(true);
     channelTree->viewport()->setAttribute(Qt::WA_Hover);
@@ -280,6 +688,9 @@ void MainWindow::setupQordFeatures()
                                          auto *host = Qord::Plugins::PluginHost::instance();
                                          if (!host || !host->hasHook(Qord::Plugins::Hook::MessageClicks) || !currentInstance)
                                              return;
+                                         // Clicks on name icons are theirs (UserVoiceShow)
+                                         if (chatView->clickHeaderDecoration(pos, false, true))
+                                             return;
                                          const QModelIndex idx = chatView->indexAt(pos);
                                          const Discord::Message *msg = idx.isValid() ? chatModel->messageAt(idx.row()) : nullptr;
                                          if (!msg)
@@ -338,7 +749,12 @@ void MainWindow::setupQordFeatures()
     };
 
     // Slash commands
-    slashPopup = new SlashCommandPopup(messageInput->editor(), messageInput, [this]() { return slashIndex(); });
+    slashPopup = new SlashCommandPopup(
+            messageInput->editor(), messageInput, [this]() { return slashIndex(); },
+            [this](const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                   std::function<void(const SlashCommandPopup::Choices &)> done) {
+                requestAutocomplete(command, data, std::move(done));
+            });
 
     // GIF and sticker pickers
     expressionPicker = new ExpressionPicker(session->getImageManager(), this);
@@ -378,8 +794,8 @@ void MainWindow::setupQordFeatures()
             if (out.stickerIds.isEmpty()) {
                 messageInput->clearReplyTarget();
                 if (!content.trimmed().isEmpty())
-                    currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
-                                                             messageInput->replyMentionEnabled(), false);
+                    (void)currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
+                                                                   messageInput->replyMentionEnabled(), false);
                 return;
             }
             stickerId = Snowflake(out.stickerIds.first());
@@ -419,6 +835,14 @@ void MainWindow::setupQordFeatures()
     });
 
     // Friends page: open a DM from it
+    // Plugin tabs' unknown users, asked for in every server (op 8 takes 100
+    // ids at a time); ones you share no server with stay unknown
+    friendsPage->requestUsers = [this](Core::ClientInstance *instance, const QList<Snowflake> &userIds) {
+        const QList<Snowflake> guildIds = channelTreeModel->guildIds(instance->accountId());
+        for (int i = 0; i < userIds.size(); i += 100)
+            for (const Snowflake guildId : guildIds)
+                instance->discord()->requestGuildMembers(guildId, userIds.mid(i, 100));
+    };
     connect(friendsPage, &FriendsPage::openDmRequested, this, [this](Snowflake userId) {
         Core::ClientInstance *instance = currentInstance ? currentInstance : session->client(railSelectedAccountId);
         if (!instance)
@@ -453,6 +877,9 @@ void MainWindow::setupQordFeatures()
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
             instance->markGuildsAsRead(channelTreeModel->guildIds(Snowflake(accountId)));
     };
+
+    // Discord's Role Colors setting (Appearance)
+    Core::roleStyle() = Core::roleStyleFromKey(QSettings().value("ui/roleStyle").toString());
 
     // Plugin surfaces: icons after names, member counts, server list buttons
     nameDecorations = new NameDecorations(session, this);
@@ -612,6 +1039,45 @@ const Qord::SlashCommands::Index *MainWindow::slashIndex()
     return nullptr;
 }
 
+void MainWindow::requestAutocomplete(const Qord::SlashCommands::Command &command, const QJsonObject &data,
+                                     std::function<void(const QList<QPair<QString, QJsonValue>> &)> done)
+{
+    if (!currentInstance)
+        return;
+    Discord::Client *client = currentInstance->discord();
+    // An autocomplete interaction (type 4); the app's choices come back over
+    // the gateway with the same nonce
+    const QString nonce = QString::number(quint64(Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch())));
+    QJsonObject payload {
+        { QStringLiteral("type"), 4 },
+        { QStringLiteral("application_id"), command.applicationId },
+        { QStringLiteral("channel_id"), QString::number(quint64(chatModel->getActiveChannelId())) },
+        { QStringLiteral("session_id"), client->gatewaySessionId() },
+        { QStringLiteral("data"), data },
+        { QStringLiteral("nonce"), nonce },
+    };
+    if (chatModel->getActiveGuildId().isValid())
+        payload.insert(QStringLiteral("guild_id"), QString::number(quint64(chatModel->getActiveGuildId())));
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &Discord::Client::autocompleteResponse, this,
+                          [connection, nonce, done](const QJsonObject &response) {
+                              if (response.value(QStringLiteral("nonce")).toString() != nonce)
+                                  return;
+                              disconnect(*connection);
+                              QList<QPair<QString, QJsonValue>> choices;
+                              for (const auto &c : response.value(QStringLiteral("choices")).toArray())
+                                  choices.append({ c.toObject().value(QStringLiteral("name")).toString(),
+                                                   c.toObject().value(QStringLiteral("value")) });
+                              done(choices);
+                          });
+    // An app that never answers doesn't keep the connection forever
+    QTimer::singleShot(10000, this, [connection]() { disconnect(*connection); });
+    client->sendInteraction(payload, [connection](const Core::Result<void> &result) {
+        if (!result.success())
+            disconnect(*connection);
+    });
+}
+
 bool MainWindow::trySendSlashCommand(const QString &text)
 {
     if (!text.startsWith(QLatin1Char('/')) || !currentInstance)
@@ -619,7 +1085,8 @@ bool MainWindow::trySendSlashCommand(const QString &text)
     const Qord::SlashCommands::Index *index = slashIndex();
     if (!index || !Qord::SlashCommands::find(*index, text))
         return false; // not a command here: send it as a message, like Discord
-    const Qord::SlashCommands::Built built = Qord::SlashCommands::build(*index, text);
+    const Qord::SlashCommands::Built built =
+            Qord::SlashCommands::build(*index, text, slashPopup ? slashPopup->picks() : Qord::SlashCommands::Picks());
     if (!built.ok) {
         // Keep what was typed and say what is wrong
         messageInput->insertText(text);
@@ -637,6 +1104,8 @@ bool MainWindow::trySendSlashCommand(const QString &text)
     };
     if (chatModel->getActiveGuildId().isValid())
         payload.insert(QStringLiteral("guild_id"), QString::number(quint64(chatModel->getActiveGuildId())));
+    if (slashPopup)
+        slashPopup->clearPicks();
     const QPointer<MainWindow> guard(this);
     currentInstance->discord()->sendInteraction(payload, [guard, text](const Core::Result<void> &result) {
         if (!guard || result.success())
@@ -725,6 +1194,33 @@ void MainWindow::connectQordInstance(Core::ClientInstance *instance)
     const QPointer<Core::ClientInstance> guard(instance);
     if (nameDecorations)
         nameDecorations->watch(instance);
+    // WhoReacted: reactions coming and going, for the users shown on them
+    const auto reactionChanged = [guard](Snowflake channelId, Snowflake messageId, const Discord::Emoji &emoji,
+                                         int type, Snowflake userId, bool added) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!guard || !host || !host->hasHook(Qord::Plugins::Hook::ReactionUsers))
+            return;
+        Qord::Plugins::ReactionChange change;
+        change.accountId = quint64(guard->accountId());
+        change.channelId = quint64(channelId);
+        change.messageId = quint64(messageId);
+        change.emojiName = emoji.name.hasValue() ? emoji.name.get() : QString();
+        change.emojiId = emoji.id.hasValue() && emoji.id.get().isValid() ? quint64(emoji.id.get()) : 0;
+        change.type = type;
+        change.userId = quint64(userId);
+        change.added = added;
+        host->dispatchReactionChanged(change);
+    };
+    connect(instance->discord(), &Discord::Client::messageReactionAdd, this,
+            [reactionChanged](const Discord::MessageReactionAdd &e) {
+                reactionChanged(e.channelId.get(), e.messageId.get(), e.emoji.get(), e.type.hasValue() ? e.type.get() : 0,
+                                e.userId.get(), true);
+            });
+    connect(instance->discord(), &Discord::Client::messageReactionRemove, this,
+            [reactionChanged](const Discord::MessageReactionRemove &e) {
+                reactionChanged(e.channelId.get(), e.messageId.get(), e.emoji.get(), e.type.hasValue() ? e.type.get() : 0,
+                                e.userId.get(), false);
+            });
     // MemberCount: new numbers from Discord, people joining or leaving voice
     connect(instance->memberList(), &Core::MemberListManager::countsChanged, this, [this, guard](Snowflake guildId) {
         if (guard && guard == currentInstance && guildId == chatModel->getActiveGuildId())
@@ -912,6 +1408,10 @@ void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowfla
                         addItem(sub, pluginId, child);
                     return;
                 }
+                if (item.id.isEmpty() && item.label.isEmpty()) {
+                    target->addSeparator();
+                    return;
+                }
                 QAction *action = target->addAction(item.label);
                 connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, ctx]() {
                     if (auto *h = Qord::Plugins::PluginHost::instance())
@@ -1078,6 +1578,104 @@ void MainWindow::openMentionsInbox()
         }
         guard->setMessages(*result.value, tr("You're all caught up! No recent mentions."));
     });
+}
+
+void MainWindow::applyHiddenChannelDisplay()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    const auto display = host ? host->dispatchHiddenChannelDisplay() : std::nullopt;
+    using Style = Qord::Plugins::HiddenChannelDisplay::Style;
+    using Icon = Qord::Plugins::HiddenChannelDisplay::Icon;
+    ChannelTreeModel::HiddenChannelOptions options;
+    options.show = display.has_value();
+    if (display) {
+        options.icon = display->icon == Icon::LockRight  ? ChannelTreeModel::HiddenChannelOptions::Icon::LockRight
+                       : display->icon == Icon::EyeRight ? ChannelTreeModel::HiddenChannelOptions::Icon::EyeRight
+                                                         : ChannelTreeModel::HiddenChannelOptions::Icon::Lock;
+        options.muted = display->style == Style::Muted || display->style == Style::MutedUnread;
+    }
+    const bool unreads = display && (display->style == Style::Unread || display->style == Style::MutedUnread);
+
+    auto &current = ChannelTreeModel::hiddenChannelOptions();
+    const bool listChanged = current.show != options.show;
+    const bool unreadsChanged = Core::ReadStateManager::showHiddenUnreads() != unreads;
+    current = options;
+    Core::ReadStateManager::showHiddenUnreads() = unreads;
+    if (unreadsChanged)
+        channelTreeModel->refreshAllReadStates();
+    if (listChanged)
+        channelFilterProxy->invalidate();
+    channelTree->viewport()->update();
+    if (viewMode == ViewMode::HiddenChannel)
+        refreshHiddenChannelScreen();
+}
+
+bool MainWindow::openHiddenChannel(ClientInstance *instance, ChannelNode *node, ChannelNode *accountNode, bool joining)
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (!host || !instance || !node || !accountNode || !ChannelTreeModel::hiddenChannelOptions().show)
+        return false;
+    const bool voice = node->type == ChannelNode::Type::VoiceChannel;
+    if (node->type != ChannelNode::Type::Channel && node->type != ChannelNode::Type::Forum && !voice)
+        return false;
+    auto *perms = instance->permissions();
+    if (!perms)
+        return false;
+    const bool canView = perms->hasChannelPermission(accountNode->id, node->id, Discord::Permission::VIEW_CHANNEL);
+    const bool canConnect = !voice || perms->hasChannelPermission(accountNode->id, node->id, Discord::Permission::CONNECT);
+    if (canView && (!joining || canConnect))
+        return false;
+
+    ChannelNode *guildNode = ChannelTreeModel::findGuildNode(node);
+    Qord::Plugins::HiddenChannelContext context;
+    context.accountId = quint64(accountNode->id);
+    context.guildId = guildNode ? quint64(guildNode->id) : 0;
+    context.channelId = quint64(node->id);
+    context.canView = canView;
+    const auto screen = host->dispatchHiddenChannelLockScreen(context);
+    if (!screen)
+        return false;
+
+    hiddenChannelAccountId = accountNode->id;
+    hiddenChannelGuildId = guildNode ? guildNode->id : Snowflake::Invalid;
+    hiddenChannelId = node->id;
+    hiddenChannelCanView = canView;
+    if (joining) {
+        // Select it, so the lock screen and the list agree
+        channelFilterProxy->setSelectedChannel(node->id, accountNode->id);
+        channelTree->viewport()->update();
+        if (instance != currentInstance)
+            switchActiveInstance(instance);
+    }
+
+    // Only the header: no messages, pins, threads or members
+    hideFriendsPage();
+    channelToolbar->setVisible(true);
+    channelNameLabel->setText((voice ? QString() : QStringLiteral("# ")) + node->name);
+    showChannelTopic(instance, node->id);
+    setThreadBrowserTarget(Snowflake::Invalid);
+    pinsButton->setEnabled(false);
+    setViewMode(ViewMode::HiddenChannel);
+    setMemberListVisible(false);
+    hiddenChannelScreen->showScreen(*screen);
+    tabBar->updateCurrentTab(makeTabEntry(node, accountNode));
+    return true;
+}
+
+void MainWindow::refreshHiddenChannelScreen()
+{
+    auto *host = Qord::Plugins::PluginHost::instance();
+    if (viewMode != ViewMode::HiddenChannel || !host)
+        return;
+    Qord::Plugins::HiddenChannelContext context;
+    context.accountId = quint64(hiddenChannelAccountId);
+    context.guildId = quint64(hiddenChannelGuildId);
+    context.channelId = quint64(hiddenChannelId);
+    context.canView = hiddenChannelCanView;
+    if (const auto screen = host->dispatchHiddenChannelLockScreen(context))
+        hiddenChannelScreen->showScreen(*screen);
+    else
+        hiddenChannelScreen->setWidget(new QWidget); // the plugin was turned off
 }
 
 } // namespace UI

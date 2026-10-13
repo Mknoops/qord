@@ -11,6 +11,7 @@ add_library(qord_plugin_host STATIC
     PluginHost.hpp PluginHost.cpp
     JsCompat.hpp JsCompat.cpp
     TextDiff.hpp TextDiff.cpp
+    PermissionViews.hpp PermissionViews.cpp
 )
 set_target_properties(qord_plugin_host PROPERTIES AUTOMOC ON)
 target_include_directories(qord_plugin_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

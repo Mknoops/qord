@@ -1,4 +1,5 @@
 #include "MemberListModel.hpp"
+#include "Core/OwnerCrown.hpp"
 
 #include "Core/Presence/ActivityFormat.hpp"
 #include "Discord/CdnUrls.hpp"
@@ -64,6 +65,17 @@ QVariant MemberListModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue(static_cast<quint64>(accountId));
     case GuildIdRole:
         return QVariant::fromValue(static_cast<quint64>(manager->currentGuildId()));
+    case OwnerCrownRole: {
+        const Core::Snowflake guildId = manager->currentGuildId();
+        if (item->type != Core::MemberListItem::Type::Member || !guildId.isValid() || !ownerProvider)
+            return false;
+        auto it = owners.constFind(guildId);
+        if (it == owners.constEnd())
+            it = owners.insert(guildId, ownerProvider(guildId));
+        if (*it != item->userId)
+            return false;
+        return Core::forceOwnerCrown() || manager->guildMemberCount(guildId) < LargeServerCrownLimit;
+    }
     case UserIdRole:
         return item->type == Core::MemberListItem::Type::Member
                        ? QVariant::fromValue(static_cast<quint64>(item->userId))
@@ -219,6 +231,7 @@ void MemberListModel::onListAboutToReset()
 void MemberListModel::onListReset()
 {
     avatarTracker.clear();
+    owners.clear();
     endResetModel();
 }
 

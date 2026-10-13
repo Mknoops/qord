@@ -115,6 +115,46 @@ public:
     [[nodiscard]] bool dispatchShouldSilenceMessage(const MessageContext &message);
     void dispatchUserContextMenuAction(const QString &pluginId, const QString &itemId, const UserContext &user);
 
+    void dispatchUserMentionHovered(const MentionContext &mention);
+    // True when a plugin used the key (later plugins don't see it)
+    [[nodiscard]] bool dispatchShortcut(const ShortcutContext &shortcut);
+    // The first plugin with an indicator wins
+    [[nodiscard]] std::optional<TypingIndicator> dispatchChannelTypingIndicator(const ChannelTypingContext &channel);
+    struct PluginAccessory
+    {
+        QString pluginId;
+        MessageAccessory accessory;
+    };
+    [[nodiscard]] QList<PluginAccessory> dispatchMessageAccessories(const MessageContext &message);
+    void dispatchMessageAccessoryAction(const QString &pluginId, const QString &actionId, const MessageContext &message);
+    [[nodiscard]] QList<PluginButton> dispatchAttachmentButtons(const AttachmentContext &attachment);
+    void dispatchAttachmentButtonClicked(const QString &pluginId, const QString &buttonId,
+                                         const AttachmentContext &attachment);
+    // The first plugin that shows hidden channels decides how
+    [[nodiscard]] std::optional<HiddenChannelDisplay> dispatchHiddenChannelDisplay();
+    [[nodiscard]] std::optional<LockScreen> dispatchHiddenChannelLockScreen(const HiddenChannelContext &channel);
+    [[nodiscard]] QList<PluginButton> dispatchProfileRoleButtons(const UserContext &user);
+    void dispatchSortEmojiSuggestions(EmojiAutocompleteContext &context);
+    [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
+    void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
+    // The first plugin with a layout decides it
+    [[nodiscard]] QList<FriendsSection> dispatchFriendsSections(const FriendsContext &friends);
+    void dispatchFriendsPageOpened(const FriendsContext &friends);
+    [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
+    void dispatchDmPinHeaderClicked(const QString &pluginId, Id accountId, const QString &headerId);
+    [[nodiscard]] QList<MenuItem> dispatchDmPinHeaderMenu(const QString &pluginId, Id accountId, const QString &headerId);
+    void dispatchDmPinHeaderMenuAction(const QString &pluginId, Id accountId, const QString &headerId,
+                                       const QString &itemId);
+    struct PluginProfileTab
+    {
+        QString pluginId;
+        ProfileTab tab;
+    };
+    [[nodiscard]] QList<PluginProfileTab> dispatchProfileTabs(const UserContext &user);
+    void dispatchProfileTabRowClicked(const QString &pluginId, const QString &tabId, const QString &rowId,
+                                      const UserContext &user);
+    void dispatchProfileRoleButtonClicked(const QString &pluginId, const QString &buttonId, const UserContext &user);
+
     // Any plugin saying no wins (default: send / show).
     [[nodiscard]] bool dispatchShouldSendTyping(const TypingContext &typing);
     [[nodiscard]] bool dispatchShouldShowTypers(const ChatContext &chat);
@@ -138,12 +178,14 @@ public:
     [[nodiscard]] QList<CountBadge> dispatchMemberCountBadges(const MemberCountContext &counts);
     // Every plugin's decorations, in plugin order.
     [[nodiscard]] QList<NameDecoration> dispatchNameDecorations(const DecorationContext &user);
+    void dispatchNameDecorationClicked(const QString &pluginId, const QString &clickId, const DecorationContext &user,
+                                       bool doubleClick);
     // True if a plugin handled the click.
     [[nodiscard]] bool dispatchProfileImageClicked(const ProfileImageContext &image);
     void dispatchVoiceStateChanged(const VoiceStateChange &change);
     void dispatchChatMouseDown(qint64 timeMs);
     // First plugin with users wins
-    [[nodiscard]] std::optional<QList<Id>> dispatchReactionUsers(const ReactionContext &reaction);
+    [[nodiscard]] std::optional<ReactionUsers> dispatchReactionUsers(const ReactionContext &reaction);
     void dispatchReactionChanged(const ReactionChange &change);
     void dispatchMessageClicked(const MessageClickContext &click);
     // First plugin with a label/text wins.
@@ -162,6 +204,10 @@ signals:
     void messageFiltersChanged();
     // How author names or typing are shown changed: re-render.
     void presentationChanged();
+    // How DM lists are grouped changed (PinDMs): ask dispatchDmPinLayout again
+    void dmListChanged();
+    // The Friends page's plugin tabs changed: ask dispatchFriendsSections again
+    void friendsChanged();
 
 private:
     struct Entry

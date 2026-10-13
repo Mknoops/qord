@@ -44,10 +44,16 @@ public:
     ~MessageManager() override;
 
     void setChannelResolver(std::function<QString(Snowflake)> resolver);
+    // Qord: a member's role color, for user mentions (RoleColorEverywhere)
+    void setMentionColorResolver(std::function<QColor(Snowflake userId, Snowflake guildId)> resolver);
     // Qord: parent (category or thread parent) of a channel, for plugins
     void setChannelParentResolver(std::function<Snowflake(Snowflake)> resolver);
     // Qord: re-render a cached message (a plugin's view of it changed)
     void refreshMessage(Snowflake channelId, Snowflake messageId);
+    // Qord: a message the client has (loaded, stored, or fetched for a link)
+    [[nodiscard]] std::optional<Discord::Message> findMessage(Snowflake messageId);
+    // Qord: GET one message by id (MessageLinkEmbeds); kept apart from the chat
+    void fetchLinkedMessage(Snowflake channelId, Snowflake messageId, std::function<void(bool found)> done);
     // Qord: drop a message a plugin kept on screen after it was deleted
     void removeKeptMessage(Snowflake channelId, Snowflake messageId);
     void setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver);
@@ -60,12 +66,15 @@ public:
     void requestLoadHistory(Snowflake channelId, Snowflake beforeId);
     void requestLoadFuture(Snowflake channelId, Snowflake afterId);
     void requestLoadAround(Snowflake channelId, Snowflake messageId);
-    // Qord: false when a plugin cancelled the send; with
-    // runPlugins false the BeforeSend hook already ran
-    bool sendMessage(Snowflake channelId, const QString &content,
-                     Snowflake replyToMessageId = Snowflake::Invalid,
-                     const QList<PendingAttachment> &attachments = {},
-                     bool mentionRepliedUser = true, bool runPlugins = true);
+    // Qord: Cancelled when a plugin stopped the send; Deferred when a plugin
+    // first needs the network (deferredDone then says whether it was sent).
+    // With runPlugins false the BeforeSend hook already ran.
+    enum class SendResult { Sent, Cancelled, Deferred };
+    SendResult sendMessage(Snowflake channelId, const QString &content,
+                           Snowflake replyToMessageId = Snowflake::Invalid,
+                           const QList<PendingAttachment> &attachments = {},
+                           bool mentionRepliedUser = true, bool runPlugins = true,
+                           std::function<void(bool sent)> deferredDone = {});
     void cancelSend(Snowflake channelId, const QString &nonce);
     void addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst);
 
@@ -105,6 +114,8 @@ private:
     [[nodiscard]] Qord::Plugins::MessageContext pluginContext(const Discord::Message &msg, bool withJson = false) const;
     [[nodiscard]] QString annotatedHtml(const Qord::Plugins::MessageAnnotation &annotation, const QString &content,
                                         Snowflake channelId) const;
+    [[nodiscard]] QString accessoryHtml(const QString &pluginId, const Qord::Plugins::MessageAccessory &accessory,
+                                        Snowflake channelId) const;
     QString inlineHtml(const QString &content, Snowflake channelId) const;
 
     Storage::MessageRepository repo;
@@ -121,6 +132,7 @@ public:
 private:
 
     QCache<Snowflake, Discord::Message> messageCache;
+    QHash<Snowflake, Discord::Message> linkedMessages; // Qord: fetched for links
     std::function<Snowflake(Snowflake)> channelParentResolver;
     QHash<Snowflake, MessageSegments> segments;
     QSet<Snowflake> fetchedChannels;

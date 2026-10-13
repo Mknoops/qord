@@ -1,5 +1,7 @@
 #include "ExpressionPicker.hpp"
 
+#include "Core/LottieDecoder.hpp"
+
 #include "Core/ClientInstance.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
 #include "Core/PermissionManager.hpp"
@@ -198,11 +200,10 @@ void ExpressionPicker::addImageItem(const QString &label, const QUrl &image, con
     item->setData(cell, CellRole);
     item->setToolTip(label);
     if (image.isValid() && instance) {
-        const QPixmap pm = images->get(image, cell, instance->accountId());
-        if (!pm.isNull())
-            item->setData(pm, Qt::DecorationRole);
-        else
-            pendingImages[image].append(item);
+        // get() hands back a placeholder while it downloads, never a null
+        // pixmap, so always listen for the real one
+        item->setData(images->get(image, cell, instance->accountId()), Qt::DecorationRole);
+        pendingImages[image].append(item);
     }
     model->appendRow(item);
 }
@@ -270,8 +271,11 @@ void ExpressionPicker::loadStickers()
                 continue;
             if (!bypass && sticker.available.hasValue() && !sticker.available.get())
                 continue;
-            const QUrl still = Discord::Cdn::stickerStill(sticker.id.get(), sticker.formatType.get(),
-                                                          Discord::Cdn::stickerAssetPx(StickerCell.width(), dpr));
+            QUrl still = Discord::Cdn::stickerStill(sticker.id.get(), sticker.formatType.get(),
+                                                    Discord::Cdn::stickerAssetPx(StickerCell.width(), dpr));
+            // Lottie stickers have no still: their first frame stands in
+            if (still.isEmpty() && Core::Lottie::isSupported())
+                still = Discord::Cdn::stickerAnimated(sticker.id.get(), sticker.formatType.get(), 0);
             addImageItem(server.isEmpty() ? name : name + QStringLiteral(" — ") + server, still,
                          quint64(sticker.id.get()), StickerCell);
             ++shown;
@@ -292,24 +296,37 @@ void ExpressionPicker::loadStickers()
         return shown;
     };
 
+    // Qord: Discord's own packs, which anyone can send anywhere, come last
+    const QPointer<ExpressionPicker> guard(this);
+    const auto addPacks = [guard, request, addStickers](int shownBefore, const QString &emptyText) {
+        if (!guard || !guard->instance)
+            return;
+        guard->instance->discord()->fetchStickerPacks(
+                [guard, request, addStickers, shownBefore, emptyText](
+                        const Core::Result<QList<Discord::Client::StickerPack>> &packs) {
+                    if (!guard || request != guard->generation || guard->tab != Tab::Stickers)
+                        return;
+                    int shown = shownBefore;
+                    if (packs.success())
+                        for (const auto &pack : *packs.value)
+                            shown += addStickers(pack.stickers, pack.name);
+                    guard->status->setText(shown ? QString() : emptyText);
+                });
+    };
+
+    status->setText(tr("Loading…"));
     if (!guildId.isValid()) {
-        const int shown = addOtherServers();
-        status->setText(shown ? QString()
-                              : external ? tr("No stickers found") : tr("Server stickers can be sent in servers"));
+        addPacks(addOtherServers(), tr("No stickers found"));
         return;
     }
-    status->setText(tr("Loading…"));
-    const QPointer<ExpressionPicker> guard(this);
     instance->discord()->fetchGuildStickers(
-            guildId, [guard, request, addStickers, addOtherServers](const Core::Result<QList<Discord::Sticker>> &result) {
+            guildId, [guard, request, addStickers, addOtherServers, addPacks](
+                             const Core::Result<QList<Discord::Sticker>> &result) {
                 if (!guard || request != guard->generation || guard->tab != Tab::Stickers)
                     return;
                 int shown = result.success() ? addStickers(*result.value, QString()) : 0;
                 shown += addOtherServers();
-                if (!result.success() && !shown)
-                    guard->status->setText(tr("Couldn't load stickers"));
-                else
-                    guard->status->setText(shown ? QString() : tr("This server has no stickers"));
+                addPacks(shown, result.success() ? tr("No stickers found") : tr("Couldn't load stickers"));
             });
 }
 

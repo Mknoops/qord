@@ -27,6 +27,8 @@ std::optional<SettingType> settingTypeFromString(const QString &name)
         return SettingType::Json;
     if (name == QLatin1String("number"))
         return SettingType::Number;
+    if (name == QLatin1String("action"))
+        return SettingType::Action;
     return std::nullopt;
 }
 
@@ -47,6 +49,8 @@ QString settingTypeToString(SettingType type)
         return QStringLiteral("json");
     case SettingType::Number:
         return QStringLiteral("number");
+    case SettingType::Action:
+        return QStringLiteral("action");
     }
     return {};
 }
@@ -97,6 +101,8 @@ QString SettingSpec::validate(const QJsonValue &value) const
     case SettingType::Json:
         // Structure is the plugin's business; it must tolerate bad input
         return value.isUndefined() ? QStringLiteral("missing value") : QString();
+    case SettingType::Action:
+        return {}; // a button has no value
     }
     return QStringLiteral("unknown setting type");
 }

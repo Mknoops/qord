@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import new_plugin  # noqa: E402
 import qord_inventory as inv  # noqa: E402
 import update_equicord_inventory as upd  # noqa: E402
 
@@ -138,10 +139,114 @@ class StatusDerivation(unittest.TestCase):
         gapped = dict(verified, manifest=self.manifest(gaps=["render path"]))
         self.assertEqual(self.derive(self.rec(**gapped))[0], inv.TESTED)
 
+    def test_scaffold_test_is_not_tested(self):
+        with tempfile.TemporaryDirectory() as d:
+            test = Path(d) / "tst_p.cpp"
+            test.write_text("// " + inv.SCAFFOLD_MARKER + "\n", encoding="utf-8")
+            r = self.rec(manifest=self.manifest(), has_source=True, test_path=test, test_registered=True)
+            self.assertEqual(self.derive(r)[0], inv.IMPLEMENTED)
+            self.assertIn("template", r.notes)
+            test.write_text("// real tests\n", encoding="utf-8")
+            r = self.rec(manifest=self.manifest(), has_source=True, test_path=test, test_registered=True)
+            self.assertEqual(self.derive(r)[0], inv.TESTED)
+
     def test_hand_set_derived_status_is_rejected(self):
         # evaluate() flags this; derive_status ignores it
         status, _ = self.derive(self.rec(override={"status": "Complete"}))
         self.assertEqual(status, inv.NOT_STARTED)
+
+
+class GeneratedReadme(unittest.TestCase):
+    def records(self):
+        def rec(name, status, **manifest):
+            r = inv.PluginRecord(name=name, entry=entry(name))
+            r.status = status
+            if manifest:
+                r.manifest = dict({"name": name, "permissions": []}, **manifest)
+            return r
+        return [rec("Zeta", inv.TESTED, summary="does z", permissions=["network"]),
+                rec("Alpha", inv.COMPLETE, description="upstream text"),
+                rec("Half", inv.IMPLEMENTED, summary="not yet"),
+                rec("Todo", inv.NOT_STARTED), rec("Easy", inv.NOT_STARTED)]
+
+    def ctx(self):
+        return {"stats": {"total": 5}, "roadmap": [
+            {"name": "Zeta", "effort": "small", "needs": "done already"},
+            {"name": "Todo", "effort": "large", "needs": "a hook"},
+            {"name": "Easy", "effort": "small", "goodFirst": True, "needs": "nothing"}]}
+
+    def test_blocks_are_filled(self):
+        text = "intro\n<!-- BEGIN GENERATED: plugin-table -->\nold\n<!-- END GENERATED: plugin-table -->\n" \
+               "<!-- BEGIN GENERATED: up-next -->\n<!-- END GENERATED: up-next -->\n" \
+               "<!-- BEGIN GENERATED: plugin-status -->\n<!-- END GENERATED: plugin-status -->\nend\n"
+        out = inv.render_readme(self.records(), self.ctx(), text)
+        self.assertNotIn("old", out)
+        self.assertIn("These 2 native plugins", out)
+        # Sorted by name; the summary wins over the upstream description
+        self.assertLess(out.index("**Alpha** | upstream text | none"), out.index("**Zeta** | does z | network"))
+        self.assertNotIn("Half", out)
+        self.assertIn("**Up next:** Todo, Easy.", out)
+        self.assertIn("**Good first plugins**", out)
+        self.assertIn("2 of 5 ported and tested", out)
+        # Idempotent
+        self.assertEqual(inv.render_readme(self.records(), self.ctx(), out), out)
+
+    def test_missing_block_is_an_error(self):
+        with self.assertRaises(ValueError):
+            inv.render_readme(self.records(), self.ctx(), "no markers")
+
+    def test_roadmap_doc_skips_done_plugins(self):
+        doc = inv.render_roadmap_doc(self.records(), self.ctx())
+        self.assertIn("| 1 | Todo | large |  | a hook |", doc)
+        self.assertIn("| 2 | Easy | small | yes | nothing |", doc)
+        self.assertNotIn("Zeta", doc)
+
+    def test_roadmap_validation(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "roadmap.json"
+            path.write_text(json.dumps({"plugins": [
+                {"name": "A", "effort": "small", "needs": "x"}, {"name": "A", "effort": "small", "needs": "x"},
+                {"name": "Nope", "effort": "huge"}]}), encoding="utf-8")
+            old = inv.ROADMAP_PATH
+            inv.ROADMAP_PATH = path
+            try:
+                _, issues = inv.load_roadmap({"A": entry("A")})
+            finally:
+                inv.ROADMAP_PATH = old
+        text = " ".join(str(i) for i in issues)
+        for expected in ("listed twice", "not in the pinned inventory", "effort must be", "say what it needs"):
+            self.assertIn(expected, text)
+
+
+class NewPluginScaffold(unittest.TestCase):
+    def test_names(self):
+        self.assertEqual(new_plugin.plugin_id("Translate+"), "translate")
+        self.assertEqual(new_plugin.plugin_id("USRBG"), "usrbg")
+        self.assertEqual(new_plugin.class_name("betterRoleDot"), "BetterRoleDot")
+
+    def test_hooks_and_permissions_come_from_the_source(self):
+        needed = new_plugin.hook_permissions()
+        self.assertEqual(needed["messageFilter"], "hide_messages")
+        self.assertEqual(new_plugin.hook_enum("onBeforeSend"), "BeforeSend")
+        self.assertEqual(set(needed), set(inv.HOOK_DISPATCH))
+
+    def test_inserts_after_multiline_calls(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "CMakeLists.txt"
+            path.write_text("qord_add_plugin(a x SOURCES A.cpp)\nqord_add_plugin(b x SOURCES B.cpp\n"
+                            "    UI_SOURCES W.cpp)\n\n# tail\n", encoding="utf-8")
+            new_plugin.insert_line(path, "qord_add_plugin(", "qord_add_plugin(c x SOURCES C.cpp)")
+            self.assertEqual(path.read_text(encoding="utf-8").splitlines()[3], "qord_add_plugin(c x SOURCES C.cpp)")
+
+    def test_every_hook_is_documented(self):
+        self.assertEqual(set(inv.HOOK_DOCS), set(inv.HOOK_DISPATCH))
+        self.assertTrue(all(inv.HOOK_DOCS.values()))
+
+    def test_templates_carry_the_marker(self):
+        self.assertIn(inv.SCAFFOLD_MARKER, new_plugin.render_test("Foo", "foo"))
+        cpp = new_plugin.render_cpp("Foo", "Foo", "foo", "src/plugins/foo", ["a"], ["messageFilter"])
+        self.assertIn("Hook::MessageFilter", cpp)
+        self.assertIn("qord_register_foo", cpp)
 
 
 class RepositoryIntegrity(unittest.TestCase):
@@ -151,6 +256,11 @@ class RepositoryIntegrity(unittest.TestCase):
         _records, errors, _warnings, ctx = inv.evaluate()
         self.assertEqual([str(e) for e in errors], [])
         self.assertEqual(ctx["stats"]["total"], len(json.loads(inv.INVENTORY_PATH.read_text(encoding="utf-8"))))
+
+    def test_generated_docs_are_current(self):
+        records, _errors, _warnings, ctx = inv.evaluate()
+        stale = [p.relative_to(inv.ROOT).as_posix() for p in inv.docs_up_to_date(records, ctx)]
+        self.assertEqual(stale, [], "run python3 tools/check_equicord_plugins.py --write-docs")
 
 
 if __name__ == "__main__":

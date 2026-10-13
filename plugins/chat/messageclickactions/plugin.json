@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/messageClickActions",
   "name": "MessageClickActions",
   "description": "Customize click actions on messages.",
+  "summary": "Double-click to edit or reply, hold Backspace and click to delete, and more",
   "categories": [
     "chat"
   ],

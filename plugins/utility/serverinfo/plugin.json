@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/serverInfo",
   "name": "ServerInfo",
   "description": "Allows you to view info about a server",
+  "summary": "A server's details, and your friends, mutual users, blocked and ignored users in it",
   "categories": ["utility"],
   "tags": ["Servers", "Utility"],
   "authors": ["Ven", "Nuckyz", "Z1xus"],

@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/polishWording",
   "name": "PolishWording",
   "description": "Tweaks your messages to make them look nicer and have better grammar. See settings",
+  "summary": "Tidies capitalisation and punctuation in your messages",
   "categories": ["chat"],
   "tags": ["Chat"],
   "authors": ["Samwich", "WKoA"],

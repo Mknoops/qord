@@ -294,6 +294,20 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
         };
 
         switch (spec.type) {
+        case SettingType::Action: {
+            auto *button = new QPushButton(spec.label, editor);
+            button->setCursor(Qt::PointingHandCursor);
+            connect(button, &QPushButton::clicked, editor, [id, key]() {
+                if (auto *host = Qord::Plugins::PluginHost::instance())
+                    host->dispatchSettingAction(id, key);
+            });
+            auto *row = new QHBoxLayout;
+            row->addWidget(button);
+            row->addStretch();
+            form->addLayout(row);
+            addHelp();
+            break;
+        }
         case SettingType::Bool: {
             auto *check = new QCheckBox(spec.label, editor);
             check->setChecked(settings->boolValue(key));

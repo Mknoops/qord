@@ -710,7 +710,7 @@ def ready_payload() -> dict:
         "country_code": "US",
         "sessions": [],
         "analytics_token": "",
-        "auth_session_id_hash": "",
+        "auth_session_id_hash": "mock-auth-desktop",
         "consents": {},
         "experiments": [], "guild_experiments": [], "connected_accounts": [], "geo_ordered_rtc_regions": [],
         "tutorial": None, "api_code_version": 1, "friend_suggestion_count": 0,
@@ -926,6 +926,22 @@ CONNECTED_ACCOUNTS = {
         {"type": "domain", "id": "ava.example", "name": "ava.example", "verified": True, "visibility": 1},
     ],
 }
+# Settings → Devices (GET /auth/sessions): this client, the phone in
+# SESSIONS_REPLACE, and an old browser login. `login` adds one.
+AUTH_SESSIONS = [
+    {"id_hash": "mock-auth-desktop", "approx_last_used_time": "2026-10-13T08:00:00+00:00",
+     "client_info": {"os": "Linux", "platform": "Discord Client", "location": "Amsterdam, North Holland, Netherlands"}},
+    {"id_hash": "mock-auth-phone", "approx_last_used_time": "2026-10-13T05:30:00+00:00",
+     "client_info": {"os": "Android", "platform": "Discord Android", "location": "Utrecht, Utrecht, Netherlands"}},
+    {"id_hash": "mock-auth-browser", "approx_last_used_time": "2026-09-28T19:12:00+00:00",
+     "client_info": {"os": "Windows", "platform": "Firefox", "location": "Berlin, Berlin, Germany"}},
+]
+OWN_CONNECTIONS = [
+    {"type": "spotify", "id": "qordtester", "name": "Qord Tester", "verified": True, "revoked": False,
+     "show_activity": True, "visibility": 1, "friend_sync": False, "integrations": []},
+    {"type": "github", "id": "9001", "name": "qord-tester", "verified": True, "revoked": False,
+     "show_activity": True, "visibility": 1, "friend_sync": False, "integrations": []},
+]
 # GitHub's /users/{name}/orgs, as ShowConnections asks it (no real GitHub)
 GITHUB_ORGS = {"ava-codes": [{"login": "Equicord", "id": 1}, {"login": "qord-dev", "id": 2}]}
 
@@ -956,6 +972,13 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
     elif body and "multipart" in ctype:
         j = parse_multipart_json(body, ctype)
 
+    # App authorization (ReviewDB's login): the app, then the redirect with a code
+    if parts == ["oauth2", "authorize"]:
+        app = {"id": query.get("client_id", [""])[0], "name": "ReviewDB", "icon": None, "description": ""}
+        if method == "GET":
+            return 200, {"application": app, "user": USERS["self"], "authorized": False}, "json"
+        redirect = query.get("redirect_uri", [""])[0]
+        return 200, {"location": f"{redirect}?code=mock-oauth-code"}, "json"
     if parts[:1] == ["channels"] and len(parts) >= 2:
         cid = parts[1]
         rest = parts[2:]
@@ -1162,6 +1185,24 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         log(f"rest: guild settings {gid} <- {j}")
         await broadcast("USER_GUILD_SETTINGS_UPDATE", settings)
         return 200, settings, "json"
+    if parts == ["auth", "sessions"] and method == "GET":
+        return 200, {"user_sessions": AUTH_SESSIONS}, "json"
+    if parts == ["auth", "sessions", "logout"] and method == "POST":
+        gone = set(j.get("session_id_hashes") or [])
+        AUTH_SESSIONS[:] = [x for x in AUTH_SESSIONS if x["id_hash"] not in gone]
+        log(f"rest: logged out {sorted(gone)}")
+        return 204, None, "json"
+    if parts[:3] == ["users", "@me", "connections"]:
+        # GameActivityToggle: your own connections, with Spotify sharing switchable
+        if method == "GET" and len(parts) == 3:
+            return 200, OWN_CONNECTIONS, "json"
+        if method == "PATCH" and len(parts) == 5:
+            found = next((c for c in OWN_CONNECTIONS if c["type"] == parts[3] and c["id"] == parts[4]), None)
+            if not found:
+                return 404, {"message": "Unknown Connection", "code": 10017}, "json"
+            found.update({k: v for k, v in j.items() if k in ("show_activity", "visibility")})
+            log(f"rest: connection {parts[3]}/{parts[4]} show_activity={found['show_activity']}")
+            return 200, found, "json"
     if parts[:5] == ["users", "@me", "affinities", "v2", "users"] and method == "GET":
         # ImplicitRelationships: dan and a stranger you share no server with,
         # plus friends and requests (which the plugin leaves out)
@@ -1173,6 +1214,12 @@ async def handle_rest(method: str, path: str, query: dict, body: bytes, headers:
         ]}, "json"
     if parts[:2] == ["users", "@me"] and parts[2:3] == ["relationships"]:
         return await relationships(method, parts[3] if len(parts) > 3 else None, j)
+    if parts[:3] == ["users", "@me", "guilds"] and len(parts) == 4 and method == "DELETE":
+        # Leaving a server
+        if GUILDS.pop(parts[3], None) is None:
+            return 404, {"message": "Unknown Guild", "code": 10004}, "json"
+        await broadcast("GUILD_DELETE", {"id": parts[3]})
+        return 204, None, "json"
     if parts[:1] == ["users"] and len(parts) == 2 and method == "GET":
         found = next((u for u in list(USERS.values()) + [STRANGER] if u["id"] == parts[1]), None)
         return (200, found, "json") if found else (404, {"message": "Unknown User", "code": 10013}, "json")
@@ -1362,6 +1409,122 @@ def fake_translation(text: str, to: str) -> tuple[str, str]:
     return f"[{to}] {text}", "en"
 
 
+# ReviewDB (manti.vendicated.dev), as the ReviewDB plugin uses it. Writing needs
+# the token its OAuth login hands out; nothing here is a real credential.
+RDB_TOKEN = "mock-reviewdb-token"
+RDB_NEXT_ID = [100]
+
+
+def rdb_sender(key: str) -> dict:
+    u = USERS[key]
+    photo = f"https://cdn.discordapp.com/avatars/{u['id']}/{u['avatar']}.png" if u["avatar"] else ""
+    badges = [{"name": "ReviewDB Admin"}] if key == "cleo" else []
+    return {"id": int(u["id"][-3:]), "discordID": u["id"], "username": u["username"], "profilePhoto": photo,
+            "badges": badges}
+
+
+def rdb_review(rid: int, key: str, comment: str, days_ago: int, score: int = 0, rtype: int = 0) -> dict:
+    ts = int(dt.datetime.now(dt.timezone.utc).timestamp()) - days_ago * 86400
+    return {"id": rid, "sender": rdb_sender(key), "comment": comment, "type": rtype, "timestamp": ts, "score": score}
+
+
+RDB_REVIEWS = {
+    U["ava"]: [rdb_review(1, "ben", "Always helps out in #general, great person to play Factorio with.", 3, 4),
+               rdb_review(2, "cleo", "Reviewed my PR in five minutes flat.", 12, 2),
+               rdb_review(3, "eve", "meh", 30, -3)],
+    U["self"]: [rdb_review(4, "ava", "Thanks for testing Qord!", 1, 1)],
+    G1: [rdb_review(5, "ben", "Friendly server, good bots.", 5, 2)],
+}
+RDB_VOTES: dict[int, bool] = {}
+RDB_BLOCKS: list[str] = [U["dan"]]
+RDB_NOTICE: list[dict] = []
+
+
+def mock_reviewdb(method: str, path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
+    sub = path[len("/cdn/manti.vendicated.dev/api/reviewdb"):]
+    parts = [p for p in sub.split("/") if p]
+    authed = headers.get("authorization", "") == RDB_TOKEN
+    j = {}
+    if body:
+        try:
+            j = json.loads(body)
+        except ValueError:
+            j = {}
+
+    def out(status: int, obj) -> tuple[int, bytes, str]:
+        return status, json.dumps(obj).encode(), "application/json"
+
+    if parts == ["auth"]:
+        if query.get("code", [""])[0] == "mock-oauth-code":
+            return out(200, {"token": RDB_TOKEN, "success": True})
+        return out(400, {"message": "Invalid code", "success": False})
+    if parts[:1] == ["users"] and len(parts) == 3 and parts[2] == "reviews":
+        target = parts[1]
+        if method == "GET":
+            offset = int(query.get("offset", ["0"])[0])
+            limit = int(query.get("limit", ["50"])[0])
+            reviews = RDB_REVIEWS.get(target, [])
+            return out(200, {"success": True, "message": "", "reviews": reviews[offset:offset + limit],
+                             "hasNextPage": offset + limit < len(reviews), "reviewCount": len(reviews)})
+        if not authed:
+            return out(401, {"message": "Invalid token", "success": False})
+        if method == "PUT":
+            mine = [r for r in RDB_REVIEWS.setdefault(target, []) if r["sender"]["discordID"] == U["self"]]
+            if mine:
+                mine[0]["comment"] = j.get("comment", "")
+                return out(200, {"success": True, "message": "Updated your review"})
+            RDB_NEXT_ID[0] += 1
+            RDB_REVIEWS[target].insert(0, rdb_review(RDB_NEXT_ID[0], "self", j.get("comment", ""), 0))
+            return out(200, {"success": True, "message": "Added your review"})
+        if method == "DELETE":
+            # The plugin sends the review's id in place of the user's, as upstream does
+            rid = int(target)
+            for reviews in RDB_REVIEWS.values():
+                reviews[:] = [r for r in reviews if r["id"] != rid]
+            return out(200, {"success": True, "message": "Deleted review"})
+    if parts[:1] == ["users"] and len(parts) == 4 and parts[2:] == ["reviews", "votes"]:
+        ids = {r["id"] for r in RDB_REVIEWS.get(parts[1], [])}
+        return out(200, {"votes": [{"reviewID": k, "isUpvote": v} for k, v in RDB_VOTES.items() if k in ids]})
+    if not authed:
+        return out(401, {"message": "Invalid token", "success": False})
+    if parts == ["users"] and method == "POST":
+        me = {"ID": 1, "discordID": U["self"], "username": USERS["self"]["username"], "type": 0,
+              "profilePhoto": "", "badges": [], "blockedUsers": RDB_BLOCKS,
+              "lastReviewID": max((r["id"] for r in RDB_REVIEWS[U["self"]]), default=0)}
+        if RDB_NOTICE:
+            me["notification"] = RDB_NOTICE[0]
+        return out(200, me)
+    if parts == ["notifications"] and method == "PATCH":
+        RDB_NOTICE.clear()
+        return out(200, {"success": True})
+    if len(parts) == 3 and parts[0] == "reviews" and parts[2] == "vote":
+        rid = int(parts[1])
+        for reviews in RDB_REVIEWS.values():
+            for r in reviews:
+                if r["id"] == rid:
+                    old = RDB_VOTES.pop(rid, None)
+                    if old is not None:
+                        r["score"] -= 1 if old else -1
+                    if method == "POST":
+                        RDB_VOTES[rid] = bool(j.get("isUpvote"))
+                        r["score"] += 1 if RDB_VOTES[rid] else -1
+        return out(200, {"success": True})
+    if parts == ["reports"] and method == "PUT":
+        return out(200, {"success": True, "message": "Reported review"})
+    if parts == ["blocks"]:
+        if method == "GET":
+            key_of = {u["id"]: k for k, u in USERS.items()}
+            return out(200, [rdb_sender(key_of[i]) for i in RDB_BLOCKS if i in key_of])
+        if method == "PATCH":
+            uid = j.get("discordId", "")
+            if j.get("action") == "block" and uid not in RDB_BLOCKS:
+                RDB_BLOCKS.append(uid)
+            elif j.get("action") == "unblock" and uid in RDB_BLOCKS:
+                RDB_BLOCKS.remove(uid)
+            return out(200, {"success": True})
+    return out(404, {"message": "Not Found", "success": False})
+
+
 def mock_translate(path: str, query: dict, body: bytes, headers: dict) -> tuple[int, bytes, str]:
     if path.startswith("/cdn/translate-pa.googleapis.com/"):
         text, source = fake_translation(query.get("query.text", [""])[0], query.get("query.targetLanguage", ["en"])[0])
@@ -1442,6 +1605,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             elif url.path.startswith(("/cdn/translate-pa.googleapis.com/", "/cdn/api-free.deepl.com/",
                                     "/cdn/api.deepl.com/", "/cdn/translate.kagi.com/")):
                 status, data, ctype = mock_translate(url.path, query, body, headers)
+            elif url.path.startswith("/cdn/manti.vendicated.dev/api/reviewdb"):
+                status, data, ctype = mock_reviewdb(method, url.path, query, body, headers)
             elif url.path.startswith("/cdn/"):
                 status, data, ctype = cdn(url.path)
             elif url.path == "/mock/dispatch" and method == "POST":
@@ -1472,7 +1637,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 
 async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
-    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence."""
+    """Simulate other users: /mock/say, /mock/edit, /mock/delete, /mock/typing, /mock/presence, /mock/login,
+    /mock/unfriend, /mock/kick, /mock/groupkick."""
     args = json.loads(body or b"{}")
     cid = resolve_channel(args.get("channel", "general"))
     who = args.get("user", "ava")
@@ -1521,6 +1687,47 @@ async def mock_control(path: str, body: bytes) -> tuple[int, bytes, str]:
             if who in MEMBERS[gid]:
                 await broadcast("PRESENCE_UPDATE", dict(presence(who, gid), user={"id": USERS[who]["id"]}))
         return 204, b"", "application/json"
+    if action == "unfriend":
+        # A friend removes you, or someone cancels their friend request
+        rel = next((r for r in RELATIONSHIPS if r["id"] == USERS[who]["id"]), None)
+        if not rel:
+            return 404, b"{}", "application/json"
+        RELATIONSHIPS.remove(rel)
+        await broadcast("RELATIONSHIP_REMOVE", {"id": rel["id"], "type": rel["type"], "nickname": None})
+        return 204, b"", "application/json"
+    if action == "kick":
+        # Removed from a server, or (outage) the server goes down for a while
+        gid = next((g for g, v in GUILDS.items() if args.get("guild") in (g, v["name"])), None)
+        if not gid:
+            return 404, b"{}", "application/json"
+        if args.get("outage"):
+            await broadcast("GUILD_DELETE", {"id": gid, "unavailable": True})
+        else:
+            GUILDS.pop(gid)
+            await broadcast("GUILD_DELETE", {"id": gid})
+        return 204, b"", "application/json"
+    if action == "groupkick":
+        # Removed from the group DM
+        group = next((c for c in PRIVATE_CHANNELS if c["type"] == 3), None)
+        if not group:
+            return 404, b"{}", "application/json"
+        PRIVATE_CHANNELS.remove(group)
+        await broadcast("CHANNEL_DELETE", group)
+        return 204, b"", "application/json"
+    if action == "login":
+        # A new device logs in: a new auth session, and SESSIONS_REPLACE
+        n = len(AUTH_SESSIONS) + 1
+        AUTH_SESSIONS.append({"id_hash": f"mock-auth-new-{n}", "approx_last_used_time": iso(now),
+                              "client_info": {"os": args.get("os", "Mac OS X"), "platform": args.get("platform", "Safari"),
+                                              "location": "Paris, Ile-de-France, France"}})
+        await broadcast("SESSIONS_REPLACE", [
+            {"session_id": "all", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "unknown", "os": "unknown"}},
+            {"session_id": "mock-session", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "desktop", "os": "windows"}},
+            {"session_id": f"mock-web-{n}", "status": STATUS["self"], "activities": [],
+             "client_info": {"client": "web", "os": "mac"}}])
+        return 204, b"", "application/json"
     return 404, b"{}", "application/json"
 
 
@@ -1549,6 +1756,15 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=int(os.environ.get("QORD_MOCK_PORT", "8765")))
     sub = ap.add_subparsers(dest="cmd")
+    login = sub.add_parser("login", help="a new device logs in to your account (BetterSessions)")
+    login.add_argument("--os", default="Mac OS X")
+    login.add_argument("--platform", default="Safari")
+    unfriend = sub.add_parser("unfriend", help="a friend removes you, or cancels their request (RelationshipNotifier)")
+    unfriend.add_argument("--user", default="ava")
+    kick = sub.add_parser("kick", help="you are removed from a server (RelationshipNotifier)")
+    kick.add_argument("--guild", default="Second Server", help="its name or id")
+    kick.add_argument("--outage", action="store_true", help="the server goes down instead (not a removal)")
+    sub.add_parser("groupkick", help="you are removed from the group DM (RelationshipNotifier)")
     for name in ("say", "edit", "delete", "typing", "presence"):
         p = sub.add_parser(name)
         p.add_argument("--channel", default="general")

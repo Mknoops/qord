@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/betterFolders",
   "name": "BetterFolders",
   "description": "Shows server folders on dedicated sidebar and adds folder related improvements",
+  "summary": "Open server folders on a second rail, and rules for when folders open and close",
   "categories": [
     "appearance"
   ],

@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/dontRoundMyTimestamps",
   "name": "DontRoundMyTimestamps",
   "description": "Always rounds relative timestamps down, so 7.6y becomes 7y instead of 8y",
+  "summary": "Rounds relative timestamps down (7.6y shows as 7y, not 8y)",
   "categories": ["appearance", "utility"],
   "tags": ["Appearance", "Utility"],
   "authors": ["Lexi"],

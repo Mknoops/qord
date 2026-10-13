@@ -1,0 +1,38 @@
+{
+  "id": "relationshipnotifier",
+  "equicordName": "RelationshipNotifier",
+  "equicordPath": "src/plugins/relationshipNotifier",
+  "name": "RelationshipNotifier",
+  "description": "Notifies you when a friend, group chat, or server removes you.",
+  "summary": "A notification when a friend, group DM or server removes you, even while Qord was closed",
+  "categories": ["utility", "notifications"],
+  "tags": ["Friends", "Notifications"],
+  "authors": ["nick"],
+  "permissions": ["read_memberships", "read_relationships", "add_ui_elements"],
+  "hooks": ["memberships"],
+  "settings": [
+    { "key": "notices", "type": "bool", "default": false, "label": "Notices",
+      "description": "Also show a notice at the top of your screen when removed (use this if you don't want to miss any notifications)." },
+    { "key": "offlineRemovals", "type": "bool", "default": true, "label": "Offline removals",
+      "description": "Notify you when starting discord if you were removed while offline." },
+    { "key": "friends", "type": "bool", "default": true, "label": "Friends",
+      "description": "Notify when a friend removes you" },
+    { "key": "friendRequestCancels", "type": "bool", "default": true, "label": "Friend request cancels",
+      "description": "Notify when a friend request is cancelled" },
+    { "key": "servers", "type": "bool", "default": true, "label": "Servers",
+      "description": "Notify when removed from a server" },
+    { "key": "groups", "type": "bool", "default": true, "label": "Groups",
+      "description": "Notify when removed from a group chat" },
+    { "key": "known", "type": "json", "default": {}, "label": "Known memberships", "hidden": true,
+      "description": "Friends, friend requests, servers and groups as last seen, per account" }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "A \"Relationship Notifier\" notification, with the friend's avatar or the server's or group's icon, says \"X removed you as a friend.\", \"A friend request from X has been removed.\", \"You were removed from the server X.\" or \"You were removed from the group X.\" as it happens; clicking one about a person opens their profile. Removals you make yourself from Qord (removing a friend, declining a request, leaving a server) don't notify, and servers that go down for an outage aren't removals. The plugin remembers, per account, your friends, incoming friend requests, servers and group DMs, so when Qord connects it also tells you what changed while it was closed: \"You are no longer friends with X.\", \"Friend request from X has been revoked.\" (unless you are now friends, blocked them or sent them a request), \"You are no longer in the server X.\" and \"You are no longer in the group X.\". With Notices on, the notifications stay until you close them.",
+  "gaps": [
+    "Qord has no notice bar at the top of the window: with Notices on, the notification is permanent instead.",
+    "Qord can't leave or close group DMs yet, so a group you left from another client counts as a removal, as upstream counts one left elsewhere."
+  ]
+}

@@ -72,6 +72,8 @@ public:
     // edited before enabling. Created on first access.
     PluginSettings *settings(const QString &id);
 
+    // An "action" setting's button was clicked (only reaches a running plugin)
+    void dispatchSettingAction(const QString &pluginId, const QString &key);
     [[nodiscard]] bool hasHook(Hook hook) const { return !tables[hookIndex(hook)].empty(); }
     [[nodiscard]] QStringList pluginsForHook(Hook hook) const;
 
@@ -138,6 +140,25 @@ public:
     [[nodiscard]] QList<PluginMenuItem> dispatchEmojiContextMenuItems(const EmojiContext &emoji);
     void dispatchEmojiContextMenuAction(const QString &pluginId, const QString &itemId, const EmojiContext &emoji);
     // The first plugin with a layout decides it
+    [[nodiscard]] std::optional<QPair<QString, DeviceSessionView>> dispatchDeviceSessionView(Id accountId,
+                                                                                         const DeviceSession &session);
+    void dispatchDeviceSessionButton(const QString &pluginId, Id accountId, const QString &buttonId,
+                                     const DeviceSession &session);
+    void dispatchDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions);
+    void dispatchDeviceSessionsChanged(Id accountId);
+    void dispatchMembershipsChanged(const Memberships &memberships);
+    void dispatchRemoved(const Removal &removal);
+    struct PluginUserPanelButton
+    {
+        QString pluginId;
+        UserPanelButton button;
+    };
+    [[nodiscard]] QList<PluginUserPanelButton> dispatchUserPanelButtons(const UserPanelContext &panel);
+    void dispatchUserPanelButtonClicked(const QString &pluginId, const QString &id, const UserPanelContext &panel);
+    [[nodiscard]] QList<MenuItem> dispatchUserPanelButtonMenu(const QString &pluginId, const QString &id,
+                                                              const UserPanelContext &panel);
+    void dispatchUserPanelButtonMenuAction(const QString &pluginId, const QString &id, const QString &itemId,
+                                           const UserPanelContext &panel);
     [[nodiscard]] QList<FriendsSection> dispatchFriendsSections(const FriendsContext &friends);
     void dispatchFriendsPageOpened(const FriendsContext &friends);
     [[nodiscard]] std::optional<QPair<QString, DmPinLayout>> dispatchDmPinLayout(Id accountId);
@@ -208,6 +229,10 @@ signals:
     void dmListChanged();
     // The Friends page's plugin tabs changed: ask dispatchFriendsSections again
     void friendsChanged();
+    // User panel buttons changed: ask dispatchUserPanelButtons again
+    void userPanelChanged();
+    // Profile tabs changed (a plugin's data arrived): ask dispatchProfileTabs again
+    void profileTabsChanged();
 
 private:
     struct Entry

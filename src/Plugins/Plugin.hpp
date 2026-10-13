@@ -27,6 +27,8 @@ public:
     virtual void start(PluginContext &context) { Q_UNUSED(context); }
     virtual void stop() {}
     virtual void onSettingChanged(const QString &key) { Q_UNUSED(key); }
+    // An "action" setting's button was clicked in Settings → Plugins
+    virtual void onSettingAction(const QString &key) { Q_UNUSED(key); }
 
     // Hook::BeforeSend, Hook::BeforeEdit
     virtual void onBeforeSend(OutgoingMessage &message) { Q_UNUSED(message); }
@@ -266,6 +268,61 @@ public:
     {
         Q_UNUSED(id);
         Q_UNUSED(emoji);
+    }
+
+    // Hook::DeviceSessions: how a device looks in Settings → Devices
+    // (nullopt: as the client shows it), a click on one of its buttons, the
+    // page being closed (the devices it showed), and Discord reporting your
+    // sessions: first after the account connects, then whenever they change
+    // (someone logged in or out somewhere)
+    virtual std::optional<DeviceSessionView> deviceSessionView(Id accountId, const DeviceSession &session)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(session);
+        return std::nullopt;
+    }
+    virtual void onDeviceSessionButton(Id accountId, const QString &buttonId, const DeviceSession &session)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(buttonId);
+        Q_UNUSED(session);
+    }
+    virtual void onDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions)
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(sessions);
+    }
+    virtual void onDeviceSessionsChanged(Id accountId) { Q_UNUSED(accountId); }
+
+    // Hook::Memberships: what an account belongs to, after it connects and
+    // after each change, and each removal as it happens (servers that go
+    // down for an outage aren't removals)
+    virtual void onMembershipsChanged(const Memberships &memberships) { Q_UNUSED(memberships); }
+    virtual void onRemoved(const Removal &removal) { Q_UNUSED(removal); }
+
+    // Hook::UserPanelButtons: buttons next to mute and deafen, a click on
+    // one, and its right-click menu
+    virtual QList<UserPanelButton> userPanelButtons(const UserPanelContext &panel)
+    {
+        Q_UNUSED(panel);
+        return {};
+    }
+    virtual void onUserPanelButtonClicked(const QString &id, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(panel);
+    }
+    virtual QList<MenuItem> userPanelButtonMenu(const QString &id, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(panel);
+        return {};
+    }
+    virtual void onUserPanelButtonMenuAction(const QString &id, const QString &itemId, const UserPanelContext &panel)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(itemId);
+        Q_UNUSED(panel);
     }
 
     // Hook::FriendsSections: tabs added to the Friends page, and the page

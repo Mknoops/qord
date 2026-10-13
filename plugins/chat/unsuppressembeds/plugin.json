@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/unsuppressEmbeds",
   "name": "UnsuppressEmbeds",
   "description": "Allows you to unsuppress embeds in messages",
+  "summary": "Brings back suppressed embeds",
   "categories": ["chat", "utility"],
   "tags": ["Chat", "Utility"],
   "authors": ["rad", "HypedDomi"],

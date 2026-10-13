@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/typingIndicator",
   "name": "TypingIndicator",
   "description": "Adds an indicator if someone is typing on a channel.",
+  "summary": "Who is typing, next to channels in the channel list",
   "categories": ["appearance"],
   "tags": ["Notifications", "Appearance", "Servers"],
   "authors": ["Nuckyz", "fawn", "Sqaaakoi"],

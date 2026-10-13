@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/userVoiceShow",
   "name": "UserVoiceShow",
   "description": "Shows an indicator when a user is in a Voice Channel",
+  "summary": "A speaker next to people in voice; click to open their channel, double-click to join",
   "categories": [
     "voice",
     "appearance"

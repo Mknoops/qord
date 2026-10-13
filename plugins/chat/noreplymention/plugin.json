@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/noReplyMention",
   "name": "NoReplyMention",
   "description": "Disables reply pings by default",
+  "summary": "Turns reply pings off by default",
   "categories": ["chat", "notifications"],
   "tags": ["Chat", "Notifications"],
   "authors": ["DustyAngel47", "rae", "pylix", "outfoxxed"],

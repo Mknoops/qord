@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/viewRaw",
   "name": "ViewRaw",
   "description": "Copy and view the raw content/data of any message, channel or guild",
+  "summary": "View and copy the raw content and JSON of messages, channels and servers",
   "categories": ["developer", "chat"],
   "tags": ["Chat", "Developers"],
   "authors": ["KingFish", "Ven", "rad", "ImLvna"],

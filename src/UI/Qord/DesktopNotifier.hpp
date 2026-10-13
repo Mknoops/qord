@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QPointer>
 
+#include <functional>
+
 #include "Core/Snowflake.hpp"
 
 class QSystemTrayIcon;
@@ -34,6 +36,10 @@ public:
     void consider(Core::ClientInstance *instance, const Discord::Message &message, bool mentionsMe,
                   bool wasUnread, Core::Snowflake viewedChannelId);
 
+    // A plugin's notification while Qord isn't focused (when desktop
+    // notifications are on); `clicked` runs if it is clicked
+    void notify(const QString &title, const QString &body, std::function<void()> clicked);
+
 signals:
     void openRequested(Core::Snowflake accountId, Core::Snowflake channelId, Core::Snowflake messageId);
 
@@ -44,6 +50,7 @@ private:
     Core::Snowflake lastAccount;
     Core::Snowflake lastChannel;
     Core::Snowflake lastMessage;
+    std::function<void()> pendingClick; // the last plugin notification's
 };
 
 } // namespace UI

@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/platformIndicators",
   "name": "PlatformIndicators",
   "description": "Adds platform indicators (Desktop, Mobile, Web...) to users",
+  "summary": "Desktop, mobile and web indicators next to users",
   "categories": ["appearance"],
   "tags": ["Appearance"],
   "authors": ["kemo", "TheSun", "Nuckyz", "Ven", "neoarz"],

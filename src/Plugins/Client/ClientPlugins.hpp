@@ -38,10 +38,13 @@ public:
 
     Handle get(const QUrl &url, Callback callback) override;
     Handle post(const QUrl &url, const Headers &headers, const QByteArray &body, Callback callback) override;
+    Handle request(const QByteArray &method, const QUrl &url, const Headers &headers, const QByteArray &body,
+                   Callback callback) override;
     void cancel(Handle handle) override;
 
 private:
-    Handle send(const QUrl &url, const Headers &headers, const QByteArray *body, Callback callback);
+    Handle send(const QUrl &url, const Headers &headers, const QByteArray *body, Callback callback,
+                bool keepErrorBodies = false, const QByteArray &method = {});
 
     QNetworkAccessManager *nam = nullptr;
     QHash<Handle, QPointer<QNetworkReply>> replies;
@@ -93,6 +96,22 @@ public:
     void showToast(const QString &text, ToastType type) override;
     // Set by the main window
     static std::function<void(const QString &, ToastType)> &toastShower();
+    void showNotification(const PluginNotification &notification, std::function<void()> clicked) override;
+    static std::function<void(const PluginNotification &, std::function<void()>)> &notificationShower();
+    void openDevicesSettings() override;
+    static std::function<void()> &devicesOpener(); // set by the main window
+    void authorizeApp(const OAuthRequest &request, std::function<void(std::optional<QString>)> done) override;
+    quint64 openListDialog(const ListDialogView &view, ListDialogEvents events) override;
+    void updateListDialog(quint64 handle, const ListDialogView &view) override;
+    void closeListDialog(quint64 handle) override;
+    struct ListDialogs // set by the main window
+    {
+        std::function<quint64(const ListDialogView &, ListDialogEvents)> open;
+        std::function<void(quint64, const ListDialogView &)> update;
+        std::function<void(quint64)> close;
+    };
+    static ListDialogs &listDialogs();
+    static std::function<void(const OAuthRequest &, std::function<void(std::optional<QString>)>)> &appAuthorizer();
     void pickTimestamp(std::function<void(const QString &)> done) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &)> &messageBoxInserter();
@@ -225,6 +244,33 @@ private:
     mutable SessionMessageLookup lookup;
 };
 
+class SessionActivity : public ActivitySettingsService
+{
+public:
+    explicit SessionActivity(Acheron::Core::Session *session) : session(session) {}
+    bool showCurrentGame(Id accountId) const override;
+    void setShowCurrentGame(Id accountId, bool show) override;
+    void fetchConnections(Id accountId, std::function<void(bool, const QList<ActivityConnection> &)> done) override;
+    void setConnectionShowActivity(Id accountId, const QString &type, const QString &connectionId, bool show,
+                                   std::function<void(bool)> done) override;
+
+private:
+    Acheron::Core::Session *session;
+};
+
+class SessionDevices : public SessionService
+{
+public:
+    explicit SessionDevices(Acheron::Core::Session *session) : session(session) {}
+    void fetchSessions(Id accountId, std::function<void(bool, const QList<DeviceSession> &)> done) override;
+    void refreshDevicesPage() override;
+    QList<Id> accountIds() const override;
+    static std::function<void()> &devicesRefresher(); // set by the main window
+
+private:
+    Acheron::Core::Session *session;
+};
+
 class SessionUsers : public UserLookupService
 {
 public:
@@ -342,6 +388,8 @@ private:
     QtAudioOptions audio;
     SessionMessageLookup messageLookup;
     SessionVoiceStates voiceStates;
+    SessionActivity activity;
+    SessionDevices devices;
     std::unique_ptr<FileStorage> storage;
     std::unique_ptr<PluginHost> pluginHost;
 };

@@ -295,6 +295,8 @@ private:
     void showFriendsPage();
     void hideFriendsPage();
     void connectQordInstance(Core::ClientInstance *instance);
+    // RelationshipNotifier: what the account belongs to, and removals, for plugins
+    void connectMemberships(Core::ClientInstance *instance);
     void refreshTypers();
     QString qordAuthorName(const Discord::User &author, Core::Snowflake guildId, bool reply = false);
     void addPluginChannelItems(QMenu *menu, Core::Snowflake accountId, Core::Snowflake guildId, Core::Snowflake channelId);

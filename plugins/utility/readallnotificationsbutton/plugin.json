@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/readAllNotificationsButton",
   "name": "ReadAllNotificationsButton",
   "description": "Read all server notifications with a single button click!",
+  "summary": "A button that marks every server as read",
   "categories": ["utility"],
   "tags": ["Notifications", "Shortcuts"],
   "authors": ["kemo", "KrystalSkull"],

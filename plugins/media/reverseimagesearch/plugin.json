@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/reverseImageSearch",
   "name": "ReverseImageSearch",
   "description": "Adds ImageSearch to image context menus",
+  "summary": "\"Search Image\" in image context menus",
   "categories": ["media", "utility"],
   "tags": ["Media", "Utility"],
   "authors": ["Ven", "Nuckyz"],

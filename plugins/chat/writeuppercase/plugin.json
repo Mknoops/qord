@@ -4,6 +4,7 @@
   "equicordPath": "src/equicordplugins/writeUpperCase",
   "name": "WriteUpperCase",
   "description": "Changes the first Letter of each Sentence in Message Inputs to Uppercase",
+  "summary": "Capitalises the first letter of each sentence",
   "categories": ["chat", "appearance"],
   "tags": ["Appearance", "Customisation", "Chat"],
   "authors": ["Samwich", "KrystalSkull"],

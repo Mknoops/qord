@@ -179,6 +179,7 @@ struct UserContext
     QString avatarUrl;
     QString memberAvatarUrl;
     bool isBot = false;
+    QString username; // the user's username (not display name), when known
 };
 
 // A tab a plugin adds to user profiles (MutualGroupDMs): a list of rows,
@@ -855,6 +856,143 @@ struct ImageLens
     bool square = false;
     bool nearestNeighbour = false;
     bool invertScroll = true;
+};
+
+// The panel at the bottom left with your name and the mute and deafen
+// buttons, for an account.
+struct UserPanelContext
+{
+    Id accountId = 0;
+};
+
+// A button a plugin adds next to mute and deafen (GameActivityToggle). `svg`
+// is drawn with "currentColor" in the theme's icon color; `danger` gives it a
+// red glow, as Discord shows a button that is switched off.
+struct UserPanelButton
+{
+    QString id;
+    QString tooltip;
+    QByteArray svg;
+    bool danger = false;
+};
+
+// One of your connected accounts, and whether it shares its activity.
+struct ActivityConnection
+{
+    QString type; // "spotify", ...
+    QString id;
+    QString name;
+    bool showActivity = false;
+    bool revoked = false;
+};
+
+// A device logged in to your account (Discord's Devices settings, GET
+// /auth/sessions).
+struct DeviceSession
+{
+    QString idHash;
+    QString os; // "Windows", "Android", ...
+    QString platform; // "Discord Client", "Chrome", ...
+    QString location;
+    qint64 lastUsedMs = 0; // approx_last_used_time, ms since the epoch
+    bool current = false; // the session Qord is using
+};
+
+// How a plugin shows a device in the Devices settings (BetterSessions).
+// Empty fields keep the client's.
+struct DeviceSessionView
+{
+    QString title; // instead of "OS · Platform"
+    bool isNew = false; // a red "NEW" badge after the title
+    QString iconColor; // the device icon's background ("#rrggbb")
+    QByteArray badgeSvg; // a small round badge on the icon, "currentColor" drawn dark
+    QString timeTooltip; // tooltip on the "last used" text
+    QList<MenuItem> buttons; // small buttons after the title ("Rename")
+};
+
+// A Discord app asking to be authorized on your account (OAuth2), as
+// Discord's in-client authorization does (ReviewDB's login).
+struct OAuthRequest
+{
+    QString clientId;
+    QStringList scopes; // "identify", ...
+    QString redirectUri;
+    QString responseType = QStringLiteral("code");
+    quint64 permissions = 0;
+};
+
+// A window listing things people wrote, with an input to add one and pages
+// (ReviewDB's reviews). Built by the plugin; updated by it as data arrives.
+struct ListDialogItem
+{
+    QString id;
+    QString avatarUrl; // CDN image; empty: none
+    QString title; // bold (the author)
+    QString badge; // small text after the title ("Admin")
+    QString meta; // muted text after that (a time)
+    QString body; // wrapped plain text
+    QList<MenuItem> menu; // a "…" button's menu; empty: none
+};
+
+struct ListDialogView
+{
+    QString title;
+    QString notice; // above the list (a warning to be respectful)
+    QList<ListDialogItem> items;
+    QString emptyText;
+    QString inputPlaceholder; // empty: no input
+    bool inputEnabled = true; // false: clicking it reports inputBlocked
+    QString pageText; // "Page 2 of 5"; empty: no pager
+    bool canPrevious = false;
+    bool canNext = false;
+};
+
+struct ListDialogEvents
+{
+    std::function<void(const QString &itemId, const QString &menuId)> menuAction;
+    std::function<void(const QString &text)> submitted;
+    std::function<void(int delta)> page; // -1 or +1
+    std::function<void()> inputBlocked;
+    std::function<void()> closed;
+};
+
+// A notification a plugin shows (Vencord's showNotification): a card in the
+// corner of the window, and a desktop notification while Qord isn't focused.
+struct PluginNotification
+{
+    QString title;
+    QString body;
+    bool permanent = false; // stays until closed or clicked (else 5 seconds)
+    QString iconUrl; // a round image before the text (an avatar, a server's icon), optional
+};
+
+// A friend, a friend request, a server or a group DM, as you knew it.
+struct MembershipEntry
+{
+    Id id = 0; // the user, server or channel
+    QString name; // a user's username, a server's or group's name
+    QString iconUrl; // an avatar or icon, empty if there is none
+};
+
+// Everyone and everything an account belongs to, after it connects and
+// whenever that changes.
+struct Memberships
+{
+    Id accountId = 0;
+    QList<MembershipEntry> friends;
+    QList<MembershipEntry> incomingRequests;
+    QList<MembershipEntry> servers;
+    QList<MembershipEntry> groups;
+};
+
+// A friend, friend request, server or group DM gone while Qord is running.
+struct Removal
+{
+    enum class Kind { Friend, FriendRequest, Server, Group };
+    Kind kind = Kind::Friend;
+    Id accountId = 0;
+    MembershipEntry entry;
+    bool byYou = false; // you removed the friend, declined the request or left, from Qord
 };
 
 // Someone Discord ranks you as talking to (GET /users/@me/affinities).

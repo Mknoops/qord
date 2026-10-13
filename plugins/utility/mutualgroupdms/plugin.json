@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/mutualGroupDMs",
   "name": "MutualGroupDMs",
   "description": "Shows mutual group dms in profiles",
+  "summary": "A \"Mutual Groups\" tab in profiles with the group DMs you share",
   "categories": ["utility"],
   "tags": ["Friends", "Appearance"],
   "authors": ["amia"],

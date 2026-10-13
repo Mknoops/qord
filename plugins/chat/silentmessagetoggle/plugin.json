@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/silentMessageToggle",
   "name": "SilentMessageToggle",
   "description": "Adds a button to the chat bar to toggle sending a silent message.",
+  "summary": "Chat-bar toggle for sending silent messages",
   "categories": ["chat", "utility"],
   "tags": ["Chat", "Utility"],
   "authors": ["Nuckyz", "CatNoir", "Z1xus"],

@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/favEmojiFirst",
   "name": "FavoriteEmojiFirst",
   "description": "Puts your favorite emoji first in the emoji autocomplete and also has emoji alias.",
+  "summary": "Favorite emojis first in the emoji autocomplete, and your own aliases for emojis",
   "categories": [
     "chat"
   ],

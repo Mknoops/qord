@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/silentTyping",
   "name": "SilentTyping",
   "description": "Hide that you are typing",
+  "summary": "Hides that you're typing",
   "categories": ["privacy", "chat"],
   "tags": ["Chat", "Privacy"],
   "authors": ["V", "rini", "Im_Banana", "Etorix"],

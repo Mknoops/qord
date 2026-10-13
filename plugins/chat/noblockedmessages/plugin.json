@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/noBlockedMessages",
   "name": "NoBlockedMessages",
   "description": "Hide all blocked/ignored messages from chat completely.",
+  "summary": "Hides messages from blocked and ignored users completely",
   "categories": [
     "chat",
     "accessibility"

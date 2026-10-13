@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QNetworkReply>
 #include <QHash>
+#include <QSet>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -281,6 +282,48 @@ public:
     void sendTyping(Snowflake channelId);
     // status: online/idle/dnd/invisible. Sent over the gateway and saved to settings.
     void setStatus(const QString &status, const QString &customText, const QString &customEmoji);
+    // Qord: Discord's "Share your detected activities with others"
+    // (status.show_current_game, synced; true unless turned off)
+    [[nodiscard]] bool showCurrentGame() const;
+    void setShowCurrentGame(bool show);
+    // Qord: your connected accounts (GET /users/@me/connections) and whether
+    // one shares its activity (PATCH .../connections/{type}/{id})
+    struct OwnConnection
+    {
+        QString type;
+        QString id;
+        QString name;
+        bool showActivity = false;
+        bool revoked = false;
+    };
+    void fetchOwnConnections(std::function<void(bool ok, const QList<OwnConnection> &connections)> callback);
+    void setConnectionShowActivity(const QString &type, const QString &id, bool show,
+                                   std::function<void(bool ok)> callback);
+    // Qord: the devices logged in to the account (GET /auth/sessions), the
+    // one Qord is (from READY), and logging some out
+    struct AuthSession
+    {
+        QString idHash;
+        QDateTime lastUsed;
+        QString os;
+        QString platform;
+        QString location;
+    };
+    void fetchAuthSessions(std::function<void(bool ok, const QList<AuthSession> &sessions)> callback);
+    void logoutAuthSessions(const QStringList &idHashes, std::function<void(bool ok, const QString &error)> callback);
+    [[nodiscard]] QString currentAuthSessionHash() const { return authSessionIdHash; }
+    // Qord: Discord's in-client app authorization (OAuth2 consent): the app
+    // asking (GET /oauth2/authorize), and authorizing it (POST), which
+    // answers with the redirect location carrying the code
+    struct OAuthApp
+    {
+        QString id;
+        QString name;
+        QString icon; // hash, for the app icon CDN URL
+    };
+    void fetchOAuthApplication(const QUrlQuery &query, std::function<void(bool ok, const OAuthApp &app)> callback);
+    void authorizeOAuth(const QUrlQuery &query, quint64 permissions,
+                        std::function<void(bool ok, const QString &location, const QString &error)> callback);
     void fetchPinnedMessages(Snowflake channelId, MessagesCallback callback);
     // Guild-wide when guildId is valid, else within channelId (DMs)
     void searchMessages(Snowflake guildId, Snowflake channelId, const QUrlQuery &query, JsonCallback callback);
@@ -289,6 +332,9 @@ public:
     // type 1 = friend (accepts an incoming request), 2 = block
     void putRelationship(Snowflake userId, int type, ActionCallback callback);
     void removeRelationship(Snowflake userId, ActionCallback callback);
+    // Whether a friend, request or server went away because this client
+    // removed or left it (RelationshipNotifier); asking forgets it
+    bool takeLocalRemoval(Snowflake id) { return localRemovals.remove(id); }
     void resolveInvite(const QString &code, JsonCallback callback);
     void joinGuildByInvite(const QString &code, JsonCallback callback);
     void createGuild(const QString &name, JsonCallback callback);
@@ -451,6 +497,7 @@ private:
     Gateway *gateway;
 
     QHash<Snowflake, Snowflake> channelToGuild; // todo prob move this somewhere or just a cache
+    QSet<Snowflake> localRemovals; // relationships removed and servers left from here
     QHash<Snowflake, PremiumTier> guildPremiumTiers;
     QSet<Snowflake> subscribedGuilds;
     std::optional<QList<StickerPack>> stickerPacks; // Qord
@@ -460,6 +507,7 @@ private:
     QSet<Snowflake> applicationIconRequests;
 
     Proto::PreloadedUserSettings settings;
+    QString authSessionIdHash;
     User me;
 
     bool appFocused = true;

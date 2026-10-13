@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in Qord doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **never paste your Discord token, passwords or API keys**,
+        and check that logs or screenshots don't show them.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+  - type: input
+    id: plugins
+    attributes:
+      label: Plugins turned on
+      description: From Settings → Plugins, if any. Does it still happen with them off?
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you see it?
+      options:
+        - Real Discord
+        - The mock server (tools/mock_discord.py)
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Qord version or commit, OS, and Qt version
+      placeholder: e.g. qord@faaf98d, Windows 11, Qt 6.10.2
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: text

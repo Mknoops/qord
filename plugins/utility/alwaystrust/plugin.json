@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/alwaysTrust",
   "name": "AlwaysTrust",
   "description": "Removes the annoying untrusted domain and suspicious file popup",
+  "summary": "Removes the untrusted-domain popup",
   "categories": ["utility"],
   "tags": ["Utility"],
   "authors": ["zt", "trey"],

@@ -607,6 +607,8 @@ QWidget *UserProfilePopup::buildBody()
     if (!isBot())
         rightTabs->addTab(mutualFriendsTab, tr("Mutual Friends"));
     addPluginTabs();
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::profileTabsChanged, this, [this]() { addPluginTabs(); });
 
     rightCol->addWidget(rightTabs);
     rightCol->addStretch(1);
@@ -1112,6 +1114,16 @@ void UserProfilePopup::addPluginTabs()
     user.guildId = quint64(guildId);
     user.userId = quint64(userId);
     user.isBot = isBot();
+    if (const auto u = instance->users()->getUser(userId); u && u->username.hasValue())
+        user.username = u->username.get();
+    // Rebuilt when a plugin's tabs change (their data arrived): keep the
+    // tab that was open
+    const QString openTitle = rightTabs->tabText(rightTabs->currentIndex());
+    for (QWidget *w : std::as_const(pluginTabWidgets)) {
+        rightTabs->removeTab(rightTabs->indexOf(w));
+        w->deleteLater();
+    }
+    pluginTabWidgets.clear();
     constexpr int IconSize = 32;
     for (const auto &entry : host->dispatchProfileTabs(user)) {
         auto *scroll = new QScrollArea(rightTabs);
@@ -1152,6 +1164,7 @@ void UserProfilePopup::addPluginTabs()
                                             .arg(row.title.toHtmlEscaped(), row.subtitle.toHtmlEscaped()),
                                     rowWidget);
             text->setTextFormat(Qt::RichText);
+            text->setWordWrap(true);
             rl->addWidget(text, 1);
             rowWidget->onClick = [this, pluginId = entry.pluginId, tabId = entry.tab.id, rowId = row.id, user]() {
                 close(); // like upstream, the profile closes first
@@ -1162,6 +1175,9 @@ void UserProfilePopup::addPluginTabs()
         }
         layout->addStretch(1);
         rightTabs->addTab(scroll, entry.tab.title);
+        pluginTabWidgets.append(scroll);
+        if (entry.tab.title == openTitle)
+            rightTabs->setCurrentWidget(scroll);
         // As upstream does, tighter tabs so the plugin's tab fits beside Discord's
         rightTabs->setStyleSheet(rightTabs->styleSheet().replace(QStringLiteral("padding: 5px 10px;"),
                                                                  QStringLiteral("padding: 5px 5px;")));

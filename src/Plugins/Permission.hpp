@@ -41,6 +41,10 @@ enum class Permission : quint32 {
     ReadDms = 1u << 24, // PluginContext::privateChannels()
     ControlAudio = 1u << 25, // PluginContext::audio()
     FetchMessages = 1u << 26, // PluginContext::messageLookup()
+    ControlActivity = 1u << 27, // PluginContext::activity()
+    ReadSessions = 1u << 28, // deviceSessions, PluginContext::sessions()
+    AuthorizeApps = 1u << 29, // UiService::authorizeApp
+    ReadMemberships = 1u << 30, // memberships
 };
 Q_DECLARE_FLAGS(Permissions, Permission)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Permissions)
@@ -87,6 +91,9 @@ enum class Hook : quint64 {
     DmPins = Q_UINT64_C(1) << 30,
     EmojiSuggestions = Q_UINT64_C(1) << 31,
     FriendsSections = Q_UINT64_C(1) << 32,
+    UserPanelButtons = Q_UINT64_C(1) << 33,
+    DeviceSessions = Q_UINT64_C(1) << 34,
+    Memberships = Q_UINT64_C(1) << 35,
 };
 
 // A set of hooks. QFlags holds at most 32 bits on Qt 5, so this is our own.
@@ -139,7 +146,7 @@ constexpr Hooks operator|(Hook a, Hook b)
     return Hooks(a) | Hooks(b);
 }
 
-constexpr int HookCount = 33;
+constexpr int HookCount = 36;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

@@ -645,6 +645,8 @@ void Client::onDisconnected(CloseCode code, const QString &reason)
 
 void Client::onGatewayReady(const Ready &data)
 {
+    if (data.authSessionIdHash.hasValue())
+        authSessionIdHash = data.authSessionIdHash.get();
     for (const auto &guild : data.guilds.get())
         indexGuildMappings(guild);
 
@@ -1143,6 +1145,7 @@ void Client::removeReaction(Snowflake channelId, Snowflake messageId, const QStr
 void Client::leaveGuild(Snowflake guildId)
 {
     QString endpoint = "/users/@me/guilds/" + QString::number(guildId);
+    localRemovals.insert(guildId);
     httpClient->delete_(endpoint, QJsonObject{}, [this, guildId](const HttpResponse &response) {
         if (!response.success) {
             QString err = QStringLiteral("status=%1 error=%2")

@@ -4,6 +4,7 @@
   "equicordPath": "src/plugins/fakeNitro",
   "name": "FakeNitro",
   "description": "Allows you to send fake emojis/stickers, use nitro themes, and stream in nitro quality",
+  "summary": "Sends emojis and stickers you can't use as links; Nitro-quality streaming",
   "categories": [
     "chat"
   ],

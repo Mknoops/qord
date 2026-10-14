@@ -596,7 +596,7 @@ void ReviewDBPlugin::authorize(Id accountId, std::function<void()> then)
         return;
     OAuthRequest request;
     request.clientId = ClientId;
-    request.scopes = { QStringLiteral("identify") };
+    request.scopes = QStringList{ QStringLiteral("identify") };
     request.redirectUri = RedirectUri;
     request.responseType = QStringLiteral("code");
     std::weak_ptr<bool> weak = alive;

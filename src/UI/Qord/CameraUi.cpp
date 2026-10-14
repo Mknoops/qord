@@ -65,7 +65,7 @@ VideoTile::VideoTile(const QString &name, bool mirrored, QWidget *parent)
 void VideoTile::showFrame(const QImage &newFrame)
 {
     // Your own camera is shown mirrored, as Discord does; others see it as is
-    frame = mirrored ? newFrame.flipped(Qt::Horizontal) : newFrame;
+    frame = mirrored ? newFrame.mirrored(true, false) : newFrame;
     update();
 }
 

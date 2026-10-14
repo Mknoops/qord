@@ -138,7 +138,7 @@ ScreenSharePicker::ScreenSharePicker(const QList<GoLive::Quality> &allowed, QWid
     connect(tabs, &QTabBar::currentChanged, this, &ScreenSharePicker::showSources);
     connect(list, &QListWidget::currentRowChanged, this, [this](int row) { goLive->setEnabled(row >= 0); });
     connect(list, &QListWidget::itemDoubleClicked, this, &QDialog::accept);
-    connect(resolution, &QComboBox::currentIndexChanged, this, &ScreenSharePicker::updateQualityChoices);
+    connect(resolution, qOverload<int>(&QComboBox::currentIndexChanged), this, &ScreenSharePicker::updateQualityChoices);
 
     // Every resolution and frame rate Discord offers; the ones this account
     // can't use are shown but disabled, as Discord does

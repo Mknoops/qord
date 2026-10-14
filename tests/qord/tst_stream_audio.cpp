@@ -18,7 +18,7 @@ std::vector<int16_t> tone(int frames, double hz, int start = 0)
 {
     std::vector<int16_t> out(size_t(frames) * 2);
     for (int i = 0; i < frames; ++i) {
-        const auto v = int16_t(8000 * std::sin(2 * M_PI * hz * (start + i) / 48000.0));
+        const auto v = int16_t(8000 * std::sin(2 * 3.14159265358979323846 * hz * (start + i) / 48000.0));
         out[size_t(i) * 2] = v;
         out[size_t(i) * 2 + 1] = v;
     }

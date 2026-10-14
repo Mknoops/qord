@@ -37,6 +37,7 @@ each plugin should behave. Qord never runs or embeds it.
   - [Plugins](#plugins)
 - [Privacy and safety](#privacy-and-safety)
 - [Project status](#project-status)
+- [Installing](#installing)
 - [Building](#building)
 - [Trying it without a Discord account](#trying-it-without-a-discord-account)
 - [Contributing](#contributing)
@@ -277,6 +278,37 @@ Design decisions are recorded in [docs/decisions.md](docs/decisions.md).
 
 ---
 
+## Installing
+
+Ready-made builds are on the [Releases page](https://github.com/mknoops/qord/releases);
+no compiler or Qt install is needed. Every release lists the SHA-256 of each file in
+`SHA256SUMS`.
+
+| System | Download | How to run |
+|---|---|---|
+| Windows 10/11 (x64) | `Qord-<version>-windows-x64-setup.exe` | Run the installer. It installs for your user only, no administrator rights needed, and adds Qord to the Start menu. |
+| Windows, portable | `Qord-<version>-windows-x64.zip` | Unzip anywhere and start `qord.exe`. |
+| Windows 7 SP1+ (x64) | `Qord-<version>-windows7-x64.zip` | Unzip and start `qord.exe`. A Qt 5 build kept for old systems; it is less tested, some features may be missing, and it ships OpenSSL 1.1.1, which no longer gets security fixes. Use the Windows 10/11 build when you can. |
+| Linux (x86_64) | `Qord-<version>-x86_64.AppImage` | `chmod +x Qord-*.AppImage` and run it. Needs glibc 2.35+ (Debian 12, Ubuntu 22.04 or newer) and a Secret Service keyring (GNOME Keyring, KWallet) for your login. |
+| macOS 13+ (Apple silicon) | `Qord-<version>-macos-arm64.dmg` | Open the image and drag Qord to Applications. |
+
+The builds are **not code-signed** yet:
+
+- **Windows** SmartScreen may say "Windows protected your PC": choose *More info* →
+  *Run anyway*.
+- **macOS** blocks the first start of an app from an unidentified developer: right-click
+  Qord → *Open*, or run `xattr -dr com.apple.quarantine /Applications/Qord.app`.
+
+To check a download, run `sha256sum -c SHA256SUMS --ignore-missing` (macOS:
+`shasum -a 256 -c SHA256SUMS --ignore-missing`) in the folder you saved it to, or on
+Windows compare `Get-FileHash <file>` with its line in `SHA256SUMS`.
+
+Qord keeps its settings and cache apart from Acheron's, and stores your login in the
+system keychain under the name "Qord". Qord does not update itself; new versions appear
+on the Releases page.
+
+---
+
 ## Building
 
 ### Windows
@@ -344,7 +376,7 @@ addresses:
 ```bash
 pwsh -File tools/run-mock.ps1 -Reset          # Windows: start the mock and the client
 # Linux/macOS: python3 tools/mock_discord.py --port 8765, then
-#   QORD_MOCK_DISCORD=http://127.0.0.1:8765 ./build/acheron
+#   QORD_MOCK_DISCORD=http://127.0.0.1:8765 ./build/qord
 python tools/mock_discord.py say --channel general --user ava "hello"
 python tools/mock_discord.py edit --channel general "changed text"
 python tools/mock_discord.py delete --channel general

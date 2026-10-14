@@ -73,7 +73,7 @@ int scoreCameraMode(const QSize &mode, double fps, const QSize &wanted, int want
     const qint64 base = mode.width() <= wanted.width() && mode.height() <= wanted.height()
             ? 2 * area
             : qMax<qint64>(1, wantedArea - (area - wantedArea) / 8);
-    return int(qMin<qint64>(base * qMin(1.0, fps / qMax(1, wantedFps)), std::numeric_limits<int>::max()));
+    return int(qMin<qint64>(base * qMin(1.0, fps / qMax(1, wantedFps)), (std::numeric_limits<int>::max)()));
 }
 
 // The state a reader thread shares with the sender

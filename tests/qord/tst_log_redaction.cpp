@@ -11,6 +11,18 @@ class TestLogRedaction : public QObject
     Q_OBJECT
 
 private slots:
+    void gatewayMetadataNeverCopiesPayloadStrings()
+    {
+        const QJsonObject payload {
+            { "op", 0 }, { "t", "untrusted-event-with-dummy-secret" },
+            { "d", QJsonObject { { "content", "dummy-secret-in-message" },
+                                  { "future_credential", "dummy-secret" } } }
+        };
+        QCOMPARE(gatewayLogMetadata(payload), (QJsonObject { { "op", 0 } }));
+        QCOMPARE(gatewayLogMetadata(QJsonObject { { "op", "dummy-secret" } }),
+                 (QJsonObject { { "op", -1 } }));
+    }
+
     void voiceIdentifyAndSessionDescription()
     {
         const QByteArray identify = R"({"op":0,"d":{"server_id":"1","user_id":"2","session_id":"s","token":"abc.def"}})";

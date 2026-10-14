@@ -151,6 +151,72 @@ private slots:
         QCOMPARE(frame->annexB, Start4 + sps + Start4 + pps + Start4 + nal(0x65, 30, 'c'));
     }
 
+    void rejectsInvalidPacketBudget()
+    {
+        for (int budget : { -1, 0, 1, 2 })
+            QVERIFY(packetize(Start4 + nal(0x65, 10, 'x'), budget).isEmpty());
+    }
+
+    void boundsSingleNalFrames()
+    {
+        Depacketizer d;
+        const QByteArray large = nal(0x65, Depacketizer::MaxFrameBytes, 'x');
+        QVERIFY(!d.push(1, 10, false, large));
+        QVERIFY(!d.push(2, 10, true, nal(0x65, 2, 'y')));
+        QCOMPARE(d.droppedFrames(), 1);
+        QVERIFY(d.needsKeyframe());
+        // An oversized frame cannot be completed by a later key NAL with the
+        // same timestamp; a fresh timestamp can recover normally.
+        const auto frame = d.push(3, 20, true, nal(0x65, 3, 'z'));
+        QVERIFY(frame);
+        QCOMPARE(frame->annexB, Start4 + nal(0x65, 3, 'z'));
+    }
+
+    void boundsFragmentsAndRejectsTheirTail()
+    {
+        Depacketizer d;
+        QByteArray fragment(4096, 'x');
+        fragment[0] = char(0x7c);
+        fragment[1] = char(0x85);
+        uint16_t seq = 0;
+        QVERIFY(!d.push(seq++, 10, false, fragment));
+        fragment[1] = char(0x05);
+        for (int i = 0; i < Depacketizer::MaxFrameBytes / fragment.size() + 1; ++i)
+            QVERIFY(!d.push(seq++, 10, false, fragment));
+        fragment[1] = char(0x45);
+        QVERIFY(!d.push(seq++, 10, true, fragment));
+        QCOMPARE(d.droppedFrames(), 1);
+        QVERIFY(d.push(seq++, 20, true, nal(0x65, 3, 'z')));
+    }
+
+    void boundsTinyNalAndPacketCounts()
+    {
+        Depacketizer nals;
+        uint16_t seq = 0;
+        for (int i = 0; i <= Depacketizer::MaxFrameNalUnits; ++i)
+            QVERIFY(!nals.push(seq++, 10, false, nal(0x65, 1, 'x')));
+        QVERIFY(!nals.push(seq++, 10, true, nal(0x65, 1, 'x')));
+        QCOMPARE(nals.droppedFrames(), 1);
+
+        Depacketizer packets;
+        for (int i = 0; i <= Depacketizer::MaxFramePackets; ++i)
+            QVERIFY(!packets.push(seq++, 10, false, {}));
+        QVERIFY(!packets.push(seq++, 10, true, nal(0x65, 1, 'x')));
+        QCOMPARE(packets.droppedFrames(), 1);
+    }
+
+    void boundsAggregatedNalCount()
+    {
+        Depacketizer d;
+        QByteArray stap(1, char(0x78));
+        for (int i = 0; i <= Depacketizer::MaxFrameNalUnits; ++i)
+            stap += QByteArray("\0\1\x65", 3);
+        QVERIFY(!d.push(1, 10, true, stap));
+        QCOMPARE(d.droppedFrames(), 1);
+        QVERIFY(d.needsKeyframe());
+        QVERIFY(d.push(2, 20, true, nal(0x65, 3, 'z')));
+    }
+
     void extensionBytes()
     {
         const HeaderExtension ext = playoutDelayExtension();

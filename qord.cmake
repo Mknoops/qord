@@ -142,11 +142,41 @@ if(BUILD_TESTS)
     endif()
     add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
 
+    qt_add_executable(TestMockTokenStore tests/qord/tst_mock_token_store.cpp
+        tests/qord/fake_keychain/qtkeychain/keychain.h src/Core/TokenStore.cpp
+        src/Core/Snowflake.cpp src/Qord/DevMock.cpp)
+    target_link_libraries(TestMockTokenStore PRIVATE Qt::Core Qt::Network Qt::Test)
+    target_include_directories(TestMockTokenStore PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/qord/fake_keychain ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestMockTokenStore PROPERTIES AUTOMOC ON)
+    add_test(NAME QordMockTokenStoreTests COMMAND TestMockTokenStore)
+    set_tests_properties(QordMockTokenStoreTests PROPERTIES TIMEOUT 10)
+
+    qt_add_executable(TestPluginNetworkPolicy tests/qord/tst_network_policy.cpp src/Qord/DevMock.cpp)
+    target_link_libraries(TestPluginNetworkPolicy PRIVATE Qt::Core Qt::Network Qt::Test)
+    target_include_directories(TestPluginNetworkPolicy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestPluginNetworkPolicy PROPERTIES AUTOMOC ON)
+    add_test(NAME QordPluginNetworkPolicyTests COMMAND TestPluginNetworkPolicy)
+    set_tests_properties(QordPluginNetworkPolicyTests PROPERTIES TIMEOUT 20)
+
     qt_add_executable(TestLogRedaction tests/qord/tst_log_redaction.cpp src/Core/LogRedaction.cpp)
     target_link_libraries(TestLogRedaction PRIVATE Qt::Core Qt::Test)
     target_include_directories(TestLogRedaction PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     set_target_properties(TestLogRedaction PROPERTIES AUTOMOC ON)
     add_test(NAME QordLogRedactionTests COMMAND TestLogRedaction)
+
+    find_package(Threads REQUIRED)
+    qt_add_executable(TestIngest tests/qord/tst_ingest.cpp src/Discord/IngestThread.cpp)
+    target_link_libraries(TestIngest PRIVATE Qt::Core Qt::Test Threads::Threads)
+    if(TARGET Qt::ZlibPrivate)
+        target_link_libraries(TestIngest PRIVATE Qt::ZlibPrivate)
+    else()
+        target_link_libraries(TestIngest PRIVATE QtZlibCompat)
+    endif()
+    target_include_directories(TestIngest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestIngest PROPERTIES AUTOMOC ON)
+    add_test(NAME QordIngestTests COMMAND TestIngest)
+    set_tests_properties(QordIngestTests PROPERTIES TIMEOUT 30)
 
     qt_add_executable(TestPacer tests/qord/tst_pacer.cpp src/Qord/Video/Pacer.cpp)
     target_link_libraries(TestPacer PRIVATE Qt::Core Qt::Test)
@@ -159,6 +189,16 @@ if(BUILD_TESTS)
     target_include_directories(TestH264Rtp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     set_target_properties(TestH264Rtp PROPERTIES AUTOMOC ON)
     add_test(NAME QordH264RtpTests COMMAND TestH264Rtp)
+
+    if(ENABLE_VOICE)
+        qt_add_executable(TestVoiceEncryption tests/qord/tst_voice_encryption.cpp
+            src/Discord/Voice/VoiceEncryption.cpp)
+        target_link_libraries(TestVoiceEncryption PRIVATE Qt::Core Qt::Test ${SODIUM_TARGET})
+        target_include_directories(TestVoiceEncryption PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        set_target_properties(TestVoiceEncryption PROPERTIES AUTOMOC ON)
+        add_test(NAME QordVoiceEncryptionTests COMMAND TestVoiceEncryption)
+        set_tests_properties(QordVoiceEncryptionTests PROPERTIES TIMEOUT 10)
+    endif()
 
     if(TARGET ffmpeg)
         qt_add_executable(TestVideoCodec tests/qord/tst_video_codec.cpp src/Qord/Video/VideoCodec.cpp

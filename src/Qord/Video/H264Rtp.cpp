@@ -60,6 +60,8 @@ QByteArray joinAnnexB(const QList<QByteArray> &nalUnits)
 QList<QByteArray> packetize(const QByteArray &annexBFrame, int maxPayload)
 {
     QList<QByteArray> payloads;
+    if (maxPayload <= 2)
+        return payloads;
     for (const QByteArray &nal : splitAnnexB(annexBFrame)) {
         if (nal.isEmpty())
             continue;
@@ -111,6 +113,8 @@ void Depacketizer::reset()
     inFragment = false;
     broken = false;
     haveFrame = false;
+    frameBytes = 0;
+    framePackets = 0;
 }
 
 std::optional<Depacketizer::Frame> Depacketizer::finish()
@@ -158,7 +162,21 @@ std::optional<Depacketizer::Frame> Depacketizer::push(uint16_t sequence, uint32_
     if (gap)
         broken = true;
 
-    if (!payload.isEmpty()) {
+    if (!broken && (framePackets >= MaxFramePackets || payload.size() > MaxFrameBytes - frameBytes))
+        broken = true;
+    if (broken) {
+        // Retain the rejected timestamp until its boundary, so a later fragment
+        // cannot turn the tail of an oversized/broken frame into a valid frame.
+        nalUnits.clear();
+        fragment.clear();
+        inFragment = false;
+        waitingForKeyframe = true;
+    } else {
+        ++framePackets;
+        frameBytes += int(payload.size());
+    }
+
+    if (!broken && !payload.isEmpty()) {
         const uint8_t type = nalType(payload);
         if (type == NalFuA) {
             if (payload.size() >= 2) {
@@ -193,12 +211,25 @@ std::optional<Depacketizer::Frame> Depacketizer::push(uint16_t sequence, uint32_
                     broken = true;
                     break;
                 }
+                if (nalUnits.size() >= MaxFrameNalUnits) {
+                    broken = true;
+                    break;
+                }
                 nalUnits.append(payload.mid(offset, size));
                 offset += size;
             }
         } else if (type >= 1 && type <= 23) {
             nalUnits.append(payload);
         }
+    }
+
+    if (nalUnits.size() > MaxFrameNalUnits)
+        broken = true;
+    if (broken) {
+        nalUnits.clear();
+        fragment.clear();
+        inFragment = false;
+        waitingForKeyframe = true;
     }
 
     if (marker) {

@@ -170,7 +170,7 @@ void VoiceGateway::sendPayload(VoiceOpCode op, const Core::OrderedJson &d)
     obj.insert("d", d);
 
     QByteArray json = obj.toBytes();
-    qCDebug(LogVoice) << "Voice >>>" << Core::redactSecrets(json); // Qord: no tokens in logs
+    qCDebug(LogVoice) << "Voice >>> opcode =" << static_cast<int>(op);
     sendPayload(json);
 }
 
@@ -181,7 +181,7 @@ void VoiceGateway::sendPayload(const QByteArray &data)
 
 void VoiceGateway::onPayloadReceived(const QJsonObject &root)
 {
-    qCDebug(LogVoice) << "Voice <<<" << QJsonDocument(Core::redactSecrets(root)).toJson(QJsonDocument::Compact);
+    qCDebug(LogVoice) << "Voice <<<" << Core::gatewayLogMetadata(root);
 
     if (root.contains("seq") && !root["seq"].isNull())
         lastReceivedSeq = root["seq"].toInt();
@@ -499,8 +499,7 @@ void VoiceGateway::networkLoop()
                         closeReason = QString::fromUtf8(chunk + 2, rlen - 2);
                 }
 
-                qCInfo(LogVoice) << "Voice connection closed with code" << closeCode
-                                 << "reason:" << closeReason;
+                qCInfo(LogVoice) << "Voice connection closed with code" << closeCode;
 
                 VoiceCloseCode cc = static_cast<VoiceCloseCode>(closeCode);
 
@@ -517,6 +516,15 @@ void VoiceGateway::networkLoop()
 
             if (meta->flags & (CURLWS_PING | CURLWS_PONG))
                 continue;
+
+            // Bound JSON and DAVE binary frames before appending a curl chunk.
+            static constexpr int MaxVoiceFrameBytes = 8 * 1024 * 1024;
+            const auto &pendingFrame = (meta->flags & CURLWS_BINARY) ? binaryFrameBuffer : frameBuffer;
+            if (rlen > static_cast<size_t>(MaxVoiceFrameBytes - pendingFrame.size())) {
+                qCWarning(LogVoice) << "Voice gateway frame exceeds size limit";
+                shouldReconnect = true;
+                break;
+            }
 
             if (meta->flags & CURLWS_BINARY) {
                 binaryFrameBuffer.append(chunk, rlen);

@@ -37,6 +37,8 @@ public:
     /// Must call initialize() first.
     static bool isModeAvailable(EncryptionMode mode);
 
+    static bool isValidKey(EncryptionMode mode, const QByteArray &key);
+
 private:
     QByteArray encryptAes256Gcm(const QByteArray &rtpHeader, const QByteArray &payload);
     QByteArray encryptXChacha20(const QByteArray &rtpHeader, const QByteArray &payload);

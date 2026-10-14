@@ -31,6 +31,11 @@ QJsonValue redactValue(const QJsonValue &value)
 
 } // namespace
 
+QJsonObject gatewayLogMetadata(const QJsonObject &object)
+{
+    return { { QStringLiteral("op"), object.value(QStringLiteral("op")).toInt(-1) } };
+}
+
 bool isSecretKey(const QString &key)
 {
     // token: account and voice/stream server tokens; secret_key: the voice

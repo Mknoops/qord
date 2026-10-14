@@ -100,7 +100,7 @@ void fill(FakeGuilds &guilds)
     forum.defaultSortOrder = 1;
     forum.defaultReactionEmojiName = QStringLiteral("👍");
     forum.flags = 1 << 4;
-    forum.availableTags = { QStringLiteral("bug"), QStringLiteral("question") };
+    forum.availableTags = QStringList{ QStringLiteral("bug"), QStringLiteral("question") };
     forum.overwrites = { overwrite(T::Role, Guild, 0, View) };
     guilds.channels.insert(302, forum);
     guilds.members.insert(Owner, member(Owner, QStringLiteral("owner"), true));
@@ -182,7 +182,7 @@ private slots:
         QCOMPARE(screen->subheading, QStringLiteral("You can not see the messages of this channel."));
         QVERIFY(screen->topic.isEmpty()); // only forums show their topic
         QCOMPARE(texts(*screen), (QStringList { "Last message created:", "Slowmode: 1 hour, 0 minutes and 5 seconds" }));
-        QCOMPARE(screen->details[0].time, QDateTime::fromMSecsSinceEpoch(1420070400000LL + 1000000, QTimeZone::UTC));
+        QCOMPARE(screen->details[0].time, QDateTime::fromMSecsSinceEpoch(1420070400000LL + 1000000, Qt::UTC));
 
         // The owner, Ben (allowed by an overwrite; not Eve, denied), then
         // the roles that can see it: Admin (administrator) and Staff

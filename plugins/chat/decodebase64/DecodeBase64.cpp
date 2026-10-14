@@ -49,12 +49,6 @@ QStringList decodeBase64Strings(const QString &content)
         out.append(decoded);
 #endif
         
-#else
-        QTextCodec::ConverterState state;
-        const QString decoded = QTextCodec::codecForName("UTF-8")->toUnicode(result->constData(), result->size(), &state);
-        if (state.invalidChars == 0)
-            out.append(decoded);
-#endif
     }
     return out;
 }

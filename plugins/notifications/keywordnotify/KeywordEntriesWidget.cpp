@@ -126,7 +126,7 @@ private:
             priority->addItem(tr("Blacklist"));
             priority->addItem(tr("Whitelist"));
             priority->setCurrentIndex(e.whitelistFirst ? 1 : 0);
-            connect(priority, &QComboBox::currentIndexChanged, this,
+            connect(priority, qOverload<int>(&QComboBox::currentIndexChanged), this,
                     [this, i](int index) { edit(i, [&](auto &entry) { entry.whitelistFirst = index == 1; }); });
             form->addRow(tr("List priority (Advanced)"), priority);
             layout->addWidget(box);

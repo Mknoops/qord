@@ -53,18 +53,18 @@ private slots:
         bot.authorIsBot = true;
         QVERIFY(!P::matches({ entry(QStringLiteral("qord")) }, bot));
         auto allowBot = entry(QStringLiteral("qord"));
-        allowBot.whitelist = { QStringLiteral("20") };
+        allowBot.whitelist = QStringList{ QStringLiteral("20") };
         QVERIFY(P::matches({ allowBot }, bot));
 
         // Whitelist: only listed users, channels or servers
         auto white = entry(QStringLiteral("qord"));
-        white.whitelist = { QStringLiteral("40") };
+        white.whitelist = QStringList{ QStringLiteral("40") };
         QVERIFY(P::matches({ white }, message(1, QStringLiteral("qord"))));
         QVERIFY(!P::matches({ white }, message(1, QStringLiteral("qord"), 20, 30, 41)));
         // Blacklist wins unless the whitelist has priority
         auto both = entry(QStringLiteral("qord"));
-        both.whitelist = { QStringLiteral("40") };
-        both.blacklist = { QStringLiteral("20") };
+        both.whitelist = QStringList{ QStringLiteral("40") };
+        both.blacklist = QStringList{ QStringLiteral("20") };
         QVERIFY(!P::matches({ both }, message(1, QStringLiteral("qord"))));
         both.whitelistFirst = true;
         QVERIFY(P::matches({ both }, message(1, QStringLiteral("qord"))));

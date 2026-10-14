@@ -10,7 +10,9 @@
 #include <cstring>
 
 #ifdef Q_OS_WIN
+#ifdef QORD_HAVE_WGC
 #include "WgcCapture.hpp"
+#endif
 
 #include <windows.h>
 #include <d3d11.h>
@@ -244,7 +246,9 @@ struct ScreenCapturer::Private
     ComPtr<ID3D11DeviceContext> deviceContext;
     ComPtr<IDXGIOutputDuplication> duplication;
     ComPtr<ID3D11Texture2D> staging;
+#ifdef QORD_HAVE_WGC
     std::unique_ptr<WgcCapture> wgc; // windows, when Windows.Graphics.Capture works
+#endif
     QImage last;
     bool running = false;
 
@@ -346,10 +350,12 @@ bool ScreenCapturer::start(const CaptureSource &source)
         d->openDuplication(); // GDI is used if this fails
     } else if (!IsWindow(reinterpret_cast<HWND>(source.window))) {
         return false;
+#ifdef QORD_HAVE_WGC
     } else if (WgcCapture::isSupported()) {
         d->wgc = std::make_unique<WgcCapture>();
         if (!d->wgc->start(source.window))
             d->wgc.reset(); // PrintWindow then
+#endif
     }
     d->running = true;
     return true;
@@ -357,7 +363,9 @@ bool ScreenCapturer::start(const CaptureSource &source)
 
 void ScreenCapturer::stop()
 {
+#ifdef QORD_HAVE_WGC
     d->wgc.reset();
+#endif
     d->duplication.Reset();
     d->staging.Reset();
     d->deviceContext.Reset();
@@ -385,8 +393,10 @@ QImage ScreenCapturer::grab()
         const HWND window = reinterpret_cast<HWND>(d->source.window);
         if (!IsWindow(window))
             return {};
+#ifdef QORD_HAVE_WGC
         if (d->wgc)
             return d->wgc->grab(); // with the cursor already
+#endif
         QImage image = grabWindow(window);
         if (image.isNull())
             return d->last; // minimized: keep showing the last picture

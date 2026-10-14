@@ -177,7 +177,7 @@ private slots:
         s->setValue(QStringLiteral("additionalReactEmojis"), QStringLiteral("👍, 🎉"));
         h.host->dispatchChatMouseDown(2000);
         c.timeMs = 2010;
-        c.myReactions = { QStringLiteral("💀") }; // already reacted: the first one is removed
+        c.myReactions = QStringList{ QStringLiteral("💀") }; // already reacted: the first one is removed
         h.host->dispatchMessageClicked(c);
         QCOMPARE(h.messageActions.reactions, QStringList { QStringLiteral("-💀") });
         QTRY_COMPARE_WITH_TIMEOUT(h.messageActions.reactions.size(), 3, 2000);

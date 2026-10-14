@@ -23,10 +23,17 @@ concurrency:
 jobs:
   check-version:
     runs-on: ubuntu-latest
+    outputs:
+      # The tag's commit, resolved once: every later job builds and publishes this
+      sha: ${{ steps.resolve.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve the tag's commit
+        id: resolve
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Tag matches the project version
         env:
@@ -42,9 +49,11 @@ jobs:
   build:
     needs: check-version
     uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ needs.check-version.outputs.sha }}
 
   publish:
-    needs: build
+    needs: [check-version, build]
     runs-on: ubuntu-latest
     # The only job that can write: it creates the release and uploads its files
     permissions:
@@ -52,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ needs.check-version.outputs.sha }}
 
       - name: Download packages
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -63,7 +72,13 @@ jobs:
 
       - name: Checksums
         working-directory: dist
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          # Every package must carry this release's version
+          for f in *; do
+            case "$f" in Qord-"${TAG#v}"-*) ;; *) echo "unexpected file $f"; exit 1;; esac
+          done
           ls -la
           sha256sum Qord-* > SHA256SUMS
           cat SHA256SUMS
@@ -98,7 +113,11 @@ jobs:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
+            # A rebuild replaces every file, so no stale package outlives SHA256SUMS
+            gh release view "$TAG" --json assets -q '.assets[].name' | while read -r name; do
+              gh release delete-asset "$TAG" "$name" --yes
+            done
+            gh release upload "$TAG" dist/*
           else
             gh release create "$TAG" dist/* --title "Qord ${TAG#v}" --notes-file notes.md --verify-tag
           fi

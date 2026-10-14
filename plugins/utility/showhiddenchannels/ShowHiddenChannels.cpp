@@ -74,7 +74,7 @@ void ShowHiddenChannelsPlugin::stop()
 
 QDateTime ShowHiddenChannelsPlugin::snowflakeTime(Id id)
 {
-    return QDateTime::fromMSecsSinceEpoch(qint64((id >> 22) + DiscordEpochMs), QTimeZone::UTC);
+    return QDateTime::fromMSecsSinceEpoch(qint64((id >> 22) + DiscordEpochMs)).toUTC();
 }
 
 QString ShowHiddenChannelsPlugin::formatDuration(qint64 amount, Unit unit)

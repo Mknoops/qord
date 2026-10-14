@@ -5,14 +5,22 @@ on:
     branches: [qord, master, ci/**]
   pull_request:
     branches: [qord, master]
-  # release.yml builds the release packages through this workflow
+  # release.yml builds the release packages through this workflow, from the
+  # commit it verified (never the ref the release run was started from)
   workflow_call:
+    inputs:
+      ref:
+        description: Commit to build
+        type: string
+        required: true
 
 # Builds only read the repository; release.yml grants write to its publish job alone
 permissions:
   contents: read
 
 env:
+  # The test binaries are GUI programs; runners have no display
+  QT_QPA_PLATFORM: offscreen
   CURL_IMPERSONATE_VERSION: v2.0.0
   CURL_IMPERSONATE_WINDOWS_SHA256: 88e5b641a13b9a991857996947837c6f058cc3b0c9142ded0fc17b82008e98b2
   CURL_IMPERSONATE_LINUX_SHA256: d8a98bc123fae4f04bb6a7584ff486333a334b3b08edaba1867929ae8d6ebb4d
@@ -46,6 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       - name: Install Qt
@@ -158,11 +167,10 @@ jobs:
           Copy-Item -Recurse qord-windows-MinSizeRel $name
           Compress-Archive -Path $name -DestinationPath "dist/$name.zip"
 
-          # Inno Setup 6 is on the hosted Windows images; install it if a runner lacks it
+          # Inno Setup 6 ships on the hosted Windows images; fail rather than
+          # install an unpinned copy if a runner lacks it
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            choco install innosetup -y --no-progress
-          }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup 6 (ISCC.exe) not found on this runner" }
           & $iscc /Qp "/DAppVersion=$ver" "/DAppFiles=${{ github.workspace }}\$name" "/DOutputDir=${{ github.workspace }}\dist" packaging\windows\qord.iss
           if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
 
@@ -179,6 +187,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       - name: Install Qt
@@ -273,6 +282,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       # Qt 5.15.2 (Win7 SP1 floor). qtsvg + qtimageformats ship in the default Qt5
@@ -416,6 +426,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       - name: Install dependencies
@@ -485,6 +496,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       - name: Install dependencies
@@ -645,6 +657,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           submodules: recursive
 
       - name: Install dependencies
@@ -716,7 +729,10 @@ jobs:
 
           # The build-time rpath points into this runner's workspace; a shipped app
           # must only look inside its own bundle
-          install_name_tool -delete_rpath "${{ github.workspace }}/curl-impersonate" "$app/MacOS/qord"
+          ws_rpath="${{ github.workspace }}/curl-impersonate"
+          if otool -l "$app/MacOS/qord" | grep -q "path $ws_rpath "; then
+            install_name_tool -delete_rpath "$ws_rpath" "$app/MacOS/qord"
+          fi
           # ...so libcurl-impersonate has to be in Frameworks, named through @rpath
           curl_dep=$(otool -L "$app/MacOS/qord" | awk '/libcurl-impersonate/ {print $1; exit}')
           curl_lib=$(basename "$curl_dep")

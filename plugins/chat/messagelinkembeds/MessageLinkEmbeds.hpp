@@ -12,6 +12,7 @@
 
 #include <deque>
 #include <functional>
+#include <memory>
 
 namespace Qord {
 namespace Plugins {

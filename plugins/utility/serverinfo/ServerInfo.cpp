@@ -126,7 +126,7 @@ std::optional<ServerInfoView> ServerInfoPlugin::view(Id accountId, Id guildId)
     }
     out.fields.append(owner);
     add(QStringLiteral("Created At"), {},
-        QDateTime::fromMSecsSinceEpoch(qint64((guildId >> 22) + DiscordEpochMs), QTimeZone::UTC));
+        QDateTime::fromMSecsSinceEpoch(qint64((guildId >> 22) + DiscordEpochMs)).toUTC());
     add(QStringLiteral("Joined At"), guild->joinedAt.isValid() ? QString() : QStringLiteral("-"), guild->joinedAt);
     add(QStringLiteral("Vanity Link"),
         guild->vanityUrlCode.isEmpty() ? QStringLiteral("-") : QStringLiteral("discord.gg/") + guild->vanityUrlCode);

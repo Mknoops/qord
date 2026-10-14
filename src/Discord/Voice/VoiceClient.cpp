@@ -265,13 +265,21 @@ void VoiceClient::onGatewayReady(const VoiceReady &data)
 
 void VoiceClient::onSessionDescription(const SessionDescription &desc)
 {
+    const EncryptionMode mode = encryptionModeFromString(desc.mode);
+    if (!VoiceEncryption::isValidKey(mode, desc.secretKey) ||
+        !VoiceEncryption::isModeAvailable(mode) || desc.mode.get() != selectedMode) {
+        qCWarning(LogVoice) << "Rejecting invalid voice session encryption parameters";
+        stop();
+        emit disconnected();
+        return;
+    }
+
     qCInfo(LogVoice) << "Session established: mode =" << desc.mode
                      << "key length =" << desc.secretKey->size();
 
     sessionKey = desc.secretKey;
     selectedMode = desc.mode;
 
-    EncryptionMode mode = encryptionModeFromString(selectedMode);
     encryption = std::make_unique<VoiceEncryption>(mode, sessionKey);
 
     int daveVersion = desc.daveProtocolVersion.hasValue() ? desc.daveProtocolVersion.get() : 0;

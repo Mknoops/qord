@@ -48,11 +48,5 @@
     "overlay-triplets": [
       "./vcpkg-triplets"
     ]
-  },
-  "overrides": [
-    {
-      "name": "openssl",
-      "version": "3.0.7"
-    }
-  ]
+  }
 }

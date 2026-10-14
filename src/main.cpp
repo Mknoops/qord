@@ -75,11 +75,13 @@ int main(int argc, char *argv[])
 
     QApplication::setOrganizationName("ouwou");
     // Qord mock mode keeps its own profile so it never touches real accounts
-    QApplication::setApplicationName(Qord::DevMock::enabled() ? "Qord-Mock" : "Acheron");
+    // Qord's own name, settings and keychain entries, apart from Acheron's
+    QApplication::setApplicationName(Qord::DevMock::enabled() ? "Qord-Mock" : "Qord");
+    QApplication::setApplicationVersion(QStringLiteral(QORD_VERSION));
     applyFontEngineSetting();
 
     App app(argc, argv);
-    app.setDesktopFileName("io.github.ouwou.acheron");
+    app.setDesktopFileName("io.github.mknoops.qord");
     if (!Core::Theme::Manager::startsWithSystemStyle())
         app.setStyle("Fusion");
 

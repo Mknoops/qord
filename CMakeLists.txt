@@ -18,7 +18,7 @@ if(FFMPEG_FROM_VCPKG)
     list(APPEND VCPKG_MANIFEST_FEATURES "ffmpeg")
 endif()
 
-project(acheron LANGUAGES CXX)
+project(acheron VERSION 0.1.0 LANGUAGES CXX)
 
 include(qt.cmake)
 
@@ -344,6 +344,9 @@ else()
 endif()
 
 qt_add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+# Qord ships as "qord" (the CMake target keeps Acheron's name)
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME qord)
+target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_VERSION="${PROJECT_VERSION}")
 
 target_include_directories(${PROJECT_NAME} PRIVATE vendor/emoji-segmenter)
 if(TARGET unofficial::nayuki-qr-code-generator::nayuki-qr-code-generator)
@@ -548,11 +551,11 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 if(UNIX AND NOT APPLE)
-    install(FILES resources/desktop/io.github.ouwou.acheron.desktop
+    install(FILES resources/desktop/io.github.mknoops.qord.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
     )
     install(FILES acheron.svg
         DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
-        RENAME io.github.ouwou.acheron.svg
+        RENAME io.github.mknoops.qord.svg
     )
 endif()

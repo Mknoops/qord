@@ -16,7 +16,7 @@ configuration as Acheron's CI release build).
 | Start, median | 131 ms |
 | Idle working set, median | 50.9 MiB |
 | Idle private bytes, median | 27.9 MiB |
-| `acheron.exe` size | 21.95 MiB |
+| `qord.exe` size (measured as acheron.exe) | 21.95 MiB |
 | Acheron tests | 7/7 passed |
 
 ## Qord after batch 1 (plugin host + 5 plugins, all disabled)

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Qord
+GenericName=Discord Client
+Comment=A native Discord client with Equicord's plugins, made with C++ and Qt
+Exec=qord
+Icon=io.github.mknoops.qord
+Categories=Network;Chat;InstantMessaging;
+Terminal=false
+StartupWMClass=qord

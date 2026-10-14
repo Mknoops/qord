@@ -49,7 +49,7 @@ void fill(SinglePluginHost &h)
     g.verificationLevel = 1;
     g.premiumSubscriptionCount = 9;
     g.premiumTier = 2;
-    g.joinedAt = QDateTime(QDate(2026, 9, 5), QTime(8, 30), QTimeZone::UTC);
+    g.joinedAt = QDateTime(QDate(2026, 9, 5), QTime(8, 30), Qt::UTC);
     g.channelCount = 9;
     h.guilds.guilds.insert(Guild, g);
     h.guilds.guilds.insert(Second, guild(Second, QStringLiteral("Second Server")));

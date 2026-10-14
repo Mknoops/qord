@@ -324,12 +324,15 @@ private slots:
         enable(h);
         login(h);
         h.host->settings(h.id)->setValue(QStringLiteral("lastReviewId"), 40);
-        QTest::qWait(ReviewDBPlugin::StartupDelayMs + 200);
+        // A coarse startup timer can fire late on a loaded runner.
+        QTRY_VERIFY_WITH_TIMEOUT(!h.network.calls.isEmpty(), ReviewDBPlugin::StartupDelayMs + 2000);
         QCOMPARE(last(h).url.path(), QStringLiteral("/api/reviewdb/users"));
         QVERIFY(h.network.respond(true,
                                   json("{'discordID':'100','type':0,'lastReviewID':42,'notification':{'id':7,'title':'Warning','content':'Be nice','type':3}}")));
+        QVERIFY(!h.ui.toasts.isEmpty());
         QCOMPARE(h.ui.toasts.last().first, QStringLiteral("You have new reviews on your profile!"));
         QCOMPARE(h.host->settings(h.id)->numberValue(QStringLiteral("lastReviewId")), 42.0);
+        QVERIFY(!h.ui.confirmations.isEmpty());
         QCOMPARE(h.ui.confirmations.last().title, QStringLiteral("Warning"));
         QCOMPARE(last(h).method, QByteArray("PATCH"));
         QCOMPARE(last(h).url.toString(QUrl::RemoveScheme | QUrl::RemoveAuthority),

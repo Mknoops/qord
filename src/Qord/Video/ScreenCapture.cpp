@@ -7,6 +7,7 @@
 #include <QScreen>
 
 #include <algorithm>
+#include <cstring>
 
 #ifdef Q_OS_WIN
 #include "WgcCapture.hpp"
@@ -191,6 +192,26 @@ void paintCursor(QImage &image, const QPoint &origin)
     CURSORINFO info { sizeof(CURSORINFO) };
     if (!GetCursorInfo(&info) || !(info.flags & CURSOR_SHOWING) || !info.hCursor)
         return;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    // Qt 5 has no QImage::fromHICON. Draw onto the capture with GDI, which
+    // also handles monochrome cursor masks without guessing their alpha.
+    ICONINFO icon {};
+    if (!GetIconInfo(info.hCursor, &icon))
+        return;
+    const QPoint position = QPoint(info.ptScreenPos.x, info.ptScreenPos.y) - origin -
+                            QPoint(int(icon.xHotspot), int(icon.yHotspot));
+    if (icon.hbmColor)
+        DeleteObject(icon.hbmColor);
+    if (icon.hbmMask)
+        DeleteObject(icon.hbmMask);
+    const QImage pixels = image.convertToFormat(QImage::Format_RGB32);
+    Dib dib;
+    if (!dib.create(pixels.width(), pixels.height()))
+        return;
+    std::memcpy(dib.bits, pixels.constBits(), size_t(pixels.width()) * size_t(pixels.height()) * 4);
+    if (DrawIconEx(dib.dc, position.x(), position.y(), info.hCursor, 0, 0, 0, nullptr, DI_NORMAL))
+        image = dib.image();
+#else
     static QHash<HCURSOR, QPair<QImage, QPoint>> cache;
     auto it = cache.find(info.hCursor);
     if (it == cache.end()) {
@@ -209,6 +230,7 @@ void paintCursor(QImage &image, const QPoint &origin)
         return;
     QPainter p(&image);
     p.drawImage(QPoint(info.ptScreenPos.x, info.ptScreenPos.y) - it->second - origin, it->first);
+#endif
 }
 
 } // namespace

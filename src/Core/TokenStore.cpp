@@ -9,6 +9,7 @@
 #endif
 
 #include "Logging.hpp"
+#include "Qord/DevMock.hpp"
 
 namespace Acheron {
 namespace Core {
@@ -29,6 +30,9 @@ QString TokenStore::describeKeychainFailure(const QString &keychainError)
 
 Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 {
+    if (Qord::DevMock::enabled())
+        return Result<void>::makeError(tr("Account tokens cannot be saved in mock mode."));
+
     QKeychain::WritePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -50,6 +54,9 @@ Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 
 Result<QString> TokenStore::loadToken(Snowflake accountId)
 {
+    if (Qord::DevMock::enabled())
+        return Result<QString>::makeError(tr("Account tokens cannot be loaded in mock mode."));
+
     QKeychain::ReadPasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -74,6 +81,9 @@ Result<QString> TokenStore::loadToken(Snowflake accountId)
 
 bool TokenStore::deleteToken(Snowflake accountId)
 {
+    if (Qord::DevMock::enabled())
+        return true; // Mock account removal must never delete a real credential.
+
     QKeychain::DeletePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -94,6 +104,9 @@ bool TokenStore::deleteToken(Snowflake accountId)
 
 Result<QString> TokenStore::loadSecret(const QString &key)
 {
+    if (Qord::DevMock::enabled())
+        return Result<QString>::makeError(tr("Keychain secrets cannot be loaded in mock mode."));
+
     QKeychain::ReadPasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);
@@ -114,6 +127,9 @@ Result<QString> TokenStore::loadSecret(const QString &key)
 
 bool TokenStore::saveSecret(const QString &key, const QString &value)
 {
+    if (Qord::DevMock::enabled())
+        return false;
+
     QKeychain::WritePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);
@@ -133,6 +149,9 @@ bool TokenStore::saveSecret(const QString &key, const QString &value)
 
 bool TokenStore::deleteSecret(const QString &key)
 {
+    if (Qord::DevMock::enabled())
+        return true; // No persistent secrets exist in the mock profile.
+
     QKeychain::DeletePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);

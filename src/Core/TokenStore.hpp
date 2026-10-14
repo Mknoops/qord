@@ -14,6 +14,8 @@ class TokenStore
     Q_DECLARE_TR_FUNCTIONS(Acheron::Core::TokenStore)
 
 public:
+    // Mock mode never accesses the system keychain: reads/writes fail and
+    // deletions are successful no-ops. Plugin mock secrets use MemorySecretStore.
     static constexpr char const *SERVICE_NAME = "Acheron";
 
     static Result<void> saveToken(Snowflake accountId, const QString &token);

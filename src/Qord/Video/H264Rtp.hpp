@@ -50,6 +50,11 @@ bool isKeyframe(const QByteArray &annexBFrame);
 class Depacketizer
 {
 public:
+    // Bound both byte storage and tiny-NAL container overhead per access unit.
+    static constexpr int MaxFrameBytes = 8 * 1024 * 1024;
+    static constexpr int MaxFramePackets = 8192;
+    static constexpr int MaxFrameNalUnits = 4096;
+
     struct Frame
     {
         QByteArray annexB;
@@ -74,6 +79,8 @@ private:
     bool broken = false;
     bool haveFrame = false;
     uint32_t frameTimestamp = 0;
+    int frameBytes = 0;
+    int framePackets = 0;
     std::optional<uint16_t> lastSequence;
     bool waitingForKeyframe = true;
     int dropped = 0;

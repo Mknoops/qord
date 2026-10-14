@@ -35,11 +35,20 @@ QStringList decodeBase64Strings(const QString &content)
         const auto result = QByteArray::fromBase64Encoding(text.toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
         if (!result || result.decoded.isEmpty())
             continue;
+        
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        QStringDecoder utf8(QStringDecoder::Utf8, QStringDecoder::Flag::Stateless);
-        const QString decoded = utf8.decode(*result);
-        if (!utf8.hasError())
-            out.append(decoded);
+    QStringDecoder utf8(QStringDecoder::Utf8, QStringDecoder::Flag::Stateless);
+    const QString decoded = utf8.decode(result.decoded);
+    if (!utf8.hasError())
+        out.append(decoded);
+#else
+    QTextCodec::ConverterState state;
+    const QString decoded =
+        QTextCodec::codecForName("UTF-8")->toUnicode(result.decoded.constData(), result.decoded.size(), &state);
+    if (state.invalidChars == 0)
+        out.append(decoded);
+#endif
+        
 #else
         QTextCodec::ConverterState state;
         const QString decoded = QTextCodec::codecForName("UTF-8")->toUnicode(result->constData(), result->size(), &state);

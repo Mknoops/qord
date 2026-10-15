@@ -33,7 +33,7 @@ and runs ctest with JUnit output in `build\ctest-results.xml`. Useful options:
 Run the client with Qt and ffmpeg on `PATH`:
 
 ```bash
-pwsh -c '$env:PATH="C:\Qt\6.10.2\msvc2022_64\bin;$PWD\deps\ffmpeg\bin;$env:PATH"; .\build\acheron.exe'
+pwsh -c '$env:PATH="C:\Qt\6.10.2\msvc2022_64\bin;$PWD\deps\ffmpeg\bin;$env:PATH"; .\build\qord.exe'
 ```
 
 ## Trying the UI without a Discord account

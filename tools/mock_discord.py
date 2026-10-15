@@ -4,7 +4,7 @@
 Run the server, then start the client in mock mode:
 
     python tools/mock_discord.py --port 8765
-    set QORD_MOCK_DISCORD=http://127.0.0.1:8765 && build\\acheron.exe
+    set QORD_MOCK_DISCORD=http://127.0.0.1:8765 && build\\qord.exe
 
 The client then uses a separate "Qord-Mock" profile with one fake account
 and talks only to this server (loopback only, see src/Qord/DevMock.cpp).

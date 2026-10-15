@@ -81,6 +81,8 @@ signals:
     void stateChanged(State newState);
     void connected();
     void disconnected();
+    // Qord: the voice connection could not be set up at all (UDP blocked)
+    void connectFailed();
 
     void speakingReceived(const SpeakingData &data);
     void clientConnected(const ClientConnectData &data);

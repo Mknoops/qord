@@ -13,6 +13,9 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   empty window.
 - The user panel no longer shows a disconnected account as online.
 - Leftover "Acheron" wording in settings, dialogs and the keyring message.
+- Joining voice where the connection can't be set up (UDP blocked) now leaves the
+  channel, instead of staying listed in it with no audio.
+- Plugin buttons in the message box sit in the same row as the GIF and emoji buttons.
 
 ## [0.1.0]
 

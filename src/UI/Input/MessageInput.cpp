@@ -321,7 +321,10 @@ void MessageInput::setSendBlocked(bool blocked)
 
 void MessageInput::addTrailingWidget(QWidget *widget)
 {
-    inputLayout->addWidget(widget, 0, Qt::AlignBottom);
+    // Same row as the GIF and emoji buttons: centred on a single-line box,
+    // staying at the top as the box grows
+    widget->setFixedHeight(44);
+    inputLayout->addWidget(widget, 0, Qt::AlignTop);
 }
 
 QTextEdit *MessageInput::editor() const

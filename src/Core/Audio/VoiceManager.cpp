@@ -184,6 +184,8 @@ void VoiceManager::handleVoiceServerUpdate(const Discord::VoiceServerUpdate &eve
 
     if (!proxy.canRelayUdp()) {
         qCWarning(LogVoice) << "Refusing voice connection: an HTTP proxy cannot relay voice UDP";
+        pending = {};
+        emit voiceConnectionFailed();
         return;
     }
 
@@ -608,6 +610,11 @@ void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &
                     return;
                 onVoiceClientConnected();
             });
+
+    connect(voiceClient, &Discord::Voice::VoiceClient::connectFailed, this, [this, gen]() {
+                if (gen != voiceGeneration)
+                    return;
+                emit voiceConnectionFailed(); }, Qt::QueuedConnection);
 
     connect(voiceClient, &Discord::Voice::VoiceClient::disconnected, this, [this, gen]() {
                 if (gen != voiceGeneration)

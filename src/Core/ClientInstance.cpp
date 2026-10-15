@@ -97,6 +97,11 @@ ClientInstance::ClientInstance(const AccountInfo &info,
     voiceManager = new Audio::VoiceManager(info.id, info.proxy, this);
     connect(voiceManager, &Audio::VoiceManager::voiceConnected, this, &ClientInstance::onVoiceConnected);
     connect(voiceManager, &Audio::VoiceManager::voiceDisconnected, this, &ClientInstance::onVoiceDisconnected);
+    // Qord: leave the channel on Discord too, instead of sitting in it silently
+    connect(voiceManager, &Audio::VoiceManager::voiceConnectionFailed, this, [this]() {
+        if (isInVoice())
+            discord()->sendVoiceStateUpdate(currentVoiceGuildId, Snowflake::Invalid, false, false);
+    });
 #endif
 
     connect(client, &Discord::Client::stateChanged, this, &ClientInstance::stateChanged);

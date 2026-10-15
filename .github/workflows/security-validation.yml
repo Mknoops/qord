@@ -45,7 +45,7 @@ jobs:
         run: |
           set -eu
           work="${RUNNER_TEMP}/security-${TEST_QT_MAJOR}"
-          mkdir -p "$work/home" "$work/runtime"
+          mkdir -p "$work/home" "$work/runtime" "$work/tmp"
           chmod 700 "$work/runtime"
           qt_args=()
           if [ "$TEST_QT_MAJOR" = 6 ]; then
@@ -64,6 +64,7 @@ jobs:
               --ro-bind "$GITHUB_WORKSPACE" /src --bind "$work" /work \
               --tmpfs /tmp --proc /proc --dev /dev "${qt_args[@]}" \
               --setenv PATH /usr/bin:/bin --setenv HOME /work/home \
+              --setenv TMPDIR /work/tmp \
               --setenv QT_QPA_PLATFORM offscreen --setenv XDG_RUNTIME_DIR /work/runtime \
               --setenv PYTHONDONTWRITEBYTECODE 1 --setenv TEST_QT_MAJOR "$TEST_QT_MAJOR" \
               --chdir /work /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" \
@@ -79,7 +80,7 @@ jobs:
                   args+=(-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON -DQT_VERSION=5.15.13)
                 fi
                 cmake -S /src -B /work/build -G Ninja "${args[@]}"
-                cmake --build /work/build --parallel 2
+                cmake --build /work/build --parallel 2 -- -k 0
                 ctest --test-dir /work/build --output-on-failure --timeout 90 -j2
                 cd /src
                 python3 -m unittest discover -s tools/tests -v

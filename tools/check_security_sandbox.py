@@ -8,12 +8,16 @@ import os
 from pathlib import Path
 import resource
 import socket
+import tempfile
 
 
 allowed = {"PATH", "HOME", "QT_QPA_PLATFORM", "XDG_RUNTIME_DIR",
-           "PYTHONDONTWRITEBYTECODE", "TEST_QT_MAJOR", "PWD", "SHLVL", "_", "LC_CTYPE"}
+           "PYTHONDONTWRITEBYTECODE", "TEST_QT_MAJOR", "TMPDIR", "PWD", "SHLVL", "_", "LC_CTYPE"}
 assert set(os.environ) <= allowed, "unexpected inherited environment"
 assert os.environ["HOME"] == "/work/home"
+assert os.environ["TMPDIR"] == "/work/tmp"
+with tempfile.TemporaryDirectory() as directory:
+    assert Path(directory).parent == Path("/work/tmp"), "temporary files must stay in writable scratch"
 assert os.getuid() != 0, "test process must not run as root"
 status = Path("/proc/self/status").read_text().splitlines()
 assert next(line for line in status if line.startswith("CapEff:")).split()[1] == "0000000000000000"

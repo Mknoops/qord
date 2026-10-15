@@ -23,6 +23,7 @@ struct AccountInfo
     QString cdnUrl = "https://cdn.discordapp.com";
 
     ProxyConfig proxy;
+    QString proxyError; // Nonempty means credentials/configuration failed; never connect direct.
 
     int displayOrder = 0;
     bool autoConnect = false;

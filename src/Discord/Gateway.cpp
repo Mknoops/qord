@@ -1,6 +1,8 @@
 #include "Gateway.hpp"
 
 #include "Core/LogRedaction.hpp"
+#include "Qord/DevMock.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include "Enums.hpp"
 #include "Objects.hpp"
@@ -906,6 +908,7 @@ void Gateway::runConnection()
         curl_version_info_data *info = curl_version_info(CURLVERSION_NOW);
         printf("SSL backend: %s\n", info->ssl_version);
 
+        connectUrl = safeGatewayUrl(QUrl(connectUrl)).toString(QUrl::FullyEncoded);
         curl_easy_setopt(curl, CURLOPT_URL, connectUrl.toUtf8().constData());
         curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);

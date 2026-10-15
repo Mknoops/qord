@@ -3,6 +3,7 @@
 #include "ClientIdentity.hpp"
 #include "CurlUtils.hpp"
 #include "HttpClient.hpp"
+#include "Qord/DevMock.hpp"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -222,7 +223,7 @@ CURL *RequestWorker::buildEasyHandle(TransferContext *ctx)
     }
 
     ctx->headers = headers;
-    ctx->url = desc.url;
+    ctx->url = Qord::DevMock::rewrite(QUrl(QString::fromStdString(desc.url))).toEncoded().toStdString();
 
     curl_easy_setopt(curl, CURLOPT_URL, ctx->url.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);

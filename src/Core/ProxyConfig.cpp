@@ -38,7 +38,6 @@ QString authority(const QString &host, quint16 port)
 
 QNetworkProxy::ProxyType qtProxyType(ProxyConfig::Type type)
 {
-    // https proxy degrades to plain CONNECT in qt because it doesnt support it
     if (type == ProxyConfig::Type::Socks5)
         return QNetworkProxy::Socks5Proxy;
 
@@ -49,14 +48,18 @@ QNetworkProxy::ProxyType qtProxyType(ProxyConfig::Type type)
 
 QString ProxyConfig::toCurlUrl() const
 {
-    if (!enabled())
+    if (!enabled() || blocked || host.isEmpty() || port == 0)
         return QString();
 
     return QStringLiteral("%1://%2").arg(curlScheme(type), authority(host, port));
 }
 
-QNetworkProxy ProxyConfig::toQtProxy() const
+std::optional<QNetworkProxy> ProxyConfig::toQtProxy() const
 {
+    // Qt has no TLS-to-proxy support. Never downgrade the proxy hop or
+    // silently route an incomplete/failed configuration directly.
+    if (blocked || type == Type::Https || (enabled() && (host.isEmpty() || port == 0)))
+        return std::nullopt;
     if (!enabled())
         return QNetworkProxy(QNetworkProxy::NoProxy);
 

@@ -1,4 +1,5 @@
 #include "ChatModel.hpp"
+#include "Core/Media/InputPolicy.hpp"
 
 #include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
@@ -623,6 +624,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             data.id = att.id;
             data.proxyUrl = QUrl(*att.proxyUrl);
             data.originalUrl = QUrl(*att.url);
+            data.isLocalPreview = visible.isPendingOutbound;
             const MediaFlags media = mediaFlagsFor(att, visible);
             data.isImage = media.isImage;
             data.contentType = media.contentType;
@@ -654,7 +656,8 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                     // pending paste preview: pixels live in memory, not on disk
                     data.pixmap = previewPixmap(att.id, att.localPreview, data.displaySize);
                     data.isLoading = data.pixmap.isNull();
-                } else if (data.proxyUrl.isLocalFile()) {
+                } else if (data.isLocalPreview && data.proxyUrl.isLocalFile() &&
+                           Core::Media::allowedChatMediaUrl(data.proxyUrl, true)) {
                     // pending dropped-file preview: decode from disk
                     data.pixmap = localPixmap(data.proxyUrl, data.displaySize);
                     data.isLoading = data.pixmap.isNull();

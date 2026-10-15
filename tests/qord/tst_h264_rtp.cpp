@@ -217,6 +217,21 @@ private slots:
         QVERIFY(d.push(2, 20, true, nal(0x65, 3, 'z')));
     }
 
+    void boundsStreamPoolAndReusesReleasedSlots()
+    {
+        DepacketizerPool pool;
+        for (int i = 1; i <= DepacketizerPool::MaxStreams; ++i)
+            QVERIFY(pool.getOrCreate(uint32_t(i)));
+        QCOMPARE(pool.size(), DepacketizerPool::MaxStreams);
+        QVERIFY(pool.getOrCreate(1));
+        QVERIFY(!pool.getOrCreate(1000));
+        pool.remove(1);
+        QVERIFY(pool.getOrCreate(1000));
+        QCOMPARE(pool.size(), DepacketizerPool::MaxStreams);
+        pool.clear();
+        QCOMPARE(pool.size(), 0);
+    }
+
     void extensionBytes()
     {
         const HeaderExtension ext = playoutDelayExtension();

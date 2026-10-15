@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QJsonObject>
+#include <QPointer>
 
 #include <array>
 #include <cstring>
@@ -12,7 +13,7 @@
 namespace Acheron {
 namespace Discord {
 
-IngestThread::IngestThread(QObject *parent)
+IngestThread::IngestThread(QObject *parent) : QObject(parent)
 {
     memset(&stream, 0, sizeof(stream));
 }
@@ -57,6 +58,8 @@ void IngestThread::push(const QByteArray &data)
             return;
         if (queue.size() >= MaxQueuedChunks || data.size() > MaxQueuedBytes - queuedBytes) {
             failed = true;
+            pendingPayloads.clear();
+            pendingPayloadBytes = 0;
             queue.clear();
             queuedBytes = 0;
             emit streamFailed();
@@ -73,6 +76,8 @@ void IngestThread::reset()
     // zlib and the compressed buffer are owned exclusively by the worker.
     std::lock_guard lock(mutex);
     generation++;
+    pendingPayloads.clear();
+    pendingPayloadBytes = 0;
     queue.clear();
     queuedBytes = 0;
     failed = false;
@@ -90,9 +95,59 @@ void IngestThread::failGeneration(quint64 value)
     if (generation.load() != value || failed)
         return;
     failed = true;
+    pendingPayloads.clear();
+    pendingPayloadBytes = 0;
     queue.clear();
     queuedBytes = 0;
     emit streamFailed();
+}
+
+void IngestThread::enqueuePayload(const QJsonObject &root, quint64 value, int bytes)
+{
+    bool overflow = false;
+    {
+        std::lock_guard lock(mutex);
+        if (failed || value != generation.load())
+            return;
+        overflow = pendingPayloads.size() >= MaxPendingPayloads ||
+                   bytes > MaxPendingPayloadBytes - pendingPayloadBytes;
+        if (!overflow) {
+            pendingPayloads.push_back({ root, value, bytes });
+            pendingPayloadBytes += bytes;
+            if (!deliveryScheduled) {
+                deliveryScheduled = true;
+                // A single lightweight event owns delivery. JSON objects stay
+                // in the bounded queue, never in an unbounded Qt event queue.
+                QMetaObject::invokeMethod(this, [this] { deliverPayloads(); }, Qt::QueuedConnection);
+            }
+        }
+    }
+    if (overflow)
+        failGeneration(value);
+}
+
+void IngestThread::deliverPayloads()
+{
+    QPointer<IngestThread> self(this);
+    for (int delivered = 0; delivered < MaxPendingPayloads; ++delivered) {
+        PendingPayload payload;
+        {
+            std::lock_guard lock(mutex);
+            if (pendingPayloads.empty()) {
+                deliveryScheduled = false;
+                return;
+            }
+            payload = std::move(pendingPayloads.front());
+            pendingPayloads.pop_front();
+            pendingPayloadBytes -= payload.bytes;
+        }
+        if (acceptsGeneration(payload.generation))
+            emit payloadReceived(payload.root, payload.generation);
+        if (!self)
+            return;
+    }
+    // Yield to UI work even if a producer keeps filling the bounded queue.
+    QMetaObject::invokeMethod(this, [this] { deliverPayloads(); }, Qt::QueuedConnection);
 }
 
 void IngestThread::threadLoop()
@@ -183,7 +238,7 @@ void IngestThread::threadLoop()
             clearStream();
             failGeneration(dataGen);
         } else if (acceptsGeneration(dataGen)) {
-            emit payloadReceived(doc.object(), dataGen);
+            enqueuePayload(doc.object(), dataGen, int(decompressed.size()));
         }
     }
     clearStream();

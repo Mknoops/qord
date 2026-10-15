@@ -5,6 +5,7 @@
 #include "Core/Logging.hpp"
 #include "Core/Media/AudioOutput.hpp"
 #include "Core/Media/CurlAvio.hpp"
+#include "Core/Media/InputPolicy.hpp"
 #include "Discord/CurlUtils.hpp"
 
 #include <QCoreApplication>
@@ -50,7 +51,8 @@ void MediaDecoder::setInterrupt(int (*callback)(void *), void *opaque)
 // just in case it tries for some reason
 int MediaDecoder::denyNestedOpen(AVFormatContext *, AVIOContext **, const char *url, int, AVDictionary **)
 {
-    qCWarning(LogVideo) << "refusing nested open of" << url << "while proxied";
+    Q_UNUSED(url);
+    qCWarning(LogVideo) << "Refusing nested media resource";
     return AVERROR(EPERM);
 }
 
@@ -68,21 +70,43 @@ bool MediaDecoder::open(const QString &input, const ProxyConfig &proxy, QString 
         fmtCtx->interrupt_callback.opaque = interruptOpaque;
     }
 
-    if (proxy.enabled()) {
-        if (CurlAvio::handlesScheme(input))
-            curlIo = CurlAvio::create(input, proxy, fmtCtx->interrupt_callback);
-        if (!curlIo) {
+    const QString localPath = localMediaPath(input);
+    const QUrl remoteUrl = Qord::DevMock::rewrite(QUrl(input, QUrl::StrictMode));
+    if (!localPath.isEmpty()) {
+        AVDictionary *fileOptions = nullptr;
+        av_dict_set(&fileOptions, "protocol_whitelist", "file", 0);
+        const QByteArray fileUrl = localPath.toUtf8();
+        const int result = avio_open2(&localIo, fileUrl.constData(), AVIO_FLAG_READ,
+                                     &fmtCtx->interrupt_callback, &fileOptions);
+        av_dict_free(&fileOptions);
+        if (result < 0) {
             if (error)
-                *error = QCoreApplication::translate("Acheron::Core::Media::Player", "could not open a proxied connection");
+                *error = errorString(result);
             return false;
         }
-
+        fmtCtx->pb = localIo;
+    } else {
+        if (!allowedRemoteMediaUrl(remoteUrl)) {
+            if (error)
+                *error = QCoreApplication::translate("Acheron::Core::Media::Player", "unsupported media URL");
+            return false;
+        }
+        curlIo = CurlAvio::create(remoteUrl.toString(QUrl::FullyEncoded), proxy, fmtCtx->interrupt_callback);
+        if (!curlIo) {
+            if (error)
+                *error = QCoreApplication::translate("Acheron::Core::Media::Player", "could not open media connection");
+            return false;
+        }
         fmtCtx->pb = curlIo;
-        fmtCtx->flags |= AVFMT_FLAG_CUSTOM_IO;
-        fmtCtx->io_open = &MediaDecoder::denyNestedOpen;
     }
+    // Supply the only permitted input ourselves. Demuxers may not open
+    // playlists, external tracks, keys, local files, or further network URLs.
+    fmtCtx->flags |= AVFMT_FLAG_CUSTOM_IO;
+    fmtCtx->io_open = &MediaDecoder::denyNestedOpen;
 
     AVDictionary *options = nullptr;
+    // The top-level AVIO is already open. No demuxer needs a native protocol.
+    av_dict_set(&options, "protocol_whitelist", "", 0);
     const QByteArray userAgent = Discord::CurlUtils::getUserAgent().toUtf8();
     av_dict_set(&options, "user_agent", userAgent.constData(), 0);
     av_dict_set(&options, "reconnect", "1", 0);
@@ -197,6 +221,9 @@ void MediaDecoder::close()
         avcodec_free_context(&audioCtx);
     if (fmtCtx)
         avformat_close_input(&fmtCtx);
+
+    if (localIo)
+        avio_closep(&localIo);
 
     if (curlIo) {
         CurlAvio::destroy(curlIo);

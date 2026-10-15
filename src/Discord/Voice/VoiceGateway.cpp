@@ -1,6 +1,8 @@
 #include "VoiceGateway.hpp"
 
 #include "Core/LogRedaction.hpp"
+#include "Qord/DevMock.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include "Discord/CurlUtils.hpp"
 #include "Core/Logging.hpp"
@@ -400,12 +402,12 @@ void VoiceGateway::networkLoop()
     do {
         shouldReconnect = false;
 
-        QString connectUrl = QStringLiteral("wss://%1/?v=%2")
-                                     .arg(endpoint)
-                                     .arg(VOICE_GATEWAY_VERSION);
-        // Qord: the local mock server's voice gateway is plain ws://
-        if (endpoint.startsWith(QLatin1String("ws://")))
-            connectUrl = QStringLiteral("%1/?v=%2").arg(endpoint).arg(VOICE_GATEWAY_VERSION);
+        QUrl endpointUrl(endpoint.contains(QLatin1String("://"))
+                             ? endpoint : QStringLiteral("wss://") + endpoint);
+        if (endpointUrl.path().isEmpty())
+            endpointUrl.setPath(QStringLiteral("/"));
+        endpointUrl.setQuery(QStringLiteral("v=%1").arg(VOICE_GATEWAY_VERSION));
+        QString connectUrl = endpointUrl.toString(QUrl::FullyEncoded);
 
         curl = curl_easy_init();
         if (!curl) {
@@ -413,6 +415,7 @@ void VoiceGateway::networkLoop()
             return;
         }
 
+        connectUrl = safeGatewayUrl(QUrl(connectUrl)).toString(QUrl::FullyEncoded);
         curl_easy_setopt(curl, CURLOPT_URL, connectUrl.toUtf8().constData());
         curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
         CurlUtils::applyCommonOptions(curl);

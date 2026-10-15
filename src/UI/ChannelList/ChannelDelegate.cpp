@@ -698,6 +698,18 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         return;
     }
 
+    bool isSelected = index.data(ChannelFilterProxyModel::SelectedRole).toBool();
+    const auto &theme = Core::Theme::Manager::instance();
+    const bool rowIsChannel = node->opensChat() || node->type == ChannelNode::Type::VoiceChannel;
+    if (rowIsChannel && (isSelected || (option.state & QStyle::State_MouseOver))) {
+        // Qord: Discord's rounded hover/selected highlight, under a DM's avatar
+        painter->save();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(theme.color(isSelected ? Core::Theme::Token::SelectedBg : Core::Theme::Token::HoverBg));
+        painter->drawRoundedRect(QRectF(contentOpt.rect.adjusted(-4, 1, -6, -1)), 4, 4);
+        painter->restore();
+    }
+
     if (node->type == ChannelNode::Type::Server || node->type == ChannelNode::Type::DMChannel) {
         QRect iconRect = QRect(contentOpt.rect.left(),
                                contentOpt.rect.top() + (contentOpt.rect.height() - iconSize) / 2,
@@ -727,17 +739,6 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
 
     // determine text color
     QColor textColor = option.palette.text().color();
-    bool isSelected = index.data(ChannelFilterProxyModel::SelectedRole).toBool();
-    const auto &theme = Core::Theme::Manager::instance();
-    const bool rowIsChannel = node->opensChat() || node->type == ChannelNode::Type::VoiceChannel;
-    if (rowIsChannel && (isSelected || (option.state & QStyle::State_MouseOver))) {
-        // Qord: Discord's rounded hover/selected highlight
-        painter->save();
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(theme.color(isSelected ? Core::Theme::Token::SelectedBg : Core::Theme::Token::HoverBg));
-        painter->drawRoundedRect(QRectF(contentOpt.rect.adjusted(-4, 1, -6, -1)), 4, 4);
-        painter->restore();
-    }
     if (node->opensChat()) {
         textColor = theme.color(Core::Theme::Token::MutedText);
         if (node->isMuted)
@@ -897,7 +898,9 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         rightReserve += hiddenIconSize + 4;
     }
 
-    QRect textRect = contentOpt.rect.adjusted(iconSize, 0, -rightReserve, 0);
+    // a 24 px avatar or server icon fills the icon column; keep the name off it
+    const bool hasAvatar = node->type == ChannelNode::Type::Server || node->type == ChannelNode::Type::DMChannel;
+    QRect textRect = contentOpt.rect.adjusted(iconSize + (hasAvatar ? 8 : 0), 0, -rightReserve, 0);
     painter->setPen(textColor);
     QString elidedName = painter->fontMetrics().elidedText(
             index.data(Qt::DisplayRole).toString(), Qt::ElideRight, textRect.width());

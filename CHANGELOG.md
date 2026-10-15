@@ -16,6 +16,7 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 - Joining voice where the connection can't be set up (UDP blocked) now leaves the
   channel, instead of staying listed in it with no audio.
 - Plugin buttons in the message box sit in the same row as the GIF and emoji buttons.
+- A selected or hovered DM keeps its avatar visible, and the name no longer touches it.
 
 ## [0.1.0]
 

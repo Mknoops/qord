@@ -33,6 +33,14 @@ jobs:
             qtbase5-dev qttools5-dev libqt5svg5-dev
           git -c core.hooksPath=/dev/null submodule update --init --depth 1 \
             vendor/qtkeychain vendor/emoji-segmenter vendor/qrcodegen vendor/miniaudio
+      - name: Prepare pinned WebSocket-capable curl toolchain
+        run: |
+          curl --fail --location --proto '=https' --max-time 120 \
+            -o "$RUNNER_TEMP/security-curl.tar.gz" \
+            https://github.com/lexiforest/curl-impersonate/releases/download/v2.0.0/libcurl-impersonate-v2.0.0.x86_64-linux-gnu.tar.gz
+          echo "d8a98bc123fae4f04bb6a7584ff486333a334b3b08edaba1867929ae8d6ebb4d  $RUNNER_TEMP/security-curl.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/security-curl"
+          tar -xzf "$RUNNER_TEMP/security-curl.tar.gz" -C "$RUNNER_TEMP/security-curl"
       - name: Install Qt 6 toolchain
         if: matrix.qt == '6'
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
@@ -62,16 +70,25 @@ jobs:
               --ro-bind /lib /lib --ro-bind /lib64 /lib64 \
               --ro-bind /etc/ld.so.cache /etc/ld.so.cache --ro-bind /etc/fonts /etc/fonts \
               --ro-bind "$GITHUB_WORKSPACE" /src --bind "$work" /work \
+              --ro-bind "$RUNNER_TEMP/security-curl" /curl \
               --tmpfs /tmp --proc /proc --dev /dev "${qt_args[@]}" \
               --setenv PATH /usr/bin:/bin --setenv HOME /work/home \
               --setenv TMPDIR /work/tmp \
+              --setenv FONTCONFIG_FILE /etc/fonts/fonts.conf \
               --setenv QT_QPA_PLATFORM offscreen --setenv XDG_RUNTIME_DIR /work/runtime \
               --setenv PYTHONDONTWRITEBYTECODE 1 --setenv TEST_QT_MAJOR "$TEST_QT_MAJOR" \
               --chdir /work /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" \
               --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
               /bin/bash --noprofile --norc -eu -o pipefail -c '
                 python3 /src/tools/check_security_sandbox.py
-                args=(-DUSE_VCPKG=OFF -DALLOW_PLAIN_CURL=ON -DENABLE_VOICE=OFF
+                # Keep bundled release-backend TLS symbols local, just as
+                # build.yml does; all binary processing stays inside isolation.
+                mapfile -t keep_flags < <(nm --defined-only -g /curl/libcurl-impersonate.a |
+                  sed -n "s/.* \(curl_[^ ]*\)$/--keep-global-symbol=\1/p" | sort -u)
+                test "${#keep_flags[@]}" -gt 0
+                objcopy "${keep_flags[@]}" /curl/libcurl-impersonate.a /work/libcurl-impersonate-local.a
+                args=(-DUSE_VCPKG=OFF -DALLOW_PLAIN_CURL=OFF -DENABLE_VOICE=OFF
+                      -DCURL_INCLUDE_DIR=/curl/include -DCURL_LIBRARY=/work/libcurl-impersonate-local.a
                       -DENABLE_FFMPEG=ON -DENABLE_LOTTIE=OFF -DBUILD_TESTS=ON -DBUILD_VOICE_CRYPTO_TESTS=ON
                       -DCMAKE_BUILD_TYPE=Debug)
                 if [ "$TEST_QT_MAJOR" = 6 ]; then

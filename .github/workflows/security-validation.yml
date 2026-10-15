@@ -83,6 +83,7 @@ jobs:
                 cmake --build /work/build --parallel 2 -- -k 0
                 ctest --test-dir /work/build --output-on-failure --timeout 90 -j2
                 cd /src
+                unset OLDPWD
                 python3 -m unittest discover -s tools/tests -v
                 python3 tools/check_equicord_plugins.py --check-docs
                 python3 tools/check_mock_smoke.py /work/build/qord

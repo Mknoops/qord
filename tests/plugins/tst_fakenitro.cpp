@@ -153,7 +153,7 @@ QByteArray idatOf(const QImage &image, QByteArray *ihdr)
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
     QByteArray data;
-    for (qsizetype off = 8; off + 12 <= png.size();) {
+    for (int off = 8; off + 12 <= png.size();) {
         const quint32 length = (quint32(quint8(png[off])) << 24) | (quint32(quint8(png[off + 1])) << 16) |
                                (quint32(quint8(png[off + 2])) << 8) | quint32(quint8(png[off + 3]));
         const QByteArray type = png.mid(off + 4, 4);
@@ -161,7 +161,7 @@ QByteArray idatOf(const QImage &image, QByteArray *ihdr)
             *ihdr = png.mid(off + 8, length);
         if (type == "IDAT")
             data += png.mid(off + 8, length);
-        off += 12 + qsizetype(length);
+        off += 12 + int(length);
     }
     return data;
 }

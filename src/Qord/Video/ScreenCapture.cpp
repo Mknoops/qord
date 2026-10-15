@@ -7,9 +7,12 @@
 #include <QScreen>
 
 #include <algorithm>
+#include <cstring>
 
 #ifdef Q_OS_WIN
+#ifdef QORD_HAVE_WGC
 #include "WgcCapture.hpp"
+#endif
 
 #include <windows.h>
 #include <d3d11.h>
@@ -191,6 +194,26 @@ void paintCursor(QImage &image, const QPoint &origin)
     CURSORINFO info { sizeof(CURSORINFO) };
     if (!GetCursorInfo(&info) || !(info.flags & CURSOR_SHOWING) || !info.hCursor)
         return;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    // Qt 5 has no QImage::fromHICON. Draw onto the capture with GDI, which
+    // also handles monochrome cursor masks without guessing their alpha.
+    ICONINFO icon {};
+    if (!GetIconInfo(info.hCursor, &icon))
+        return;
+    const QPoint position = QPoint(info.ptScreenPos.x, info.ptScreenPos.y) - origin -
+                            QPoint(int(icon.xHotspot), int(icon.yHotspot));
+    if (icon.hbmColor)
+        DeleteObject(icon.hbmColor);
+    if (icon.hbmMask)
+        DeleteObject(icon.hbmMask);
+    const QImage pixels = image.convertToFormat(QImage::Format_RGB32);
+    Dib dib;
+    if (!dib.create(pixels.width(), pixels.height()))
+        return;
+    std::memcpy(dib.bits, pixels.constBits(), size_t(pixels.width()) * size_t(pixels.height()) * 4);
+    if (DrawIconEx(dib.dc, position.x(), position.y(), info.hCursor, 0, 0, 0, nullptr, DI_NORMAL))
+        image = dib.image();
+#else
     static QHash<HCURSOR, QPair<QImage, QPoint>> cache;
     auto it = cache.find(info.hCursor);
     if (it == cache.end()) {
@@ -209,6 +232,7 @@ void paintCursor(QImage &image, const QPoint &origin)
         return;
     QPainter p(&image);
     p.drawImage(QPoint(info.ptScreenPos.x, info.ptScreenPos.y) - it->second - origin, it->first);
+#endif
 }
 
 } // namespace
@@ -222,7 +246,9 @@ struct ScreenCapturer::Private
     ComPtr<ID3D11DeviceContext> deviceContext;
     ComPtr<IDXGIOutputDuplication> duplication;
     ComPtr<ID3D11Texture2D> staging;
+#ifdef QORD_HAVE_WGC
     std::unique_ptr<WgcCapture> wgc; // windows, when Windows.Graphics.Capture works
+#endif
     QImage last;
     bool running = false;
 
@@ -324,10 +350,12 @@ bool ScreenCapturer::start(const CaptureSource &source)
         d->openDuplication(); // GDI is used if this fails
     } else if (!IsWindow(reinterpret_cast<HWND>(source.window))) {
         return false;
+#ifdef QORD_HAVE_WGC
     } else if (WgcCapture::isSupported()) {
         d->wgc = std::make_unique<WgcCapture>();
         if (!d->wgc->start(source.window))
             d->wgc.reset(); // PrintWindow then
+#endif
     }
     d->running = true;
     return true;
@@ -335,7 +363,9 @@ bool ScreenCapturer::start(const CaptureSource &source)
 
 void ScreenCapturer::stop()
 {
+#ifdef QORD_HAVE_WGC
     d->wgc.reset();
+#endif
     d->duplication.Reset();
     d->staging.Reset();
     d->deviceContext.Reset();
@@ -363,8 +393,10 @@ QImage ScreenCapturer::grab()
         const HWND window = reinterpret_cast<HWND>(d->source.window);
         if (!IsWindow(window))
             return {};
+#ifdef QORD_HAVE_WGC
         if (d->wgc)
             return d->wgc->grab(); // with the cursor already
+#endif
         QImage image = grabWindow(window);
         if (image.isNull())
             return d->last; // minimized: keep showing the last picture

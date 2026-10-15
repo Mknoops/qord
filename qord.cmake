@@ -100,9 +100,16 @@ if(TARGET ffmpeg AND ENABLE_VOICE)
         src/UI/Qord/CameraUi.cpp)
     target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_HAVE_GO_LIVE)
     if(WIN32)
-        target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp
-            src/Qord/Audio/WasapiLoopback.hpp src/Qord/Audio/WasapiLoopback.cpp)
-        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi windowsapp mf mfplat mfreadwrite mfuuid mmdevapi)
+        target_sources(${PROJECT_NAME} PRIVATE src/Qord/Audio/WasapiLoopback.hpp src/Qord/Audio/WasapiLoopback.cpp)
+        target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dwmapi mf mfplat mfreadwrite mfuuid mmdevapi)
+        # The Qt 5 artifact must load on Windows 7. WGC needs Windows 10, and
+        # windowsapp adds hard API-set imports before any runtime support check.
+        # Keep the existing PrintWindow/GDI capture paths for this build.
+        if(QT_VERSION_MAJOR GREATER_EQUAL 6)
+            target_sources(${PROJECT_NAME} PRIVATE src/Qord/Video/WgcCapture.hpp src/Qord/Video/WgcCapture.cpp)
+            target_compile_definitions(${PROJECT_NAME} PRIVATE QORD_HAVE_WGC)
+            target_link_libraries(${PROJECT_NAME} PRIVATE windowsapp)
+        endif()
     endif()
 endif()
 

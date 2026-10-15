@@ -1,0 +1,84 @@
+name: Isolated security validation
+
+on:
+  pull_request:
+    branches: [qord]
+  push:
+    branches: [security-audit-fixes]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        qt: ['5', '6']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install system toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap cmake ninja-build g++ pkg-config \
+            libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libsodium-dev \
+            libgl1-mesa-dev libxkbcommon0 libxcb-cursor0 fonts-dejavu-core \
+            qtbase5-dev qttools5-dev libqt5svg5-dev
+          git -c core.hooksPath=/dev/null submodule update --init --depth 1 \
+            vendor/qtkeychain vendor/emoji-segmenter vendor/qrcodegen vendor/miniaudio
+      - name: Install Qt 6 toolchain
+        if: matrix.qt == '6'
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
+        with:
+          version: '6.10.2'
+          cache: false
+      - name: Build and test with no external network
+        env:
+          TEST_QT_MAJOR: ${{ matrix.qt }}
+        run: |
+          set -eu
+          work="${RUNNER_TEMP}/security-${TEST_QT_MAJOR}"
+          mkdir -p "$work/home" "$work/runtime"
+          chmod 700 "$work/runtime"
+          qt_args=()
+          if [ "$TEST_QT_MAJOR" = 6 ]; then
+            qt_args=(--ro-bind "$QT_ROOT_DIR" /qt)
+          fi
+          # Only OS/toolchain inputs and read-only source enter the sandbox.
+          # No runner home, sockets, credential files or inherited environment.
+          timeout --signal=TERM --kill-after=15s 35m \
+            prlimit --as=12884901888 --cpu=1800 --nproc=512 --fsize=2147483648 -- \
+            bwrap --unshare-all --die-with-parent --new-session --clearenv \
+              --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/sbin /sbin \
+              --ro-bind /lib /lib --ro-bind /lib64 /lib64 \
+              --ro-bind /etc/ld.so.cache /etc/ld.so.cache --ro-bind /etc/fonts /etc/fonts \
+              --ro-bind "$GITHUB_WORKSPACE" /src --bind "$work" /work \
+              --tmpfs /tmp --proc /proc --dev /dev "${qt_args[@]}" \
+              --setenv PATH /usr/bin:/bin --setenv HOME /work/home \
+              --setenv QT_QPA_PLATFORM offscreen --setenv XDG_RUNTIME_DIR /work/runtime \
+              --setenv PYTHONDONTWRITEBYTECODE 1 --setenv TEST_QT_MAJOR "$TEST_QT_MAJOR" \
+              --chdir /work /bin/bash --noprofile --norc -eu -o pipefail -c '
+                python3 /src/tools/check_security_sandbox.py
+                args=(-DUSE_VCPKG=OFF -DALLOW_PLAIN_CURL=ON -DENABLE_VOICE=OFF
+                      -DENABLE_FFMPEG=OFF -DENABLE_LOTTIE=OFF -DBUILD_TESTS=ON
+                      -DCMAKE_BUILD_TYPE=Debug)
+                if [ "$TEST_QT_MAJOR" = 6 ]; then
+                  args+=(-DCMAKE_PREFIX_PATH=/qt -DQT_VERSION=6.10.2)
+                else
+                  args+=(-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON -DQT_VERSION=5.15.13)
+                fi
+                cmake -S /src -B /work/build -G Ninja "${args[@]}"
+                cmake --build /work/build --parallel 2
+                ctest --test-dir /work/build --output-on-failure --timeout 90 -j2
+                cd /src
+                python3 -m unittest discover -s tools/tests -v
+                python3 tools/check_equicord_plugins.py --check-docs
+              '

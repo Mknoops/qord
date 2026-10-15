@@ -1,3 +1,4 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "ClientPlugins.hpp"
 #include <QPointer>
 #include <memory>
@@ -9,6 +10,7 @@
 #include "Core/Logging.hpp"
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
+#include "Core/NetworkAccessManager.hpp"
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/Presence/PresenceManager.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -110,7 +112,7 @@ NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &he
         return handle;
     }
     if (!nam)
-        nam = new QNetworkAccessManager(this);
+        nam = new Acheron::Core::NetworkAccessManager(this);
 
     QNetworkRequest request = pluginNetworkRequest(url);
     for (const auto &header : headers)
@@ -649,7 +651,7 @@ void QtUiService::showMemberPermissions(const MemberPermissionsView &view)
 
 void QtUiService::openUrl(const QUrl &url)
 {
-    QDesktopServices::openUrl(url);
+    Acheron::Core::openExternalUrl(url);
 }
 
 std::function<void(const PluginNotification &, std::function<void()>)> &QtUiService::notificationShower()

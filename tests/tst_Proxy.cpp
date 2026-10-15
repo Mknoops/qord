@@ -19,9 +19,12 @@
 #include "Core/ProxyConfig.hpp"
 #include "Core/Snowflake.hpp"
 #include "Discord/Voice/Socks5UdpAssociation.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include <QHostAddress>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QTcpServer>
 #include <QList>
 #include <QTest>
 #include <QtEndian>
@@ -122,6 +125,7 @@ class TestProxy : public QObject
 {
     Q_OBJECT
 private slots:
+    void initTestCase() { qunsetenv("QORD_MOCK_DISCORD"); }
     // --- parsing ---------------------------------------------------------
     void parseAcceptedForms_data();
     void parseAcceptedForms();
@@ -151,6 +155,10 @@ private slots:
     void qtProxyResolvesDnsAtProxy_data();
     void qtProxyResolvesDnsAtProxy();
     void qtProxyCarriesCredentials();
+    void unsupportedQtProxyBlocksRequest();
+    void imageNetworkRejectsLocalProtocols();
+    void proxyTransitionBlocksReentrantRequests();
+    void productionGatewaysRequireTls();
 
     // --- storage round trip ----------------------------------------------
     void roundTripsThroughStorage_data();
@@ -306,8 +314,9 @@ void TestProxy::enabledRequiresEveryField()
 
     QVERIFY(!ProxyConfig().enabled());
     QVERIFY(!make(ProxyConfig::Type::None, "h", 1080).enabled());
-    QVERIFY(!make(ProxyConfig::Type::Socks5, QString(), 1080).enabled());
-    QVERIFY(!make(ProxyConfig::Type::Socks5, "h", 0).enabled());
+    // Incomplete configuration is still an intent to proxy, never direct.
+    QVERIFY(make(ProxyConfig::Type::Socks5, QString(), 1080).enabled());
+    QVERIFY(make(ProxyConfig::Type::Socks5, "h", 0).enabled());
 }
 
 void TestProxy::canRelayUdp_data()
@@ -320,9 +329,8 @@ void TestProxy::canRelayUdp_data()
     QTest::newRow("http") << make(ProxyConfig::Type::Http, "h", 8080) << false;
     QTest::newRow("https") << make(ProxyConfig::Type::Https, "h", 8443) << false;
 
-    // A half-filled http config is not enabled, so nothing is proxied and UDP
-    // goes direct like any unproxied account would.
-    QTest::newRow("incomplete http") << make(ProxyConfig::Type::Http, "h", 0) << true;
+    QTest::newRow("incomplete http") << make(ProxyConfig::Type::Http, "h", 0) << false;
+    QTest::newRow("incomplete socks") << make(ProxyConfig::Type::Socks5, "h", 0) << false;
 }
 
 void TestProxy::canRelayUdp()
@@ -440,7 +448,7 @@ void TestProxy::formattersEmptyWhenDirect()
     QVERIFY(direct.toString().isEmpty());
     QVERIFY(direct.toDisplayString().isEmpty());
 
-    // Half-filled configs are not enabled, and must not produce a usable URL.
+    // Half-filled configs must not produce a usable URL.
     QVERIFY(make(ProxyConfig::Type::Socks5, QString(), 1080).toCurlUrl().isEmpty());
     QVERIFY(make(ProxyConfig::Type::Socks5, "h", 0).toCurlUrl().isEmpty());
 }
@@ -459,15 +467,11 @@ void TestProxy::qtProxyTypes_data()
     QTest::newRow("http") << make(ProxyConfig::Type::Http, "h", 8080)
                           << int(QNetworkProxy::HttpProxy);
 
-    // Qt has no TLS-to-proxy transport, so https deliberately degrades to a
-    // plain CONNECT. Traffic still goes through the proxy; only the hop to the
-    // proxy is unencrypted.
-    QTest::newRow("https degrades") << make(ProxyConfig::Type::Https, "h", 8443)
-                                    << int(QNetworkProxy::HttpProxy);
+    QTest::newRow("https unsupported") << make(ProxyConfig::Type::Https, "h", 8443) << -1;
 
     QTest::newRow("none") << ProxyConfig() << int(QNetworkProxy::NoProxy);
     QTest::newRow("incomplete") << make(ProxyConfig::Type::Socks5, "h", 0)
-                                << int(QNetworkProxy::NoProxy);
+                                << -1;
 }
 
 void TestProxy::qtProxyTypes()
@@ -475,7 +479,11 @@ void TestProxy::qtProxyTypes()
     QFETCH(ProxyConfig, config);
     QFETCH(int, expected);
 
-    const QNetworkProxy proxy = config.toQtProxy();
+    const auto configured = config.toQtProxy();
+    QCOMPARE(configured.has_value(), expected != -1);
+    if (!configured)
+        return;
+    const QNetworkProxy proxy = *configured;
     QCOMPARE(int(proxy.type()), expected);
 
     if (config.enabled()) {
@@ -490,7 +498,6 @@ void TestProxy::qtProxyResolvesDnsAtProxy_data()
 
     QTest::newRow("socks5") << make(ProxyConfig::Type::Socks5, "h", 1080);
     QTest::newRow("http") << make(ProxyConfig::Type::Http, "h", 8080);
-    QTest::newRow("https") << make(ProxyConfig::Type::Https, "h", 8443);
 }
 
 void TestProxy::qtProxyResolvesDnsAtProxy()
@@ -499,18 +506,20 @@ void TestProxy::qtProxyResolvesDnsAtProxy()
 
     // Without this capability Qt resolves image hostnames locally, which leaks
     // DNS for every avatar and attachment even though the fetch is proxied.
-    const QNetworkProxy proxy = config.toQtProxy();
+    const auto configured = config.toQtProxy();
+    QVERIFY(configured.has_value());
+    const QNetworkProxy proxy = *configured;
     QVERIFY(proxy.capabilities().testFlag(QNetworkProxy::HostNameLookupCapability));
 }
 
 void TestProxy::qtProxyCarriesCredentials()
 {
     const QNetworkProxy authenticated =
-            make(ProxyConfig::Type::Socks5, "h", 1080, "user", "pass").toQtProxy();
+            *make(ProxyConfig::Type::Socks5, "h", 1080, "user", "pass").toQtProxy();
     QCOMPARE(authenticated.user(), QStringLiteral("user"));
     QCOMPARE(authenticated.password(), QStringLiteral("pass"));
 
-    const QNetworkProxy anonymous = make(ProxyConfig::Type::Socks5, "h", 1080).toQtProxy();
+    const QNetworkProxy anonymous = *make(ProxyConfig::Type::Socks5, "h", 1080).toQtProxy();
     QVERIFY(anonymous.user().isEmpty());
     QVERIFY(anonymous.password().isEmpty());
 }
@@ -669,13 +678,78 @@ void TestProxy::incompleteProxyIsNotAppliedSilently()
     ImageManager images;
     const Snowflake account(1);
 
-    // Half-filled configs are not enabled, so they route directly. parse() never
-    // produces one, which is why parseFailsClosed matters.
+    // Half-filled configs reject requests instead of silently routing directly.
     images.setAccountProxy(account, make(ProxyConfig::Type::Socks5, "proxy.test", 0));
     QCOMPARE(images.networkManagerFor(account)->proxy().type(), QNetworkProxy::NoProxy);
 
     images.setAccountProxy(account, make(ProxyConfig::Type::Socks5, QString(), 1080));
     QCOMPARE(images.networkManagerFor(account)->proxy().type(), QNetworkProxy::NoProxy);
+
+    auto *reply = images.networkManagerFor(account)->get(QNetworkRequest(QUrl("https://invalid.example.test/image")));
+    QTRY_VERIFY(reply->isFinished());
+    QCOMPARE(reply->error(), QNetworkReply::ProtocolInvalidOperationError);
+    delete reply;
+}
+
+void TestProxy::unsupportedQtProxyBlocksRequest()
+{
+    ImageManager images;
+    const Snowflake account(1);
+    for (auto config : { make(ProxyConfig::Type::Https, "proxy.example.test", 8443, "dummy", "secret"),
+                         make(ProxyConfig::Type::Socks5, "proxy.example.test", 0) }) {
+        images.setAccountProxy(account, config);
+        auto *reply = images.networkManagerFor(account)->get(QNetworkRequest(QUrl("https://invalid.example.test/image")));
+        QTRY_VERIFY(reply->isFinished());
+        QCOMPARE(reply->error(), QNetworkReply::ProtocolInvalidOperationError);
+        delete reply;
+    }
+    ProxyConfig blocked;
+    blocked.blocked = true;
+    QVERIFY(!blocked.toQtProxy());
+    QVERIFY(!blocked.canRelayUdp());
+}
+
+void TestProxy::imageNetworkRejectsLocalProtocols()
+{
+    ImageManager images;
+    const Snowflake account(1);
+    images.setAccountProxy(account, {});
+    for (const char *url : { "file:///tmp/private-file", "data:text/plain,dummy", "ftp://example.test/file" }) {
+        auto *reply = images.networkManagerFor(account)->get(QNetworkRequest(QUrl(QString::fromLatin1(url))));
+        QTRY_VERIFY(reply->isFinished());
+        QCOMPARE(reply->error(), QNetworkReply::ProtocolInvalidOperationError);
+        QVERIFY(reply->readAll().isEmpty());
+        delete reply;
+    }
+}
+
+void TestProxy::proxyTransitionBlocksReentrantRequests()
+{
+    QTcpServer local;
+    QVERIFY(local.listen(QHostAddress::LocalHost));
+    const QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:%1/").arg(local.serverPort())));
+    ImageManager images;
+    const Snowflake account(1);
+    images.setAccountProxy(account, {});
+    auto *manager = images.networkManagerFor(account);
+    auto *first = manager->get(request);
+    QNetworkReply *reentrant = nullptr;
+    connect(first, &QNetworkReply::finished, this, [&] { reentrant = manager->get(request); });
+    images.setAccountProxy(account, make(ProxyConfig::Type::Https, "proxy.example.test", 8443));
+    QTRY_VERIFY(reentrant != nullptr);
+    QTRY_VERIFY(reentrant->isFinished());
+    QCOMPARE(reentrant->error(), QNetworkReply::ProtocolInvalidOperationError);
+    delete first;
+    delete reentrant;
+}
+
+void TestProxy::productionGatewaysRequireTls()
+{
+    using Acheron::Discord::safeGatewayUrl;
+    QVERIFY(!safeGatewayUrl(QUrl("wss://gateway.example.test/?v=9")).isEmpty());
+    for (const char *url : { "ws://gateway.example.test/", "http://gateway.example.test/",
+                             "file:///tmp/gateway", "wss://user:secret@gateway.example.test/" })
+        QVERIFY(safeGatewayUrl(QUrl(QString::fromLatin1(url))).isEmpty());
 }
 
 // ---------------------------------------------------------------------------

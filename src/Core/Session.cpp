@@ -64,6 +64,11 @@ void Session::connectAccount(Snowflake accountId)
         return;
     }
 
+    if (acc.proxy.blocked || !acc.proxyError.isEmpty()) {
+        emit connectFailed(accountId, acc.proxyError.isEmpty() ? tr("The proxy configuration is unavailable.") : acc.proxyError);
+        return;
+    }
+
     if (Qord::DevMock::enabled()) {
         // Local mock server only: no keychain, no discord.com build-number fetch
         acc.token = Qord::DevMock::token();
@@ -108,7 +113,11 @@ void Session::startInstance(const AccountInfo &acc)
             });
 
     connect(instance, &ClientInstance::detailsUpdated, this, [this](const AccountInfo &info) {
-        repo.saveAccount(info);
+        const auto saved = repo.saveAccount(info);
+        if (!saved.success()) {
+            emit connectFailed(info.id, saved.error);
+            return;
+        }
         emit accountDetailsUpdated(info);
     });
 
@@ -128,10 +137,13 @@ void Session::autoConnectAccounts()
     }
 }
 
-void Session::setAccountProxy(Snowflake accountId, const ProxyConfig &proxy)
+Result<void> Session::setAccountProxy(Snowflake accountId, const ProxyConfig &proxy)
 {
-    repo.updateProxy(accountId, proxy);
+    const auto saved = repo.updateProxy(accountId, proxy);
+    if (!saved.success())
+        return saved;
     imageManager->setAccountProxy(accountId, proxy);
+    return Result<void>::makeOk();
 }
 
 void Session::disconnectAccount(Snowflake accountId)

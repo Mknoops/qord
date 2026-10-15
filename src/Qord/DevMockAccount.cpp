@@ -20,7 +20,9 @@ void installAccount()
     acc.restUrl = base.toString() + QStringLiteral("/api/v9");
     acc.cdnUrl = base.toString() + QStringLiteral("/cdn");
     acc.autoConnect = true;
-    repo.saveAccount(acc);
+    const auto saved = repo.saveAccount(acc);
+    if (!saved.success())
+        qWarning("Could not install the mock account settings");
 }
 
 } // namespace Qord::DevMock

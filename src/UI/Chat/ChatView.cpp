@@ -1,3 +1,4 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "ChatView.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/Toast.hpp"
@@ -530,13 +531,13 @@ void ChatView::openLink(const QString &url)
 
     // Qord: plugins (AlwaysTrust) may skip the warning
     if (auto *host = Qord::Plugins::PluginHost::instance(); host && !host->dispatchShouldConfirmLink(url)) {
-        QDesktopServices::openUrl(QUrl(url));
+        Acheron::Core::openExternalUrl(QUrl(url));
         return;
     }
 
     auto *confirm = new ConfirmPopup(tr("External Link"), QString(tr("Are you sure you want to open <b>%1</b>?")).arg(url.toHtmlEscaped()), tr("Open Link"), this);
     confirm->setAttribute(Qt::WA_DeleteOnClose);
-    connect(confirm, &QDialog::accepted, this, [url]() { QDesktopServices::openUrl(QUrl(url)); });
+    connect(confirm, &QDialog::accepted, this, [url]() { Acheron::Core::openExternalUrl(QUrl(url)); });
     confirm->open();
 }
 
@@ -601,7 +602,7 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
                                         .arg(ChatLayout::formatFileSize(att.fileSizeBytes)),
                                 tr("Open"), this);
             if (dialog.exec() == QDialog::Accepted)
-                QDesktopServices::openUrl(att.originalUrl);
+                Acheron::Core::openExternalUrl(att.originalUrl);
         };
         auto pluginButton = [chatModel, att, messageId](int i) {
             auto *host = Qord::Plugins::PluginHost::instance();
@@ -661,7 +662,7 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
                                         .arg(ChatLayout::formatFileSize(hit.fileSizeBytes)),
                                 tr("Open"), this);
             if (dialog.exec() == QDialog::Accepted)
-                QDesktopServices::openUrl(hit.fileUrl);
+                Acheron::Core::openExternalUrl(hit.fileUrl);
         }
         break;
     }

@@ -55,7 +55,8 @@ jobs:
           # No runner home, sockets, credential files or inherited environment.
           timeout --signal=TERM --kill-after=15s 35m \
             sudo -n -- prlimit --as=12884901888 --cpu=1800 --nproc=512 --fsize=2147483648 -- \
-            bwrap --unshare-all --die-with-parent --new-session --clearenv \
+            bwrap --unshare-pid --unshare-net --unshare-ipc --unshare-uts \
+              --unshare-cgroup-try --die-with-parent --new-session --clearenv \
               --uid "$(id -u)" --gid "$(id -g)" --cap-drop ALL \
               --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/sbin /sbin \
               --ro-bind /lib /lib --ro-bind /lib64 /lib64 \

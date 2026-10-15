@@ -94,6 +94,7 @@ private:
     void *interruptOpaque = nullptr;
 
     AVIOContext *curlIo = nullptr;
+    AVIOContext *localIo = nullptr;
 };
 
 } // namespace Media

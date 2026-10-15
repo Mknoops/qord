@@ -1,6 +1,7 @@
 #include "UI/Chat/MediaTarget.hpp"
 
 #include "Core/Media/PlayerPool.hpp"
+#include "Core/Media/InputPolicy.hpp"
 #include "UI/Chat/ChatModel.hpp"
 
 namespace Acheron {
@@ -27,7 +28,7 @@ std::optional<MediaTarget> forAttachment(const AttachmentData &attachment, const
     target.uploadSent = attachment.uploadSent;
     target.uploadTotal = attachment.uploadTotal;
 
-    if (target.url.isEmpty())
+    if (!Core::Media::allowedChatMediaUrl(target.url, attachment.isLocalPreview))
         return std::nullopt;
 
     return target;
@@ -44,7 +45,7 @@ std::optional<MediaTarget> forEmbed(const EmbedData &embed, Core::Snowflake mess
     target.rect = rect;
     target.poster = embed.videoThumbnail;
 
-    if (target.url.isEmpty())
+    if (!Core::Media::allowedChatMediaUrl(target.url))
         return std::nullopt;
 
     return target;

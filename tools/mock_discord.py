@@ -1753,7 +1753,7 @@ async def serve(port: int) -> None:
     server = await asyncio.start_server(handle_client, "127.0.0.1", port)
     mock_voice.LOG = log
     mock_voice.FAKE_CAMERAS[G1] = U["ava"]  # Ava's camera, in the first server's voice channel
-    await mock_voice.start_udp()
+    await mock_voice.start_udp(port)
     VOICE["endpoint"] = f"ws://127.0.0.1:{port}/voice"
     log(f"listening on http://127.0.0.1:{port}  (set QORD_MOCK_DISCORD=http://127.0.0.1:{port})")
     async with server:

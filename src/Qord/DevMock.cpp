@@ -5,30 +5,44 @@
 
 namespace Qord::DevMock {
 
-static QUrl parseBase()
+QUrl parseBaseUrl(const QString &text)
 {
-    const QUrl url(qEnvironmentVariable("QORD_MOCK_DISCORD"));
-    if (!url.isValid() || url.scheme() != QLatin1String("http") || url.port() <= 0)
+    const QUrl url(text);
+    if (!url.isValid() || url.scheme() != QLatin1String("http") || url.port() <= 0 ||
+        url.port() > 65535 || !url.userInfo().isEmpty())
         return {};
-    const QString host = url.host();
-    if (host != QLatin1String("localhost") && !QHostAddress(host).isLoopback())
+    const QHostAddress address(url.host() == QLatin1String("localhost") ? QStringLiteral("127.0.0.1") : url.host());
+    if (!address.isLoopback())
         return {};
     QUrl base;
     base.setScheme(QStringLiteral("http"));
-    base.setHost(host);
+    base.setHost(address.toString());
     base.setPort(url.port());
     return base;
 }
 
 QUrl baseUrl()
 {
-    static const QUrl base = parseBase();
+    static const QUrl base = parseBaseUrl(qEnvironmentVariable("QORD_MOCK_DISCORD"));
     return base;
 }
 
 bool enabled()
 {
-    return baseUrl().isValid() && !baseUrl().isEmpty();
+    // Even invalid configuration selects the isolated mock profile and blocks
+    // transport, rather than accidentally loading a real account/keychain.
+    static const bool requested = qEnvironmentVariableIsSet("QORD_MOCK_DISCORD");
+    return requested;
+}
+
+bool allowsNetworkUrl(const QUrl &url)
+{
+    if (!enabled())
+        return true;
+    const QUrl base = baseUrl();
+    return base.isValid() && !base.isEmpty() && url.isValid() && url.userInfo().isEmpty() &&
+           (url.scheme() == QLatin1String("http") || url.scheme() == QLatin1String("ws")) &&
+           url.host() == base.host() && url.port() == base.port();
 }
 
 QString token()
@@ -40,18 +54,19 @@ QUrl rewrite(const QUrl &url)
 {
     if (!enabled())
         return url;
-    const QString host = url.host();
-    // Discord, plus the services plugins call: translation (Translate),
-    // GitHub's API (ShowConnections) and ReviewDB
-    static const QStringList hosts = { QStringLiteral("cdn.discordapp.com"), QStringLiteral("media.discordapp.net"),
-                                       QStringLiteral("discord.com"), QStringLiteral("translate-pa.googleapis.com"),
-                                       QStringLiteral("api-free.deepl.com"), QStringLiteral("api.deepl.com"),
-                                       QStringLiteral("translate.kagi.com"), QStringLiteral("api.github.com"),
-                                       QStringLiteral("manti.vendicated.dev") };
-    if (!hosts.contains(host))
+    if (allowsNetworkUrl(url))
         return url;
+    const QString scheme = url.scheme();
+    if (!url.isValid() || url.host().isEmpty() ||
+        (scheme != QLatin1String("http") && scheme != QLatin1String("https") &&
+         scheme != QLatin1String("ws") && scheme != QLatin1String("wss")))
+        return {};
     QUrl out = baseUrl();
-    out.setPath(QStringLiteral("/cdn/") + host + url.path());
+    if (!out.isValid() || out.isEmpty())
+        return {};
+    if (scheme == QLatin1String("ws") || scheme == QLatin1String("wss"))
+        out.setScheme(QStringLiteral("ws"));
+    out.setPath(QStringLiteral("/cdn/") + url.host() + url.path());
     out.setQuery(url.query());
     return out;
 }

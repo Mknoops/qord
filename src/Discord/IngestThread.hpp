@@ -25,6 +25,8 @@ public:
     static constexpr int MaxQueuedChunks = 8192;
     static constexpr int MaxCompressedBytes = 8 * 1024 * 1024;
     static constexpr int MaxPayloadBytes = 32 * 1024 * 1024;
+    static constexpr int MaxPendingPayloads = 32;
+    static constexpr int MaxPendingPayloadBytes = 32 * 1024 * 1024;
 
     void start();
     void stop();
@@ -48,6 +50,13 @@ private:
 
     void threadLoop();
     void failGeneration(quint64 value);
+    void enqueuePayload(const QJsonObject &root, quint64 value, int bytes);
+    void deliverPayloads();
+    struct PendingPayload {
+        QJsonObject root;
+        quint64 generation;
+        int bytes;
+    };
 
 private:
     std::thread thread;
@@ -58,6 +67,9 @@ private:
     std::deque<TaggedData> queue;
     int queuedBytes = 0;
     bool failed = false;
+    std::deque<PendingPayload> pendingPayloads;
+    int pendingPayloadBytes = 0;
+    bool deliveryScheduled = false;
     QByteArray compressedBuffer;
 
     z_stream stream;

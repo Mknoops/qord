@@ -161,6 +161,7 @@ void VoiceClient::stop()
     localRtxSsrc = 0;
     videoCodecAssigned = false;
     depacketizers.clear();
+    lastPliMs.clear();
     pacer.clear();
     if (pacerTimer)
         pacerTimer->stop();
@@ -623,6 +624,10 @@ void VoiceClient::onVideoOp(const QJsonObject &data)
     const QJsonArray streams = data.value(QStringLiteral("streams")).toArray();
     if (!streams.isEmpty())
         active = active && streams.first().toObject().value(QStringLiteral("active")).toBool(true);
+    if (!active) {
+        depacketizers.remove(ssrc);
+        lastPliMs.remove(ssrc);
+    }
     emit videoStreamsChanged(uid, ssrc, active);
 }
 
@@ -649,9 +654,15 @@ void VoiceClient::onVideoDatagram(const QByteArray &data)
         decrypted = decrypted.mid(extBytes);
     }
 
-    auto &depacketizer = depacketizers[header.ssrc];
-    auto frame = depacketizer.push(header.sequence, header.timestamp, header.marker, decrypted);
-    if (depacketizer.needsKeyframe())
+    // Only gateway-announced streams may allocate receive state. Bound their
+    // number as well as each frame so rotating SSRCs cannot grow memory.
+    if (ssrcToUserIdMap.value(header.ssrc, 0) == 0)
+        return;
+    auto *depacketizer = depacketizers.getOrCreate(header.ssrc);
+    if (!depacketizer)
+        return;
+    auto frame = depacketizer->push(header.sequence, header.timestamp, header.marker, decrypted);
+    if (depacketizer->needsKeyframe())
         sendPictureLossIndication(header.ssrc);
     if (!frame)
         return;
@@ -791,10 +802,13 @@ void VoiceClient::onClientDisconnect(Core::Snowflake uid)
     if (daveSession)
         daveSession->removeConnectedUser(uidStr);
 
-    for (auto it = ssrcToUserIdMap.begin(); it != ssrcToUserIdMap.end(); ++it) {
+    for (auto it = ssrcToUserIdMap.begin(); it != ssrcToUserIdMap.end();) {
         if (it.value() == static_cast<quint64>(uid)) {
-            ssrcToUserIdMap.erase(it);
-            break;
+            depacketizers.remove(it.key());
+            lastPliMs.remove(it.key());
+            it = ssrcToUserIdMap.erase(it);
+        } else {
+            ++it;
         }
     }
 

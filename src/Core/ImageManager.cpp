@@ -10,6 +10,7 @@
 
 #include "Logging.hpp"
 #include "NetworkRequest.hpp"
+#include "NetworkAccessManager.hpp"
 #include "Discord/CdnUrls.hpp"
 #ifdef ACHERON_HAVE_RLOTTIE
 #include "LottieDecoder.hpp"
@@ -81,9 +82,9 @@ void ImageManager::setAccountProxy(Snowflake accountId, const ProxyConfig &proxy
 {
     auto it = networkManagers.find(accountId);
     if (it == networkManagers.end())
-        it = networkManagers.insert(accountId, new QNetworkAccessManager(this));
+        it = networkManagers.insert(accountId, new NetworkAccessManager(this));
 
-    it.value()->setProxy(proxy.toQtProxy());
+    static_cast<NetworkAccessManager *>(it.value())->configureProxy(proxy);
 }
 
 QNetworkAccessManager *ImageManager::networkManagerFor(Snowflake accountId) const

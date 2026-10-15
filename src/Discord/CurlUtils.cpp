@@ -181,6 +181,18 @@ void applyCommonOptions(CURL *curl)
 
 void applyProxy(CURL *curl, const Core::ProxyConfig &proxy)
 {
+    if (Qord::DevMock::enabled()) {
+        // Never consult environment/system proxies for the local mock.
+        curl_easy_setopt(curl, CURLOPT_PROXY, "");
+        curl_easy_setopt(curl, CURLOPT_NOPROXY, "*");
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+        return;
+    }
+    if (proxy.blocked || (proxy.enabled() && (proxy.host.isEmpty() || proxy.port == 0))) {
+        // Disallow every protocol before curl can resolve or connect anywhere.
+        curl_easy_setopt(curl, CURLOPT_PROTOCOLS, 0L);
+        return;
+    }
     if (!proxy.enabled())
         return;
 
@@ -190,8 +202,11 @@ void applyProxy(CURL *curl, const Core::ProxyConfig &proxy)
 
     if (proxy.type == Core::ProxyConfig::Type::Https) {
         CURLcode rc = curl_easy_setopt(curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTPS);
-        if (rc != CURLE_OK)
+        if (rc != CURLE_OK) {
             qCWarning(LogNetwork) << "libcurl lacks HTTPS-proxy support:" << curl_easy_strerror(rc);
+            curl_easy_setopt(curl, CURLOPT_PROTOCOLS, 0L);
+            return;
+        }
     }
 
     if (!proxy.username.isEmpty()) {

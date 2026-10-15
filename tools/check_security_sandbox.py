@@ -11,11 +11,12 @@ import socket
 import tempfile
 
 
-allowed = {"PATH", "HOME", "QT_QPA_PLATFORM", "XDG_RUNTIME_DIR",
+allowed = {"PATH", "HOME", "QT_QPA_PLATFORM", "XDG_RUNTIME_DIR", "FONTCONFIG_FILE",
            "PYTHONDONTWRITEBYTECODE", "TEST_QT_MAJOR", "TMPDIR", "PWD", "SHLVL", "_", "LC_CTYPE"}
 assert set(os.environ) <= allowed, "unexpected inherited environment"
 assert os.environ["HOME"] == "/work/home"
 assert os.environ["TMPDIR"] == "/work/tmp"
+assert os.environ["FONTCONFIG_FILE"] == "/etc/fonts/fonts.conf"
 with tempfile.TemporaryDirectory() as directory:
     assert Path(directory).parent == Path("/work/tmp"), "temporary files must stay in writable scratch"
 assert os.getuid() != 0, "test process must not run as root"
@@ -25,7 +26,7 @@ assert next(line for line in status if line.startswith("NoNewPrivs:")).split()[1
 assert Path("/sys").exists() is False, "unexpected host sysfs"
 interfaces = Path("/proc/net/dev").read_text().splitlines()[2:]
 assert all(line.split(":")[0].strip() == "lo" for line in interfaces), "external network interface"
-for path in ("/src/.sandbox-write-probe", "/usr/.sandbox-write-probe"):
+for path in ("/src/.sandbox-write-probe", "/usr/.sandbox-write-probe", "/curl/.sandbox-write-probe"):
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except OSError as error:

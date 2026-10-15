@@ -87,24 +87,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          ver="${TAG#v}"
-          # This version's CHANGELOG section, without its heading
-          awk -v v="$ver" '
-            $0 ~ "^## \\[" v "\\]" { on = 1; next }
-            on && /^## \[/ { exit }
-            on { print }
-          ' CHANGELOG.md > notes.md
-          cat >> notes.md <<'EOF'
-
-          ### Verifying a download
-
-          Every file is listed in `SHA256SUMS`. On Linux or macOS run
-          `sha256sum -c SHA256SUMS --ignore-missing` (macOS: `shasum -a 256 -c SHA256SUMS --ignore-missing`)
-          in the download folder; on Windows compare `Get-FileHash <file>` with its line.
-          The builds are made by this repository's
-          [Release workflow](https://github.com/${{ github.repository }}/actions/workflows/release.yml)
-          from the tagged source.
-          EOF
+          sh .github/release_notes.sh "$TAG" > notes.md
           cat notes.md
 
       - name: Publish
@@ -118,6 +101,7 @@ jobs:
               gh release delete-asset "$TAG" "$name" --yes
             done
             gh release upload "$TAG" dist/*
+            gh release edit "$TAG" --notes-file notes.md
           else
             gh release create "$TAG" dist/* --title "Qord ${TAG#v}" --notes-file notes.md --verify-tag
           fi

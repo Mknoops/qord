@@ -14,6 +14,10 @@ allowed = {"PATH", "HOME", "QT_QPA_PLATFORM", "XDG_RUNTIME_DIR",
            "PYTHONDONTWRITEBYTECODE", "TEST_QT_MAJOR", "PWD", "SHLVL", "_", "LC_CTYPE"}
 assert set(os.environ) <= allowed, "unexpected inherited environment"
 assert os.environ["HOME"] == "/work/home"
+assert os.getuid() != 0, "test process must not run as root"
+status = Path("/proc/self/status").read_text().splitlines()
+assert next(line for line in status if line.startswith("CapEff:")).split()[1] == "0000000000000000"
+assert next(line for line in status if line.startswith("NoNewPrivs:")).split()[1] == "1"
 assert Path("/sys").exists() is False, "unexpected host sysfs"
 interfaces = Path("/proc/net/dev").read_text().splitlines()[2:]
 assert all(line.split(":")[0].strip() == "lo" for line in interfaces), "external network interface"

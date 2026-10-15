@@ -180,7 +180,7 @@ CURL *RequestWorker::buildEasyHandle(TransferContext *ctx)
     if (!desc.uploadFilePath.isEmpty()) {
         ctx->uploadFile = new QFile(desc.uploadFilePath);
         if (!ctx->uploadFile->open(QIODevice::ReadOnly)) {
-            qCWarning(LogNetwork) << "Failed to open upload file:" << desc.uploadFilePath;
+            qCWarning(LogNetwork) << "Failed to open upload file; error" << int(ctx->uploadFile->error());
             curl_easy_cleanup(curl);
             return nullptr;
         }

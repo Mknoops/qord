@@ -296,7 +296,7 @@ void RemoteAuthClient::handleMessage(const QString &text)
     else if (op == "heartbeat_ack") {
         // ack
     } else {
-        qCDebug(LogDiscord) << "Unknown remote auth opcode:" << op;
+        qCDebug(LogDiscord) << "Unknown remote auth opcode";
     }
 }
 

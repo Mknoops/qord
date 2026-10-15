@@ -17,8 +17,9 @@ DaveSession::DaveSession(Core::Snowflake channelId, Core::Snowflake userId,
             nullptr,
             "",
             [](const std::string &reason, const std::string &detail) {
-                qCWarning(LogDave) << "MLS failure:" << QString::fromStdString(reason)
-                                   << QString::fromStdString(detail);
+                Q_UNUSED(reason);
+                Q_UNUSED(detail);
+                qCWarning(LogDave) << "MLS operation failed";
             });
 }
 

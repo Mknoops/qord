@@ -202,7 +202,7 @@ void VoiceClient::onGatewayConnected()
 
 void VoiceClient::onGatewayDisconnected(VoiceCloseCode code, const QString &reason)
 {
-    qCWarning(LogVoice) << "Voice gateway disconnected, code:" << code << "reason:" << reason;
+    qCWarning(LogVoice) << "Voice gateway disconnected, code:" << code;
 
     cleanupTransport();
 
@@ -215,9 +215,7 @@ void VoiceClient::onGatewayDisconnected(VoiceCloseCode code, const QString &reas
 
 void VoiceClient::onGatewayReady(const VoiceReady &data)
 {
-    qCInfo(LogVoice) << "Voice Ready: SSRC =" << data.ssrc
-                     << "server =" << data.ip << ":" << data.port
-                     << "modes =" << data.modes.get();
+    qCInfo(LogVoice) << "Voice Ready: SSRC =" << data.ssrc;
 
     localSsrc = data.ssrc;
     // Qord: the video stream the server assigned (first one)
@@ -245,7 +243,7 @@ void VoiceClient::onGatewayReady(const VoiceReady &data)
     }
 
     if (mode == EncryptionMode::UNKNOWN) {
-        qCCritical(LogVoice) << "No supported encryption mode found! Server offered:" << serverModes;
+        qCCritical(LogVoice) << "No supported voice encryption mode found";
         stop();
         return;
     }
@@ -842,7 +840,7 @@ void VoiceClient::onGatewayResumed()
 
 void VoiceClient::onIpDiscovered(const QString &ip, int port)
 {
-    qCInfo(LogVoice) << "IP Discovery: external" << ip << ":" << port;
+    qCInfo(LogVoice) << "IP discovery completed";
 
     setState(State::SelectingProtocol);
 
@@ -853,7 +851,8 @@ void VoiceClient::onIpDiscovered(const QString &ip, int port)
 
 void VoiceClient::onIpDiscoveryFailed(const QString &error)
 {
-    qCCritical(LogVoice) << "IP Discovery failed:" << error;
+    Q_UNUSED(error);
+    qCCritical(LogVoice) << "IP discovery failed";
     stop();
 }
 

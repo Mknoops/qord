@@ -72,6 +72,15 @@ def main() -> None:
                     raise RuntimeError("client or mock crashed after READY/message dispatch")
                 time.sleep(0.1)
             print("PASS: offscreen client identified to local mock and stayed alive after dummy message dispatch")
+    except Exception:
+        # This process has only a fresh mock profile and dummy fixture data.
+        # Keep bounded diagnostics available when a CI startup check fails.
+        for name in ("server.log", "client.log"):
+            path = scratch / name
+            if path.exists():
+                print(f"Mock smoke {name} (tail):", flush=True)
+                print(path.read_text(errors="replace")[-4000:], flush=True)
+        raise
     finally:
         for child in reversed(children):
             if child.poll() is None:

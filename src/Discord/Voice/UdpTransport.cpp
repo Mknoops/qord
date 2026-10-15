@@ -53,7 +53,7 @@ void UdpTransport::startIpDiscovery(const QString &ip, int port, quint32 ssrc)
         return;
 
     qCInfo(LogVoice) << "UDP socket bound to port" << socket->localPort()
-                     << "- starting IP discovery to" << ip << ":" << serverPort;
+                     << "- starting IP discovery";
 
     startDiscoveryTimeout();
 
@@ -90,7 +90,7 @@ bool UdpTransport::openSocket()
     const auto bindAddress = serverAddress.protocol() == QAbstractSocket::IPv6Protocol
                                  ? QHostAddress::AnyIPv6 : QHostAddress::AnyIPv4;
     if (!socket->bind(QHostAddress(bindAddress), 0)) {
-        qCWarning(LogVoice) << "Failed to bind UDP socket:" << socket->errorString();
+        qCWarning(LogVoice) << "Failed to bind UDP socket; error" << int(socket->error());
         emit ipDiscoveryFailed("Failed to bind UDP socket: " + socket->errorString());
         return false;
     }

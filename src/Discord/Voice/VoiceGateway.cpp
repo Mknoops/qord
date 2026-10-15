@@ -324,7 +324,7 @@ void VoiceGateway::handleClientsConnected(const QJsonObject &data)
     for (const auto &val : data["user_ids"].toArray())
         userIds.append(val.toString());
 
-    qCInfo(LogVoice) << "Clients connected:" << userIds;
+    qCInfo(LogVoice) << "Clients connected; count" << userIds.size();
 
     emit clientsConnected(userIds);
 }
@@ -445,7 +445,7 @@ void VoiceGateway::networkLoop()
             return;
         }
 
-        qCInfo(LogVoice) << "Voice WebSocket connected to" << endpoint;
+        qCInfo(LogVoice) << "Voice WebSocket connected";
         generation++;
         emit connected();
 

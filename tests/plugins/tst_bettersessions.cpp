@@ -162,6 +162,38 @@ private slots:
         QVERIFY(h.sessions.fetches.isEmpty());
         QVERIFY(!h.host->dispatchDeviceSessionView(1, session("a")));
     }
+
+    void answersAfterStopAreDropped()
+    {
+        SinglePluginHost h(&qord_register_bettersessions);
+        QVERIFY(h.enableWithAllPermissions());
+        QCOMPARE(h.sessions.pending.size(), 1);
+        auto delayed = h.sessions.pending.takeFirst();
+        const auto stored = h.host->settings(h.id)->value(QStringLiteral("savedSessions"));
+        const int refreshes = h.sessions.refreshes;
+        QVERIFY(h.host->setEnabled(h.id, false));
+
+        // The service can finish after the host has destroyed the plugin.
+        delayed(true, { session("late") });
+        QVERIFY(h.ui.notifications.isEmpty());
+        QCOMPARE(h.sessions.refreshes, refreshes);
+        QCOMPARE(h.host->settings(h.id)->value(QStringLiteral("savedSessions")), stored);
+
+        // A new incarnation must not make callbacks from the previous one live.
+        QVERIFY(h.enableWithAllPermissions());
+        delayed(true, { session("stale") });
+        QVERIFY(h.ui.notifications.isEmpty());
+        QCOMPARE(h.host->settings(h.id)->value(QStringLiteral("savedSessions")), stored);
+        QCOMPARE(h.sessions.pending.size(), 1);
+        h.sessions.pending.takeFirst()(true, { session("current") });
+        QCOMPARE(h.ui.notifications.size(), 1);
+        QCOMPARE(h.sessions.refreshes, refreshes + 1);
+        const auto account = h.host->settings(h.id)->value(QStringLiteral("savedSessions"))
+                                 .toObject().value(QStringLiteral("1")).toObject();
+        QVERIFY(account.contains(QStringLiteral("current")));
+        QVERIFY(!account.contains(QStringLiteral("late")));
+        QVERIFY(!account.contains(QStringLiteral("stale")));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestBetterSessions)

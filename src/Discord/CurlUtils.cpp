@@ -60,7 +60,7 @@ void ensureBuildNumber(QNetworkAccessManager *nam, std::function<void()> done)
         appReply->deleteLater();
 
         if (appReply->error() != QNetworkReply::NoError) {
-            qCWarning(LogNetwork) << "Failed to fetch Discord app page:" << appReply->errorString();
+            qCWarning(LogNetwork) << "Failed to fetch Discord app page; network error" << int(appReply->error());
             resolveBuildNumberWaiters();
             return;
         }
@@ -91,7 +91,7 @@ void ensureBuildNumber(QNetworkAccessManager *nam, std::function<void()> done)
             QRegularExpressionMatch buildMatch = buildRegex.match(sentryJs);
 
             if (sentryReply->error() != QNetworkReply::NoError)
-                qCWarning(LogNetwork) << "Failed to fetch sentry JS:" << sentryReply->errorString();
+                qCWarning(LogNetwork) << "Failed to fetch sentry JS; network error" << int(sentryReply->error());
             else if (!buildMatch.hasMatch())
                 qCWarning(LogNetwork) << "Failed to extract build number";
             else {
@@ -118,7 +118,7 @@ QString getCertificatePath()
     if (QFile::exists(certPath))
         return certPath;
 
-    qCWarning(LogNetwork) << "Certificate file not found at" << certPath;
+    qCWarning(LogNetwork) << "Certificate file not found";
     return QString();
 }
 
@@ -130,7 +130,7 @@ static QByteArray readCertificateBundle()
 
     QFile file(certPath);
     if (!file.open(QIODevice::ReadOnly)) {
-        qCWarning(LogNetwork) << "Cannot read certificate file" << certPath << ":" << file.errorString();
+        qCWarning(LogNetwork) << "Cannot read certificate file; error" << int(file.error());
         return {};
     }
     return file.readAll();

@@ -27,7 +27,8 @@ public:
     void connectAccount(Snowflake accountId);
     void disconnectAccount(Snowflake accountId);
 
-    void autoConnectAccounts();
+    // Returns how many accounts it started connecting
+    int autoConnectAccounts();
 
     [[nodiscard]] Result<void> setAccountProxy(Snowflake accountId, const ProxyConfig &proxy);
 

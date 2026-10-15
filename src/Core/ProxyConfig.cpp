@@ -60,8 +60,10 @@ std::optional<QNetworkProxy> ProxyConfig::toQtProxy() const
     // silently route an incomplete/failed configuration directly.
     if (blocked || type == Type::Https || (enabled() && (host.isEmpty() || port == 0)))
         return std::nullopt;
+    // No proxy of the account's own: Qt's default, the system or environment
+    // proxy (if any), which is also what curl uses for the gateway and REST
     if (!enabled())
-        return QNetworkProxy(QNetworkProxy::NoProxy);
+        return QNetworkProxy(QNetworkProxy::DefaultProxy);
 
     QNetworkProxy proxy(qtProxyType(type), host, port);
     if (!username.isEmpty()) {

@@ -59,9 +59,9 @@ GeneralPage::GeneralPage(QWidget *parent)
     QSpinBox *cacheLimit = addMemoryLimit(
             layout, this, tr("Memory for animations"),
             tr("Animated emoji and stickers are unpacked into memory so they can play smoothly. This is the most "
-               "memory Acheron will use for that. Once it is full, the animations you have not seen for the longest "
+               "memory Qord will use for that. Once it is full, the animations you have not seen for the longest "
                "are dropped, and they take a moment to start moving again the next time they show up. Raise this if "
-               "that happens a lot in busy channels, or lower it if Acheron is using more memory than you would like."),
+               "that happens a lot in busy channels, or lower it if Qord is using more memory than you would like."),
             "chat/animation_cache_mb", AnimatedImageCache::CacheLimit);
     connect(cacheLimit, qOverload<int>(&QSpinBox::valueChanged), this, &GeneralPage::animationCacheLimitChanged);
 

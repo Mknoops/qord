@@ -11,6 +11,7 @@
 
 #include <QtGlobal>
 #include <QFontDatabase>
+#include <QNetworkProxyFactory>
 #include <QSettings>
 
 #ifndef ACHERON_NO_VOICE
@@ -97,7 +98,7 @@ int main(int argc, char *argv[])
     discord::dave::SetLogSink(DaveLogSink);
 #endif
 
-    qCInfo(LogCore) << "Starting Acheron...";
+    qCInfo(LogCore) << "Starting Qord...";
 
 #ifdef Q_OS_WINDOWS
     int emojiFontId = QFontDatabase::addApplicationFont(
@@ -116,13 +117,18 @@ int main(int argc, char *argv[])
 
     if (!Storage::DatabaseManager::instance().init()) {
         QMessageBox::critical(nullptr, "Fatal error",
-                              "Could not initialize the database. Acheron will now close.");
+                              "Could not initialize the database. Qord will now close.");
         return -1;
     }
 
     if (Qord::DevMock::enabled()) {
         qCInfo(LogCore) << "Qord mock mode:" << Qord::DevMock::baseUrl().toString();
         Qord::DevMock::installAccount();
+    } else {
+        // An account without its own proxy reaches Discord over the system or
+        // environment proxy, as curl already does; without this, Qt's image
+        // and media requests would try to go direct and fail behind one
+        QNetworkProxyFactory::setUseSystemConfiguration(true);
     }
 
     int exitCode = 0;
@@ -133,7 +139,8 @@ int main(int argc, char *argv[])
         UI::MainWindow window(&session);
         window.show();
 
-        session.autoConnectAccounts();
+        if (session.autoConnectAccounts() == 0)
+            window.showAccountsOnStartup();
 
         exitCode = app.exec();
     }

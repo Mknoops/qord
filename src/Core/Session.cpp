@@ -129,12 +129,16 @@ void Session::startInstance(const AccountInfo &acc)
     instance->start();
 }
 
-void Session::autoConnectAccounts()
+int Session::autoConnectAccounts()
 {
+    int started = 0;
     for (const auto &acc : repo.getAllAccounts()) {
-        if (acc.autoConnect)
+        if (acc.autoConnect) {
             connectAccount(acc.id);
+            ++started;
+        }
     }
+    return started;
 }
 
 Result<void> Session::setAccountProxy(Snowflake accountId, const ProxyConfig &proxy)

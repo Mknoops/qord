@@ -117,6 +117,9 @@ public:
     };
     void setChannelListMode(ChannelListMode mode);
     void applyChannelIndent();
+    // Qord: shown at startup when no account connects automatically, so a
+    // first run doesn't open on an empty window
+    void showAccountsOnStartup();
 
 private:
     void showChannelTopic(Core::ClientInstance *instance, Core::Snowflake channelId);

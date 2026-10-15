@@ -4,9 +4,11 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QPointer>
+#include <QTimer>
 #include <QGuiApplication>
 #include <QMessageBox>
 #include <QPointer>
+#include <QTimer>
 #include <QSettings>
 
 #include <utility>
@@ -467,6 +469,8 @@ void MainWindow::detachInstance(Core::Snowflake accountId)
     typingTracker->setUserManager(nullptr);
 
     currentInstance = nullptr;
+    // Qord: otherwise the panel keeps showing the account's name and "Online"
+    userPanel->setInstance(nullptr);
 }
 
 void MainWindow::switchActiveInstance(Core::ClientInstance *newInstance)
@@ -2669,6 +2673,11 @@ void MainWindow::setupMenu()
         if (currentInstance)
             currentInstance->discord()->debugForceReconnect();
     });
+}
+
+void MainWindow::showAccountsOnStartup()
+{
+    QTimer::singleShot(0, this, &MainWindow::openAccountsWindow);
 }
 
 void MainWindow::openAccountsWindow()

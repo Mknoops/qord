@@ -2010,7 +2010,7 @@ void GuildRolesPage::rebuildMemberList()
 
     const bool knownOnly = !canManageRoles();
     const auto count = memberCounts.constFind(roleId);
-    membersNote->setText(knownOnly ? tr("Only the members Acheron has loaded are shown.")
+    membersNote->setText(knownOnly ? tr("Only the members Qord has loaded are shown.")
                                    : tr("Not all members are shown, use Search to find specific members"));
     membersNote->setVisible(knownOnly || (count != memberCounts.constEnd() && count.value() > ids.size()));
     if (!rows.isEmpty()) {
@@ -2020,7 +2020,7 @@ void GuildRolesPage::rebuildMemberList()
     if (loaded == roleMembers.constEnd())
         membersEmpty->setText(tr("Loading members…"));
     else if (knownOnly)
-        membersEmpty->setText(tr("None of the members Acheron has loaded have this role."));
+        membersEmpty->setText(tr("None of the members Qord has loaded have this role."));
     else
         membersEmpty->setText(tr("No members were found. Add members to this role."));
     memberStates->setCurrentWidget(membersEmpty);

@@ -57,7 +57,7 @@ jobs:
             sudo -n -- prlimit --as=12884901888 --cpu=1800 --nproc=512 --fsize=2147483648 -- \
             bwrap --unshare-pid --unshare-net --unshare-ipc --unshare-uts \
               --unshare-cgroup-try --die-with-parent --new-session --clearenv \
-              --uid "$(id -u)" --gid "$(id -g)" --cap-drop ALL \
+              --cap-add CAP_SETUID --cap-add CAP_SETGID --cap-add CAP_SETPCAP \
               --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/sbin /sbin \
               --ro-bind /lib /lib --ro-bind /lib64 /lib64 \
               --ro-bind /etc/ld.so.cache /etc/ld.so.cache --ro-bind /etc/fonts /etc/fonts \
@@ -66,7 +66,9 @@ jobs:
               --setenv PATH /usr/bin:/bin --setenv HOME /work/home \
               --setenv QT_QPA_PLATFORM offscreen --setenv XDG_RUNTIME_DIR /work/runtime \
               --setenv PYTHONDONTWRITEBYTECODE 1 --setenv TEST_QT_MAJOR "$TEST_QT_MAJOR" \
-              --chdir /work /bin/bash --noprofile --norc -eu -o pipefail -c '
+              --chdir /work /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" \
+              --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs \
+              /bin/bash --noprofile --norc -eu -o pipefail -c '
                 python3 /src/tools/check_security_sandbox.py
                 args=(-DUSE_VCPKG=OFF -DALLOW_PLAIN_CURL=ON -DENABLE_VOICE=OFF
                       -DENABLE_FFMPEG=ON -DENABLE_LOTTIE=OFF -DBUILD_TESTS=ON -DBUILD_VOICE_CRYPTO_TESTS=ON

@@ -861,14 +861,6 @@ void Gateway::identify()
     sendPayload(identify.toJson());
 }
 
-static int curlDebug(CURL *, curl_infotype type, char *data, size_t size, void *)
-{
-    if (type == CURLINFO_TEXT || type == CURLINFO_SSL_DATA_IN || type == CURLINFO_SSL_DATA_OUT) {
-        qDebug().noquote() << QByteArray(data, size);
-    }
-    return 0;
-}
-
 void Gateway::networkLoop()
 {
     runConnection();

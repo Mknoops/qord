@@ -77,7 +77,7 @@ HttpCallback actionHandler(const char *what, Client::ActionCallback callback)
     return [what, callback = std::move(callback)](const HttpResponse &response) {
         if (!response.success) {
             const ApiError error = ApiError::fromResponse(response);
-            qCWarning(LogDiscord) << what << "failed with status" << response.statusCode << ":" << error.message;
+            qCWarning(LogDiscord) << what << "failed with status" << response.statusCode << "API code" << error.code;
             if (callback)
                 callback(Core::Result<void>::makeError(error.message, error.code));
             return;
@@ -93,7 +93,7 @@ HttpCallback valueHandler(const char *what, Client::ResultCallback<T> callback, 
     return [what, callback = std::move(callback), parse = std::move(parse)](const HttpResponse &response) {
         if (!response.success) {
             const ApiError error = ApiError::fromResponse(response);
-            qCWarning(LogDiscord) << what << "failed with status" << response.statusCode << ":" << error.message;
+            qCWarning(LogDiscord) << what << "failed with status" << response.statusCode << "API code" << error.code;
             callback(Core::Result<T>::makeError(error.message, error.code));
             return;
         }
@@ -298,7 +298,7 @@ void Client::fetchUserProfile(Snowflake userId, Snowflake guildId, ProfileCallba
     httpClient->get(endpoint, query, [userId, callback](const HttpResponse &response) {
         if (!response.success) {
             qCWarning(LogDiscord) << "Failed to fetch user profile for" << userId << ":"
-                                  << response.error;
+                                  << "HTTP status" << response.statusCode;
             callback({ {}, "Failed to fetch user profile: " + response.error });
             return;
         }
@@ -335,7 +335,7 @@ QString Client::applicationIconHash(Snowflake applicationId)
             icon = QJsonDocument::fromJson(response.body).object().value("icon").toString();
         else
             qCWarning(LogDiscord) << "Failed to fetch application" << applicationId << ":"
-                                  << response.error;
+                                  << "HTTP status" << response.statusCode;
 
         self->applicationIcons.insert(applicationId, icon);
         if (!icon.isEmpty())
@@ -358,7 +358,7 @@ void Client::refreshAttachmentUrls(const QList<QUrl> &urls, RefreshedUrlsCallbac
                      payload,
                      [urls, callback](const HttpResponse &response) {
                          if (!response.success) {
-                             qCWarning(LogDiscord) << "Failed to refresh attachment URLs:" << response.error;
+                             qCWarning(LogDiscord) << "Failed to refresh attachment URLs:" << "HTTP status" << response.statusCode;
                              callback(Core::Result<QHash<QUrl, QUrl>>::makeError(response.error));
                              return;
                          }
@@ -387,7 +387,7 @@ void Client::setUserNote(Snowflake userId, const QString &note)
     httpClient->put(endpoint, payload, [userId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to set note for user" << userId << ":"
-                                  << response.error;
+                                  << "HTTP status" << response.statusCode;
     });
 }
 
@@ -399,7 +399,7 @@ void Client::openDmChannel(Snowflake userId, DmChannelCallback callback)
     httpClient->post("/users/@me/channels", payload, ContextProperties::empty(),
                      [userId, callback](const HttpResponse &response) {
                          if (!response.success) {
-                             qCWarning(LogDiscord) << "Failed to open DM with user" << userId << ":" << response.error;
+                             qCWarning(LogDiscord) << "Failed to open DM with user" << userId << "HTTP status" << response.statusCode;
                              callback(Core::Result<ChannelCreate>::makeError(response.error));
                              return;
                          }
@@ -428,7 +428,7 @@ void runThreadSearch(HttpClient *http, Core::Snowflake channelId, const QUrlQuer
         }
 
         if (!response.success) {
-            qCWarning(LogDiscord) << errorPrefix << response.error;
+            qCWarning(LogDiscord) << errorPrefix << "HTTP status" << response.statusCode;
             callback(Core::Result<ResultT>::makeError(errorPrefix + " " + response.error));
             return;
         }
@@ -471,7 +471,7 @@ void Client::joinThread(Snowflake threadId)
     QString endpoint = "/channels/" + QString::number(threadId) + "/thread-members/@me";
     httpClient->put(endpoint, QJsonObject{}, [threadId](const HttpResponse &response) {
         if (!response.success)
-            qCWarning(LogDiscord) << "Failed to join thread" << threadId << ":" << response.error;
+            qCWarning(LogDiscord) << "Failed to join thread" << threadId << "HTTP status" << response.statusCode;
     });
 }
 
@@ -480,7 +480,7 @@ void Client::leaveThread(Snowflake threadId)
     QString endpoint = "/channels/" + QString::number(threadId) + "/thread-members/@me";
     httpClient->delete_(endpoint, [threadId](const HttpResponse &response) {
         if (!response.success)
-            qCWarning(LogDiscord) << "Failed to leave thread" << threadId << ":" << response.error;
+            qCWarning(LogDiscord) << "Failed to leave thread" << threadId << "HTTP status" << response.statusCode;
     });
 }
 
@@ -557,7 +557,7 @@ void Client::postForumThread(Snowflake forumId, const QString &name,
     QString endpoint = "/channels/" + QString::number(forumId) + "/threads?use_nested_fields=true";
     httpClient->post(endpoint, body, [callback](const HttpResponse &response) {
         if (!response.success) {
-            qCWarning(LogDiscord) << "Failed to create forum thread:" << response.error;
+            qCWarning(LogDiscord) << "Failed to create forum thread:" << "HTTP status" << response.statusCode;
             if (callback)
                 callback(Core::Result<CreatedForumThread>::makeError(
                         "Failed to create forum thread: " + response.error));
@@ -586,7 +586,7 @@ void Client::fetchForumPostData(Snowflake forumId, const QList<Snowflake> &threa
     QString endpoint = "/channels/" + QString::number(forumId) + "/post-data";
     httpClient->post(endpoint, body, [callback](const HttpResponse &response) {
         if (!response.success) {
-            qCWarning(LogDiscord) << "Failed to fetch forum post data:" << response.error;
+            qCWarning(LogDiscord) << "Failed to fetch forum post data:" << "HTTP status" << response.statusCode;
             callback(Core::Result<QHash<Snowflake, Message>>::makeError(
                     "Failed to fetch forum post data: " + response.error));
             return;
@@ -614,7 +614,7 @@ void Client::onConnected()
 
 void Client::onDisconnected(CloseCode code, const QString &reason)
 {
-    qWarning() << "Disconnected from gateway: " << code << reason;
+    qWarning() << "Disconnected from gateway: " << code;
 
     // Fatal close codes — no reconnection, transition straight to Disconnected
     if (code == CloseCode::AUTHENTICATION_FAILED ||
@@ -869,8 +869,7 @@ void Client::sendMessage(Snowflake channelId, const QString &content, const QStr
             httpClient->post(endpoint, withFiles, ContextProperties::location("chat_input"),
                              [this, nonce](const HttpResponse &response) {
                                  if (!response.success) {
-                                     qCWarning(LogDiscord) << "Failed to send message:" << response.error
-                                                           << "Status:" << response.statusCode;
+                                     qCWarning(LogDiscord) << "Failed to send message:" << "HTTP status" << response.statusCode;
                                      emit messageSendFailed(nonce, response.error);
                                  }
                              });
@@ -892,8 +891,7 @@ void Client::sendMessage(Snowflake channelId, const QString &content, const QStr
     httpClient->post(endpoint, payload, ContextProperties::location("chat_input"),
                      [this, channelId, nonce](const HttpResponse &response) {
                          if (!response.success) {
-                             qCWarning(LogDiscord) << "Failed to send message:" << response.error
-                                                   << "Status:" << response.statusCode;
+                             qCWarning(LogDiscord) << "Failed to send message:" << "HTTP status" << response.statusCode;
                              emit messageSendFailed(nonce, response.error);
                              return;
                          }
@@ -922,8 +920,7 @@ void Client::uploadAttachmentsAndSend(const std::shared_ptr<UploadState> &state)
             return;
         }
         if (!response.success) {
-            qCWarning(LogDiscord) << "Failed to request upload slots:" << response.error
-                                  << "Status:" << response.statusCode;
+            qCWarning(LogDiscord) << "Failed to request upload slots:" << "HTTP status" << response.statusCode;
             settleUpload(state);
             failUpload(state, response.error);
             return;
@@ -962,8 +959,7 @@ void Client::uploadAttachmentsAndSend(const std::shared_ptr<UploadState> &state)
                     state->uploaded[index] = true;
                 } else if (!state->failed && !state->cancelFlag->load()) {
                     state->failed = true;
-                    qCWarning(LogDiscord) << "Attachment upload failed:" << putResponse.error
-                                          << "Status:" << putResponse.statusCode;
+                    qCWarning(LogDiscord) << "Attachment upload failed:" << "HTTP status" << putResponse.statusCode;
                     failUpload(state, putResponse.error);
                     state->cancelFlag->store(true); // abort !!!
                 }
@@ -1060,7 +1056,7 @@ void Client::editMessage(Snowflake channelId, Snowflake messageId, const QString
     httpClient->patch(endpoint, payload, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to edit message" << messageId << "in channel"
-                                  << channelId << ":" << response.error;
+                                  << channelId << "HTTP status" << response.statusCode;
         else
             qCInfo(LogDiscord) << "Message" << messageId << "edited in channel" << channelId;
     });
@@ -1074,7 +1070,7 @@ void Client::deleteMessage(Snowflake channelId, Snowflake messageId)
     httpClient->delete_(endpoint, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to delete message" << messageId << "in channel"
-                                  << channelId << ":" << response.error;
+                                  << channelId << "HTTP status" << response.statusCode;
         else
             qCInfo(LogDiscord) << "Message" << messageId << "deleted from channel" << channelId;
     });
@@ -1088,7 +1084,7 @@ void Client::pinMessage(Snowflake channelId, Snowflake messageId)
     httpClient->put(endpoint, QJsonObject{}, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to pin message" << messageId << "in channel"
-                                  << channelId << ":" << response.error;
+                                  << channelId << "HTTP status" << response.statusCode;
         else
             qCInfo(LogDiscord) << "Message" << messageId << "pinned in channel" << channelId;
     });
@@ -1102,7 +1098,7 @@ void Client::unpinMessage(Snowflake channelId, Snowflake messageId)
     httpClient->delete_(endpoint, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to unpin message" << messageId << "in channel"
-                                  << channelId << ":" << response.error;
+                                  << channelId << "HTTP status" << response.statusCode;
         else
             qCInfo(LogDiscord) << "Message" << messageId << "unpinned from channel" << channelId;
     });
@@ -1120,7 +1116,7 @@ void Client::addReaction(Snowflake channelId, Snowflake messageId, const QString
     httpClient->put(endpoint, QJsonObject{}, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to add reaction on message" << messageId
-                                  << "in channel" << channelId << ":" << response.error;
+                                  << "in channel" << channelId << "HTTP status" << response.statusCode;
     });
 }
 
@@ -1138,7 +1134,7 @@ void Client::removeReaction(Snowflake channelId, Snowflake messageId, const QStr
     httpClient->delete_(endpoint, [this, channelId, messageId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to remove reaction on message" << messageId
-                                  << "in channel" << channelId << ":" << response.error;
+                                  << "in channel" << channelId << "HTTP status" << response.statusCode;
     });
 }
 
@@ -1151,7 +1147,7 @@ void Client::leaveGuild(Snowflake guildId)
             QString err = QStringLiteral("status=%1 error=%2")
                                   .arg(response.statusCode)
                                   .arg(response.error);
-            qCWarning(LogDiscord) << "Failed to leave guild" << guildId << err;
+            qCWarning(LogDiscord) << "Failed to leave guild" << guildId << "HTTP status" << response.statusCode;
             emit guildLeaveFailed(guildId, err);
         }
     });
@@ -1221,7 +1217,7 @@ void Client::ackMessage(Snowflake channelId, Snowflake messageId, int flags, int
     httpClient->post(endpoint, payload, [this, channelId](const HttpResponse &response) {
         if (!response.success)
             qCWarning(LogDiscord) << "Failed to ack message in channel" << channelId
-                                  << ":" << response.error;
+                                  << "HTTP status" << response.statusCode;
     });
 }
 
@@ -1240,7 +1236,7 @@ void Client::ackBulk(const QList<AckEntry> &entries, std::function<void(bool suc
     payload["read_states"] = readStates;
     httpClient->post("/read-states/ack-bulk", payload, [onFinished = std::move(onFinished)](const HttpResponse &response) {
         if (!response.success)
-            qCWarning(LogDiscord) << "Failed to bulk ack:" << response.error;
+            qCWarning(LogDiscord) << "Failed to bulk ack:" << "HTTP status" << response.statusCode;
         onFinished(response.success);
     });
 }
@@ -1367,7 +1363,7 @@ void Client::fetchFrecencySettings(FrecencyCallback callback)
             QString err = QStringLiteral("status=%1 error=%2")
                                   .arg(response.statusCode)
                                   .arg(response.error);
-            qCWarning(LogDiscord) << "Failed to fetch frecency settings:" << err;
+            qCWarning(LogDiscord) << "Failed to fetch frecency settings:" << "HTTP status" << response.statusCode;
             callback(Core::Result<Proto::FrecencyUserSettings>::makeError(err));
             return;
         }
@@ -1396,7 +1392,7 @@ void Client::patchFrecencySettings(const QByteArray &partialProto,
                               result.error = QStringLiteral("status=%1 error=%2")
                                                      .arg(response.statusCode)
                                                      .arg(response.error);
-                              qCWarning(LogDiscord) << "Failed to patch frecency settings:" << result.error;
+                              qCWarning(LogDiscord) << "Failed to patch frecency settings:" << "HTTP status" << response.statusCode;
                               callback(result);
                               return;
                           }
@@ -1590,7 +1586,7 @@ void Client::searchGuildMembers(Snowflake guildId, const MemberSearchQuery &quer
     httpClient->post(guildEndpoint(guildId, "/members-search"), query.toJson(), [callback](const HttpResponse &response) {
         if (!response.success) {
             const ApiError error = ApiError::fromResponse(response);
-            qCWarning(LogDiscord) << "Member search failed with status" << response.statusCode << ":" << error.message;
+            qCWarning(LogDiscord) << "Member search failed with status" << response.statusCode << "API code" << error.code;
             callback(Core::Result<MemberSearchPage>::makeError(error.message, error.code));
             return;
         }

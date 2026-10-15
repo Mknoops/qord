@@ -2,6 +2,8 @@
 
 #include "ClientIdentity.hpp"
 #include "CurlUtils.hpp"
+#include "Qord/DevMock.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include "Core/Logging.hpp"
 
@@ -157,7 +159,8 @@ void RemoteAuthClient::networkLoop()
         return;
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, gatewayUrl);
+    const QByteArray gatewayAddress = safeGatewayUrl(QUrl(QString::fromUtf8(gatewayUrl))).toEncoded();
+    curl_easy_setopt(curl, CURLOPT_URL, gatewayAddress.constData());
     curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
     CurlUtils::applyCommonOptions(curl);
@@ -293,7 +296,7 @@ void RemoteAuthClient::handleMessage(const QString &text)
     else if (op == "heartbeat_ack") {
         // ack
     } else {
-        qCDebug(LogDiscord) << "Unknown remote auth opcode:" << op;
+        qCDebug(LogDiscord) << "Unknown remote auth opcode";
     }
 }
 
@@ -415,7 +418,8 @@ void RemoteAuthClient::postLogin(const QString &ticket, std::optional<CaptchaSol
             if (solution)
                 appendCaptchaHeaders(headers, *solution);
 
-            curl_easy_setopt(curl, CURLOPT_URL, loginUrl);
+            const QByteArray safeLoginUrl = Qord::DevMock::rewrite(QUrl(QString::fromUtf8(loginUrl))).toEncoded();
+            curl_easy_setopt(curl, CURLOPT_URL, safeLoginUrl.constData());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
             curl_easy_setopt(curl, CURLOPT_POST, 1L);

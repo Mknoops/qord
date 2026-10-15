@@ -8,6 +8,8 @@
  */
 #include "ApngToGif.hpp"
 
+#include <cmath>
+
 #include <QHash>
 #include <QPainter>
 

@@ -9,6 +9,7 @@
 #endif
 
 #include "Logging.hpp"
+#include "Qord/DevMock.hpp"
 
 namespace Acheron {
 namespace Core {
@@ -29,6 +30,9 @@ QString TokenStore::describeKeychainFailure(const QString &keychainError)
 
 Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 {
+    if (Qord::DevMock::enabled())
+        return Result<void>::makeError(tr("Account tokens cannot be saved in mock mode."));
+
     QKeychain::WritePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -41,7 +45,7 @@ Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 
     if (job.error() != QKeychain::NoError) {
         qCWarning(LogCore) << "TokenStore: Failed to save token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return Result<void>::makeError(describeKeychainFailure(job.errorString()));
     }
 
@@ -50,6 +54,9 @@ Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 
 Result<QString> TokenStore::loadToken(Snowflake accountId)
 {
+    if (Qord::DevMock::enabled())
+        return Result<QString>::makeError(tr("Account tokens cannot be loaded in mock mode."));
+
     QKeychain::ReadPasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -61,7 +68,7 @@ Result<QString> TokenStore::loadToken(Snowflake accountId)
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
         qCWarning(LogCore) << "TokenStore: Failed to load token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return Result<QString>::makeError(describeKeychainFailure(job.errorString()));
     }
 
@@ -74,6 +81,9 @@ Result<QString> TokenStore::loadToken(Snowflake accountId)
 
 bool TokenStore::deleteToken(Snowflake accountId)
 {
+    if (Qord::DevMock::enabled())
+        return true; // Mock account removal must never delete a real credential.
+
     QKeychain::DeletePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(keyForAccount(accountId));
@@ -85,7 +95,7 @@ bool TokenStore::deleteToken(Snowflake accountId)
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
         qCWarning(LogCore) << "TokenStore: Failed to delete token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return false;
     }
 
@@ -94,6 +104,9 @@ bool TokenStore::deleteToken(Snowflake accountId)
 
 Result<QString> TokenStore::loadSecret(const QString &key)
 {
+    if (Qord::DevMock::enabled())
+        return Result<QString>::makeError(tr("Keychain secrets cannot be loaded in mock mode."));
+
     QKeychain::ReadPasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);
@@ -106,7 +119,7 @@ Result<QString> TokenStore::loadSecret(const QString &key)
     if (job.error() == QKeychain::EntryNotFound)
         return Result<QString>::makeOk(QString());
     if (job.error() != QKeychain::NoError) {
-        qCWarning(LogCore) << "TokenStore: Failed to load secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to load secret" << "error code" << int(job.error());
         return Result<QString>::makeError(describeKeychainFailure(job.errorString()));
     }
     return Result<QString>::makeOk(job.textData());
@@ -114,6 +127,9 @@ Result<QString> TokenStore::loadSecret(const QString &key)
 
 bool TokenStore::saveSecret(const QString &key, const QString &value)
 {
+    if (Qord::DevMock::enabled())
+        return false;
+
     QKeychain::WritePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);
@@ -125,7 +141,7 @@ bool TokenStore::saveSecret(const QString &key, const QString &value)
     loop.exec();
 
     if (job.error() != QKeychain::NoError) {
-        qCWarning(LogCore) << "TokenStore: Failed to save secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to save secret" << "error code" << int(job.error());
         return false;
     }
     return true;
@@ -133,6 +149,9 @@ bool TokenStore::saveSecret(const QString &key, const QString &value)
 
 bool TokenStore::deleteSecret(const QString &key)
 {
+    if (Qord::DevMock::enabled())
+        return true; // No persistent secrets exist in the mock profile.
+
     QKeychain::DeletePasswordJob job(SERVICE_NAME);
     job.setAutoDelete(false);
     job.setKey(key);
@@ -143,7 +162,7 @@ bool TokenStore::deleteSecret(const QString &key)
     loop.exec();
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
-        qCWarning(LogCore) << "TokenStore: Failed to delete secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to delete secret" << "error code" << int(job.error());
         return false;
     }
     return true;

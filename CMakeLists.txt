@@ -79,6 +79,13 @@ find_package(Qt${QT_VERSION_MAJOR}
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS ZlibPrivate QUIET)
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en)
 
+# Qt 5 API aliases are needed by GCC/Clang targets as well as MSVC.
+if(QT_VERSION_MAJOR LESS 6 AND NOT MSVC)
+    target_compile_options(Qt5::Core INTERFACE
+        "$<$<COMPILE_LANGUAGE:CXX>:-include>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/qt5_compat.h>")
+endif()
+
 # If Qt::ZlibPrivate is not available, create a QtZlib compatibility include
 # directory so that #include <QtZlib/zlib.h> resolves using system zlib.
 if(NOT TARGET Qt::ZlibPrivate)

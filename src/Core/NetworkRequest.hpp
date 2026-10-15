@@ -12,6 +12,8 @@ namespace Core {
 inline QNetworkRequest networkRequest(const QUrl &url)
 {
     QNetworkRequest request(Qord::DevMock::rewrite(url));
+    if (Qord::DevMock::enabled())
+        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
 #ifdef Q_OS_WIN
     static const bool schannelLacksAlpn = QOperatingSystemVersion::current() < QOperatingSystemVersion::Windows8_1;
     if (schannelLacksAlpn)

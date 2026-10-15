@@ -1,4 +1,5 @@
 #include "CurlAvio.hpp"
+#include "InputPolicy.hpp"
 
 #ifdef ACHERON_HAVE_FFMPEG
 
@@ -116,10 +117,23 @@ bool startTransfer(Stream *stream)
         return false;
 
     Discord::CurlUtils::applyCommonOptions(stream->easy);
-    Discord::CurlUtils::applyProxy(stream->easy, stream->proxy);
+    const bool mock = Qord::DevMock::enabled();
+    curl_easy_setopt(stream->easy, CURLOPT_PROXY, "");
 
     curl_easy_setopt(stream->easy, CURLOPT_URL, stream->url.c_str());
-    curl_easy_setopt(stream->easy, CURLOPT_FOLLOWLOCATION, 1L);
+    // No redirect may downgrade TLS or enter file/FTP/other curl protocols.
+    const long protocols = mock ? CURLPROTO_HTTP : CURLPROTO_HTTPS;
+    if (curl_easy_setopt(stream->easy, CURLOPT_PROTOCOLS, protocols) != CURLE_OK ||
+        curl_easy_setopt(stream->easy, CURLOPT_REDIR_PROTOCOLS, protocols) != CURLE_OK ||
+        curl_easy_setopt(stream->easy, CURLOPT_SSL_VERIFYPEER, 1L) != CURLE_OK ||
+        curl_easy_setopt(stream->easy, CURLOPT_SSL_VERIFYHOST, 2L) != CURLE_OK) {
+        stream->stopTransfer();
+        return false;
+    }
+    curl_easy_setopt(stream->easy, CURLOPT_FOLLOWLOCATION, mock ? 0L : 1L);
+    curl_easy_setopt(stream->easy, CURLOPT_MAXREDIRS, 5L);
+    // Apply last: a rejected proxy configuration disables all protocols.
+    Discord::CurlUtils::applyProxy(stream->easy, stream->proxy);
     curl_easy_setopt(stream->easy, CURLOPT_WRITEFUNCTION, onData);
     curl_easy_setopt(stream->easy, CURLOPT_WRITEDATA, stream);
     curl_easy_setopt(stream->easy, CURLOPT_HEADERFUNCTION, onHeader);
@@ -266,8 +280,11 @@ bool handlesScheme(const QString &url)
 
 AVIOContext *create(const QString &url, const ProxyConfig &proxy, const AVIOInterruptCB &interrupt)
 {
+    const QUrl target = Qord::DevMock::rewrite(QUrl(url, QUrl::StrictMode));
+    if (!allowedRemoteMediaUrl(target))
+        return nullptr;
     auto *stream = new Stream;
-    stream->url = url.toStdString();
+    stream->url = target.toString(QUrl::FullyEncoded).toStdString();
     stream->proxy = proxy;
     stream->interrupt = interrupt;
     stream->multi = curl_multi_init();

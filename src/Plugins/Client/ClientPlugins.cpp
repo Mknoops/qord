@@ -1,5 +1,7 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "ClientPlugins.hpp"
 #include <QPointer>
+#include <memory>
 
 #include "Core/ClientInstance.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
@@ -8,6 +10,7 @@
 #include "Core/Logging.hpp"
 #include "Core/MessageManager.hpp"
 #include "Core/NetworkRequest.hpp"
+#include "Core/NetworkAccessManager.hpp"
 #include "Core/Presence/PresenceBadge.hpp"
 #include "Core/Presence/PresenceManager.hpp"
 #include "Core/RelationshipManager.hpp"
@@ -24,6 +27,7 @@
 #include "Core/Session.hpp"
 #include "Core/TokenStore.hpp"
 #include "Qord/DevMock.hpp"
+#include "Plugins/Client/NetworkPolicy.hpp"
 #include "Core/UserManager.hpp"
 #include "Core/Markdown/Parser.hpp"
 #include "Discord/CdnUrls.hpp"
@@ -99,21 +103,18 @@ NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &he
 {
     const Handle handle = ++next;
     // Plugins only fetch over HTTPS
-    if (url.scheme() != QLatin1String("https")) {
+    if (!isPluginNetworkUrl(url)) {
         QMetaObject::invokeMethod(this, [callback = std::move(callback)] {
             Reply r;
-            r.error = QStringLiteral("only https URLs are allowed");
+            r.error = QStringLiteral("only valid https URLs without user credentials are allowed");
             callback(r);
         }, Qt::QueuedConnection);
         return handle;
     }
     if (!nam)
-        nam = new QNetworkAccessManager(this);
+        nam = new Acheron::Core::NetworkAccessManager(this);
 
-    QNetworkRequest request = Acheron::Core::networkRequest(url);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-    request.setMaximumRedirectsAllowed(5);
-    request.setTransferTimeout(60'000);
+    QNetworkRequest request = pluginNetworkRequest(url);
     for (const auto &header : headers)
         request.setRawHeader(header.first, header.second);
     QNetworkReply *reply = !method.isEmpty() ? nam->sendCustomRequest(request, method, body ? *body : QByteArray())
@@ -121,20 +122,27 @@ NetworkService::Handle QtNetworkService::send(const QUrl &url, const Headers &he
                                             : nam->get(request);
     replies.insert(handle, reply);
 
-    connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 received, qint64) {
-        if (received > MaxResponseBytes)
+    const auto buffer = std::make_shared<PluginResponseBuffer>();
+    reply->setReadBufferSize(MaxResponseBytes + 1);
+    connect(reply, &QIODevice::readyRead, this, [reply, buffer] {
+        if (!buffer->read(*reply, MaxResponseBytes))
             reply->abort();
     });
     const bool keepErrorBody = body != nullptr || keepErrorBodies;
-    connect(reply, &QNetworkReply::finished, this, [this, handle, reply, keepErrorBody, callback = std::move(callback)] {
+    connect(reply, &QNetworkReply::finished, this, [this, handle, reply, buffer, keepErrorBody, callback = std::move(callback)] {
         reply->deleteLater();
         if (!replies.remove(handle))
             return; // cancelled
         Reply r;
         r.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (!buffer->read(*reply, MaxResponseBytes)) {
+            r.error = QStringLiteral("response exceeds size limit");
+            callback(r);
+            return;
+        }
         r.ok = reply->error() == QNetworkReply::NoError && r.status >= 200 && r.status < 300;
         if (r.ok || (keepErrorBody && r.status))
-            r.body = reply->readAll();
+            r.body = std::move(buffer->data);
         if (!r.ok)
             r.error = reply->errorString();
         callback(r);
@@ -643,7 +651,7 @@ void QtUiService::showMemberPermissions(const MemberPermissionsView &view)
 
 void QtUiService::openUrl(const QUrl &url)
 {
-    QDesktopServices::openUrl(url);
+    Acheron::Core::openExternalUrl(url);
 }
 
 std::function<void(const PluginNotification &, std::function<void()>)> &QtUiService::notificationShower()

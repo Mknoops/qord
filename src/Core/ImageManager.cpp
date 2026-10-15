@@ -10,6 +10,7 @@
 
 #include "Logging.hpp"
 #include "NetworkRequest.hpp"
+#include "NetworkAccessManager.hpp"
 #include "Discord/CdnUrls.hpp"
 #ifdef ACHERON_HAVE_RLOTTIE
 #include "LottieDecoder.hpp"
@@ -81,9 +82,9 @@ void ImageManager::setAccountProxy(Snowflake accountId, const ProxyConfig &proxy
 {
     auto it = networkManagers.find(accountId);
     if (it == networkManagers.end())
-        it = networkManagers.insert(accountId, new QNetworkAccessManager(this));
+        it = networkManagers.insert(accountId, new NetworkAccessManager(this));
 
-    it.value()->setProxy(proxy.toQtProxy());
+    static_cast<NetworkAccessManager *>(it.value())->configureProxy(proxy);
 }
 
 QNetworkAccessManager *ImageManager::networkManagerFor(Snowflake accountId) const
@@ -180,7 +181,7 @@ QPixmap ImageManager::getImpl(const QUrl &url, const QSize &size, PinGroup pin, 
             return pixmap;
         }
 
-        qCWarning(LogCore) << "Cached download is not a decodable image:" << url;
+        qCWarning(LogCore) << "Cached download is not a decodable image:";
         undecodable.insert(k);
         return placeholder(size);
     }
@@ -226,7 +227,7 @@ void ImageManager::request(const QUrl &url, const QSize &size, PinGroup pin, Sno
 {
     QNetworkAccessManager *nam = networkManagerFor(accountId);
     if (!nam) {
-        qCWarning(LogCore) << "Refusing to fetch image with no proxied route for the account:" << url;
+        qCWarning(LogCore) << "Refusing to fetch image with no proxied route for the account:";
         return;
     }
 
@@ -272,7 +273,7 @@ void ImageManager::fetchFromNetwork(const QUrl &url, const QSize &size, PinGroup
         pendingPins.remove(k);
 
         if (reply->error() != QNetworkReply::NoError) {
-            qCWarning(LogCore) << "Failed to fetch image:" << reply->errorString();
+            qCWarning(LogCore) << "Failed to fetch image:" << int(reply->error());
             requests.remove(k);
             downloadOnlyRequests.remove(k);
             failedAtMs.insert(k, uptime.elapsed());
@@ -319,7 +320,7 @@ void ImageManager::fetchFromNetwork(const QUrl &url, const QSize &size, PinGroup
         } else {
             requests.remove(k);
             if (pixmapWanted) {
-                qCWarning(LogCore) << "Fetched image is not decodable:" << url;
+                qCWarning(LogCore) << "Fetched image is not decodable:";
                 undecodable.insert(k);
                 emit imageUnavailable(url, size);
             }
@@ -416,7 +417,7 @@ void ImageManager::fetch(const QUrl &url, Snowflake accountId, QObject *context,
 {
     QNetworkAccessManager *nam = networkManagerFor(accountId);
     if (!nam) {
-        qCWarning(LogCore) << "Refusing to fetch with no proxied route for the account:" << url;
+        qCWarning(LogCore) << "Refusing to fetch with no proxied route for the account:";
         done({});
         return;
     }
@@ -432,14 +433,14 @@ void ImageManager::download(const QUrl &url, Snowflake accountId, const QString 
 {
     QNetworkAccessManager *nam = networkManagerFor(accountId);
     if (!nam) {
-        qCWarning(LogCore) << "Refusing to download with no proxied route for the account:" << url;
+        qCWarning(LogCore) << "Refusing to download with no proxied route for the account:";
         return;
     }
 
     QNetworkReply *reply = nam->get(networkRequest(url));
     auto *file = new QFile(path, reply);
     if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qCWarning(LogCore) << "Failed to open" << path << "for writing:" << file->errorString();
+        qCWarning(LogCore) << "Failed to open image destination, error code" << int(file->error());
         reply->abort();
         reply->deleteLater();
         return;
@@ -448,10 +449,10 @@ void ImageManager::download(const QUrl &url, Snowflake accountId, const QString 
     connect(reply, &QNetworkReply::readyRead, file, [reply, file]() {
         file->write(reply->readAll());
     });
-    connect(reply, &QNetworkReply::finished, reply, [reply, file, url]() {
+    connect(reply, &QNetworkReply::finished, reply, [reply, file]() {
         file->close();
         if (reply->error() != QNetworkReply::NoError) {
-            qCWarning(LogCore) << "Download failed:" << url << reply->errorString();
+            qCWarning(LogCore) << "Download failed:" << int(reply->error());
             file->remove();
         }
         reply->deleteLater();

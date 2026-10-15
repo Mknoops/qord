@@ -1,5 +1,6 @@
 #include "Parser.hpp"
 #include "Core/EmojiSegmenter.hpp"
+#include "Core/ExternalLink.hpp"
 #include "Discord/ChannelLink.hpp"
 #include "Discord/CdnUrls.hpp"
 
@@ -306,21 +307,7 @@ static MatchFn anyScopeRegex(QRegularExpression regex)
 
 static bool isAllowedAutolinkTarget(const QString &target)
 {
-    // this is what discord permits
-    static const QStringList allowedSchemes = { "http", "https", "discord", "tel", "sms", "mailto" };
-
-    QUrl url(target, QUrl::TolerantMode);
-    if (!url.isValid())
-        return false;
-
-    const QString scheme = url.scheme();
-    if (!allowedSchemes.contains(scheme))
-        return false;
-
-    if ((scheme == "http" || scheme == "https") && url.host().isEmpty())
-        return false;
-
-    return true;
+    return isAllowedExternalLink(QUrl(target, QUrl::TolerantMode));
 }
 
 static QString normalizeLinkUrl(const QString &url)
@@ -487,6 +474,8 @@ void Parser::setupDefaultRules()
     };
     link.html = [](const AstNode &node,
                    std::function<QString(const QList<AstNode> &)> renderChildren) -> QString {
+        if (!isAllowedExternalLink(QUrl(node.attributes["href"].toString(), QUrl::TolerantMode)))
+            return renderChildren(node.children);
         return QString("<a href=\"%1\">%2</a>")
                 .arg(node.attributes["href"].toString().toHtmlEscaped())
                 .arg(renderChildren(node.children));

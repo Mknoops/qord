@@ -1,6 +1,7 @@
 #include "UdpTransport.hpp"
 
 #include "Core/Logging.hpp"
+#include "Qord/DevMock.hpp"
 
 #include <QDataStream>
 #include <QtEndian>
@@ -29,6 +30,20 @@ UdpTransport::~UdpTransport()
 
 void UdpTransport::startIpDiscovery(const QString &ip, int port, quint32 ssrc)
 {
+    if (Qord::DevMock::enabled()) {
+        QUrl target;
+        target.setScheme(QStringLiteral("http"));
+        target.setHost(ip);
+        target.setPort(port);
+        if (!Qord::DevMock::allowsNetworkUrl(target)) {
+            emit ipDiscoveryFailed(QStringLiteral("Mock voice endpoint blocked by network policy"));
+            return;
+        }
+        proxy = {};
+    } else if (proxy.blocked || !proxy.canRelayUdp()) {
+        emit ipDiscoveryFailed(QStringLiteral("Proxy configuration cannot relay voice"));
+        return;
+    }
     serverAddress = QHostAddress(ip);
     serverPort = static_cast<quint16>(port);
     discoveryPending = true;
@@ -38,7 +53,7 @@ void UdpTransport::startIpDiscovery(const QString &ip, int port, quint32 ssrc)
         return;
 
     qCInfo(LogVoice) << "UDP socket bound to port" << socket->localPort()
-                     << "- starting IP discovery to" << ip << ":" << serverPort;
+                     << "- starting IP discovery";
 
     startDiscoveryTimeout();
 
@@ -72,8 +87,10 @@ bool UdpTransport::openSocket()
     socket = new QUdpSocket(this);
     connect(socket, &QUdpSocket::readyRead, this, &UdpTransport::onReadyRead);
 
-    if (!socket->bind(QHostAddress(QHostAddress::AnyIPv4), 0)) {
-        qCWarning(LogVoice) << "Failed to bind UDP socket:" << socket->errorString();
+    const auto bindAddress = serverAddress.protocol() == QAbstractSocket::IPv6Protocol
+                                 ? QHostAddress::AnyIPv6 : QHostAddress::AnyIPv4;
+    if (!socket->bind(QHostAddress(bindAddress), 0)) {
+        qCWarning(LogVoice) << "Failed to bind UDP socket; error" << int(socket->error());
         emit ipDiscoveryFailed("Failed to bind UDP socket: " + socket->errorString());
         return false;
     }

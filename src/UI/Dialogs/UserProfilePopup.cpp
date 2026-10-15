@@ -1,3 +1,4 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "UserProfilePopup.hpp"
 
 #include <QApplication>
@@ -976,12 +977,12 @@ void UserProfilePopup::renderConnections()
             QWidget *icon = nullptr;
             if (link.isValid()) {
                 icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open link"),
-                                [link]() { QDesktopServices::openUrl(link); });
+                                [link]() { Acheron::Core::openExternalUrl(link); });
             } else if (type == QLatin1String("xbox")) {
                 const QUrl xbox(QStringLiteral("https://www.xbox.com/en-US/play/user/") +
                                 QString::fromUtf8(QUrl::toPercentEncoding(name)));
                 icon = makeIcon(type, name, c.verified.valueOr(false), tr("Open on Xbox"),
-                                [xbox]() { QDesktopServices::openUrl(xbox); });
+                                [xbox]() { Acheron::Core::openExternalUrl(xbox); });
             } else {
                 icon = makeIcon(type, name, c.verified.valueOr(false), tr("Copy"), [this, name]() {
                     QGuiApplication::clipboard()->setText(name);
@@ -999,7 +1000,7 @@ void UserProfilePopup::renderConnections()
                     for (const QString &login : logins) {
                         const QUrl url(QStringLiteral("https://github.com/") + login);
                         auto *org = makeIcon(QStringLiteral("github"), login, false, QObject::tr("Open link"),
-                                             [url]() { QDesktopServices::openUrl(url); });
+                                             [url]() { Acheron::Core::openExternalUrl(url); });
                         flow->insertWidget(at++, org);
                         org->show();
                     }
@@ -1039,7 +1040,7 @@ void UserProfilePopup::renderConnections()
                                    .arg(link.toString(), linkColor, name, mutedColor,
                                         typePretty));
             connect(label, &QLabel::linkActivated, this,
-                    [](const QString &url) { QDesktopServices::openUrl(QUrl(url)); });
+                    [](const QString &url) { Acheron::Core::openExternalUrl(QUrl(url)); });
         } else {
             label->setText(QStringLiteral("%1 <span style=\"color:%2;\">· %3</span>")
                                    .arg(name, mutedColor, typePretty));

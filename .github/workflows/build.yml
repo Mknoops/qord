@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+# A new PR revision supersedes its previous builds; release invocations retain
+# separate groups and are never cancelled by a pull-request update.
+concurrency:
+  group: build-${{ github.event_name }}-${{ github.ref }}-${{ inputs.ref || '' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # The test binaries are GUI programs; runners have no display
   QT_QPA_PLATFORM: offscreen

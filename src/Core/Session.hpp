@@ -29,7 +29,7 @@ public:
 
     void autoConnectAccounts();
 
-    void setAccountProxy(Snowflake accountId, const ProxyConfig &proxy);
+    [[nodiscard]] Result<void> setAccountProxy(Snowflake accountId, const ProxyConfig &proxy);
 
     [[nodiscard]] QList<ClientInstance *> getClients() const { return clients.values(); }
     [[nodiscard]] ClientInstance *client(Snowflake accountId) const;

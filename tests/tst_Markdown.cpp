@@ -1,4 +1,5 @@
 #include "Core/EmojiSegmenter.hpp"
+#include "Core/ExternalLink.hpp"
 #include "Core/Markdown/Parser.hpp"
 
 #include <QElapsedTimer>
@@ -13,6 +14,8 @@ private slots:
     void testNewlines();
     void testAutolink();
     void testUrl();
+    void testMaskedLinkPolicy();
+    void testExternalLinkPolicy();
     void testEmojiSequences();
 };
 
@@ -91,6 +94,40 @@ void TestMarkdown::testUrl()
     // A host-only URL with a non-default port still gets the "/" path.
     QCOMPARE(renderInline("https://localhost:3000"),
              QStringLiteral("<a href=\"https://localhost:3000/\">https://localhost:3000/</a>"));
+}
+
+void TestMarkdown::testMaskedLinkPolicy()
+{
+    for (const QString &target : { QStringLiteral("file:///tmp/example"), QStringLiteral("javascript:alert(1)"),
+                                  QStringLiteral("custom-handler:payload"), QStringLiteral("../local"),
+                                  QStringLiteral("//example.com/path"), QStringLiteral("https://"),
+                                  QStringLiteral("acheron://user/123") }) {
+        QCOMPARE(renderInline(QStringLiteral("[label](%1)").arg(target)), QStringLiteral("label"));
+    }
+    QCOMPARE(renderInline("[label](https://example.com/path?a=1&b=2)"),
+             QStringLiteral("<a href=\"https://example.com/path?a=1&amp;b=2\">label</a>"));
+    QCOMPARE(renderInline("[email](mailto:user@example.com)"),
+             QStringLiteral("<a href=\"mailto:user@example.com\">email</a>"));
+    // Generated mention actions remain usable; user-supplied masked targets
+    // cannot forge those internal actions.
+    QVERIFY(renderInline("<@123>").contains(QStringLiteral("href=\"acheron://user/123\"")));
+}
+
+void TestMarkdown::testExternalLinkPolicy()
+{
+    using Acheron::Core::isAllowedExternalLink;
+    using Acheron::Core::isAllowedWebLink;
+    for (const QString &target : { QStringLiteral("file:///tmp/example"), QStringLiteral("javascript:alert(1)"),
+                                  QStringLiteral("custom-handler:payload"), QStringLiteral("/tmp/example"),
+                                  QStringLiteral("https://"), QStringLiteral("acheron://user/123") })
+        QVERIFY(!isAllowedExternalLink(QUrl(target)));
+    for (const QString &target : { QStringLiteral("https://example.com/path"), QStringLiteral("http://example.com"),
+                                  QStringLiteral("mailto:user@example.com"), QStringLiteral("discord://foo"),
+                                  QStringLiteral("tel:123"), QStringLiteral("sms:123") })
+        QVERIFY(isAllowedExternalLink(QUrl(target)));
+    QVERIFY(isAllowedWebLink(QUrl("https://example.com/file.txt")));
+    QVERIFY(!isAllowedWebLink(QUrl("discord://foo")));
+    QVERIFY(!isAllowedWebLink(QUrl("file:///tmp/example")));
 }
 
 void TestMarkdown::testEmojiSequences()

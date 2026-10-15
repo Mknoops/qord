@@ -113,7 +113,9 @@ Result<void> AccountsModel::addAccount(const AccountInfo &account)
     newAccount.displayOrder = maxOrder + 1;
 
     AccountRepository repo;
-    repo.saveAccount(newAccount);
+    const auto stored = repo.saveAccount(newAccount);
+    if (!stored.success())
+        return stored;
     repo.clearHeartbeatSession(newAccount.id);
     session->getImageManager()->setAccountProxy(newAccount.id, newAccount.proxy);
 
@@ -170,19 +172,20 @@ void AccountsModel::setAutoConnect(int row, bool enabled)
     emit dataChanged(idx, idx, { Qt::CheckStateRole, AutoConnectRole });
 }
 
-void AccountsModel::setProxy(int row, const Core::ProxyConfig &proxy)
+Core::Result<void> AccountsModel::setProxy(int row, const Core::ProxyConfig &proxy)
 {
-    if (row < 0 || row >= accounts.size())
-        return;
-
-    if (accounts[row].proxy == proxy || accounts[row].state != ConnectionState::Disconnected)
-        return;
-
+    if (row < 0 || row >= accounts.size() || accounts[row].state != ConnectionState::Disconnected)
+        return Core::Result<void>::makeError(tr("Disconnect the account before changing its proxy."));
+    if (accounts[row].proxy == proxy)
+        return Core::Result<void>::makeOk();
+    const auto saved = session->setAccountProxy(accounts[row].id, proxy);
+    if (!saved.success())
+        return saved;
     accounts[row].proxy = proxy;
-    session->setAccountProxy(accounts[row].id, proxy);
-
+    accounts[row].proxyError.clear();
     QModelIndex idx = index(row, 0);
     emit dataChanged(idx, idx, { AccountObjectRole });
+    return Core::Result<void>::makeOk();
 }
 
 Qt::ItemFlags AccountsModel::flags(const QModelIndex &index) const

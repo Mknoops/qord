@@ -43,8 +43,22 @@ bool VoiceEncryption::isModeAvailable(EncryptionMode mode)
     }
 }
 
+bool VoiceEncryption::isValidKey(EncryptionMode mode, const QByteArray &key)
+{
+    switch (mode) {
+    case EncryptionMode::AEAD_AES256_GCM_RTPSIZE:
+        return key.size() == crypto_aead_aes256gcm_KEYBYTES;
+    case EncryptionMode::AEAD_XCHACHA20_POLY1305_RTPSIZE:
+        return key.size() == crypto_aead_xchacha20poly1305_ietf_KEYBYTES;
+    default:
+        return false;
+    }
+}
+
 QByteArray VoiceEncryption::encrypt(const QByteArray &rtpHeader, const QByteArray &audioPayload)
 {
+    if (!isValidKey(m_mode, m_key) || !isModeAvailable(m_mode))
+        return {};
     switch (m_mode) {
     case EncryptionMode::AEAD_AES256_GCM_RTPSIZE:
         return encryptAes256Gcm(rtpHeader, audioPayload);
@@ -117,6 +131,8 @@ QByteArray VoiceEncryption::encryptXChacha20(const QByteArray &rtpHeader, const 
 
 QByteArray VoiceEncryption::decrypt(const QByteArray &rtpHeader, const QByteArray &encryptedSection)
 {
+    if (!isValidKey(m_mode, m_key) || !isModeAvailable(m_mode))
+        return {};
     switch (m_mode) {
     case EncryptionMode::AEAD_AES256_GCM_RTPSIZE:
         return decryptAes256Gcm(rtpHeader, encryptedSection);

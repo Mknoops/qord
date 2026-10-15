@@ -161,6 +161,7 @@ void VoiceClient::stop()
     localRtxSsrc = 0;
     videoCodecAssigned = false;
     depacketizers.clear();
+    lastPliMs.clear();
     pacer.clear();
     if (pacerTimer)
         pacerTimer->stop();
@@ -201,7 +202,7 @@ void VoiceClient::onGatewayConnected()
 
 void VoiceClient::onGatewayDisconnected(VoiceCloseCode code, const QString &reason)
 {
-    qCWarning(LogVoice) << "Voice gateway disconnected, code:" << code << "reason:" << reason;
+    qCWarning(LogVoice) << "Voice gateway disconnected, code:" << code;
 
     cleanupTransport();
 
@@ -214,9 +215,7 @@ void VoiceClient::onGatewayDisconnected(VoiceCloseCode code, const QString &reas
 
 void VoiceClient::onGatewayReady(const VoiceReady &data)
 {
-    qCInfo(LogVoice) << "Voice Ready: SSRC =" << data.ssrc
-                     << "server =" << data.ip << ":" << data.port
-                     << "modes =" << data.modes.get();
+    qCInfo(LogVoice) << "Voice Ready: SSRC =" << data.ssrc;
 
     localSsrc = data.ssrc;
     // Qord: the video stream the server assigned (first one)
@@ -244,7 +243,7 @@ void VoiceClient::onGatewayReady(const VoiceReady &data)
     }
 
     if (mode == EncryptionMode::UNKNOWN) {
-        qCCritical(LogVoice) << "No supported encryption mode found! Server offered:" << serverModes;
+        qCCritical(LogVoice) << "No supported voice encryption mode found";
         stop();
         return;
     }
@@ -265,13 +264,21 @@ void VoiceClient::onGatewayReady(const VoiceReady &data)
 
 void VoiceClient::onSessionDescription(const SessionDescription &desc)
 {
+    const EncryptionMode mode = encryptionModeFromString(desc.mode);
+    if (!VoiceEncryption::isValidKey(mode, desc.secretKey) ||
+        !VoiceEncryption::isModeAvailable(mode) || desc.mode.get() != selectedMode) {
+        qCWarning(LogVoice) << "Rejecting invalid voice session encryption parameters";
+        stop();
+        emit disconnected();
+        return;
+    }
+
     qCInfo(LogVoice) << "Session established: mode =" << desc.mode
                      << "key length =" << desc.secretKey->size();
 
     sessionKey = desc.secretKey;
     selectedMode = desc.mode;
 
-    EncryptionMode mode = encryptionModeFromString(selectedMode);
     encryption = std::make_unique<VoiceEncryption>(mode, sessionKey);
 
     int daveVersion = desc.daveProtocolVersion.hasValue() ? desc.daveProtocolVersion.get() : 0;
@@ -615,6 +622,10 @@ void VoiceClient::onVideoOp(const QJsonObject &data)
     const QJsonArray streams = data.value(QStringLiteral("streams")).toArray();
     if (!streams.isEmpty())
         active = active && streams.first().toObject().value(QStringLiteral("active")).toBool(true);
+    if (!active) {
+        depacketizers.remove(ssrc);
+        lastPliMs.remove(ssrc);
+    }
     emit videoStreamsChanged(uid, ssrc, active);
 }
 
@@ -641,9 +652,15 @@ void VoiceClient::onVideoDatagram(const QByteArray &data)
         decrypted = decrypted.mid(extBytes);
     }
 
-    auto &depacketizer = depacketizers[header.ssrc];
-    auto frame = depacketizer.push(header.sequence, header.timestamp, header.marker, decrypted);
-    if (depacketizer.needsKeyframe())
+    // Only gateway-announced streams may allocate receive state. Bound their
+    // number as well as each frame so rotating SSRCs cannot grow memory.
+    if (ssrcToUserIdMap.value(header.ssrc, 0) == 0)
+        return;
+    auto *depacketizer = depacketizers.getOrCreate(header.ssrc);
+    if (!depacketizer)
+        return;
+    auto frame = depacketizer->push(header.sequence, header.timestamp, header.marker, decrypted);
+    if (depacketizer->needsKeyframe())
         sendPictureLossIndication(header.ssrc);
     if (!frame)
         return;
@@ -783,10 +800,13 @@ void VoiceClient::onClientDisconnect(Core::Snowflake uid)
     if (daveSession)
         daveSession->removeConnectedUser(uidStr);
 
-    for (auto it = ssrcToUserIdMap.begin(); it != ssrcToUserIdMap.end(); ++it) {
+    for (auto it = ssrcToUserIdMap.begin(); it != ssrcToUserIdMap.end();) {
         if (it.value() == static_cast<quint64>(uid)) {
-            ssrcToUserIdMap.erase(it);
-            break;
+            depacketizers.remove(it.key());
+            lastPliMs.remove(it.key());
+            it = ssrcToUserIdMap.erase(it);
+        } else {
+            ++it;
         }
     }
 
@@ -820,7 +840,7 @@ void VoiceClient::onGatewayResumed()
 
 void VoiceClient::onIpDiscovered(const QString &ip, int port)
 {
-    qCInfo(LogVoice) << "IP Discovery: external" << ip << ":" << port;
+    qCInfo(LogVoice) << "IP discovery completed";
 
     setState(State::SelectingProtocol);
 
@@ -831,7 +851,8 @@ void VoiceClient::onIpDiscovered(const QString &ip, int port)
 
 void VoiceClient::onIpDiscoveryFailed(const QString &error)
 {
-    qCCritical(LogVoice) << "IP Discovery failed:" << error;
+    Q_UNUSED(error);
+    qCCritical(LogVoice) << "IP discovery failed";
     stop();
 }
 

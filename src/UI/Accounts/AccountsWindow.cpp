@@ -169,7 +169,11 @@ void AccountsWindow::onProxyApplyClicked()
     if (!proxy)
         return;
 
-    model->setProxy(idx.row(), *proxy);
+    const auto saved = model->setProxy(idx.row(), *proxy);
+    if (!saved.success()) {
+        QMessageBox::warning(this, tr("Proxy Save Failed"), saved.error);
+        return;
+    }
     proxyEdit->setText(proxy->toString());
 }
 
@@ -257,7 +261,7 @@ void AccountsWindow::addAccountWithToken(const QString &token, const QString &us
 
     Result<void> added = model->addAccount(acc);
     if (!added.success())
-        QMessageBox::critical(this, tr("Token Save Failed"), tr("The account wasn't added because its token couldn't be saved.") + "\n\n" + added.error);
+        QMessageBox::critical(this, tr("Account Save Failed"), tr("The account settings could not be saved.") + "\n\n" + added.error);
 }
 
 void AccountsWindow::onConnectFailed(Snowflake, const QString &reason)

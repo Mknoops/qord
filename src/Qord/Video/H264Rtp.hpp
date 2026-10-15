@@ -7,6 +7,7 @@
 
 #include <QByteArray>
 #include <QList>
+#include <QHash>
 
 #include <cstdint>
 #include <optional>
@@ -50,6 +51,11 @@ bool isKeyframe(const QByteArray &annexBFrame);
 class Depacketizer
 {
 public:
+    // Bound both byte storage and tiny-NAL container overhead per access unit.
+    static constexpr int MaxFrameBytes = 8 * 1024 * 1024;
+    static constexpr int MaxFramePackets = 8192;
+    static constexpr int MaxFrameNalUnits = 4096;
+
     struct Frame
     {
         QByteArray annexB;
@@ -74,9 +80,33 @@ private:
     bool broken = false;
     bool haveFrame = false;
     uint32_t frameTimestamp = 0;
+    int frameBytes = 0;
+    int framePackets = 0;
     std::optional<uint16_t> lastSequence;
     bool waitingForKeyframe = true;
     int dropped = 0;
+};
+
+// A bounded set of simultaneous remote video streams. Together with the
+// per-frame limit this caps incomplete payload storage at 128 MiB.
+class DepacketizerPool
+{
+public:
+    static constexpr int MaxStreams = 16;
+    Depacketizer *getOrCreate(uint32_t ssrc)
+    {
+        auto it = streams.find(ssrc);
+        if (it != streams.end())
+            return &it.value();
+        if (streams.size() >= MaxStreams)
+            return nullptr;
+        return &streams[ssrc];
+    }
+    void remove(uint32_t ssrc) { streams.remove(ssrc); }
+    void clear() { streams.clear(); }
+    int size() const { return streams.size(); }
+private:
+    QHash<uint32_t, Depacketizer> streams;
 };
 
 } // namespace Video

@@ -3,8 +3,6 @@ name: Isolated security validation
 on:
   pull_request:
     branches: [qord]
-  push:
-    branches: [codex/security-audit-fixes]
 
 permissions:
   contents: read
@@ -30,6 +28,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bubblewrap cmake ninja-build g++ pkg-config \
             libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libsodium-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
             libgl1-mesa-dev libxkbcommon0 libxcb-cursor0 fonts-dejavu-core \
             qtbase5-dev qttools5-dev libqt5svg5-dev
           git -c core.hooksPath=/dev/null submodule update --init --depth 1 \
@@ -55,8 +54,9 @@ jobs:
           # Only OS/toolchain inputs and read-only source enter the sandbox.
           # No runner home, sockets, credential files or inherited environment.
           timeout --signal=TERM --kill-after=15s 35m \
-            prlimit --as=12884901888 --cpu=1800 --nproc=512 --fsize=2147483648 -- \
+            sudo -n -- prlimit --as=12884901888 --cpu=1800 --nproc=512 --fsize=2147483648 -- \
             bwrap --unshare-all --die-with-parent --new-session --clearenv \
+              --uid "$(id -u)" --gid "$(id -g)" --cap-drop ALL \
               --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/sbin /sbin \
               --ro-bind /lib /lib --ro-bind /lib64 /lib64 \
               --ro-bind /etc/ld.so.cache /etc/ld.so.cache --ro-bind /etc/fonts /etc/fonts \
@@ -68,7 +68,7 @@ jobs:
               --chdir /work /bin/bash --noprofile --norc -eu -o pipefail -c '
                 python3 /src/tools/check_security_sandbox.py
                 args=(-DUSE_VCPKG=OFF -DALLOW_PLAIN_CURL=ON -DENABLE_VOICE=OFF
-                      -DENABLE_FFMPEG=OFF -DENABLE_LOTTIE=OFF -DBUILD_TESTS=ON
+                      -DENABLE_FFMPEG=ON -DENABLE_LOTTIE=OFF -DBUILD_TESTS=ON -DBUILD_VOICE_CRYPTO_TESTS=ON
                       -DCMAKE_BUILD_TYPE=Debug)
                 if [ "$TEST_QT_MAJOR" = 6 ]; then
                   args+=(-DCMAKE_PREFIX_PATH=/qt -DQT_VERSION=6.10.2)

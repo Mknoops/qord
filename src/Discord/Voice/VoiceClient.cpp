@@ -854,6 +854,9 @@ void VoiceClient::onIpDiscoveryFailed(const QString &error)
     Q_UNUSED(error);
     qCCritical(LogVoice) << "IP discovery failed";
     stop();
+    // stop() deleted the gateway, so no disconnect would follow on its own
+    emit connectFailed();
+    emit disconnected();
 }
 
 void VoiceClient::ensureDaveSession(uint16_t protocolVersion)

@@ -113,6 +113,9 @@ public:
 signals:
     void voiceConnected();
     void voiceDisconnected();
+    // Qord: joining failed before any audio could flow (UDP blocked, or a
+    // proxy that cannot carry it); Discord still lists us in the channel
+    void voiceConnectionFailed();
     void voiceStateChanged();
     void audioLevelChanged(float rms);
     void speakingChanged(bool speaking);

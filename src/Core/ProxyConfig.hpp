@@ -22,12 +22,17 @@ struct ProxyConfig
     quint16 port = 0;
     QString username;
     QString password;
+    // Set when stored configuration/credentials cannot be loaded safely.
+    bool blocked = false;
 
-    [[nodiscard]] bool enabled() const noexcept { return type != Type::None && !host.isEmpty() && port != 0; }
-    [[nodiscard]] bool canRelayUdp() const noexcept { return !enabled() || type == Type::Socks5; }
+    [[nodiscard]] bool enabled() const noexcept { return blocked || type != Type::None; }
+    [[nodiscard]] bool canRelayUdp() const noexcept
+    {
+        return !blocked && (!enabled() || (type == Type::Socks5 && !host.isEmpty() && port != 0));
+    }
 
     [[nodiscard]] QString toCurlUrl() const;
-    [[nodiscard]] QNetworkProxy toQtProxy() const;
+    [[nodiscard]] std::optional<QNetworkProxy> toQtProxy() const;
     [[nodiscard]] QString toString() const;
     [[nodiscard]] QString toDisplayString() const;
 

@@ -7,6 +7,7 @@
 
 #include <QByteArray>
 #include <QList>
+#include <QHash>
 
 #include <cstdint>
 #include <optional>
@@ -84,6 +85,28 @@ private:
     std::optional<uint16_t> lastSequence;
     bool waitingForKeyframe = true;
     int dropped = 0;
+};
+
+// A bounded set of simultaneous remote video streams. Together with the
+// per-frame limit this caps incomplete payload storage at 128 MiB.
+class DepacketizerPool
+{
+public:
+    static constexpr int MaxStreams = 16;
+    Depacketizer *getOrCreate(uint32_t ssrc)
+    {
+        auto it = streams.find(ssrc);
+        if (it != streams.end())
+            return &it.value();
+        if (streams.size() >= MaxStreams)
+            return nullptr;
+        return &streams[ssrc];
+    }
+    void remove(uint32_t ssrc) { streams.remove(ssrc); }
+    void clear() { streams.clear(); }
+    int size() const { return streams.size(); }
+private:
+    QHash<uint32_t, Depacketizer> streams;
 };
 
 } // namespace Video

@@ -1,3 +1,4 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "BrowserCaptchaResolver.hpp"
 
 #include <QDesktopServices>
@@ -196,7 +197,7 @@ void BrowserCaptchaResolver::startNext()
         if (!confirmBrowserBypassesProxy())
             return;
 
-        QDesktopServices::openUrl(QUrl(harnessUrl()));
+        Acheron::Core::openExternalUrl(QUrl(harnessUrl()));
         if (statusLabel)
             statusLabel->setText(tr("Waiting for you to finish in your browser..."));
     });

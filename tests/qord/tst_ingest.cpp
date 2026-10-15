@@ -4,6 +4,7 @@
 #include <QLoggingCategory>
 #include <QSignalSpy>
 #include <QTest>
+#include <QThread>
 
 #include <array>
 
@@ -138,6 +139,27 @@ private slots:
         QTRY_COMPARE(payload.count(), 1);
         QCOMPARE(payload.at(0).at(1).toULongLong(), qulonglong(1));
         QCOMPARE(qvariant_cast<QJsonObject>(payload.at(0).at(0)).value("op").toInt(), 2);
+    }
+
+    void slowConsumerCannotGrowQtEventBacklog()
+    {
+        IngestThread ingest;
+        QSignalSpy payload(&ingest, &IngestThread::payloadReceived);
+        Compressor compressor;
+        ingest.start();
+        for (int i = 0; i <= IngestThread::MaxPendingPayloads; ++i)
+            ingest.push(compressor.message("{\"op\":1}"));
+        // Deliberately do not pump the owning event loop: the worker must
+        // reject the backlog instead of enqueueing unbounded JSON events.
+        for (int i = 0; i < 500 && ingest.acceptsGeneration(0); ++i)
+            QThread::msleep(10);
+        QVERIFY(!ingest.acceptsGeneration(0));
+        QCoreApplication::processEvents();
+        QCOMPARE(payload.count(), 0);
+        ingest.reset();
+        Compressor fresh;
+        ingest.push(fresh.message("{\"op\":2}"));
+        QTRY_COMPARE(payload.count(), 1);
     }
 
     void rejectsCorruptStream()

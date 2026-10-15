@@ -3,6 +3,17 @@
 Qord's releases. Each version's section becomes its GitHub Release notes; the
 reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
+## [Unreleased]
+
+### Fixed
+
+- Behind a system or environment proxy, avatars, images and media now load for an
+  account without a proxy of its own, like its messages do.
+- When no account connects at startup, the accounts window opens instead of an
+  empty window.
+- The user panel no longer shows a disconnected account as online.
+- Leftover "Acheron" wording in settings, dialogs and the keyring message.
+
 ## [0.1.0]
 
 The first release of Qord: a native Discord client in C++ and Qt, based on

@@ -91,7 +91,7 @@ void AccountsWindow::setupUi()
     detailStatus->setStyleSheet("font-weight: bold;");
 
     autoConnectCheck = new QCheckBox(tr("Connect on startup"), detailsContainer);
-    autoConnectCheck->setToolTip(tr("Connect this account automatically when Acheron starts"));
+    autoConnectCheck->setToolTip(tr("Connect this account automatically when Qord starts"));
 
     proxyEdit = new ProxyLineEdit(detailsContainer);
     proxyEdit->setToolTip(tr("Can only be changed while disconnected. Voice requires a SOCKS5 proxy."));

@@ -37,7 +37,7 @@ void Logger::init()
             rotateLogFile();
 
         QTextStream stream(logFile);
-        stream << "\n=== Acheron startup: " << QDateTime::currentDateTime().toString() << " ===\n";
+        stream << "\n=== Qord startup: " << QDateTime::currentDateTime().toString() << " ===\n";
     }
 
     stopping = false;

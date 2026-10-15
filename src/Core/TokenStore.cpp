@@ -45,7 +45,7 @@ Result<void> TokenStore::saveToken(Snowflake accountId, const QString &token)
 
     if (job.error() != QKeychain::NoError) {
         qCWarning(LogCore) << "TokenStore: Failed to save token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return Result<void>::makeError(describeKeychainFailure(job.errorString()));
     }
 
@@ -68,7 +68,7 @@ Result<QString> TokenStore::loadToken(Snowflake accountId)
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
         qCWarning(LogCore) << "TokenStore: Failed to load token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return Result<QString>::makeError(describeKeychainFailure(job.errorString()));
     }
 
@@ -95,7 +95,7 @@ bool TokenStore::deleteToken(Snowflake accountId)
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
         qCWarning(LogCore) << "TokenStore: Failed to delete token for account"
-                           << accountId << ":" << job.errorString();
+                           << accountId << "error code" << int(job.error());
         return false;
     }
 
@@ -119,7 +119,7 @@ Result<QString> TokenStore::loadSecret(const QString &key)
     if (job.error() == QKeychain::EntryNotFound)
         return Result<QString>::makeOk(QString());
     if (job.error() != QKeychain::NoError) {
-        qCWarning(LogCore) << "TokenStore: Failed to load secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to load secret" << "error code" << int(job.error());
         return Result<QString>::makeError(describeKeychainFailure(job.errorString()));
     }
     return Result<QString>::makeOk(job.textData());
@@ -141,7 +141,7 @@ bool TokenStore::saveSecret(const QString &key, const QString &value)
     loop.exec();
 
     if (job.error() != QKeychain::NoError) {
-        qCWarning(LogCore) << "TokenStore: Failed to save secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to save secret" << "error code" << int(job.error());
         return false;
     }
     return true;
@@ -162,7 +162,7 @@ bool TokenStore::deleteSecret(const QString &key)
     loop.exec();
 
     if (job.error() != QKeychain::NoError && job.error() != QKeychain::EntryNotFound) {
-        qCWarning(LogCore) << "TokenStore: Failed to delete secret" << key << ":" << job.errorString();
+        qCWarning(LogCore) << "TokenStore: Failed to delete secret" << "error code" << int(job.error());
         return false;
     }
     return true;

@@ -13,6 +13,8 @@
 #include <QTest>
 
 #include <stdexcept>
+#include <cmath>
+#include <limits>
 
 using namespace Qord::Plugins;
 using namespace Qord::Plugins::Testing;
@@ -224,6 +226,28 @@ private slots:
     }
 
     // ----------------------------------------------------------- settings
+    void integerSettingsRejectOutOfRangeNumbers()
+    {
+        SettingSpec spec;
+        spec.type = SettingType::Int;
+        const double lower = double((std::numeric_limits<qint64>::min)());
+        for (double value : { 1e100, -1e100, -lower,
+                              std::nextafter(lower, -std::numeric_limits<double>::infinity()), 1.5 })
+            QVERIFY(!spec.validate(QJsonValue(value)).isEmpty());
+        for (double value : { lower, std::nextafter(-lower, 0.0), 0.0, -42.0, 42.0 })
+            QVERIFY(spec.validate(QJsonValue(value)).isEmpty());
+
+        MemoryStorage storage;
+        spec.key = "number";
+        spec.defaultValue = 7;
+        storage.write("settings-p", QByteArrayLiteral("{\"number\":1e100}"));
+        PluginSettings settings("p", { spec }, &storage);
+        settings.load();
+        QCOMPARE(settings.intValue("number"), qint64(7));
+        QVERIFY(!settings.setValue("number", -1e100).isEmpty());
+        QCOMPARE(settings.intValue("number"), qint64(7));
+    }
+
     void settingsDefaultsValidationAndPersistence()
     {
         SettingsSchema schema;

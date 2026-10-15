@@ -1,6 +1,8 @@
 #include "VoiceGateway.hpp"
 
 #include "Core/LogRedaction.hpp"
+#include "Qord/DevMock.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include "Discord/CurlUtils.hpp"
 #include "Core/Logging.hpp"
@@ -170,7 +172,7 @@ void VoiceGateway::sendPayload(VoiceOpCode op, const Core::OrderedJson &d)
     obj.insert("d", d);
 
     QByteArray json = obj.toBytes();
-    qCDebug(LogVoice) << "Voice >>>" << Core::redactSecrets(json); // Qord: no tokens in logs
+    qCDebug(LogVoice) << "Voice >>> opcode =" << static_cast<int>(op);
     sendPayload(json);
 }
 
@@ -181,7 +183,7 @@ void VoiceGateway::sendPayload(const QByteArray &data)
 
 void VoiceGateway::onPayloadReceived(const QJsonObject &root)
 {
-    qCDebug(LogVoice) << "Voice <<<" << QJsonDocument(Core::redactSecrets(root)).toJson(QJsonDocument::Compact);
+    qCDebug(LogVoice) << "Voice <<<" << Core::gatewayLogMetadata(root);
 
     if (root.contains("seq") && !root["seq"].isNull())
         lastReceivedSeq = root["seq"].toInt();
@@ -322,7 +324,7 @@ void VoiceGateway::handleClientsConnected(const QJsonObject &data)
     for (const auto &val : data["user_ids"].toArray())
         userIds.append(val.toString());
 
-    qCInfo(LogVoice) << "Clients connected:" << userIds;
+    qCInfo(LogVoice) << "Clients connected; count" << userIds.size();
 
     emit clientsConnected(userIds);
 }
@@ -400,12 +402,12 @@ void VoiceGateway::networkLoop()
     do {
         shouldReconnect = false;
 
-        QString connectUrl = QStringLiteral("wss://%1/?v=%2")
-                                     .arg(endpoint)
-                                     .arg(VOICE_GATEWAY_VERSION);
-        // Qord: the local mock server's voice gateway is plain ws://
-        if (endpoint.startsWith(QLatin1String("ws://")))
-            connectUrl = QStringLiteral("%1/?v=%2").arg(endpoint).arg(VOICE_GATEWAY_VERSION);
+        QUrl endpointUrl(endpoint.contains(QLatin1String("://"))
+                             ? endpoint : QStringLiteral("wss://") + endpoint);
+        if (endpointUrl.path().isEmpty())
+            endpointUrl.setPath(QStringLiteral("/"));
+        endpointUrl.setQuery(QStringLiteral("v=%1").arg(VOICE_GATEWAY_VERSION));
+        QString connectUrl = endpointUrl.toString(QUrl::FullyEncoded);
 
         curl = curl_easy_init();
         if (!curl) {
@@ -413,6 +415,7 @@ void VoiceGateway::networkLoop()
             return;
         }
 
+        connectUrl = safeGatewayUrl(QUrl(connectUrl)).toString(QUrl::FullyEncoded);
         curl_easy_setopt(curl, CURLOPT_URL, connectUrl.toUtf8().constData());
         curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
         CurlUtils::applyCommonOptions(curl);
@@ -442,7 +445,7 @@ void VoiceGateway::networkLoop()
             return;
         }
 
-        qCInfo(LogVoice) << "Voice WebSocket connected to" << endpoint;
+        qCInfo(LogVoice) << "Voice WebSocket connected";
         generation++;
         emit connected();
 
@@ -499,8 +502,7 @@ void VoiceGateway::networkLoop()
                         closeReason = QString::fromUtf8(chunk + 2, rlen - 2);
                 }
 
-                qCInfo(LogVoice) << "Voice connection closed with code" << closeCode
-                                 << "reason:" << closeReason;
+                qCInfo(LogVoice) << "Voice connection closed with code" << closeCode;
 
                 VoiceCloseCode cc = static_cast<VoiceCloseCode>(closeCode);
 
@@ -517,6 +519,15 @@ void VoiceGateway::networkLoop()
 
             if (meta->flags & (CURLWS_PING | CURLWS_PONG))
                 continue;
+
+            // Bound JSON and DAVE binary frames before appending a curl chunk.
+            static constexpr int MaxVoiceFrameBytes = 8 * 1024 * 1024;
+            const auto &pendingFrame = (meta->flags & CURLWS_BINARY) ? binaryFrameBuffer : frameBuffer;
+            if (rlen > static_cast<size_t>(MaxVoiceFrameBytes - pendingFrame.size())) {
+                qCWarning(LogVoice) << "Voice gateway frame exceeds size limit";
+                shouldReconnect = true;
+                break;
+            }
 
             if (meta->flags & CURLWS_BINARY) {
                 binaryFrameBuffer.append(chunk, rlen);

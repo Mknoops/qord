@@ -1,6 +1,7 @@
 #include "UI/Chat/InlineVideoController.hpp"
 
 #include "Core/Media/PlayerPool.hpp"
+#include "Core/Media/InputPolicy.hpp"
 #include "Discord/CdnUrls.hpp"
 #include "UI/Chat/ChatModel.hpp"
 #include "UI/Chat/ChatView.hpp"
@@ -214,6 +215,8 @@ void InlineVideoController::withPlayableUrl(const QUrl &url, bool force,
                                             std::function<void(const QUrl &)> play)
 {
     const QUrl known = refreshedUrls.value(url, url);
+    if (!Core::Media::allowedChatMediaUrl(known, url.isLocalFile() && known == url))
+        return;
     if (!urlRefresher || !Discord::Cdn::isSigned(known) || (!force && !Discord::Cdn::hasExpired(known))) {
         play(known);
         return;
@@ -229,6 +232,10 @@ void InlineVideoController::withPlayableUrl(const QUrl &url, bool force,
         if (!self)
             return;
 
+        if (!fresh.isEmpty() && !Core::Media::allowedChatMediaUrl(fresh)) {
+            self->pendingRefreshes.remove(url);
+            return;
+        }
         if (!fresh.isEmpty())
             self->refreshedUrls.insert(url, fresh);
 

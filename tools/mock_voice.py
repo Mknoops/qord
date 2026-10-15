@@ -30,7 +30,7 @@ import tempfile
 import time
 from typing import Any
 
-UDP_PORT = 8767
+UDP_PORT = 0  # Set to the HTTP server's port before opening any UDP socket.
 MODE = "aead_aes256_gcm_rtpsize"
 H264_PT = 101
 OPUS_PT = 120
@@ -345,7 +345,11 @@ class MediaProtocol(asyncio.DatagramProtocol):
                 self.transport.sendto(data, s.addr)
 
 
-async def start_udp() -> None:
+async def start_udp(port: int) -> None:
+    global UDP_PORT
+    if not 1 <= port <= 65535:
+        raise ValueError("mock UDP port must match the configured HTTP port")
+    UDP_PORT = port
     loop = asyncio.get_running_loop()
     await loop.create_datagram_endpoint(MediaProtocol, local_addr=("127.0.0.1", UDP_PORT))
     LOG(f"voice: media on udp://127.0.0.1:{UDP_PORT}")

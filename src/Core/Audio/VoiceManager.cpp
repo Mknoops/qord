@@ -505,8 +505,7 @@ void VoiceManager::connectToVoiceServer(const QString &endpoint, const QString &
 
     stopVoiceThread();
 
-    qCInfo(LogVoice) << "Creating voice thread for endpoint" << endpoint
-                     << "guild" << guildId << "channel" << channelId;
+    qCInfo(LogVoice) << "Creating voice thread for guild" << guildId << "channel" << channelId;
 
     voiceThread = new QThread(this);
     voiceThread->setObjectName("VoiceThread");

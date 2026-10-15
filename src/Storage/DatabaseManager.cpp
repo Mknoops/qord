@@ -139,6 +139,13 @@ void DatabaseManager::setupPersistentTables()
     if (!columnExists(db, "accounts", "proxy_url"))
         query.exec("ALTER TABLE accounts ADD COLUMN proxy_url TEXT");
 
+    if (!columnExists(db, "accounts", "proxy_secret_key"))
+        query.exec("ALTER TABLE accounts ADD COLUMN proxy_secret_key TEXT NOT NULL DEFAULT ''");
+
+    // Reduce remnants in SQLite pages on migration; filesystem backups and old
+    // WAL/journal copies are outside SQLite's erasure guarantees.
+    query.exec("PRAGMA secure_delete = ON");
+
     if (!columnExists(db, "accounts", "heartbeat_session_id")) {
         query.exec("ALTER TABLE accounts ADD COLUMN heartbeat_session_id TEXT");
         query.exec("ALTER TABLE accounts ADD COLUMN heartbeat_session_created_at INTEGER");

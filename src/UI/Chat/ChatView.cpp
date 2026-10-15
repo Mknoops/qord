@@ -1,3 +1,4 @@
+#include "Core/OpenExternalUrl.hpp"
 #include "ChatView.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/Toast.hpp"
@@ -14,6 +15,7 @@
 #include <QCursor>
 
 #include "Core/Markdown/Parser.hpp"
+#include "Core/ExternalLink.hpp"
 #include <QToolTip>
 
 #include <algorithm>
@@ -523,15 +525,19 @@ void ChatView::openLink(const QString &url)
         return;
     }
 
+    // Check the target even when a plugin skips the confirmation dialog.
+    if (!Core::isAllowedExternalLink(QUrl(url)))
+        return;
+
     // Qord: plugins (AlwaysTrust) may skip the warning
     if (auto *host = Qord::Plugins::PluginHost::instance(); host && !host->dispatchShouldConfirmLink(url)) {
-        QDesktopServices::openUrl(QUrl(url));
+        Acheron::Core::openExternalUrl(QUrl(url));
         return;
     }
 
-    auto *confirm = new ConfirmPopup(tr("External Link"), QString(tr("Are you sure you want to open <b>%1</b>?")).arg(url), tr("Open Link"), this);
+    auto *confirm = new ConfirmPopup(tr("External Link"), QString(tr("Are you sure you want to open <b>%1</b>?")).arg(url.toHtmlEscaped()), tr("Open Link"), this);
     confirm->setAttribute(Qt::WA_DeleteOnClose);
-    connect(confirm, &QDialog::accepted, this, [url]() { QDesktopServices::openUrl(QUrl(url)); });
+    connect(confirm, &QDialog::accepted, this, [url]() { Acheron::Core::openExternalUrl(QUrl(url)); });
     confirm->open();
 }
 
@@ -588,13 +594,15 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
         const AttachmentData att = resolved.ctx.attachments[region->index];
         const Core::Snowflake messageId = resolved.ctx.messageId;
         auto download = [this, att]() {
+            if (!Core::isAllowedWebLink(att.originalUrl))
+                return;
             ConfirmPopup dialog(tr("Open File"),
                                 QString(tr("Do you want to open <b>%1</b> (%2) in your browser?"))
-                                        .arg(att.filename)
+                                        .arg(att.filename.toHtmlEscaped())
                                         .arg(ChatLayout::formatFileSize(att.fileSizeBytes)),
                                 tr("Open"), this);
             if (dialog.exec() == QDialog::Accepted)
-                QDesktopServices::openUrl(att.originalUrl);
+                Acheron::Core::openExternalUrl(att.originalUrl);
         };
         auto pluginButton = [chatModel, att, messageId](int i) {
             auto *host = Qord::Plugins::PluginHost::instance();
@@ -646,13 +654,15 @@ void ChatView::mouseReleaseEvent(QMouseEvent *event)
         } else if (hit.isImage()) {
             openImage(hit);
         } else if (hit.isFile()) {
+            if (!Core::isAllowedWebLink(hit.fileUrl))
+                break;
             ConfirmPopup dialog(tr("Open File"),
                                 QString(tr("Do you want to open <b>%1</b> (%2) in your browser?"))
-                                        .arg(hit.filename)
+                                        .arg(hit.filename.toHtmlEscaped())
                                         .arg(ChatLayout::formatFileSize(hit.fileSizeBytes)),
                                 tr("Open"), this);
             if (dialog.exec() == QDialog::Accepted)
-                QDesktopServices::openUrl(hit.fileUrl);
+                Acheron::Core::openExternalUrl(hit.fileUrl);
         }
         break;
     }

@@ -1,6 +1,8 @@
 #include "Gateway.hpp"
 
 #include "Core/LogRedaction.hpp"
+#include "Qord/DevMock.hpp"
+#include "Discord/GatewayUrl.hpp"
 
 #include "Enums.hpp"
 #include "Objects.hpp"
@@ -15,6 +17,7 @@
 #include "Proto/UserSettings.hpp"
 
 #include <QUrl>
+#include <QPointer>
 
 #include <algorithm>
 #include <cstdlib>
@@ -60,7 +63,16 @@ void Gateway::start()
     isResuming = false;
 
     ingest = new IngestThread(this);
-    connect(ingest, &IngestThread::payloadReceived, this, &Gateway::onPayloadReceived);
+    connect(ingest, &IngestThread::payloadReceived, this, [this, source = QPointer<IngestThread>(ingest)](QJsonObject root, quint64 generation) {
+        if (source && source == ingest && source->acceptsGeneration(generation))
+            onPayloadReceived(root);
+    });
+    // Synchronous flag update ensures reset cannot overtake a failure signal
+    // and accidentally reconnect the next generation. No ingest calls here.
+    connect(ingest, &IngestThread::streamFailed, this, [this] {
+        if (!wantToClose)
+            shouldReconnect = true;
+    }, Qt::DirectConnection);
 
     ingest->start();
 
@@ -131,7 +143,7 @@ void Gateway::sendPayload(const QByteArray &data)
 
 void Gateway::onPayloadReceived(const QJsonObject &root)
 {
-    qCDebug(LogDiscord) << "Received payload" << Core::redactSecrets(root); // Qord: no tokens in logs
+    qCDebug(LogDiscord) << "Received payload" << Core::gatewayLogMetadata(root);
 
     Inbound msg = Inbound::fromJson(root);
 
@@ -170,9 +182,8 @@ void Gateway::onPayloadReceived(const QJsonObject &root)
 void Gateway::handleDispatch(const Inbound &data)
 {
     QString t = data.t.value_or("");
-    qCDebug(LogDiscord) << "Received dispatch event" << t;
-
     GatewayEvent event = parseGatewayEvent(t);
+    qCDebug(LogDiscord) << "Received dispatch event type" << static_cast<int>(event);
 
     switch (event) {
     case GatewayEvent::READY:
@@ -338,10 +349,10 @@ void Gateway::handleDispatch(const Inbound &data)
             emit gatewayAutocompleteResponse(data.data.toObject());
             break;
         }
-        qCInfo(LogDiscord) << "Unknown gateway event: " << t;
+        qCInfo(LogDiscord) << "Unknown gateway event";
         break;
     default:
-        qCInfo(LogDiscord) << "Parsed but unhandled gateway event: " << t;
+        qCInfo(LogDiscord) << "Parsed but unhandled gateway event type" << static_cast<int>(event);
     }
 }
 
@@ -850,14 +861,6 @@ void Gateway::identify()
     sendPayload(identify.toJson());
 }
 
-static int curlDebug(CURL *, curl_infotype type, char *data, size_t size, void *)
-{
-    if (type == CURLINFO_TEXT || type == CURLINFO_SSL_DATA_IN || type == CURLINFO_SSL_DATA_OUT) {
-        qDebug().noquote() << QByteArray(data, size);
-    }
-    return 0;
-}
-
 void Gateway::networkLoop()
 {
     runConnection();
@@ -897,6 +900,7 @@ void Gateway::runConnection()
         curl_version_info_data *info = curl_version_info(CURLVERSION_NOW);
         printf("SSL backend: %s\n", info->ssl_version);
 
+        connectUrl = safeGatewayUrl(QUrl(connectUrl)).toString(QUrl::FullyEncoded);
         curl_easy_setopt(curl, CURLOPT_URL, connectUrl.toUtf8().constData());
         curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
@@ -1015,8 +1019,7 @@ void Gateway::runConnection()
                         closeReason = QString::fromUtf8(chunk + 2, rlen - 2);
                 }
 
-                qCInfo(LogDiscord) << "Connection closed with code" << closeCode
-                                   << "reason:" << closeReason;
+                qCInfo(LogDiscord) << "Connection closed with code" << closeCode;
                 CloseCode cc = static_cast<CloseCode>(closeCode);
                 emit disconnected(cc, closeReason);
                 if (!wantToClose && !isFatalCloseCode(cc) && canResume)

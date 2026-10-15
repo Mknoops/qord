@@ -38,17 +38,6 @@ static bool invalidatesTicket(LoginError error)
     return error != LoginError::InvalidMfaCode && error != LoginError::Network;
 }
 
-static QString serverErrorMessage(const QJsonObject &root)
-{
-    const QJsonObject errors = root["errors"].toObject();
-    for (const char *field : { "login", "email", "password", "code" }) {
-        const QJsonArray fieldErrors = errors[QLatin1String(field)].toObject()["_errors"].toArray();
-        if (!fieldErrors.isEmpty())
-            return fieldErrors.first().toObject()["message"].toString();
-    }
-    return root["message"].toString();
-}
-
 LoginClient::LoginClient(const Core::ProxyConfig &proxy, CaptchaResolver *captchaResolver, QObject *parent)
     : QObject(parent), http(apiBase, QString(), identity, proxy, captchaResolver)
 {
@@ -76,7 +65,7 @@ void LoginClient::fetchFingerprintThen(std::function<void()> next)
             http.setFingerprint(fingerprint);
             haveFingerprint = true;
         } else {
-            qCWarning(LogDiscord) << "Login: fingerprint fetch failed, HTTP" << response.statusCode << response.error;
+            qCWarning(LogDiscord) << "Login: fingerprint fetch failed, HTTP" << response.statusCode;
         }
         next();
     });
@@ -134,8 +123,7 @@ void LoginClient::handleLoginResponse(const HttpResponse &response)
         return;
     }
 
-    const QString message = serverErrorMessage(root);
-    qCWarning(LogDiscord) << "Login failed, HTTP" << response.statusCode << message;
+    qCWarning(LogDiscord) << "Login failed, HTTP" << response.statusCode << "API code" << root["code"].toInt(-1);
 
     switch (root["code"].toInt()) {
     case ErrorCode::AccountScheduledForDeletion:
@@ -184,8 +172,7 @@ void LoginClient::handleMfaResponse(const HttpResponse &response)
 
     std::optional<LoginError> error = commonFailure(response, root);
     if (!error) {
-        const QString message = serverErrorMessage(root);
-        qCWarning(LogDiscord) << "MFA failed, HTTP" << response.statusCode << message;
+        qCWarning(LogDiscord) << "MFA failed, HTTP" << response.statusCode << "API code" << root["code"].toInt(-1);
         error = root["code"].toInt() == ErrorCode::MfaInvalidCode ? LoginError::InvalidMfaCode : LoginError::Unknown;
     }
 
@@ -201,7 +188,7 @@ void LoginClient::requestSmsCode()
 
     http.post("/auth/mfa/sms/send", QJsonObject{ { "ticket", mfaTicket } }, [this](const HttpResponse &response) {
         if (!response.success)
-            qCWarning(LogDiscord) << "Login: SMS send failed, HTTP" << response.statusCode << response.error;
+            qCWarning(LogDiscord) << "Login: SMS send failed, HTTP" << response.statusCode;
         emit smsSent(response.success);
     });
 }
@@ -209,7 +196,7 @@ void LoginClient::requestSmsCode()
 std::optional<LoginError> LoginClient::commonFailure(const HttpResponse &response, const QJsonObject &root) const
 {
     if (response.statusCode == 0) {
-        qCWarning(LogNetwork) << "Login request failed:" << response.error;
+        qCWarning(LogNetwork) << "Login request failed:" << "HTTP status" << response.statusCode;
         return LoginError::Network;
     }
 

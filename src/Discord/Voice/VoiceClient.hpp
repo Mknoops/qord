@@ -166,7 +166,7 @@ private:
     quint32 localRtxSsrc = 0;
     uint16_t videoSequence = 0;
     bool videoCodecAssigned = false;
-    QHash<quint32, Qord::Video::Depacketizer> depacketizers;
+    Qord::Video::DepacketizerPool depacketizers;
     QHash<quint32, qint64> lastPliMs;
     // Video packets leave through the pacer, not in one burst per frame
     Qord::Video::Pacer pacer;

@@ -6,6 +6,9 @@
 #include <QLoggingCategory>
 #include <QSaveFile>
 
+#include <cmath>
+#include <limits>
+
 Q_LOGGING_CATEGORY(LogPluginSettings, "qord.plugins.settings")
 
 namespace Qord {
@@ -64,7 +67,11 @@ QString SettingSpec::validate(const QJsonValue &value) const
         if (!value.isDouble())
             return QStringLiteral("expected a number");
         const double d = value.toDouble();
-        if (d != double(qint64(d)))
+        // Validate before converting: floating-to-integer conversion outside
+        // qint64's range is undefined. Its upper endpoint rounds to 2^63 as
+        // a double, so use an exclusive upper bound.
+        const double lower = double((std::numeric_limits<qint64>::min)());
+        if (!std::isfinite(d) || d < lower || d >= -lower || std::trunc(d) != d)
             return QStringLiteral("expected a whole number");
         if (minimum && d < *minimum)
             return QStringLiteral("must be at least %1").arg(*minimum);

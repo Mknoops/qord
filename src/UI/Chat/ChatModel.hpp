@@ -29,6 +29,7 @@ struct AttachmentData
     bool isVideo = false;
     bool isAudio = false;
     bool isVoiceMessage = false;
+    bool isLocalPreview = false;
     qint64 durationMs = 0;
     QString contentType;
     QString filename;

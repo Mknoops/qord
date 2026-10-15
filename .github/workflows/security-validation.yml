@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap cmake ninja-build g++ pkg-config \
-            libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libsodium-dev \
+            libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libsodium-dev libopus-dev \
             libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
             libgl1-mesa-dev libxkbcommon0 libxcb-cursor0 fonts-dejavu-core \
             qtbase5-dev qttools5-dev libqt5svg5-dev

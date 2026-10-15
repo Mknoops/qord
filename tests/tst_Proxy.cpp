@@ -469,7 +469,7 @@ void TestProxy::qtProxyTypes_data()
 
     QTest::newRow("https unsupported") << make(ProxyConfig::Type::Https, "h", 8443) << -1;
 
-    QTest::newRow("none") << ProxyConfig() << int(QNetworkProxy::NoProxy);
+    QTest::newRow("none") << ProxyConfig() << int(QNetworkProxy::DefaultProxy);
     QTest::newRow("incomplete") << make(ProxyConfig::Type::Socks5, "h", 0)
                                 << -1;
 }
@@ -669,8 +669,9 @@ void TestProxy::clearingProxyFallsBackToDirect()
     images.setAccountProxy(account, make(ProxyConfig::Type::Socks5, "proxy.test", 1080));
     QCOMPARE(images.networkManagerFor(account)->proxy().type(), QNetworkProxy::Socks5Proxy);
 
+    // Back to the system's route, like curl's, not a forced direct connection
     images.setAccountProxy(account, ProxyConfig());
-    QCOMPARE(images.networkManagerFor(account)->proxy().type(), QNetworkProxy::NoProxy);
+    QCOMPARE(images.networkManagerFor(account)->proxy().type(), QNetworkProxy::DefaultProxy);
 }
 
 void TestProxy::incompleteProxyIsNotAppliedSilently()

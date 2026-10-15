@@ -332,7 +332,7 @@ GuildMembersPage::GuildMembersPage(Core::ClientInstance *instance, Core::ImageMa
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(24, 20, 24, 16);
     layout->addWidget(makeTitle(tr("Server Members"), this));
-    permissionNotice = makePermissionNotice(tr("Listing the members Acheron has already loaded. Searching the whole server "
+    permissionNotice = makePermissionNotice(tr("Listing the members Qord has already loaded. Searching the whole server "
                                                "needs a permission to manage members."),
                                             this);
     layout->addWidget(permissionNotice);

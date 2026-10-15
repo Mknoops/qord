@@ -1,0 +1,30 @@
+name: Release notes
+
+# Rewrites an existing release's description from CHANGELOG.md on the branch it
+# runs on, without rebuilding or replacing its files.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, e.g. v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Update the release's notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          sh .github/release_notes.sh "$TAG" > notes.md
+          cat notes.md
+          gh release edit "$TAG" --notes-file notes.md

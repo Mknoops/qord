@@ -93,7 +93,14 @@ signals:
     // Qord: the box went from empty to holding text or files, or back
     void draftEmptyChanged(bool empty);
 
+public:
+    // Qord: Discord's length limit for the account; the box counts down near it
+    void setMessageLengthLimit(int limit);
+
 private:
+    QLabel *lengthCounter = nullptr;
+    int lengthLimit = 2000;
+    void updateLengthCounter();
     ChatTextEdit *textEdit;
     bool sending = false;
     QHBoxLayout *inputLayout;

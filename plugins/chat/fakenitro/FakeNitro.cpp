@@ -14,6 +14,7 @@
 #include "Plugins/Registry.hpp"
 
 #include <QBuffer>
+#include <cmath>
 #include <QImage>
 #include <QImageReader>
 #include <QRegularExpression>
@@ -379,6 +380,16 @@ bool isCompound(const QString &content, const QList<ContentLink> &links)
     return links.first().start != 0 || links.first().length != content.size();
 }
 
+const QString HiddenLinkText = QStringLiteral("\u200B");
+
+bool isEmojiOnly(const QString &content)
+{
+    static const QRegularExpression customEmoji(QStringLiteral(R"(<a?:\w+:\d+>)"));
+    QString rest = content;
+    rest.remove(customEmoji);
+    return rest.trimmed().isEmpty() && rest.size() < content.size();
+}
+
 int messageLengthLimit(int premiumType)
 {
     return premiumType == 2 ? 4000 : 2000;
@@ -480,6 +491,60 @@ QByteArray encodeImage(const QImage &image, const char *format, int quality)
     return out;
 }
 
+// An animated image (GIF, animated WebP or PNG) as a smaller GIF: every frame
+// scaled down, then every other frame dropped (its time going to the one
+// kept), until it fits
+std::optional<AttachedFile> shrinkAnimation(QImageReader &reader, const AttachedFile &file, qint64 limit)
+{
+    constexpr int MaxFrames = 1000;
+    QList<QImage> frames;
+    QList<double> delays;
+    while (frames.size() < MaxFrames) {
+        const QImage frame = reader.read();
+        if (frame.isNull())
+            break;
+        frames.append(frame.convertToFormat(QImage::Format_ARGB32));
+        delays.append(qMax(20, reader.nextImageDelay()));
+        if (!reader.canRead())
+            break;
+    }
+    if (frames.size() < 2)
+        return std::nullopt;
+    const QSize original = frames.first().size();
+    const qsizetype dot = file.fileName.lastIndexOf(QLatin1Char('.'));
+    const QString name = (dot > 0 ? file.fileName.left(dot) : file.fileName) + QStringLiteral(".gif");
+
+    // A first guess from the size it has to lose, then smaller
+    double scale = qMin(1.0, std::sqrt(double(limit) / double(file.data.size())));
+    for (int attempt = 0; attempt < 10; ++attempt) {
+        const QSize size(qMax(1, int(original.width() * scale)), qMax(1, int(original.height() * scale)));
+        if (size.width() < 32 && size.height() < 32)
+            break;
+        QList<QImage> scaled;
+        scaled.reserve(frames.size());
+        for (const QImage &frame : std::as_const(frames))
+            scaled.append(size == original ? frame
+                                           : frame.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+        const QByteArray gif = ApngToGif::encodeGif(scaled, delays);
+        if (!gif.isEmpty() && gif.size() <= limit)
+            return AttachedFile { name, QStringLiteral("image/gif"), gif };
+        // Past the third try, drop every other frame too
+        if (attempt >= 2 && frames.size() > 8) {
+            QList<QImage> fewer;
+            QList<double> longer;
+            for (qsizetype i = 0; i < frames.size(); i += 2) {
+                fewer.append(frames[i]);
+                longer.append(delays[i] + delays.value(i + 1, 0));
+            }
+            frames = fewer;
+            delays = longer;
+        }
+        const double ratio = gif.isEmpty() ? 0.8 : std::sqrt(double(limit) / double(gif.size()));
+        scale *= qBound(0.5, ratio * 0.95, 0.9);
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 std::optional<AttachedFile> shrinkImage(const AttachedFile &file, qint64 limit)
@@ -492,7 +557,7 @@ std::optional<AttachedFile> shrinkImage(const AttachedFile &file, qint64 limit)
     QImageReader reader(&input);
     reader.setAutoTransform(true);
     if (reader.supportsAnimation() && reader.imageCount() > 1)
-        return std::nullopt;
+        return shrinkAnimation(reader, file, limit);
     QImage image = reader.read();
     if (image.isNull())
         return std::nullopt;
@@ -562,6 +627,8 @@ void FakeNitroPlugin::stop()
             expressions->setChatBypass(false, false);
             expressions->setStreamQualityBypass(false);
             expressions->setOversizeImageHandler(nullptr);
+            expressions->setVideoShrinking(false);
+            expressions->setLongMessageSplitter(nullptr);
         }
     context = nullptr;
 }
@@ -570,7 +637,8 @@ void FakeNitroPlugin::onSettingChanged(const QString &key)
 {
     if (key == QLatin1String("enableEmojiBypass") || key == QLatin1String("enableStickerBypass"))
         applyPickerBypass();
-    if (key == QLatin1String("enableStreamQualityBypass") || key == QLatin1String("shrinkLargeImages"))
+    if (key == QLatin1String("enableStreamQualityBypass") || key == QLatin1String("shrinkLargeImages") ||
+        key == QLatin1String("shrinkLargeVideos") || key == QLatin1String("splitLongMessages"))
         applyQordBypasses();
 }
 
@@ -587,6 +655,31 @@ void FakeNitroPlugin::applyQordBypasses()
         expressions->setOversizeImageHandler(&FakeNitro::shrinkImage);
     else
         expressions->setOversizeImageHandler(nullptr);
+    expressions->setVideoShrinking(context->settings().boolValue(QStringLiteral("shrinkLargeVideos")));
+    if (context->settings().boolValue(QStringLiteral("splitLongMessages")))
+        expressions->setLongMessageSplitter(
+                [](const QString &text, int limit) { return int(FakeNitro::splitMessage(text, limit).size()); });
+    else
+        expressions->setLongMessageSplitter(nullptr);
+}
+
+// The link text: the configured one, or an invisible character so other
+// people see only the emoji's image
+QString FakeNitroPlugin::linkText() const
+{
+    if (context && context->settings().boolValue(QStringLiteral("hideLinkText")))
+        return FakeNitro::HiddenLinkText;
+    return context ? context->settings().stringValue(QStringLiteral("hyperLinkText")) : QStringLiteral("{{NAME}}");
+}
+
+// Emoji size, or the sentence size for an emoji among other text
+int FakeNitroPlugin::emojiSizeFor(const QString &content) const
+{
+    PluginSettings &s = context->settings();
+    const QString sentence = s.stringValue(QStringLiteral("sentenceEmojiSize"));
+    if (sentence != QLatin1String("same") && !FakeNitro::isEmojiOnly(content))
+        return sentence.toInt();
+    return s.value(QStringLiteral("emojiSize")).toString().toInt();
 }
 
 // Upstream's patches make Discord's emoji picker (for messages, not
@@ -706,7 +799,7 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
             const QString link = stickerLink(sticker->id, sticker->name, sticker->formatType, size);
             message.content += wordBoundary(message.content, message.content.size() - 1) +
                                linkMarkup(link, sticker->name, s.boolValue(QStringLiteral("useStickerHyperLinks")),
-                                          s.stringValue(QStringLiteral("hyperLinkText")));
+                                          linkText());
             message.stickerIds.clear();
         }
     }
@@ -728,10 +821,9 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
             if (!emoji || canUseEmote(*emoji, message.accountId, message.guildId, message.channelId))
                 continue;
             hasBypass = true;
-            const int size = int(s.value(QStringLiteral("emojiSize")).toString().toInt());
+            const int size = emojiSizeFor(message.content);
             const QString link = linkMarkup(emojiLink(emoji->id, emoji->name, emoji->animated, size, true), emoji->name,
-                                            s.boolValue(QStringLiteral("useEmojiHyperLinks")),
-                                            s.stringValue(QStringLiteral("hyperLinkText")));
+                                            s.boolValue(QStringLiteral("useEmojiHyperLinks")), linkText());
             qsizetype offset;
             while ((offset = message.content.indexOf(emojiString)) >= 0) {
                 const QString &orig = message.content;
@@ -798,11 +890,10 @@ void FakeNitroPlugin::onBeforeEdit(OutgoingMessage &message)
             continue;
         }
         hasBypass = true;
-        const int size = int(s.value(QStringLiteral("emojiSize")).toString().toInt());
+        const int size = emojiSizeFor(orig);
         out += wordBoundary(orig, m.capturedStart() - 1) +
                linkMarkup(emojiLink(emoji->id, emoji->name, emoji->animated, size, false), emoji->name,
-                          s.boolValue(QStringLiteral("useEmojiHyperLinks")),
-                          s.stringValue(QStringLiteral("hyperLinkText"))) +
+                          s.boolValue(QStringLiteral("useEmojiHyperLinks")), linkText()) +
                wordBoundary(orig, m.capturedEnd());
     }
     out += orig.mid(last);

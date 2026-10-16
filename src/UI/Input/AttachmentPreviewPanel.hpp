@@ -33,7 +33,9 @@ signals:
 private:
     static constexpr int MaxFiles = 10;
     bool appendAttachment(Core::PendingAttachment attachment);
-    bool shrinkOversizeImage(Core::PendingAttachment &attachment);
+    bool startShrinking(const Core::PendingAttachment &attachment);
+    bool startShrinkingVideo(const Core::PendingAttachment &attachment);
+    void showNotice(const QString &message);
     void rebuildCards();
     QWidget *createCard(int index);
     QPixmap thumbnailFor(const Core::PendingAttachment &item) const;

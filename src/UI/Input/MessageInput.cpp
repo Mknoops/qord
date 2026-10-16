@@ -3,9 +3,12 @@
 #include "TextEdgeNavigation.hpp"
 
 #include "Core/Emoji/UnicodeEmojiIndex.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
 
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QKeyEvent>
 #include <QAbstractTextDocumentLayout>
@@ -179,6 +182,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
         if (!textEdit->document()->isEmpty())
             emit userTyping();
         checkDraftEmpty();
+        updateLengthCounter();
     });
 
     autocomplete = new EmojiAutocomplete(textEdit, this);
@@ -219,7 +223,58 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     setAcceptDrops(true);
 
+    // Qord: Discord's character counter, bottom right of the box
+    lengthCounter = new QLabel(this);
+    lengthCounter->setObjectName(QStringLiteral("MessageLengthCounter"));
+    lengthCounter->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    lengthCounter->hide();
+
     adjustHeight();
+}
+
+void MessageInput::setMessageLengthLimit(int limit)
+{
+    lengthLimit = limit > 0 ? limit : 2000;
+    updateLengthCounter();
+}
+
+// Shown from 200 characters before the limit: what's left, or how far over
+// it is in red; when FakeNitro splits long messages, how many it will send
+void MessageInput::updateLengthCounter()
+{
+    if (!lengthCounter)
+        return;
+    QString text = textEdit->toPlainText();
+    static const QString SilentPrefix = QStringLiteral("@silent ");
+    if (text.startsWith(SilentPrefix))
+        text = text.mid(SilentPrefix.size());
+    const int length = int(text.size());
+    if (length < lengthLimit - 200) {
+        lengthCounter->hide();
+        return;
+    }
+    const auto &theme = Core::Theme::Manager::instance();
+    const auto &split = Core::expressionBypass().splitCount;
+    QColor color = theme.color(Core::Theme::Token::MutedText);
+    if (length <= lengthLimit) {
+        lengthCounter->setText(QString::number(lengthLimit - length));
+        lengthCounter->setToolTip(tr("%1 of %2 characters").arg(length).arg(lengthLimit));
+    } else if (split) {
+        const int parts = split(text, lengthLimit);
+        lengthCounter->setText(tr("%1 messages").arg(parts));
+        lengthCounter->setToolTip(tr("FakeNitro will send this as %1 messages of up to %2 characters")
+                                          .arg(parts)
+                                          .arg(lengthLimit));
+    } else {
+        color = theme.color(Core::Theme::Token::ChatError);
+        lengthCounter->setText(QString::number(lengthLimit - length));
+        lengthCounter->setToolTip(tr("Your message is too long (%1 of %2 characters)").arg(length).arg(lengthLimit));
+    }
+    lengthCounter->setStyleSheet(QStringLiteral("color: %1; font-size: 11px; background: transparent;").arg(color.name()));
+    lengthCounter->adjustSize();
+    lengthCounter->move(width() - lengthCounter->width() - 12, height() - lengthCounter->height() - 2);
+    lengthCounter->show();
+    lengthCounter->raise();
 }
 
 void MessageInput::setPlaceholder(const QString &name)
@@ -230,6 +285,7 @@ void MessageInput::setPlaceholder(const QString &name)
 void MessageInput::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
+    updateLengthCounter();
 }
 
 void MessageInput::setSending(bool value)

@@ -1267,6 +1267,16 @@ void SessionExpressions::setStreamQualityBypass(bool on)
     Acheron::Core::expressionBypass().streamQuality = on;
 }
 
+void SessionExpressions::setVideoShrinking(bool on)
+{
+    Acheron::Core::expressionBypass().shrinkVideos = on;
+}
+
+void SessionExpressions::setLongMessageSplitter(SplitCounter count)
+{
+    Acheron::Core::expressionBypass().splitCount = std::move(count);
+}
+
 void SessionExpressions::setOversizeImageHandler(ImageShrinker shrink)
 {
     if (!shrink) {

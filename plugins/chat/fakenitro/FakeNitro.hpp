@@ -90,6 +90,10 @@ bool isCompound(const QString &content, const QList<ContentLink> &links);
 // characters, at a line break or else a space when one is in the second
 // half; a code block cut in two is closed and reopened (with its language)
 QStringList splitMessage(const QString &content, int limit);
+// Qord: link text other people don't see (only the emoji or sticker image)
+extern const QString HiddenLinkText;
+// Whether a message is only custom emojis (and spaces): sent big, the rest small
+bool isEmojiOnly(const QString &content);
 // Discord's message length limit: 4000 with Nitro, otherwise 2000
 int messageLengthLimit(int premiumType);
 // Qord: an image too large to upload made to fit `limit` bytes: re-encoded
@@ -126,6 +130,8 @@ private:
     void applyPickerBypass();
     void applyQordBypasses();
     void splitLongMessage(OutgoingMessage &message);
+    [[nodiscard]] QString linkText() const;
+    [[nodiscard]] int emojiSizeFor(const QString &content) const;
     void sendAnimatedSticker(const StickerInfo &sticker, const QString &link);
 
     PluginContext *context = nullptr;

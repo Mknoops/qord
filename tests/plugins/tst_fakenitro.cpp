@@ -634,6 +634,84 @@ private slots:
         QVERIFY(!FakeNitro::shrinkImage(file, 10));
     }
 
+    void sentenceSizeAndHiddenText()
+    {
+        QVERIFY(FakeNitro::isEmojiOnly(QStringLiteral("<:a:1> <a:b:2>")));
+        QVERIFY(!FakeNitro::isEmojiOnly(QStringLiteral("hi <:a:1>")));
+        QVERIFY(!FakeNitro::isEmojiOnly(QStringLiteral("   ")));
+
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.host->settings(h.id)->setValue(QStringLiteral("emojiSize"), QStringLiteral("128"));
+        h.host->settings(h.id)->setValue(QStringLiteral("sentenceEmojiSize"), QStringLiteral("32"));
+        const auto send = [&](const QString &content) {
+            OutgoingMessage out;
+            out.accountId = 1;
+            out.channelId = Channel;
+            out.guildId = 100000000000000001ULL;
+            out.content = content;
+            h.host->dispatchBeforeSend(out);
+            return out.content;
+        };
+        QVERIFY(send(QStringLiteral("<:far_away:200000000000000003>")).contains(QLatin1String("size=128")));
+        QVERIFY(send(QStringLiteral("look <:far_away:200000000000000003>")).contains(QLatin1String("size=32")));
+
+        h.host->settings(h.id)->setValue(QStringLiteral("hideLinkText"), true);
+        const QString hidden = send(QStringLiteral("<:far_away:200000000000000003>"));
+        QVERIFY2(hidden.startsWith(QStringLiteral("[") + FakeNitro::HiddenLinkText + QStringLiteral("](")),
+                 qPrintable(hidden));
+    }
+
+    void counterAndVideoSwitches()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(h.expressions.shrinkVideos);
+        QVERIFY(bool(h.expressions.splitter));
+        QCOMPARE(h.expressions.splitter(QString(4500, QLatin1Char('x')), 2000), 3);
+        h.host->settings(h.id)->setValue(QStringLiteral("splitLongMessages"), false);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeVideos"), false);
+        QVERIFY(!h.expressions.splitter);
+        QVERIFY(!h.expressions.shrinkVideos);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeVideos"), true);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.shrinkVideos);
+    }
+
+    void shrinksAnimatedGifs()
+    {
+        if (!QImageWriter::supportedImageFormats().contains("gif") && !QImageReader::supportedImageFormats().contains("gif"))
+            QSKIP("Qt's GIF reader is not available");
+        // A noisy 12-frame animation
+        QList<QImage> frames;
+        QList<double> delays;
+        quint32 seed = 3;
+        for (int f = 0; f < 12; ++f) {
+            QImage frame(200, 150, QImage::Format_ARGB32);
+            for (int y = 0; y < 150; ++y)
+                for (int x = 0; x < 200; ++x) {
+                    seed = seed * 1664525u + 1013904223u;
+                    frame.setPixel(x, y, seed | 0xFF000000u);
+                }
+            frames.append(frame);
+            delays.append(80);
+        }
+        const QByteArray gif = ApngToGif::encodeGif(frames, delays);
+        QVERIFY(gif.size() > 100000);
+        const qint64 limit = gif.size() / 4;
+        const auto out = FakeNitro::shrinkImage({ QStringLiteral("dance.gif"), QStringLiteral("image/gif"), gif }, limit);
+        QVERIFY(out);
+        QVERIFY(out->data.size() <= limit);
+        QCOMPARE(out->fileName, QStringLiteral("dance.gif"));
+        QCOMPARE(out->mimeType, QStringLiteral("image/gif"));
+        QBuffer in(const_cast<QByteArray *>(&out->data));
+        in.open(QIODevice::ReadOnly);
+        QImageReader reader(&in, "gif");
+        QVERIFY(reader.imageCount() > 1); // still animated
+        QVERIFY(reader.read().width() < 200);
+    }
+
     void shownFakeExpressionsHaveNotes()
     {
         SinglePluginHost h(qord_register_fakenitro);

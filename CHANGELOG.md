@@ -11,6 +11,14 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   closes and reopens a code block cut in two. Turn it off with "Split long messages".
 - FakeNitro shrinks an image that's over your upload limit until it fits, instead of
   refusing it. Turn it off with "Shrink large images".
+- FakeNitro shrinks a video that's over your upload limit: it's re-encoded to an MP4
+  at a size and quality that fit. Animated GIFs are shrunk too, staying animated.
+  Turn it off with "Shrink large videos".
+- The message box counts down the last 200 characters before Discord's limit and,
+  past it, says how many messages FakeNitro will split the message into.
+- FakeNitro can send emojis among other text at a smaller size ("Emoji size in
+  sentences") and hide the link text so people without it see only the image
+  ("Hide link text").
 - FakeNitro's stream quality bypass now works: Go Live offers up to 4K at 60 FPS.
 - Hovering a custom emoji in a message shows its name. FakeNitro emojis and
   stickers also say that they're FakeNitro ones.
@@ -27,6 +35,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 - ImplicitRelationships no longer logs an error for an account Discord has no
   affinities for. Discord answers 404 then, and the older affinity list is used.
+- An error or notice about an attachment (such as "exceeds the upload limit") was
+  never shown while the message box had no other files.
 - MessageClickActions took every click on a message as a double click, so a single
   click could start an edit or a reply, and each action ran twice.
 - Behind a system or environment proxy, avatars, images and media now load for an

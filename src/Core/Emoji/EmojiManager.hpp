@@ -46,6 +46,11 @@ struct ExpressionBypass
     bool emojis = false;
     bool stickers = false;
     bool streamQuality = false;
+    // Videos over the upload limit are re-encoded to fit (where Qord has the
+    // video encoders)
+    bool shrinkVideos = false;
+    // How many messages a too-long message is sent as; unset when it isn't split
+    std::function<int(const QString &text, int limit)> splitCount;
     std::function<std::optional<ShrunkImage>(const QString &fileName, const QString &mimeType,
                                              const QByteArray &data, qint64 limit)>
             shrinkImage;

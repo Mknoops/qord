@@ -81,6 +81,8 @@ if(TARGET ffmpeg AND ENABLE_VOICE)
     target_sources(${PROJECT_NAME} PRIVATE
         src/Qord/Video/VideoCodec.hpp
         src/Qord/Video/VideoCodec.cpp
+        src/Qord/Video/VideoShrink.hpp
+        src/Qord/Video/VideoShrink.cpp
         src/Qord/Video/ScreenCapture.hpp
         src/Qord/Video/ScreenCapture.cpp
         src/Qord/Video/GoLive.hpp
@@ -259,6 +261,14 @@ if(BUILD_TESTS)
         target_include_directories(TestVideoCodec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         set_target_properties(TestVideoCodec PROPERTIES AUTOMOC ON)
         add_test(NAME QordVideoCodecTests COMMAND TestVideoCodec)
+
+        # FakeNitro's video shrinking
+        qt_add_executable(TestVideoShrink tests/qord/tst_video_shrink.cpp src/Qord/Video/VideoShrink.cpp)
+        target_link_libraries(TestVideoShrink PRIVATE Qt::Core Qt::Test ffmpeg)
+        target_include_directories(TestVideoShrink PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        set_target_properties(TestVideoShrink PROPERTIES AUTOMOC ON)
+        add_test(NAME QordVideoShrinkTests COMMAND TestVideoShrink)
+        set_tests_properties(QordVideoShrinkTests PROPERTIES TIMEOUT 120)
 
         # Cameras and the sender they share with Go Live
         qt_add_executable(TestCamera tests/qord/tst_camera.cpp src/Qord/Video/CameraCapture.cpp

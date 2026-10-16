@@ -313,6 +313,8 @@ public:
     [[nodiscard]] bool hasGuildPermission(Id accountId, Id guildId, quint64 permission) const override;
     void setStreamQualityBypass(bool on) override;
     void setOversizeImageHandler(ImageShrinker shrink) override;
+    void setLongMessageSplitter(SplitCounter count) override;
+    void setVideoShrinking(bool on) override;
 
 private:
     Acheron::Core::Session *session;

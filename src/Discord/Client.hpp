@@ -171,6 +171,11 @@ public:
 
     [[nodiscard]] PremiumTier getGuildPremiumTier(Snowflake guildId) const;
     [[nodiscard]] qint64 getMaxUploadSize(Snowflake channelId) const;
+    // Qord: Discord's message length limit, 4000 with Nitro and 2000 otherwise
+    [[nodiscard]] int messageLengthLimit() const
+    {
+        return me.premiumType.hasValue() && me.premiumType.get() == PremiumType::TIER_2 ? 4000 : 2000;
+    }
 
     using FrecencyCallback = std::function<void(const Core::Result<Proto::FrecencyUserSettings> &)>;
     void fetchFrecencySettings(FrecencyCallback callback);

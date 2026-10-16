@@ -562,6 +562,8 @@ public:
     bool hasGuildPermission(Id, Id guildId, quint64) const override { return adminOf.contains(guildId); }
     void setStreamQualityBypass(bool on) override { streamQuality = on; }
     void setOversizeImageHandler(ImageShrinker shrink) override { shrinker = std::move(shrink); }
+    void setLongMessageSplitter(SplitCounter count) override { splitter = std::move(count); }
+    void setVideoShrinking(bool on) override { shrinkVideos = on; }
 
     int premium = 0;
     QHash<Id, CustomEmojiInfo> emojis;
@@ -572,6 +574,8 @@ public:
     QList<Id> adminOf;
     bool streamQuality = false;
     ImageShrinker shrinker;
+    SplitCounter splitter;
+    bool shrinkVideos = false;
 };
 
 class FakeGuilds : public GuildDirectory

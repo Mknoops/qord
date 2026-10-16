@@ -427,6 +427,13 @@ public:
     // An empty function stops it.
     using ImageShrinker = std::function<std::optional<AttachedFile>(const AttachedFile &file, qint64 limit)>;
     virtual void setOversizeImageHandler(ImageShrinker shrink) { Q_UNUSED(shrink); }
+    // How many messages a plugin will send a too-long message as (shown by
+    // the message box's counter); an empty function says it isn't split
+    using SplitCounter = std::function<int(const QString &text, int limit)>;
+    virtual void setLongMessageSplitter(SplitCounter count) { Q_UNUSED(count); }
+    // Re-encode videos over the upload limit so they fit, where the client
+    // can (it needs ffmpeg's encoders)
+    virtual void setVideoShrinking(bool on) { Q_UNUSED(on); }
 };
 
 class ReactionService

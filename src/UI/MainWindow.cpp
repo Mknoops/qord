@@ -346,6 +346,7 @@ void MainWindow::applyChannelChrome(Core::ClientInstance *instance, Core::Snowfl
 {
     Snowflake userId = instance->accountId();
     messageInput->setMaxUploadSize(instance->discord()->getMaxUploadSize(channelId));
+    messageInput->setMessageLengthLimit(instance->discord()->messageLengthLimit());
 
     Snowflake threadParentId = Snowflake::Invalid;
     bool archived = false;
@@ -742,6 +743,7 @@ void MainWindow::openForumPost(Core::Snowflake threadId, Core::Snowflake guildId
     messageInput->setEnabled(canSend);
     messageInput->setSendBlocked(false);
     messageInput->setMaxUploadSize(currentInstance->discord()->getMaxUploadSize(threadId));
+    messageInput->setMessageLengthLimit(currentInstance->discord()->messageLengthLimit());
     messageInput->setPlaceholder(canSend ? tr("Message this post")
                                          : tr("You do not have permission to send messages"));
     chatView->setCanPinMessages(false);

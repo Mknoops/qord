@@ -240,7 +240,8 @@ void SessionRelationshipDirectory::fetchUserAffinities(Id accountId, AffinitiesC
                 QList<UserAffinity> out;
                 for (const auto &[userId, rank] : affinities)
                     out.append({ quint64(userId), rank });
-                done(response.success, out);
+                // 404: Discord has no affinities for the account
+                done(response.success || response.statusCode == 404, out);
             });
 }
 

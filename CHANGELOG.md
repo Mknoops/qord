@@ -22,6 +22,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Fixed
 
+- ImplicitRelationships no longer logs an error for an account Discord has no
+  affinities for. Discord answers 404 then, and the older affinity list is used.
 - MessageClickActions took every click on a message as a double click, so a single
   click could start an edit or a reply, and each action ran twice.
 - Behind a system or environment proxy, avatars, images and media now load for an

@@ -485,15 +485,11 @@ void Client::fetchUser(Snowflake userId,
 void Client::fetchUserAffinities(
         std::function<void(const HttpResponse &, const QList<QPair<Snowflake, double>> &)> callback)
 {
-    httpClient->get(QStringLiteral("/users/@me/affinities/v2/users"), {}, [callback](const HttpResponse &response) {
+    // v2 ranks people by communication; Discord answers 404 when it has none
+    // for the account, and the older list (affinity scores) is asked then
+    const auto parse = [](const QByteArray &body) {
         QList<QPair<Snowflake, double>> out;
-        if (!response.success) {
-            qCWarning(LogDiscord) << "Fetching user affinities failed:" << response.statusCode << response.error;
-            callback(response, out);
-            return;
-        }
-        const QJsonArray list =
-                QJsonDocument::fromJson(response.body).object().value(QStringLiteral("user_affinities")).toArray();
+        const QJsonArray list = QJsonDocument::fromJson(body).object().value(QStringLiteral("user_affinities")).toArray();
         for (const QJsonValue &value : list) {
             const QJsonObject a = value.toObject();
             QString id = a.value(QStringLiteral("other_user_id")).toString();
@@ -501,9 +497,31 @@ void Client::fetchUserAffinities(
                 id = a.value(QStringLiteral("user_id")).toString();
             if (id.isEmpty())
                 continue;
-            out.append({ Snowflake(id.toULongLong()), a.value(QStringLiteral("communication_rank")).toDouble() });
+            // v2's rank (1 is closest) or v1's score (higher is closer)
+            const double rank = a.contains(QStringLiteral("communication_rank"))
+                                        ? a.value(QStringLiteral("communication_rank")).toDouble()
+                                        : -a.value(QStringLiteral("affinity")).toDouble();
+            out.append({ Snowflake(id.toULongLong()), rank });
         }
-        callback(response, out);
+        return out;
+    };
+    httpClient->get(QStringLiteral("/users/@me/affinities/v2/users"), {}, [this, callback, parse](const HttpResponse &response) {
+        if (response.success) {
+            callback(response, parse(response.body));
+            return;
+        }
+        if (response.statusCode != 404) {
+            qCWarning(LogDiscord) << "Fetching user affinities failed:" << response.statusCode;
+            callback(response, {});
+            return;
+        }
+        httpClient->get(QStringLiteral("/users/@me/affinities/users"), {}, [callback, parse](const HttpResponse &v1) {
+            if (!v1.success && v1.statusCode != 404)
+                qCWarning(LogDiscord) << "Fetching user affinities failed:" << v1.statusCode;
+            const auto list = v1.success ? parse(v1.body) : QList<QPair<Snowflake, double>>();
+            qCDebug(LogDiscord) << "User affinities (v1):" << v1.statusCode << list.size();
+            callback(v1, list);
+        });
     });
 }
 

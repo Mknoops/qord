@@ -102,7 +102,7 @@ void applyCase(SinglePluginHost &h, const QJsonObject &c)
         { "transformCompoundSentence", false }, { "useStickerHyperLinks", true }, { "useEmojiHyperLinks", true },
         { "hyperLinkText", "{{NAME}}" }, { "disableEmbedPermissionCheck", false },
         // Qord-only, so off for upstream's cases
-        { "uploadWithoutEmbedLinks", false },
+        { "uploadWithoutEmbedLinks", false }, { "attachAnimatedStickers", false },
     };
     QJsonObject settings = defaults;
     const QJsonObject overrides = c[u"settings"].toObject();
@@ -855,6 +855,34 @@ private slots:
         QVERIFY(h.enableWithAllPermissions());
         fillStores(h.expressions, golden());
         h.host->settings(h.id)->setValue(QStringLiteral("stickerSize"), QStringLiteral("16"));
+
+        // Qord: sent with the message, text and all
+        OutgoingMessage withText;
+        withText.accountId = 1;
+        withText.channelId = Channel;
+        withText.guildId = 100000000000000001ULL;
+        withText.content = QStringLiteral("party time");
+        withText.stickerIds = { 400000000000000002ULL };
+        h.host->dispatchBeforeSend(withText);
+        QVERIFY(!withText.cancel);
+        QVERIFY(withText.deferred);
+        QVERIFY(withText.stickerIds.isEmpty());
+        std::optional<QString> sent;
+        QList<AttachedFile> files;
+        withText.deferred(withText.content, [&](std::optional<QString> content, QList<AttachedFile> attached) {
+            sent = content;
+            files = attached;
+        });
+        QVERIFY(h.network.respond(true, makeApng()));
+        QCOMPARE(sent, std::optional<QString>(QStringLiteral("party time")));
+        QCOMPARE(files.size(), 1);
+        QCOMPARE(files[0].fileName, QStringLiteral("400000000000000002.gif"));
+        QVERIFY(files[0].data.startsWith("GIF89a"));
+        QVERIFY(h.ui.attachments.isEmpty());
+
+        // Upstream: put in the message box, the send stopped
+        h.host->settings(h.id)->setValue(QStringLiteral("attachAnimatedStickers"), false);
+        h.network.urls.clear();
         OutgoingMessage out;
         out.accountId = 1;
         out.channelId = Channel;
@@ -868,6 +896,30 @@ private slots:
         QCOMPARE(h.ui.attachments[0].fileName, QStringLiteral("400000000000000002.gif"));
         QCOMPARE(h.ui.attachments[0].mimeType, QStringLiteral("image/gif"));
         QVERIFY(h.ui.attachments[0].data.startsWith("GIF89a"));
+    }
+
+    // Qord: each of several stickers; usable ones stay stickers
+    void severalStickers()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.host->settings(h.id)->setValue(QStringLiteral("hideLinkText"), false);
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.guildId = 100000000000000001ULL;
+        out.content = QStringLiteral("hi");
+        out.stickerIds = { 400000000000000001ULL, 400000000000000003ULL, 400000000000000004ULL };
+        h.host->dispatchBeforeSend(out);
+        QVERIFY(!out.cancel);
+        QCOMPARE(out.stickerIds, QList<Id>({ 400000000000000001ULL })); // this server's
+        QVERIFY2(out.content.startsWith(QLatin1String("hi [gif one](https://media.discordapp.net/stickers/"
+                                                      "400000000000000003.gif")),
+                 qPrintable(out.content));
+        QVERIFY2(out.content.contains(QLatin1String(" [png far](https://media.discordapp.net/stickers/"
+                                                    "400000000000000004.png")),
+                 qPrintable(out.content));
     }
 
     void apngFramesAndGif()

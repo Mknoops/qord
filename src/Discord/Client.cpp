@@ -831,12 +831,18 @@ void Client::onGatewayGuildRoleDelete(const GuildRoleDelete &event)
 
 void Client::sendMessage(Snowflake channelId, const QString &content, const QString &nonce,
                          Snowflake replyToMessageId, const QList<Core::PendingAttachment> &attachments,
-                         bool mentionRepliedUser, int flags)
+                         bool mentionRepliedUser, int flags, const QList<Snowflake> &stickerIds)
 {
     // todo extract to struct probably
     QJsonObject payload;
     payload["content"] = content;
     payload["flags"] = flags;
+    if (!stickerIds.isEmpty()) { // Qord: up to three, with or without text
+        QJsonArray ids;
+        for (Snowflake id : stickerIds)
+            ids.append(QString::number(quint64(id)));
+        payload["sticker_ids"] = ids;
+    }
     payload["mobile_network_type"] = "unknown";
     payload["nonce"] = nonce;
     payload["tts"] = false;

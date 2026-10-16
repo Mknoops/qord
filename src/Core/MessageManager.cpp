@@ -792,9 +792,11 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
                                                        Snowflake replyToMessageId,
                                                        const QList<PendingAttachment> &attachments,
                                                        bool mentionRepliedUser, bool runPlugins,
-                                                       std::function<void(bool sent)> deferredDone)
+                                                       std::function<void(bool sent)> deferredDone,
+                                                       const QList<Snowflake> &originalStickerIds)
 {
     QString content = originalContent;
+    QList<Snowflake> stickerIds = originalStickerIds;
     QStringList followUps = std::exchange(carriedFollowUps, {});
     auto *plugins = Qord::Plugins::PluginHost::instance();
     if (runPlugins && plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
@@ -804,16 +806,21 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
         out.guildId = Qord::Plugins::pluginId(client->getGuildIdForChannel(channelId));
         out.replyToMessageId = quint64(replyToMessageId);
         out.content = content;
+        for (Snowflake id : std::as_const(stickerIds))
+            out.stickerIds.append(quint64(id));
         plugins->dispatchBeforeSend(out);
         if (out.cancel)
             return SendResult::Cancelled;
         content = out.content;
         followUps = out.followUps;
+        stickerIds.clear();
+        for (Qord::Plugins::Id id : std::as_const(out.stickerIds))
+            stickerIds.append(Snowflake(id));
         if (out.deferred) {
             // Sent once the plugin has the final text (auto-translate)
             QPointer<MessageManager> self(this);
             out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser, followUps,
-                                   deferredDone](std::optional<QString> finalContent,
+                                   deferredDone, stickerIds](std::optional<QString> finalContent,
                                                  QList<Qord::Plugins::AttachedFile> files) {
                 QList<PendingAttachment> all = attachments;
                 for (const auto &file : files) {
@@ -827,12 +834,12 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
                     all.append(added);
                 }
                 bool sent = false;
-                if (self && finalContent && finalContent->trimmed().isEmpty() && all.isEmpty())
+                if (self && finalContent && finalContent->trimmed().isEmpty() && all.isEmpty() && stickerIds.isEmpty())
                     sent = true;
                 else if (self && finalContent) {
                     self->carriedFollowUps = followUps;
-                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, all,
-                                             mentionRepliedUser, false) == SendResult::Sent;
+                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, all, mentionRepliedUser,
+                                             false, {}, stickerIds) == SendResult::Sent;
                     self->carriedFollowUps.clear();
                 }
                 if (deferredDone)
@@ -841,7 +848,7 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
             return SendResult::Deferred;
         }
         // Nothing left to send (e.g. a rule replaced everything)
-        if (content.trimmed().isEmpty() && attachments.isEmpty())
+        if (content.trimmed().isEmpty() && attachments.isEmpty() && stickerIds.isEmpty())
             return SendResult::Sent;
     }
 
@@ -870,6 +877,25 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
     preview.author = client->getMe();
     preview.flags = Discord::MessageFlags(flags);
     preview.isPendingOutbound = true;
+    if (!stickerIds.isEmpty()) { // Qord: the stickers going with it, where known
+        QList<Discord::StickerItem> items;
+        for (Snowflake id : std::as_const(stickerIds)) {
+            Discord::StickerItem item;
+            item.id = id;
+            std::optional<Discord::Sticker> known = emojiManager ? emojiManager->stickerById(id) : std::nullopt;
+            if (!known)
+                for (const auto &pack : client->cachedStickerPacks())
+                    for (const Discord::Sticker &sticker : pack.stickers)
+                        if (sticker.id.get() == id)
+                            known = sticker;
+            if (!known)
+                continue;
+            item.name = known->name.get();
+            item.formatType = known->formatType.get();
+            items.append(item);
+        }
+        preview.stickerItems = items;
+    }
 
     if (!outgoing.isEmpty()) {
         QList<Discord::Attachment> previewAttachments;
@@ -928,7 +954,7 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
 
     if (!followUps.isEmpty())
         pendingFollowUps.insert(nonce, { channelId, followUps });
-    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
+    client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags, stickerIds);
     return SendResult::Sent;
 }
 

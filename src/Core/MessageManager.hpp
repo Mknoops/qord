@@ -78,7 +78,8 @@ public:
                            Snowflake replyToMessageId = Snowflake::Invalid,
                            const QList<PendingAttachment> &attachments = {},
                            bool mentionRepliedUser = true, bool runPlugins = true,
-                           std::function<void(bool sent)> deferredDone = {});
+                           std::function<void(bool sent)> deferredDone = {},
+                           const QList<Snowflake> &stickerIds = {});
     void cancelSend(Snowflake channelId, const QString &nonce);
     void addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst);
 

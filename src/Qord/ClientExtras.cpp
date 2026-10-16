@@ -396,26 +396,6 @@ void Client::fetchGifs(const QString &query, JsonCallback callback)
     httpClient->get(endpoint, params, [callback](const HttpResponse &response) { callback(jsonResult(response)); });
 }
 
-void Client::sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback,
-                         const QString &content)
-{
-    QJsonObject payload;
-    payload["content"] = content;
-    payload["sticker_ids"] = QJsonArray { QString::number(quint64(stickerId)) };
-    payload["nonce"] = QString::number(quint64(Core::Snowflake::fromUnixMs(QDateTime::currentMSecsSinceEpoch())));
-    payload["tts"] = false;
-    payload["flags"] = 0;
-    if (replyToMessageId.isValid()) {
-        QJsonObject reference;
-        reference["message_id"] = QString::number(quint64(replyToMessageId));
-        reference["channel_id"] = QString::number(quint64(channelId));
-        payload["message_reference"] = reference;
-    }
-    httpClient->post("/channels/" + QString::number(quint64(channelId)) + "/messages", payload,
-                     ContextProperties::location(QStringLiteral("chat_input")),
-                     [callback](const HttpResponse &response) { callback(actionResult(response)); });
-}
-
 void Client::fetchCommandIndex(Snowflake guildId, Snowflake channelId, JsonCallback callback)
 {
     const QString endpoint = guildId.isValid()

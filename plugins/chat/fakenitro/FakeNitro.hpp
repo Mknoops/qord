@@ -142,6 +142,7 @@ private:
         QString url;
         QString fileName;
         QString mimeType;
+        bool apng = false; // an animated sticker, sent as a GIF
     };
     void uploadInstead(OutgoingMessage &message, const QString &text, const QList<Upload> &uploads);
 

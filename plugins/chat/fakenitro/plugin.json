@@ -299,6 +299,13 @@
       "description": "Qord extra: a video over your upload limit is re-encoded (MP4, H.264 and AAC) at a size and quality that fit, instead of being refused. Needs a Qord build with video support."
     },
     {
+      "key": "attachAnimatedStickers",
+      "type": "bool",
+      "default": true,
+      "label": "Send animated stickers with the message",
+      "description": "Qord extra: an animated sticker you can't use is turned into a GIF and sent with your message. Off, it is put in the message box for you to send, as upstream does."
+    },
+    {
       "key": "uploadWithoutEmbedLinks",
       "type": "bool",
       "default": true,

@@ -796,14 +796,21 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
     QStringList fakeTokens;
     const int uploadSize = int(s.value(QStringLiteral("emojiSize")).toString().toInt());
 
+    // Qord: every sticker (Discord takes three), not only the first
+    QList<Upload> animatedStickers;
     if (stickerBypass && !message.stickerIds.isEmpty()) {
-        const std::optional<StickerInfo> sticker = expressions->sticker(message.accountId, message.stickerIds.first());
         // Discord's own stickers are free; usable ones are sent as they are
         const bool canUseStickers = expressions->premiumType(message.accountId) > 1 &&
                                     hasPermission(message.accountId, message.channelId, UseExternalStickers);
-        if (sticker && !sticker->standard &&
-            !(sticker->available && (canUseStickers || sticker->guildId == message.guildId))) {
-            const int size = int(s.value(QStringLiteral("stickerSize")).toString().toInt());
+        const int size = int(s.value(QStringLiteral("stickerSize")).toString().toInt());
+        QList<Id> kept;
+        for (const Id stickerId : std::as_const(message.stickerIds)) {
+            const std::optional<StickerInfo> sticker = expressions->sticker(message.accountId, stickerId);
+            if (!sticker || sticker->standard ||
+                (sticker->available && (canUseStickers || sticker->guildId == message.guildId))) {
+                kept.append(stickerId);
+                continue;
+            }
             if (sticker->formatType == StickerApng) {
                 if (!hasPermission(message.accountId, message.channelId, AttachFiles)) {
                     if (auto *ui = context->ui()) {
@@ -816,14 +823,20 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
                         notice.confirmText = QStringLiteral("OK");
                         ui->confirm(notice);
                     }
-                } else {
-                    sendAnimatedSticker(*sticker,
-                                        QStringLiteral("https://media.discordapp.net/stickers/%1.png?size=%2")
-                                                .arg(sticker->id)
-                                                .arg(size));
+                    message.cancel = true;
+                    return;
                 }
-                message.cancel = true;
-                return;
+                const QString png =
+                        QStringLiteral("https://media.discordapp.net/stickers/%1.png?size=%2").arg(sticker->id).arg(size);
+                // Qord: converted and sent with the message; upstream puts it
+                // in the message box and stops the send
+                if (!s.boolValue(QStringLiteral("attachAnimatedStickers")) || message.deferred || !context->network()) {
+                    sendAnimatedSticker(*sticker, png);
+                    message.cancel = true;
+                    return;
+                }
+                animatedStickers.append({ png, QStringLiteral("%1.gif").arg(sticker->id), QStringLiteral("image/gif"), true });
+                continue;
             }
             hasBypass = true;
             const bool gif = sticker->formatType == StickerGif;
@@ -834,8 +847,8 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
             message.content += wordBoundary(message.content, message.content.size() - 1) +
                                linkMarkup(link, sticker->name, s.boolValue(QStringLiteral("useStickerHyperLinks")),
                                           linkText());
-            message.stickerIds.clear();
         }
+        message.stickerIds = kept;
     }
 
     if (emojiBypass) {
@@ -877,13 +890,18 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
         if (s.boolValue(QStringLiteral("uploadWithoutEmbedLinks")) &&
             hasPermission(message.accountId, message.channelId, AttachFiles) && !message.deferred &&
             context->network()) {
-            uploadInstead(message, withoutTokens(original, fakeTokens), uploads);
+            uploadInstead(message, withoutTokens(original, fakeTokens), uploads + animatedStickers);
             return;
         }
         if (!s.boolValue(QStringLiteral("disableEmbedPermissionCheck")) && !confirmWithoutEmbeds()) {
             message.cancel = true;
             return;
         }
+    }
+
+    if (!animatedStickers.isEmpty()) {
+        uploadInstead(message, message.content, animatedStickers);
+        return;
     }
 
     if (s.boolValue(QStringLiteral("splitLongMessages")))
@@ -1031,10 +1049,10 @@ void FakeNitroPlugin::transformIncomingContent(IncomingMessage &message)
 void FakeNitroPlugin::uploadInstead(OutgoingMessage &message, const QString &text, const QList<Upload> &uploads)
 {
     message.content = text;
-    message.stickerIds.clear();
     const QList<Upload> files = uploads.mid(0, 10);
+    const int stickerSize = int(context->settings().value(QStringLiteral("stickerSize")).toString().toInt());
     std::weak_ptr<bool> weak = alive;
-    message.deferred = [this, weak, files](const QString &content, OutgoingMessage::DeferredDone done) {
+    message.deferred = [this, weak, files, stickerSize](const QString &content, OutgoingMessage::DeferredDone done) {
         struct State
         {
             QList<std::optional<AttachedFile>> results;
@@ -1046,13 +1064,17 @@ void FakeNitroPlugin::uploadInstead(OutgoingMessage &message, const QString &tex
         state->pending = int(files.size());
         for (int i = 0; i < files.size(); ++i) {
             const Upload upload = files[i];
-            context->network()->get(QUrl(upload.url), [this, weak, state, i, upload, content,
-                                                      done](const NetworkService::Reply &reply) {
+            context->network()->get(QUrl(upload.url), [this, weak, state, i, upload, content, done,
+                                                      stickerSize](const NetworkService::Reply &reply) {
                 auto a = weak.lock();
                 if (!a || !*a || !context)
                     return done(std::nullopt);
-                if (reply.ok && !reply.body.isEmpty())
-                    state->results[i] = AttachedFile { upload.fileName, upload.mimeType, reply.body };
+                const QByteArray data = !reply.ok ? QByteArray()
+                                        : upload.apng
+                                                ? ApngToGif::convert(reply.body, stickerSize > 0 ? stickerSize : 160)
+                                                : reply.body;
+                if (!data.isEmpty())
+                    state->results[i] = AttachedFile { upload.fileName, upload.mimeType, data };
                 else
                     state->failed = true;
                 if (--state->pending > 0)

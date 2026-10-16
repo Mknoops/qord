@@ -10,6 +10,7 @@
 #include "Discord/CdnUrls.hpp"
 #include "Discord/Client.hpp"
 
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -335,11 +336,14 @@ void ExpressionPicker::pick(const QModelIndex &index)
     if (!index.isValid())
         return;
     const QVariant payload = index.data(PayloadRole);
-    hide();
+    // Qord: shift-click picks a sticker and keeps the picker open for more
+    const bool more = tab == Tab::Stickers && (QGuiApplication::keyboardModifiers() & Qt::ShiftModifier);
+    if (!more)
+        hide();
     if (tab == Tab::Gifs)
         emit gifPicked(payload.toString());
     else
-        emit stickerPicked(Core::Snowflake(payload.toULongLong()));
+        emit stickerPicked(Core::Snowflake(payload.toULongLong()), index.data(Qt::ToolTipRole).toString(), more);
 }
 
 } // namespace UI

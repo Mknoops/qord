@@ -40,6 +40,10 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   emoji, and reacting with one you can't use replies to the message with it.
 - In a channel where you can't embed links but can attach files, FakeNitro sends
   fake emojis and stickers as image files ("Upload where links don't embed").
+- A sticker is sent with what's in the message box, and shift-clicking stickers
+  collects up to three (shown above the box, each removable) to send together.
+  FakeNitro handles each of them, and sends an animated sticker you can't use as a
+  GIF with the message rather than stopping the send.
 
 ### Changed
 

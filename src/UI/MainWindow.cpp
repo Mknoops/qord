@@ -1526,7 +1526,8 @@ void MainWindow::setupUi()
                     // Cleared only if still showing that channel's draft
                     if (sent && chatModel->getActiveChannelId() == channelId)
                         input->clear();
-                });
+                },
+                messageInput->stickerIds());
         if (result == SendResult::Cancelled) {
             // Qord: a plugin stopped the send; the text stays, like Discord
             messageInput->keepContentsAfterSend();

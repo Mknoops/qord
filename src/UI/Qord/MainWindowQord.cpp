@@ -798,38 +798,19 @@ void MainWindow::setupQordFeatures()
     // A GIF is sent as its link, through the normal send path (plugins, slowmode, replies)
     connect(expressionPicker, &ExpressionPicker::gifPicked, this,
             [this](const QString &url) { emit messageInput->sendMessage(url, {}); });
-    connect(expressionPicker, &ExpressionPicker::stickerPicked, this, [this](Snowflake stickerId) {
-        if (!currentInstance || !chatModel->getActiveChannelId().isValid())
-            return;
-        const Snowflake channelId = chatModel->getActiveChannelId();
-        const Snowflake replyTo = messageInput->replyTargetMessageId();
-        // Plugins see the sticker like any send (FakeNitro may turn it into a link)
-        QString content;
-        auto *host = Qord::Plugins::PluginHost::instance();
-        if (host && host->hasHook(Qord::Plugins::Hook::BeforeSend)) {
-            Qord::Plugins::OutgoingMessage out;
-            out.accountId = quint64(currentInstance->accountId());
-            out.channelId = Qord::Plugins::pluginId(channelId);
-            out.guildId = Qord::Plugins::pluginId(currentInstance->discord()->getGuildIdForChannel(channelId));
-            out.replyToMessageId = quint64(replyTo);
-            out.stickerIds = { quint64(stickerId) };
-            host->dispatchBeforeSend(out);
-            if (out.cancel)
-                return;
-            content = out.content;
-            if (out.stickerIds.isEmpty()) {
-                messageInput->clearReplyTarget();
-                if (!content.trimmed().isEmpty())
-                    (void)currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
-                                                                   messageInput->replyMentionEnabled(), false);
-                return;
-            }
-            stickerId = Snowflake(out.stickerIds.first());
-        }
-        messageInput->clearReplyTarget();
-        currentInstance->discord()->sendSticker(channelId, stickerId, replyTo, [](const Core::Result<void> &) {},
-                                                content);
-    });
+    // A sticker goes through the normal send path (plugins, replies, slowmode)
+    // with whatever is in the message box; shift-click collects up to three
+    connect(expressionPicker, &ExpressionPicker::stickerPicked, this,
+            [this](Snowflake stickerId, const QString &name, bool more) {
+                if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+                    return;
+                if (!messageInput->addSticker(stickerId, name)) {
+                    Toast::show(this, tr("You can send up to 3 stickers at once"), Toast::Type::Failure);
+                    return;
+                }
+                if (!more)
+                    messageInput->submit();
+            });
     Qord::Plugins::QtUiService::fileAttacher() = [this](const QString &fileName, const QByteArray &data,
                                                         const QString &mimeType) {
         messageInput->attachData(fileName, data, mimeType);

@@ -68,6 +68,13 @@ public:
     // send is cancelled (called from the sendMessage handler)
     void attachData(const QString &fileName, const QByteArray &data, const QString &mimeType);
     void keepContentsAfterSend() { keepAfterSend = true; }
+    // Qord: stickers to send with the message (Discord takes three). False
+    // when there are three already.
+    bool addSticker(Core::Snowflake id, const QString &name);
+    [[nodiscard]] QList<Core::Snowflake> stickerIds() const;
+    void clearStickers();
+    // Sends what's in the box, as Enter does
+    void submit();
     // Qord: a plugin is finishing the send (auto-translate); the text can't
     // be edited or sent again meanwhile
     void setSending(bool sending);
@@ -110,6 +117,15 @@ private:
     QToolButton *replyCancelButton;
     AttachmentPreviewPanel *attachmentPanel;
     EmojiAutocomplete *autocomplete;
+    QWidget *stickerBar = nullptr;
+    QHBoxLayout *stickerLayout = nullptr;
+    struct StagedSticker
+    {
+        Core::Snowflake id;
+        QString name;
+    };
+    QList<StagedSticker> stagedStickers;
+    void rebuildStickerBar();
 
     Core::Snowflake replyMessageId;
     bool replyMention = true;

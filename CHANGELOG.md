@@ -15,6 +15,9 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 - Hovering a custom emoji in a message shows its name. FakeNitro emojis and
   stickers also say that they're FakeNitro ones.
 
+- A user's right-click menu has Add Friend, Remove Friend, accepting or cancelling a
+  friend request, Block (after asking) and Unblock, as in Discord.
+
 ### Changed
 
 - FakeNitro sends an emoji kept to roles you don't have as a link, so other people

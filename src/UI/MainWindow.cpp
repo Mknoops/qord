@@ -2919,6 +2919,56 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         });
     });
 
+    // Qord: Discord's friend and block items
+    if (instance && userId != instance->accountId()) {
+        const auto rel = instance->relationships()->getRelationship(userId);
+        const int type = rel && rel->type.hasValue() ? int(rel->type.get()) : 0;
+        const auto relationshipAction = [this, instanceGuard, userId](const QString &label, int newType) {
+            return [this, instanceGuard, userId, label, newType]() {
+                if (!instanceGuard)
+                    return;
+                QPointer<MainWindow> guard(this);
+                const auto done = [guard, label](const Core::Result<void> &result) {
+                    if (guard && !result.success())
+                        QMessageBox::warning(guard, label, tr("%1 failed: %2").arg(label, result.error));
+                };
+                if (newType == 0)
+                    instanceGuard->discord()->removeRelationship(userId, done);
+                else
+                    instanceGuard->discord()->putRelationship(userId, newType, done);
+            };
+        };
+        menu.addSeparator();
+        if (type == int(Discord::RelationshipType::FRIEND))
+            connect(menu.addAction(tr("Remove Friend")), &QAction::triggered, this,
+                    relationshipAction(tr("Remove Friend"), 0));
+        else if (type == int(Discord::RelationshipType::INCOMING_REQUEST))
+            connect(menu.addAction(tr("Accept Friend Request")), &QAction::triggered, this,
+                    relationshipAction(tr("Accept Friend Request"), int(Discord::RelationshipType::FRIEND)));
+        else if (type == int(Discord::RelationshipType::OUTGOING_REQUEST))
+            connect(menu.addAction(tr("Cancel Friend Request")), &QAction::triggered, this,
+                    relationshipAction(tr("Cancel Friend Request"), 0));
+        else if (type != int(Discord::RelationshipType::BLOCKED))
+            connect(menu.addAction(tr("Add Friend")), &QAction::triggered, this,
+                    relationshipAction(tr("Add Friend"), int(Discord::RelationshipType::FRIEND)));
+        if (type == int(Discord::RelationshipType::BLOCKED)) {
+            connect(menu.addAction(tr("Unblock")), &QAction::triggered, this, relationshipAction(tr("Unblock"), 0));
+        } else {
+            QAction *block = menu.addAction(tr("Block"));
+            connect(block, &QAction::triggered, this, [this, instanceGuard, userId, relationshipAction]() {
+                if (!instanceGuard)
+                    return;
+                const QString name = instanceGuard->users()->getDisplayName(userId, Snowflake::Invalid);
+                if (QMessageBox::question(this, tr("Block"),
+                                          tr("Are you sure you want to block %1? Blocking will also remove them "
+                                             "from your friends list.")
+                                                  .arg(name))
+                    == QMessageBox::Yes)
+                    relationshipAction(tr("Block"), int(Discord::RelationshipType::BLOCKED))();
+            });
+        }
+    }
+
     if (guildId.isValid() && instance) {
         const auto target = MemberModeration::targetFor(instance, guildId, userId);
         const bool moderationAddsRolesMenu = target && MemberModeration::canEditRoles(instance, *target);

@@ -47,6 +47,10 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 - FakeNitro's GIFs (shrunk GIFs and animated stickers) are smaller and much faster
   to make: frames are encoded in parallel, each frame after the first stores only
   what changed, repeated frames are merged, and colour tables fit the palette.
+- Shrinking a video shows a progress bar with Cancel. FakeNitro can keep sharpness
+  (15 FPS) or smoothness (up to 60 FPS) instead of a balance, keep only the first
+  minute, 30 or 15 seconds, and cuts a video too long to fit at all to the part
+  that fits.
 
 ### Changed
 

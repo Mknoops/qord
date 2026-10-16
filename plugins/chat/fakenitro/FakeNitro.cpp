@@ -656,7 +656,9 @@ void FakeNitroPlugin::onSettingChanged(const QString &key)
         applyPickerBypass();
     if (key == QLatin1String("enableStreamQualityBypass") || key == QLatin1String("shrinkLargeImages") ||
         key == QLatin1String("shrinkLargeVideos") || key == QLatin1String("splitLongMessages") ||
-        key == QLatin1String("fakeReactions") || key == QLatin1String("enableEmojiBypass"))
+        key == QLatin1String("fakeReactions") || key == QLatin1String("enableEmojiBypass") ||
+        key == QLatin1String("videoPriority") || key == QLatin1String("videoMaxLength") ||
+        key == QLatin1String("trimLongVideos"))
         applyQordBypasses();
 }
 
@@ -674,6 +676,10 @@ void FakeNitroPlugin::applyQordBypasses()
     else
         expressions->setOversizeImageHandler(nullptr);
     expressions->setVideoShrinking(context->settings().boolValue(QStringLiteral("shrinkLargeVideos")));
+    const QString priority = context->settings().stringValue(QStringLiteral("videoPriority"));
+    expressions->setVideoShrinkOptions(priority == QLatin1String("sharp") ? 1 : priority == QLatin1String("smooth") ? 2 : 0,
+                                       context->settings().stringValue(QStringLiteral("videoMaxLength")).toInt(),
+                                       context->settings().boolValue(QStringLiteral("trimLongVideos")));
     // A fake reaction is a reply with the emoji, which needs the emoji bypass to go as a link
     expressions->setFakeReactions(context->settings().boolValue(QStringLiteral("fakeReactions"))
                                   && context->settings().boolValue(QStringLiteral("enableEmojiBypass")));

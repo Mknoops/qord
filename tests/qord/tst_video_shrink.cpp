@@ -5,6 +5,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -160,6 +161,66 @@ private slots:
         // An hour can't fit in 10 MB
         QVERIFY(!planShrink(1920, 1080, 30, 3600, true, 10 * 1024 * 1024));
         QVERIFY(!planShrink(0, 0, 30, 5, true, 1000));
+
+        // Sharpness: 15 FPS and more lines; smoothness: up to 60 FPS, fewer
+        const auto balanced = planShrink(1920, 1080, 60, 120, true, 10 * 1024 * 1024);
+        const auto sharp = planShrink(1920, 1080, 60, 120, true, 10 * 1024 * 1024, Priority::Sharpness);
+        const auto smooth = planShrink(1920, 1080, 60, 120, true, 10 * 1024 * 1024, Priority::Smoothness);
+        QVERIFY(balanced && sharp && smooth);
+        QCOMPARE(sharp->fps, 15.0);
+        QCOMPARE(smooth->fps, 60.0);
+        QVERIFY(sharp->height > balanced->height);
+        QVERIFY(smooth->height < balanced->height);
+
+        // What fits is just inside planShrink's least
+        const double fit = secondsThatFit(true, 10 * 1024 * 1024);
+        QVERIFY(fit > 500 && fit < 700);
+        QVERIFY(planShrink(1920, 1080, 30, fit, true, 10 * 1024 * 1024));
+        QVERIFY(!planShrink(1920, 1080, 30, fit * 1.1, true, 10 * 1024 * 1024));
+    }
+
+    // Only the start, with progress along the way; and stopping it
+    void trimsAndReportsProgress()
+    {
+        QTemporaryDir dir;
+        const QString input = dir.filePath(QStringLiteral("in.mp4"));
+        if (!writeClip(input, 320, 240, 30, 4))
+            QSKIP("ffmpeg's MPEG-4 encoder isn't available to make the test clip");
+        QList<double> seen;
+        ShrinkOptions options;
+        options.maxSeconds = 2;
+        options.progress = [&](double fraction) {
+            seen.append(fraction);
+            return true;
+        };
+        QString error;
+        const auto out = shrinkVideo(input, QFileInfo(input).size() / 3, options, &error);
+        if (!out && error.contains(QLatin1String("encoder")))
+            QSKIP("No H.264 encoder in this ffmpeg");
+        QVERIFY2(out, qPrintable(error));
+        QVERIFY(out->trimmed);
+        QCOMPARE(out->seconds, 2.0);
+        QVERIFY(!seen.isEmpty());
+        QVERIFY(std::is_sorted(seen.begin(), seen.end()));
+        QVERIFY(seen.last() <= 1.0);
+
+        const QString result = dir.filePath(QStringLiteral("out.mp4"));
+        QFile file(result);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(out->data);
+        file.close();
+        AVFormatContext *probe = nullptr;
+        QVERIFY(avformat_open_input(&probe, QFile::encodeName(result).constData(), nullptr, nullptr) == 0);
+        QVERIFY(avformat_find_stream_info(probe, nullptr) >= 0);
+        QVERIFY2(probe->duration < qint64(2.6 * AV_TIME_BASE), qPrintable(QString::number(probe->duration)));
+        QVERIFY(probe->duration > qint64(1.5 * AV_TIME_BASE));
+        avformat_close_input(&probe);
+
+        // Stopped part way
+        ShrinkOptions stopped;
+        stopped.progress = [](double) { return false; };
+        QVERIFY(!shrinkVideo(input, QFileInfo(input).size() / 3, stopped, &error));
+        QCOMPARE(error, QStringLiteral("Stopped"));
     }
 
     void shrinksAClip()

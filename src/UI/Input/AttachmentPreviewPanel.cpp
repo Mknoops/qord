@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMimeDatabase>
 #include <QPainter>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QTimer>
@@ -104,6 +105,26 @@ AttachmentPreviewPanel::AttachmentPreviewPanel(QWidget *parent) : QWidget(parent
     QColor errorColor = Core::Theme::Manager::instance().color(Core::Theme::Token::ChatError);
     errorLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(errorColor.name()));
     outerLayout->addWidget(errorLabel);
+
+    progressRow = new QWidget(this);
+    progressRow->setVisible(false);
+    auto *progressLayout = new QHBoxLayout(progressRow);
+    progressLayout->setContentsMargins(0, 0, 0, 0);
+    progressLayout->setSpacing(8);
+    progressBar = new QProgressBar(progressRow);
+    progressBar->setRange(0, 1000);
+    progressBar->setFormat(QStringLiteral("%p%"));
+    progressBar->setFixedHeight(14);
+    progressLayout->addWidget(progressBar, 1);
+    auto *stopButton = new QToolButton(progressRow);
+    stopButton->setText(tr("Cancel"));
+    stopButton->setCursor(Qt::PointingHandCursor);
+    connect(stopButton, &QToolButton::clicked, this, [this]() {
+        if (stopShrinking)
+            *stopShrinking = true;
+    });
+    progressLayout->addWidget(stopButton);
+    outerLayout->addWidget(progressRow);
 
     scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
@@ -281,36 +302,77 @@ bool AttachmentPreviewPanel::startShrinkingVideo(const Core::PendingAttachment &
     const QString fileName = attachment.filename;
     const qint64 limit = maxFileSize;
     const bool spoiler = attachment.isSpoiler;
-    showNotice(tr("Making %1 smaller to fit the %2 upload limit. This can take a while...")
-                       .arg(fileName, ChatLayout::formatFileSize(limit)));
+    showNotice(tr("Making %1 smaller to fit the %2 upload limit...").arg(fileName, ChatLayout::formatFileSize(limit)));
+
+    const Core::ExpressionBypass &bypass = Core::expressionBypass();
+    Qord::Video::ShrinkOptions options;
+    options.priority = Qord::Video::Priority(qBound(0, bypass.videoPriority, 2));
+    options.maxSeconds = bypass.maxVideoSeconds;
+    options.trimToFit = bypass.trimVideosToFit;
+    // The worker writes how far along it is; the bar reads it here
+    auto stop = std::make_shared<std::atomic<bool>>(false);
+    auto done = std::make_shared<std::atomic<int>>(0);
+    options.progress = [stop, done](double fraction) {
+        *done = int(fraction * 1000);
+        return !*stop;
+    };
+    if (stopShrinking)
+        *stopShrinking = true; // one at a time
+    stopShrinking = stop;
+    progressBar->setValue(0);
+    progressRow->setVisible(true);
+    updateVisibility();
+    emit attachmentsChanged();
+
     struct Result
     {
-        std::optional<QByteArray> data;
+        std::optional<Qord::Video::ShrinkResult> result;
         QString error;
     };
     auto *watcher = new QFutureWatcher<Result>(this);
-    connect(watcher, &QFutureWatcherBase::finished, this, [this, watcher, fileName, limit, spoiler]() {
+    auto *poll = new QTimer(watcher);
+    poll->setInterval(200);
+    connect(poll, &QTimer::timeout, this, [this, done]() { progressBar->setValue(*done); });
+    poll->start();
+    connect(watcher, &QFutureWatcherBase::finished, this, [this, watcher, fileName, limit, spoiler, stop]() {
         watcher->deleteLater();
-        const Result result = watcher->result();
-        if (!result.data) {
+        if (stopShrinking == stop) {
+            stopShrinking.reset();
+            progressRow->setVisible(false);
+        }
+        const Result outcome = watcher->result();
+        if (*stop) {
+            errorLabel->setVisible(false);
+            updateVisibility();
+            emit attachmentsChanged();
+            return;
+        }
+        if (!outcome.result) {
             showError(tr("%1 exceeds the %2 upload limit (%3)")
-                              .arg(fileName, ChatLayout::formatFileSize(limit), result.error));
+                              .arg(fileName, ChatLayout::formatFileSize(limit), outcome.error));
             return;
         }
         errorLabel->setVisible(false);
         Core::PendingAttachment shrunk;
-        shrunk.data = *result.data;
+        shrunk.data = outcome.result->data;
         const qsizetype dot = fileName.lastIndexOf(QLatin1Char('.'));
         shrunk.filename = (dot > 0 ? fileName.left(dot) : fileName) + QStringLiteral(".mp4");
         shrunk.mimeType = QStringLiteral("video/mp4");
         shrunk.size = shrunk.data.size();
         shrunk.isSpoiler = spoiler;
         appendAttachment(shrunk);
+        if (outcome.result->trimmed) {
+            const int total = int(outcome.result->seconds);
+            showNotice(tr("%1 was cut to its first %2:%3 to fit")
+                               .arg(fileName)
+                               .arg(total / 60)
+                               .arg(total % 60, 2, 10, QLatin1Char('0'))); // stays while it's attached
+        }
     });
-    watcher->setFuture(QtConcurrent::run([path, limit, pasted]() {
-        Result result;
-        result.data = Qord::Video::shrinkVideo(path, limit, &result.error);
-        return result;
+    watcher->setFuture(QtConcurrent::run([path, limit, pasted, options]() {
+        Result outcome;
+        outcome.result = Qord::Video::shrinkVideo(path, limit, options, &outcome.error);
+        return outcome;
     }));
     return true;
 }
@@ -518,7 +580,9 @@ void AttachmentPreviewPanel::showError(const QString &message)
 void AttachmentPreviewPanel::updateVisibility()
 {
     // isHidden: isVisible is false while the panel itself is hidden
-    setVisible(!items.isEmpty() || !errorLabel->isHidden());
+    setVisible(!items.isEmpty() || !errorLabel->isHidden() || !progressRow->isHidden());
+    // Only a notice or progress: no empty row of cards under it
+    scrollArea->setVisible(!items.isEmpty());
 }
 
 } // namespace UI

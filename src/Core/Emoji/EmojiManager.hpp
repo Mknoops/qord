@@ -49,6 +49,11 @@ struct ExpressionBypass
     // Videos over the upload limit are re-encoded to fit (where Qord has the
     // video encoders)
     bool shrinkVideos = false;
+    // How: 0 balanced, 1 sharper (15 FPS), 2 smoother (up to 60 FPS); only
+    // the first maxVideoSeconds (0: all); cut to what fits when too long
+    int videoPriority = 0;
+    int maxVideoSeconds = 0;
+    bool trimVideosToFit = false;
     // The reaction picker offers what the message picker does; an emoji you
     // can't react with is sent as a reply instead (FakeNitro)
     bool reactions = false;

@@ -566,6 +566,12 @@ public:
     void setLongMessageSplitter(SplitCounter count) override { splitter = std::move(count); }
     void setVideoShrinking(bool on) override { shrinkVideos = on; }
     void setFakeReactions(bool on) override { fakeReactions = on; }
+    void setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit) override
+    {
+        videoPriority = priority;
+        maxVideoSeconds = maxSeconds;
+        trimVideosToFit = trimToFit;
+    }
 
     int premium = 0;
     QHash<Id, CustomEmojiInfo> emojis;
@@ -579,6 +585,9 @@ public:
     SplitCounter splitter;
     bool shrinkVideos = false;
     bool fakeReactions = false;
+    int videoPriority = -1;
+    int maxVideoSeconds = -1;
+    bool trimVideosToFit = false;
 };
 
 class FakeGuilds : public GuildDirectory

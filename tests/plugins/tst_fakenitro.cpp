@@ -681,6 +681,21 @@ private slots:
         QVERIFY(!h.expressions.shrinkVideos);
     }
 
+    void videoOptions()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QCOMPARE(h.expressions.videoPriority, 0);
+        QCOMPARE(h.expressions.maxVideoSeconds, 0);
+        QVERIFY(h.expressions.trimVideosToFit);
+        h.host->settings(h.id)->setValue(QStringLiteral("videoPriority"), QStringLiteral("smooth"));
+        h.host->settings(h.id)->setValue(QStringLiteral("videoMaxLength"), QStringLiteral("30"));
+        h.host->settings(h.id)->setValue(QStringLiteral("trimLongVideos"), false);
+        QCOMPARE(h.expressions.videoPriority, 2);
+        QCOMPARE(h.expressions.maxVideoSeconds, 30);
+        QVERIFY(!h.expressions.trimVideosToFit);
+    }
+
     void fakeReactionsNeedTheEmojiBypass()
     {
         SinglePluginHost h(qord_register_fakenitro);

@@ -1273,6 +1273,14 @@ void SessionExpressions::setVideoShrinking(bool on)
     Acheron::Core::expressionBypass().shrinkVideos = on;
 }
 
+void SessionExpressions::setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit)
+{
+    auto &bypass = Acheron::Core::expressionBypass();
+    bypass.videoPriority = qBound(0, priority, 2);
+    bypass.maxVideoSeconds = qMax(0, maxSeconds);
+    bypass.trimVideosToFit = trimToFit;
+}
+
 void SessionExpressions::setFakeReactions(bool on)
 {
     Acheron::Core::expressionBypass().reactions = on;

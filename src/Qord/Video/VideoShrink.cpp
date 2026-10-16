@@ -77,6 +77,9 @@ struct Job
     double minFrameGapMs = 0;
     qint64 limit = 0;
     bool tooBig = false;
+    qint64 endMs = 0; // frames after this are left out (0: none)
+    qint64 videoStartMs = 0;
+    qint64 audioStartMs = 0;
 
     ~Job()
     {
@@ -129,6 +132,8 @@ struct Job
                                          ? (first ? 0 : lastVideoPtsMs + qint64(std::ceil(minFrameGapMs)))
                                          : av_rescale_q(source->best_effort_timestamp,
                                                         in->streams[videoIn]->time_base, AVRational { 1, 1000 });
+            if (endMs > 0 && ptsMs - videoStartMs > endMs)
+                return true;
             if (!first && ptsMs - lastVideoPtsMs < minFrameGapMs - 1)
                 return true;
             lastVideoPtsMs = ptsMs;
@@ -180,6 +185,11 @@ struct Job
 
     bool takeAudio(AVFrame *decoded)
     {
+        if (decoded && endMs > 0 && decoded->best_effort_timestamp != AV_NOPTS_VALUE &&
+            av_rescale_q(decoded->best_effort_timestamp, in->streams[audioIn]->time_base, AVRational { 1, 1000 }) -
+                            audioStartMs >
+                    endMs)
+            return true;
         const int outSamples = swr_get_out_samples(resampler, decoded ? decoded->nb_samples : 0);
         if (outSamples <= 0)
             return true;
@@ -334,10 +344,18 @@ void copyRotation(const AVStream *from, AVStream *to)
 
 enum class Attempt { Done, TooBig, Failed };
 
-Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, qint64 limit, QString *error)
+qint64 startMs(const AVStream *stream)
+{
+    return stream->start_time == AV_NOPTS_VALUE ? 0
+                                                : av_rescale_q(stream->start_time, stream->time_base, AVRational { 1, 1000 });
+}
+
+Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, qint64 limit, double seconds,
+                  qint64 endMs, const std::function<bool(double)> &progress, QString *error)
 {
     Job job;
     job.limit = limit;
+    job.endMs = endMs;
     const QByteArray inPath = QFile::encodeName(input);
     if (avformat_open_input(&job.in, inPath.constData(), nullptr, nullptr) < 0 ||
         avformat_find_stream_info(job.in, nullptr) < 0) {
@@ -354,6 +372,9 @@ Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, 
     }
     if (job.audioIn >= 0 && !(job.audioDec = openDecoder(job.in->streams[job.audioIn])))
         job.audioIn = -1;
+    job.videoStartMs = startMs(job.in->streams[job.videoIn]);
+    if (job.audioIn >= 0)
+        job.audioStartMs = startMs(job.in->streams[job.audioIn]);
 
     const QByteArray outPath = QFile::encodeName(output);
     if (avformat_alloc_output_context2(&job.out, nullptr, "mp4", outPath.constData()) < 0 || !job.out)
@@ -416,7 +437,26 @@ Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, 
 
     AVPacket *read = av_packet_alloc();
     bool ok = read != nullptr;
+    bool stopped = false;
+    int packets = 0;
     while (ok && av_read_frame(job.in, read) >= 0) {
+        if (read->stream_index == job.videoIn && (endMs > 0 || progress)) {
+            const qint64 ts = read->pts != AV_NOPTS_VALUE ? read->pts : read->dts;
+            const qint64 atMs = ts == AV_NOPTS_VALUE ? 0
+                                                     : av_rescale_q(ts, job.in->streams[job.videoIn]->time_base,
+                                                                    AVRational { 1, 1000 }) -
+                                                               job.videoStartMs;
+            // Past the end (with room for frames stored out of order)
+            if (endMs > 0 && atMs > endMs + 2000) {
+                av_packet_unref(read);
+                break;
+            }
+            if (progress && ++packets % 10 == 0 && !progress(qBound(0.0, atMs / (seconds * 1000.0), 1.0))) {
+                stopped = true;
+                av_packet_unref(read);
+                break;
+            }
+        }
         if (read->stream_index == job.videoIn)
             ok = avcodec_send_packet(job.videoDec, read) >= 0 && job.drain(job.videoDec, true);
         else if (read->stream_index == job.audioIn)
@@ -424,6 +464,11 @@ Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, 
         av_packet_unref(read);
     }
     av_packet_free(&read);
+    if (stopped) {
+        if (error)
+            *error = QStringLiteral("Stopped");
+        return Attempt::Failed;
+    }
     if (ok)
         ok = avcodec_send_packet(job.videoDec, nullptr) >= 0 && job.drain(job.videoDec, true) &&
              job.encodeVideo(nullptr);
@@ -443,7 +488,7 @@ Attempt transcode(const QString &input, const QString &output, ShrinkPlan plan, 
 } // namespace
 
 std::optional<ShrinkPlan> planShrink(int width, int height, double fps, double seconds, bool hasAudio,
-                                     qint64 limitBytes)
+                                     qint64 limitBytes, Priority priority)
 {
     if (width <= 0 || height <= 0 || seconds <= 0 || limitBytes <= 0)
         return std::nullopt;
@@ -453,7 +498,8 @@ std::optional<ShrinkPlan> planShrink(int width, int height, double fps, double s
     plan.videoBitrate = qint64(totalBitrate) - plan.audioBitrate;
     if (plan.videoBitrate < 60'000)
         return std::nullopt;
-    plan.fps = qBound(1.0, fps > 0 ? fps : 30.0, 30.0);
+    const double maxFps = priority == Priority::Smoothness ? 60.0 : priority == Priority::Sharpness ? 15.0 : 30.0;
+    plan.fps = qBound(1.0, fps > 0 ? fps : 30.0, maxFps);
     // The largest of these heights (never more than the source's) the bitrate can carry
     const QList<int> heights { height, 1080, 720, 540, 480, 360, 240, 144 };
     int chosen = 144;
@@ -467,8 +513,8 @@ std::optional<ShrinkPlan> planShrink(int width, int height, double fps, double s
         }
     }
     chosen = qMin(chosen, height);
-    // Below 240 lines, fewer frames before fewer lines
-    if (chosen < 240 && plan.fps > 15) {
+    // Below 240 lines, fewer frames before fewer lines (unless smoothness comes first)
+    if (chosen < 240 && plan.fps > 15 && priority != Priority::Smoothness) {
         plan.fps = 15;
         for (int h : heights) {
             if (h > height || h < chosen)
@@ -485,7 +531,15 @@ std::optional<ShrinkPlan> planShrink(int width, int height, double fps, double s
     return plan;
 }
 
-std::optional<QByteArray> shrinkVideo(const QString &path, qint64 limitBytes, QString *error)
+double secondsThatFit(bool hasAudio, qint64 limitBytes)
+{
+    // planShrink's least: 60 kbit/s of video, 64 kbit/s of sound
+    const double bitrate = 60'000.0 + (hasAudio ? 64'000.0 : 0.0);
+    return std::floor(limitBytes * 8.0 * Overhead / bitrate * 0.98);
+}
+
+std::optional<ShrinkResult> shrinkVideo(const QString &path, qint64 limitBytes, const ShrinkOptions &options,
+                                        QString *error)
 {
     // Size and length, from a first look at the file
     int width = 0;
@@ -522,12 +576,35 @@ std::optional<QByteArray> shrinkVideo(const QString &path, qint64 limitBytes, QS
         }
     }
 
-    std::optional<ShrinkPlan> plan = planShrink(width, height, fps, seconds, hasAudio, limitBytes);
+    // Only the start, when asked for or when the whole won't fit
+    bool trimmed = false;
+    if (options.maxSeconds > 0 && seconds > options.maxSeconds) {
+        seconds = options.maxSeconds;
+        trimmed = true;
+    }
+    std::optional<ShrinkPlan> plan = planShrink(width, height, fps, seconds, hasAudio, limitBytes, options.priority);
+    if (!plan && options.trimToFit) {
+        const double fit = secondsThatFit(hasAudio, limitBytes);
+        if (fit >= 1 && fit < seconds) {
+            seconds = fit;
+            trimmed = true;
+            plan = planShrink(width, height, fps, seconds, hasAudio, limitBytes, options.priority);
+        }
+    }
     if (!plan) {
         if (error)
             *error = QStringLiteral("The video is too long to fit");
         return std::nullopt;
     }
+    const qint64 endMs = trimmed ? qint64(seconds * 1000) : 0;
+    // Only ever forward: frames come out of order, and a retry starts over
+    double reached = 0;
+    std::function<bool(double)> progress;
+    if (options.progress)
+        progress = [&](double fraction) {
+            reached = qMax(reached, fraction);
+            return options.progress(reached);
+        };
 
     QTemporaryFile output(QStringLiteral("%1/qord-shrink-XXXXXX.mp4").arg(QDir::tempPath()));
     if (!output.open())
@@ -535,21 +612,31 @@ std::optional<QByteArray> shrinkVideo(const QString &path, qint64 limitBytes, QS
     output.close();
     // Lower the bitrate and try again while the encoder overshoots
     for (int attempt = 0; attempt < 4; ++attempt) {
-        const Attempt result = transcode(path, output.fileName(), *plan, limitBytes, error);
+        const Attempt result = transcode(path, output.fileName(), *plan, limitBytes, seconds, endMs, progress,
+                                         error);
         if (result == Attempt::Failed)
             return std::nullopt;
         if (result == Attempt::Done) {
             QFile file(output.fileName());
             if (file.open(QIODevice::ReadOnly) && file.size() <= limitBytes)
-                return file.readAll();
+                return ShrinkResult { file.readAll(), seconds, trimmed };
         }
-        plan = planShrink(width, height, fps, seconds, hasAudio, qint64(limitBytes * std::pow(0.85, attempt + 1)));
+        plan = planShrink(width, height, fps, seconds, hasAudio, qint64(limitBytes * std::pow(0.85, attempt + 1)),
+                          options.priority);
         if (!plan)
             break;
     }
     if (error)
         *error = QStringLiteral("The video can't be made small enough");
     return std::nullopt;
+}
+
+std::optional<QByteArray> shrinkVideo(const QString &path, qint64 limitBytes, QString *error)
+{
+    std::optional<ShrinkResult> result = shrinkVideo(path, limitBytes, ShrinkOptions(), error);
+    if (!result)
+        return std::nullopt;
+    return result->data;
 }
 
 } // namespace Video

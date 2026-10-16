@@ -299,6 +299,77 @@
       "description": "Qord extra: a video over your upload limit is re-encoded (MP4, H.264 and AAC) at a size and quality that fit, instead of being refused. Needs a Qord build with video support."
     },
     {
+      "key": "videoPriority",
+      "type": "choice",
+      "default": "balanced",
+      "label": "When shrinking a video, keep",
+      "description": "Qord extra: what a shrunk video gives up first. Sharper drops to 15 FPS to keep more resolution; smoother keeps up to 60 FPS at a lower resolution.",
+      "showWhen": {
+        "key": "shrinkLargeVideos",
+        "values": [
+          "true"
+        ]
+      },
+      "choices": [
+        {
+          "value": "balanced",
+          "label": "A balance (up to 30 FPS)"
+        },
+        {
+          "value": "sharp",
+          "label": "Sharpness (15 FPS)"
+        },
+        {
+          "value": "smooth",
+          "label": "Smoothness (up to 60 FPS)"
+        }
+      ]
+    },
+    {
+      "key": "videoMaxLength",
+      "type": "choice",
+      "default": "0",
+      "label": "Shrunk videos keep",
+      "description": "Qord extra: only the start of a video over your upload limit is kept, which then gets more of the size for its quality.",
+      "showWhen": {
+        "key": "shrinkLargeVideos",
+        "values": [
+          "true"
+        ]
+      },
+      "choices": [
+        {
+          "value": "0",
+          "label": "All of it"
+        },
+        {
+          "value": "60",
+          "label": "The first minute"
+        },
+        {
+          "value": "30",
+          "label": "The first 30 seconds"
+        },
+        {
+          "value": "15",
+          "label": "The first 15 seconds"
+        }
+      ]
+    },
+    {
+      "key": "trimLongVideos",
+      "type": "bool",
+      "default": true,
+      "label": "Cut videos too long to fit",
+      "description": "Qord extra: a video too long to fit even at the lowest quality is cut to the part that fits, instead of being refused.",
+      "showWhen": {
+        "key": "shrinkLargeVideos",
+        "values": [
+          "true"
+        ]
+      }
+    },
+    {
       "key": "attachAnimatedStickers",
       "type": "bool",
       "default": true,

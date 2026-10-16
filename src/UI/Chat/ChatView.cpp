@@ -782,7 +782,15 @@ bool ChatView::viewportEvent(QEvent *event)
             return true;
         }
         if (region && region->kind == ChatLayout::HitRegion::Kind::Sticker) {
-            QToolTip::showText(helpEvent->globalPos(), resolved.ctx.stickers[region->index].name, viewport(), region->rect);
+            const auto &sticker = resolved.ctx.stickers[region->index];
+            const QString tip = sticker.note.isEmpty() ? sticker.name : sticker.name + QLatin1Char('\n') + sticker.note;
+            QToolTip::showText(helpEvent->globalPos(), tip, viewport(), region->rect);
+            return true;
+        }
+
+        // Qord: a custom emoji's name
+        if (const QString tip = ChatLayout::getToolTipAt(resolved, helpEvent->pos()); !tip.isEmpty()) {
+            QToolTip::showText(helpEvent->globalPos(), tip, viewport());
             return true;
         }
 

@@ -15,6 +15,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
 #include <QTextBlock>
+#include <QTextCursor>
 #include <QUrl>
 
 namespace Acheron {
@@ -1410,6 +1411,28 @@ QString getLinkAt(const ResolvedLayout &resolved, const QPoint &mousePos)
 
     QPointF localPos = mousePos - resolved.layout.textRect.topLeft();
     return doc->documentLayout()->anchorAt(localPos);
+}
+
+// Qord: the tooltip (HTML title) of what is under the mouse in the text,
+// such as a custom emoji's name
+QString getToolTipAt(const ResolvedLayout &resolved, const QPoint &mousePos)
+{
+    if (!resolved.layout.textRect.contains(mousePos))
+        return {};
+
+    QTextDocument localDoc;
+    QTextDocument *doc = bodyDocument(resolved, localDoc);
+    if (!doc)
+        return {};
+
+    const QPointF localPos = mousePos - resolved.layout.textRect.topLeft();
+    const int position = doc->documentLayout()->hitTest(localPos, Qt::ExactHit);
+    if (position < 0)
+        return {};
+    QTextCursor cursor(doc);
+    cursor.setPosition(position);
+    cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+    return cursor.charFormat().toolTip();
 }
 
 std::optional<QRect> editedMarkerRectAt(const ResolvedLayout &resolved, const QPoint &mousePos)

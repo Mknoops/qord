@@ -142,6 +142,7 @@ struct StickerData
 
     Core::Snowflake id;
     QString name;
+    QString note; // Qord: from a plugin, under the name when hovered
     QUrl stillUrl;
     QUrl animatedUrl;
     QPixmap still;

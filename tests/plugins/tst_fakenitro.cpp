@@ -5,6 +5,7 @@
 #include <QBuffer>
 #include <QFile>
 #include <QImageReader>
+#include <QImageWriter>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -449,6 +450,209 @@ private slots:
         QCOMPARE(h.expressions.bypass, std::make_pair(true, false));
         QVERIFY(h.host->setEnabled(h.id, false));
         QCOMPARE(h.expressions.bypass, std::make_pair(false, false));
+    }
+
+    void streamQualityAndShrinkFollowSettings()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(h.expressions.streamQuality);
+        QVERIFY(bool(h.expressions.shrinker));
+        h.host->settings(h.id)->setValue(QStringLiteral("enableStreamQualityBypass"), false);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeImages"), false);
+        QVERIFY(!h.expressions.streamQuality);
+        QVERIFY(!h.expressions.shrinker);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableStreamQualityBypass"), true);
+        QVERIFY(h.expressions.streamQuality);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.streamQuality);
+    }
+
+    // An emoji kept to roles you don't have is sent as a link, even with Nitro
+    void roleLockedEmojiIsLinked()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        constexpr Id Guild = 100000000000000001ULL;
+        CustomEmojiInfo locked;
+        locked.id = 200000000000000099ULL;
+        locked.name = QStringLiteral("vip");
+        locked.guildId = Guild;
+        locked.roles = { 700000000000000001ULL };
+        h.expressions.emojis.insert(locked.id, locked);
+        h.expressions.premium = 2;
+        const auto send = [&] {
+            OutgoingMessage out;
+            out.accountId = 1;
+            out.channelId = Channel;
+            out.guildId = Guild;
+            out.content = QStringLiteral("<:vip:200000000000000099>");
+            h.host->dispatchBeforeSend(out);
+            return out.content;
+        };
+        QVERIFY(send().contains(QLatin1String("cdn.discordapp.com/emojis/200000000000000099")));
+        h.expressions.roles[Guild] = { 700000000000000001ULL };
+        QCOMPARE(send(), QStringLiteral("<:vip:200000000000000099>"));
+        h.expressions.roles.clear();
+        h.expressions.adminOf = { Guild };
+        QCOMPARE(send(), QStringLiteral("<:vip:200000000000000099>"));
+    }
+
+    void splitsLongMessages_data()
+    {
+        QTest::addColumn<QString>("content");
+        QTest::addColumn<int>("limit");
+        QTest::addColumn<QStringList>("parts");
+        QTest::newRow("short") << QStringLiteral("hello") << 100 << QStringList { QStringLiteral("hello") };
+        const QString line = QString(60, QLatin1Char('a'));
+        QTest::newRow("at a line break") << line + QLatin1Char('\n') + line << 100 << QStringList { line, line };
+        const QString words = QString(70, QLatin1Char('b')) + QLatin1Char(' ') + QString(50, QLatin1Char('c'));
+        QTest::newRow("at a space") << words << 100
+                                    << QStringList { QString(70, QLatin1Char('b')), QString(50, QLatin1Char('c')) };
+        const QString solid(250, QLatin1Char('d'));
+        QTest::newRow("hard cut") << solid << 100
+                                  << QStringList { solid.left(100), solid.mid(100, 100), solid.mid(200) };
+    }
+
+    void splitsLongMessages()
+    {
+        QFETCH(QString, content);
+        QFETCH(int, limit);
+        QFETCH(QStringList, parts);
+        QCOMPARE(FakeNitro::splitMessage(content, limit), parts);
+    }
+
+    void splitReopensCodeBlocks()
+    {
+        QString code = QStringLiteral("```cpp\n");
+        for (int i = 0; i < 20; ++i)
+            code += QStringLiteral("int value%1 = %1;\n").arg(i, 2, 10, QLatin1Char('0'));
+        code += QStringLiteral("```");
+        const QStringList parts = FakeNitro::splitMessage(code, 200);
+        QVERIFY(parts.size() > 1);
+        for (const QString &part : parts) {
+            QVERIFY2(part.size() <= 200, qPrintable(part));
+            QCOMPARE(part.count(QLatin1String("```")) % 2, 0); // every part closes what it opens
+            QVERIFY(part.startsWith(QLatin1String("```cpp\n")));
+        }
+        // Nothing lost: the lines are all there, in order
+        QString joined = parts.join(QLatin1Char('\n'));
+        for (int i = 0; i < 20; ++i)
+            QVERIFY(joined.contains(QStringLiteral("int value%1 = %1;").arg(i, 2, 10, QLatin1Char('0'))));
+    }
+
+    void splitKeepsSurrogatePairs()
+    {
+        QString emoji;
+        for (int i = 0; i < 120; ++i)
+            emoji += QString::fromUtf8("\xF0\x9F\x98\x80"); // two UTF-16 units each
+        for (const QString &part : FakeNitro::splitMessage(emoji, 101)) {
+            QVERIFY(part.size() <= 101);
+            QVERIFY(!part.front().isLowSurrogate());
+            QVERIFY(!part.back().isHighSurrogate());
+        }
+    }
+
+    void sendSplitsByPremium()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QCOMPARE(FakeNitro::messageLengthLimit(0), 2000);
+        QCOMPARE(FakeNitro::messageLengthLimit(3), 2000);
+        QCOMPARE(FakeNitro::messageLengthLimit(2), 4000);
+        const QString text = QString(1500, QLatin1Char('x')) + QLatin1Char('\n') + QString(1500, QLatin1Char('y'));
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.content = QStringLiteral("@silent ") + text;
+        h.host->dispatchBeforeSend(out);
+        QCOMPARE(out.content, QStringLiteral("@silent ") + QString(1500, QLatin1Char('x')));
+        QCOMPARE(out.followUps, QStringList { QStringLiteral("@silent ") + QString(1500, QLatin1Char('y')) });
+
+        h.expressions.premium = 2; // 4000 with Nitro
+        OutgoingMessage nitro;
+        nitro.content = text;
+        h.host->dispatchBeforeSend(nitro);
+        QCOMPARE(nitro.content, text);
+        QVERIFY(nitro.followUps.isEmpty());
+
+        h.expressions.premium = 0;
+        h.host->settings(h.id)->setValue(QStringLiteral("splitLongMessages"), false);
+        OutgoingMessage off;
+        off.content = text;
+        h.host->dispatchBeforeSend(off);
+        QCOMPARE(off.content, text);
+        QVERIFY(off.followUps.isEmpty());
+    }
+
+    void shrinksImages()
+    {
+        // Noise compresses badly, so the PNG is large
+        QImage noise(1200, 900, QImage::Format_RGB32);
+        quint32 seed = 1;
+        for (int y = 0; y < noise.height(); ++y)
+            for (int x = 0; x < noise.width(); ++x) {
+                seed = seed * 1664525u + 1013904223u;
+                noise.setPixel(x, y, seed | 0xFF000000u);
+            }
+        QByteArray png;
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        QVERIFY(noise.save(&buffer, "PNG"));
+        buffer.close();
+        const AttachedFile file { QStringLiteral("photo.png"), QStringLiteral("image/png"), png };
+
+        if (!QImageWriter::supportedImageFormats().contains("jpeg"))
+            QSKIP("Qt's JPEG writer is not available");
+        const qint64 limit = png.size() / 8;
+        const std::optional<AttachedFile> out = FakeNitro::shrinkImage(file, limit);
+        QVERIFY(out);
+        QVERIFY(out->data.size() <= limit);
+        QCOMPARE(out->fileName, QStringLiteral("photo.jpg"));
+        QCOMPARE(out->mimeType, QStringLiteral("image/jpeg"));
+        QVERIFY(!QImage::fromData(out->data).isNull());
+
+        // Transparency stays: PNG, scaled down
+        QImage clear(noise.convertToFormat(QImage::Format_ARGB32));
+        for (int y = 0; y < 100; ++y)
+            for (int x = 0; x < 100; ++x)
+                clear.setPixel(x, y, qRgba(0, 0, 0, 0));
+        QByteArray alpha;
+        QBuffer alphaBuffer(&alpha);
+        alphaBuffer.open(QIODevice::WriteOnly);
+        QVERIFY(clear.save(&alphaBuffer, "PNG"));
+        const std::optional<AttachedFile> png2 =
+                FakeNitro::shrinkImage({ QStringLiteral("a.png"), QStringLiteral("image/png"), alpha }, alpha.size() / 3);
+        QVERIFY(png2);
+        QCOMPARE(png2->mimeType, QStringLiteral("image/png"));
+        const QImage decoded = QImage::fromData(png2->data);
+        QVERIFY(decoded.width() < clear.width());
+        QCOMPARE(qAlpha(decoded.pixel(2, 2)), 0);
+
+        // Not an image; can't get that small
+        QVERIFY(!FakeNitro::shrinkImage({ QStringLiteral("x.png"), QStringLiteral("image/png"), "nope" }, 10));
+        QVERIFY(!FakeNitro::shrinkImage(file, 10));
+    }
+
+    void shownFakeExpressionsHaveNotes()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        IncomingMessage in;
+        in.accountId = 1;
+        in.channelId = Channel;
+        in.content = QStringLiteral("[x](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=x)");
+        h.host->dispatchTransformIncomingContent(in);
+        QVERIFY(in.emojiNotes.value(200000000000000003ULL).contains(QLatin1String("FakeNitro emoji")));
+
+        IncomingMessage sticker;
+        sticker.accountId = 1;
+        sticker.channelId = Channel;
+        sticker.content = QStringLiteral("https://media.discordapp.net/stickers/400000000000000001.png?size=160");
+        h.host->dispatchTransformIncomingContent(sticker);
+        QCOMPARE(sticker.addedStickers.size(), 1);
+        QVERIFY(sticker.addedStickers[0].note.contains(QLatin1String("FakeNitro sticker")));
     }
 
     void checkboxDisablesTheNotice()

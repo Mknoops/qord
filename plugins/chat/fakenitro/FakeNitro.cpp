@@ -13,6 +13,9 @@
 #include "Plugins/PluginContext.hpp"
 #include "Plugins/Registry.hpp"
 
+#include <QBuffer>
+#include <QImage>
+#include <QImageReader>
 #include <QRegularExpression>
 #include <QSet>
 #include <QUrl>
@@ -376,6 +379,164 @@ bool isCompound(const QString &content, const QList<ContentLink> &links)
     return links.first().start != 0 || links.first().length != content.size();
 }
 
+int messageLengthLimit(int premiumType)
+{
+    return premiumType == 2 ? 4000 : 2000;
+}
+
+namespace {
+
+// The language after the last opening fence when `text` ends inside a code
+// block; nullopt when it does not
+std::optional<QString> openFenceLanguage(const QString &text)
+{
+    static const QRegularExpression fence(QStringLiteral("```"));
+    qsizetype count = 0;
+    qsizetype lastOpen = -1;
+    auto it = fence.globalMatch(text);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch m = it.next();
+        if (count % 2 == 0)
+            lastOpen = m.capturedEnd();
+        ++count;
+    }
+    if (count % 2 == 0)
+        return std::nullopt;
+    static const QRegularExpression language(QStringLiteral(R"(\G([A-Za-z0-9_+#.\-]{1,16})\n)"));
+    const QRegularExpressionMatch m = language.match(text, lastOpen);
+    return m.hasMatch() ? m.captured(1) : QString();
+}
+
+} // namespace
+
+QStringList splitMessage(const QString &content, int limit)
+{
+    // Room for closing and reopening a code block
+    constexpr int FenceReserve = 4 + 3 + 16 + 1;
+    if (limit <= FenceReserve * 2)
+        return { content };
+    QStringList parts;
+    QString rest = content;
+    while (rest.size() > limit) {
+        const bool hasFences = rest.contains(QLatin1String("```"));
+        const qsizetype window = hasFences ? limit - FenceReserve : limit;
+        qsizetype cut = -1;
+        qsizetype skip = 0;
+        const qsizetype newline = rest.lastIndexOf(QLatin1Char('\n'), window);
+        if (newline > window / 2) {
+            cut = newline;
+            skip = 1;
+        } else {
+            for (qsizetype i = window; i > window / 2; --i) {
+                if (Js::isWhitespace(rest.at(i))) {
+                    cut = i;
+                    skip = 1;
+                    break;
+                }
+            }
+        }
+        if (cut < 0) {
+            cut = window;
+            // Don't cut a surrogate pair in half
+            if (rest.at(cut).isLowSurrogate())
+                --cut;
+        }
+        QString part = rest.left(cut);
+        rest = rest.mid(cut + skip);
+        if (const std::optional<QString> language = openFenceLanguage(part)) {
+            part += part.endsWith(QLatin1Char('\n')) ? QStringLiteral("```") : QStringLiteral("\n```");
+            rest = QStringLiteral("```") + *language + QLatin1Char('\n') + rest;
+        }
+        parts.append(part);
+    }
+    if (!rest.isEmpty() || parts.isEmpty())
+        parts.append(rest);
+    return parts;
+}
+
+namespace {
+
+bool hasTransparentPixels(const QImage &image)
+{
+    if (!image.hasAlphaChannel())
+        return false;
+    const QImage argb = image.convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < argb.height(); ++y) {
+        const auto *line = reinterpret_cast<const QRgb *>(argb.constScanLine(y));
+        for (int x = 0; x < argb.width(); ++x)
+            if (qAlpha(line[x]) < 255)
+                return true;
+    }
+    return false;
+}
+
+QByteArray encodeImage(const QImage &image, const char *format, int quality)
+{
+    QByteArray out;
+    QBuffer buffer(&out);
+    buffer.open(QIODevice::WriteOnly);
+    if (!image.save(&buffer, format, quality))
+        return {};
+    return out;
+}
+
+} // namespace
+
+std::optional<AttachedFile> shrinkImage(const AttachedFile &file, qint64 limit)
+{
+    if (limit <= 0 || file.data.isEmpty())
+        return std::nullopt;
+    QBuffer input;
+    input.setData(file.data);
+    input.open(QIODevice::ReadOnly);
+    QImageReader reader(&input);
+    reader.setAutoTransform(true);
+    if (reader.supportsAnimation() && reader.imageCount() > 1)
+        return std::nullopt;
+    QImage image = reader.read();
+    if (image.isNull())
+        return std::nullopt;
+
+    const bool transparent = hasTransparentPixels(image);
+    const char *format = transparent ? "PNG" : "JPEG";
+    if (!transparent && image.hasAlphaChannel())
+        image = image.convertToFormat(QImage::Format_RGB32);
+    const QString baseName = [&] {
+        const qsizetype dot = file.fileName.lastIndexOf(QLatin1Char('.'));
+        const QString base = dot > 0 ? file.fileName.left(dot) : file.fileName;
+        return base.isEmpty() ? QStringLiteral("image") : base;
+    }();
+    const auto result = [&](const QByteArray &data) {
+        return AttachedFile { baseName + (transparent ? QStringLiteral(".png") : QStringLiteral(".jpg")),
+                              transparent ? QStringLiteral("image/png") : QStringLiteral("image/jpeg"), data };
+    };
+
+    // Full size first, at falling JPEG quality
+    if (!transparent) {
+        for (int quality : { 92, 85, 75 }) {
+            const QByteArray data = encodeImage(image, format, quality);
+            if (!data.isEmpty() && data.size() <= limit)
+                return result(data);
+        }
+    } else {
+        const QByteArray data = encodeImage(image, format, -1);
+        if (!data.isEmpty() && data.size() <= limit)
+            return result(data);
+    }
+    // Then smaller, each step 80% of the size before
+    QSize size = image.size();
+    for (int step = 0; step < 24; ++step) {
+        size = QSize(qMax(1, int(size.width() * 0.8)), qMax(1, int(size.height() * 0.8)));
+        if (size.width() < 64 && size.height() < 64)
+            break;
+        const QImage scaled = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        const QByteArray data = encodeImage(scaled, format, transparent ? -1 : 85);
+        if (!data.isEmpty() && data.size() <= limit)
+            return result(data);
+    }
+    return std::nullopt;
+}
+
 } // namespace FakeNitro
 
 using namespace FakeNitro;
@@ -391,13 +552,17 @@ void FakeNitroPlugin::start(PluginContext &ctx)
 {
     context = &ctx;
     applyPickerBypass();
+    applyQordBypasses();
 }
 
 void FakeNitroPlugin::stop()
 {
     if (context)
-        if (auto *expressions = context->expressions())
+        if (auto *expressions = context->expressions()) {
             expressions->setChatBypass(false, false);
+            expressions->setStreamQualityBypass(false);
+            expressions->setOversizeImageHandler(nullptr);
+        }
     context = nullptr;
 }
 
@@ -405,6 +570,23 @@ void FakeNitroPlugin::onSettingChanged(const QString &key)
 {
     if (key == QLatin1String("enableEmojiBypass") || key == QLatin1String("enableStickerBypass"))
         applyPickerBypass();
+    if (key == QLatin1String("enableStreamQualityBypass") || key == QLatin1String("shrinkLargeImages"))
+        applyQordBypasses();
+}
+
+// Go Live's quality choices, and images over the upload limit
+void FakeNitroPlugin::applyQordBypasses()
+{
+    if (!context)
+        return;
+    auto *expressions = context->expressions();
+    if (!expressions)
+        return;
+    expressions->setStreamQualityBypass(context->settings().boolValue(QStringLiteral("enableStreamQualityBypass")));
+    if (context->settings().boolValue(QStringLiteral("shrinkLargeImages")))
+        expressions->setOversizeImageHandler(&FakeNitro::shrinkImage);
+    else
+        expressions->setOversizeImageHandler(nullptr);
 }
 
 // Upstream's patches make Discord's emoji picker (for messages, not
@@ -431,6 +613,17 @@ bool FakeNitroPlugin::canUseEmote(const CustomEmojiInfo &emoji, Id accountId, Id
     auto *expressions = context ? context->expressions() : nullptr;
     if (!expressions)
         return true;
+
+    // isUnusableRoleSubscriptionEmoji(): Qord can't tell role subscription
+    // roles from others, so any emoji kept to roles you don't have counts,
+    // unless you are an administrator of its server
+    if (!emoji.managed && emoji.guildId && !emoji.roles.isEmpty()) {
+        const QList<Id> myRoles = expressions->ownRoles(accountId, emoji.guildId);
+        const bool hasRole = std::any_of(emoji.roles.begin(), emoji.roles.end(),
+                                         [&](Id role) { return myRoles.contains(role); });
+        if (!hasRole && !expressions->hasGuildPermission(accountId, emoji.guildId, Administrator))
+            return false;
+    }
 
     bool isUsableTwitchSubEmote = false;
     if (emoji.managed && emoji.guildId) {
@@ -475,7 +668,7 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
     const bool emojiBypass = s.boolValue(QStringLiteral("enableEmojiBypass"));
     const bool stickerBypass = s.boolValue(QStringLiteral("enableStickerBypass"));
     auto *expressions = context->expressions();
-    if ((!emojiBypass && !stickerBypass) || !expressions)
+    if (!expressions)
         return;
 
     bool hasBypass = false;
@@ -550,8 +743,33 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
     }
 
     if (hasBypass && !s.boolValue(QStringLiteral("disableEmbedPermissionCheck")) &&
-        !hasPermission(message.accountId, message.channelId, EmbedLinks) && !confirmWithoutEmbeds())
+        !hasPermission(message.accountId, message.channelId, EmbedLinks) && !confirmWithoutEmbeds()) {
         message.cancel = true;
+        return;
+    }
+
+    if (s.boolValue(QStringLiteral("splitLongMessages")))
+        splitLongMessage(message);
+}
+
+// Qord: Discord refuses a message over the length limit; send it as several
+void FakeNitroPlugin::splitLongMessage(OutgoingMessage &message)
+{
+    // Another plugin's split or deferred send is left alone
+    if (!message.followUps.isEmpty() || message.deferred)
+        return;
+    static const QString SilentPrefix = QStringLiteral("@silent ");
+    const bool silent = message.content.startsWith(SilentPrefix);
+    const QString text = silent ? message.content.mid(SilentPrefix.size()) : message.content;
+    const int limit = messageLengthLimit(context->expressions()->premiumType(message.accountId));
+    if (text.size() <= limit)
+        return;
+    QStringList parts = splitMessage(text, limit);
+    if (silent)
+        for (QString &part : parts)
+            part.prepend(SilentPrefix);
+    message.content = parts.takeFirst();
+    message.followUps = parts;
 }
 
 void FakeNitroPlugin::onBeforeEdit(OutgoingMessage &message)
@@ -636,12 +854,16 @@ void FakeNitroPlugin::transformIncomingContent(IncomingMessage &message)
             }
             if (!transformEmojis)
                 continue;
-            if (auto emoji = fakeEmojiFromLink(it->target, emojiName))
+            if (auto emoji = fakeEmojiFromLink(it->target, emojiName)) {
                 message.content.replace(it->start, it->length,
                                         QStringLiteral("<%1:%2:%3>")
                                                 .arg(emoji->animated ? QStringLiteral("a") : QString(),
                                                      markupName(emoji->name))
                                                 .arg(emoji->id));
+                message.emojiNotes.insert(emoji->id, QStringLiteral("This is a FakeNitro emoji and renders like a real "
+                                                                    "emoji only for you. Appears as a link to "
+                                                                    "non-plugin users."));
+            }
         }
     }
 
@@ -655,7 +877,9 @@ void FakeNitroPlugin::transformIncomingContent(IncomingMessage &message)
     }
     if (transformStickers)
         for (const FakeSticker &sticker : fakeStickers(original, gifUrls, compound, stickerName))
-            message.addedStickers.append({ sticker.id, sticker.name, sticker.formatType });
+            message.addedStickers.append({ sticker.id, sticker.name, sticker.formatType,
+                                           QStringLiteral("This is a FakeNitro sticker and renders like a real sticker "
+                                                          "only for you. Appears as a link to non-plugin users.") });
 
     for (int i = 0; i < message.embeds.size(); ++i)
         if (shouldIgnoreEmbed(message.embeds[i].type, message.embeds[i].url, original, compound, transformEmojis,

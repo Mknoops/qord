@@ -310,6 +310,9 @@ public:
     [[nodiscard]] QList<Id> ownRoles(Id accountId, Id guildId) const override;
     [[nodiscard]] bool hasChannelPermission(Id accountId, Id channelId, quint64 permission) const override;
     void setChatBypass(bool emojis, bool stickers) override;
+    [[nodiscard]] bool hasGuildPermission(Id accountId, Id guildId, quint64 permission) const override;
+    void setStreamQualityBypass(bool on) override;
+    void setOversizeImageHandler(ImageShrinker shrink) override;
 
 private:
     Acheron::Core::Session *session;

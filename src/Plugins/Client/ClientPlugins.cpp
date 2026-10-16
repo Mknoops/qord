@@ -1198,15 +1198,26 @@ std::optional<StickerInfo> SessionExpressions::sticker(Id accountId, Id stickerI
     if (!instance || !instance->emojis())
         return std::nullopt;
     const auto found = instance->emojis()->stickerById(Acheron::Core::Snowflake(stickerId));
-    if (!found)
+    if (!found) {
+        // Discord's own packs (once the sticker picker loaded them)
+        for (const auto &pack : instance->discord()->cachedStickerPacks())
+            for (const auto &sticker : pack.stickers)
+                if (quint64(sticker.id.get()) == stickerId) {
+                    StickerInfo info;
+                    info.id = stickerId;
+                    info.name = sticker.name.get();
+                    info.formatType = int(sticker.formatType.get());
+                    info.standard = true;
+                    return info;
+                }
         return std::nullopt;
+    }
     StickerInfo info;
     info.id = stickerId;
     info.name = found->name.get();
     info.formatType = int(found->formatType.get());
     info.guildId = found->guildId.hasValue() ? quint64(found->guildId.get()) : 0;
     info.available = !found->available.hasValue() || found->available.get();
-    info.standard = false; // only servers' stickers are known
     return info;
 }
 
@@ -1237,7 +1248,38 @@ bool SessionExpressions::hasChannelPermission(Id accountId, Id channelId, quint6
 
 void SessionExpressions::setChatBypass(bool emojis, bool stickers)
 {
-    Acheron::Core::expressionBypass() = { emojis, stickers };
+    Acheron::Core::expressionBypass().emojis = emojis;
+    Acheron::Core::expressionBypass().stickers = stickers;
+}
+
+bool SessionExpressions::hasGuildPermission(Id accountId, Id guildId, quint64 permission) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !guildId)
+        return false;
+    return instance->permissions()->hasGuildPermission(instance->accountId(), Acheron::Core::Snowflake(guildId),
+                                                       Acheron::Discord::Permission(permission));
+}
+
+void SessionExpressions::setStreamQualityBypass(bool on)
+{
+    Acheron::Core::expressionBypass().streamQuality = on;
+}
+
+void SessionExpressions::setOversizeImageHandler(ImageShrinker shrink)
+{
+    if (!shrink) {
+        Acheron::Core::expressionBypass().shrinkImage = nullptr;
+        return;
+    }
+    Acheron::Core::expressionBypass().shrinkImage =
+            [shrink](const QString &fileName, const QString &mimeType, const QByteArray &data,
+                     qint64 limit) -> std::optional<Acheron::Core::ShrunkImage> {
+        const std::optional<AttachedFile> out = shrink({ fileName, mimeType, data }, limit);
+        if (!out)
+            return std::nullopt;
+        return Acheron::Core::ShrunkImage { out->fileName, out->mimeType, out->data };
+    };
 }
 
 std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const

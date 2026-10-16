@@ -2,6 +2,7 @@
 
 #include "Core/Audio/VoiceManager.hpp"
 #include "Core/ClientInstance.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
 #include "Discord/Client.hpp"
@@ -387,7 +388,9 @@ void GoLiveUi::toggleSharing()
         return;
     }
     const auto me = instance->discord()->getMe();
-    const bool nitro = me.premiumType.hasValue() && me.premiumType.get() == Discord::PremiumType::TIER_2;
+    // FakeNitro's stream quality bypass offers what Nitro does
+    const bool nitro = (me.premiumType.hasValue() && me.premiumType.get() == Discord::PremiumType::TIER_2) ||
+                       Core::expressionBypass().streamQuality;
     int boostTier = 0;
     if (instance->voice()->currentGuildId().isValid())
         boostTier = int(instance->discord()->getGuildPremiumTier(instance->voice()->currentGuildId()));

@@ -3,6 +3,7 @@
 #include <QBuffer>
 #include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QFile>
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QFontMetrics>
@@ -18,6 +19,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Core/Emoji/EmojiManager.hpp"
 #include "Core/Theme/Icons.hpp"
 #include "Core/Theme/Manager.hpp"
 #include "UI/Chat/ChatLayout.hpp"
@@ -187,7 +189,7 @@ bool AttachmentPreviewPanel::appendAttachment(Core::PendingAttachment attachment
         showError(tr("You can attach up to %1 files per message").arg(MaxFiles));
         return false;
     }
-    if (attachment.size > maxFileSize) {
+    if (attachment.size > maxFileSize && !shrinkOversizeImage(attachment)) {
         showError(tr("%1 exceeds the %2 upload limit")
                           .arg(attachment.filename, ChatLayout::formatFileSize(maxFileSize)));
         return false;
@@ -196,6 +198,33 @@ bool AttachmentPreviewPanel::appendAttachment(Core::PendingAttachment attachment
     items.append(std::move(attachment));
     rebuildCards();
     emit attachmentsChanged();
+    return true;
+}
+
+// Qord: FakeNitro's handler makes an image too large to upload fit
+bool AttachmentPreviewPanel::shrinkOversizeImage(Core::PendingAttachment &attachment)
+{
+    const auto &shrink = Core::expressionBypass().shrinkImage;
+    // Larger files are not read into memory
+    constexpr qint64 MaxInput = 200 * 1024 * 1024;
+    if (!shrink || !attachment.mimeType.startsWith(QLatin1String("image/")) || attachment.size > MaxInput)
+        return false;
+    QByteArray data = attachment.data;
+    if (data.isEmpty() && !attachment.filePath.isEmpty()) {
+        QFile file(attachment.filePath);
+        if (!file.open(QIODevice::ReadOnly))
+            return false;
+        data = file.readAll();
+    }
+    const std::optional<Core::ShrunkImage> out = shrink(attachment.filename, attachment.mimeType, data, maxFileSize);
+    if (!out || out->data.isEmpty() || out->data.size() > maxFileSize)
+        return false;
+    attachment.filePath.clear();
+    attachment.data = out->data;
+    attachment.image = QImage::fromData(out->data);
+    attachment.filename = out->fileName;
+    attachment.mimeType = out->mimeType;
+    attachment.size = out->data.size();
     return true;
 }
 

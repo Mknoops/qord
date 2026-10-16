@@ -34,3 +34,8 @@ after doing that check, and say what was checked in `notes`.
 A manifest's `gaps` lists upstream behavior that the port does not cover yet
 (for example a UI surface Qord lacks). A plugin with open gaps can be Tested
 but never Complete.
+
+`notApplicable` lists upstream behavior aimed at a Discord feature Qord doesn't
+have at all, such as unlocking soundboard sounds when Qord has no soundboard. It's
+shown in the compatibility matrix and doesn't block Complete. Anything Qord has,
+or that the plugin could reasonably add, belongs in `gaps`.

@@ -5,10 +5,12 @@
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QPointer>
 #include <QUrl>
 
 #include <functional>
+#include <utility>
 
 #include "Discord/Client.hpp"
 #include "Emoji/EmojiManager.hpp"
@@ -94,9 +96,11 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         return userManager->getAuthorDisplayName(msg.author.get(), client->getGuildIdForChannel(msg.channelId));
     };
     QString content = resolveSystemMessageContent(msg, authorName);
+    QHash<Qord::Plugins::Id, QString> emojiNotes;
     msg.qordHiddenAttachments.clear();
     msg.qordHiddenEmbeds.clear();
     msg.qordAddedStickers.clear();
+    msg.qordAddedStickerNotes.clear();
     msg.qordAddedEmbeds.clear();
     // Plugins may change how received messages look to this user (never the
     // stored message); synthesized system texts are left alone
@@ -126,15 +130,23 @@ void MessageManager::parseMessageContent(Discord::Message &msg)
         content = in.content;
         msg.qordHiddenAttachments = in.hiddenAttachments;
         msg.qordHiddenEmbeds = in.hiddenEmbeds;
+        emojiNotes = in.emojiNotes;
         for (const auto &sticker : in.addedStickers) {
             Discord::StickerItem item;
             item.id = Snowflake(sticker.id);
             item.name = sticker.name;
             item.formatType = Discord::StickerFormatType(sticker.formatType);
             msg.qordAddedStickers.append(item);
+            msg.qordAddedStickerNotes.append(sticker.note);
         }
     }
     msg.parsedContentCached = inlineHtml(content, msg.channelId);
+    for (auto note = emojiNotes.cbegin(); note != emojiNotes.cend(); ++note) {
+        // The emoji's title (its :name:) gets the note after it
+        const QRegularExpression title(QStringLiteral(R"((<img src="[^"]*/emojis/%1\.[^"]*" alt="[^"]*" title="[^"]*))")
+                                               .arg(note.key()));
+        msg.parsedContentCached.replace(title, QStringLiteral("\\1 ") + note.value().toHtmlEscaped());
+    }
 
     // Plugins may annotate a message (MessageLogger: deleted, edit history)
     if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessageHistory)) {
@@ -724,7 +736,25 @@ void MessageManager::onMessageSendFailed(const QString &nonce, const QString &er
 {
     qCWarning(LogCore) << "Message send failed for nonce" << nonce << ":" << error;
 
+    pendingFollowUps.remove(nonce); // the rest of a split message is not sent
     emit messageErrored(nonce);
+}
+
+// Qord: the next part of a message a plugin split, once the one before it was sent
+void MessageManager::onMessageSent(const QString &nonce)
+{
+    const auto found = pendingFollowUps.constFind(nonce);
+    if (found == pendingFollowUps.cend())
+        return;
+    const Snowflake channelId = found->first;
+    QStringList rest = found->second;
+    pendingFollowUps.erase(found);
+    if (rest.isEmpty())
+        return;
+    const QString next = rest.takeFirst();
+    carriedFollowUps = rest;
+    (void)sendMessage(channelId, next, Snowflake::Invalid, {}, true, false);
+    carriedFollowUps.clear();
 }
 
 void MessageManager::addReaction(Snowflake channelId, Snowflake messageId, const QString &emoji, bool isBurst)
@@ -741,6 +771,7 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
                                                        std::function<void(bool sent)> deferredDone)
 {
     QString content = originalContent;
+    QStringList followUps = std::exchange(carriedFollowUps, {});
     auto *plugins = Qord::Plugins::PluginHost::instance();
     if (runPlugins && plugins && plugins->hasHook(Qord::Plugins::Hook::BeforeSend)) {
         Qord::Plugins::OutgoingMessage out;
@@ -753,17 +784,21 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
         if (out.cancel)
             return SendResult::Cancelled;
         content = out.content;
+        followUps = out.followUps;
         if (out.deferred) {
             // Sent once the plugin has the final text (auto-translate)
             QPointer<MessageManager> self(this);
-            out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser,
+            out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser, followUps,
                                    deferredDone](std::optional<QString> finalContent) {
                 bool sent = false;
                 if (self && finalContent && finalContent->trimmed().isEmpty() && attachments.isEmpty())
                     sent = true;
-                else if (self && finalContent)
+                else if (self && finalContent) {
+                    self->carriedFollowUps = followUps;
                     sent = self->sendMessage(channelId, *finalContent, replyToMessageId, attachments,
                                              mentionRepliedUser, false) == SendResult::Sent;
+                    self->carriedFollowUps.clear();
+                }
                 if (deferredDone)
                     deferredDone(sent);
             });
@@ -855,12 +890,15 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
         }
     }
 
+    if (!followUps.isEmpty())
+        pendingFollowUps.insert(nonce, { channelId, followUps });
     client->sendMessage(channelId, content, nonce, replyToMessageId, outgoing, mentionRepliedUser, flags);
     return SendResult::Sent;
 }
 
 void MessageManager::cancelSend(Snowflake channelId, const QString &nonce)
 {
+    pendingFollowUps.remove(nonce);
     if (!client->cancelMessageSend(nonce))
         return;
 

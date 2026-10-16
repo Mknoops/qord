@@ -376,6 +376,7 @@ std::optional<HitRegion> hitTest(const ResolvedLayout &resolved, const QPoint &m
 
 int hitTestCharIndex(const ResolvedLayout &resolved, const QPoint &viewportPos);
 QString getLinkAt(const ResolvedLayout &resolved, const QPoint &mousePos);
+QString getToolTipAt(const ResolvedLayout &resolved, const QPoint &mousePos);
 std::optional<QRect> editedMarkerRectAt(const ResolvedLayout &resolved, const QPoint &mousePos);
 int hitTestCharIndex(const QAbstractItemView *view, const QModelIndex &index, const QPoint &viewportPos);
 

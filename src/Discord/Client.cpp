@@ -871,7 +871,9 @@ void Client::sendMessage(Snowflake channelId, const QString &content, const QStr
                                  if (!response.success) {
                                      qCWarning(LogDiscord) << "Failed to send message:" << "HTTP status" << response.statusCode;
                                      emit messageSendFailed(nonce, response.error);
+                                     return;
                                  }
+                                 emit messageSent(nonce);
                              });
         };
         state->onFailed = [this, nonce](const QString &error) {
@@ -897,6 +899,7 @@ void Client::sendMessage(Snowflake channelId, const QString &content, const QStr
                          }
 
                          qCInfo(LogDiscord) << "Message sent successfully to channel" << channelId;
+                         emit messageSent(nonce);
                      });
 }
 

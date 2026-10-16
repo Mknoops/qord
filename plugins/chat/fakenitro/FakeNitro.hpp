@@ -17,6 +17,7 @@ class ExpressionService;
 namespace FakeNitro {
 
 // Discord permission bits FakeNitro checks
+constexpr quint64 Administrator = quint64(1) << 3;
 constexpr quint64 EmbedLinks = quint64(1) << 14;
 constexpr quint64 AttachFiles = quint64(1) << 15;
 constexpr quint64 UseExternalEmojis = quint64(1) << 18;
@@ -85,6 +86,17 @@ QList<ContentLink> topLevelLinks(const QString &content);
 // Whether the message is anything but a single link (more than one AST node)
 bool isCompound(const QString &content, const QList<ContentLink> &links);
 
+// Qord: a message too long to send cut into messages of at most `limit`
+// characters, at a line break or else a space when one is in the second
+// half; a code block cut in two is closed and reopened (with its language)
+QStringList splitMessage(const QString &content, int limit);
+// Discord's message length limit: 4000 with Nitro, otherwise 2000
+int messageLengthLimit(int premiumType);
+// Qord: an image too large to upload made to fit `limit` bytes: re-encoded
+// (JPEG, or PNG when it has transparent pixels), then scaled down step by
+// step. Nothing for animated images, which would lose their animation.
+std::optional<AttachedFile> shrinkImage(const AttachedFile &file, qint64 limit);
+
 } // namespace FakeNitro
 
 class FakeNitroPlugin : public Plugin
@@ -112,6 +124,8 @@ private:
     [[nodiscard]] bool hasPermission(Id accountId, Id channelId, quint64 permission) const;
     [[nodiscard]] bool confirmWithoutEmbeds();
     void applyPickerBypass();
+    void applyQordBypasses();
+    void splitLongMessage(OutgoingMessage &message);
     void sendAnimatedSticker(const StickerInfo &sticker, const QString &link);
 
     PluginContext *context = nullptr;

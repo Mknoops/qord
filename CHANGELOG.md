@@ -5,6 +5,21 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ## [Unreleased]
 
+### Added
+
+- FakeNitro splits a message that's over Discord's length limit into several, and
+  closes and reopens a code block cut in two. Turn it off with "Split long messages".
+- FakeNitro shrinks an image that's over your upload limit until it fits, instead of
+  refusing it. Turn it off with "Shrink large images".
+- FakeNitro's stream quality bypass now works: Go Live offers up to 4K at 60 FPS.
+- Hovering a custom emoji in a message shows its name. FakeNitro emojis and
+  stickers also say that they're FakeNitro ones.
+
+### Changed
+
+- FakeNitro sends an emoji kept to roles you don't have as a link, so other people
+  see the emoji rather than its name.
+
 ### Fixed
 
 - Behind a system or environment proxy, avatars, images and media now load for an

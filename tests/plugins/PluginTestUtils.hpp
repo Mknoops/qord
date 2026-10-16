@@ -559,6 +559,9 @@ public:
     QList<Id> ownRoles(Id, Id guildId) const override { return roles.value(guildId); }
     bool hasChannelPermission(Id, Id, quint64 permission) const override { return !(denied & permission); }
     void setChatBypass(bool emojis, bool stickers) override { bypass = { emojis, stickers }; }
+    bool hasGuildPermission(Id, Id guildId, quint64) const override { return adminOf.contains(guildId); }
+    void setStreamQualityBypass(bool on) override { streamQuality = on; }
+    void setOversizeImageHandler(ImageShrinker shrink) override { shrinker = std::move(shrink); }
 
     int premium = 0;
     QHash<Id, CustomEmojiInfo> emojis;
@@ -566,6 +569,9 @@ public:
     QHash<Id, QList<Id>> roles;
     quint64 denied = 0;
     std::pair<bool, bool> bypass { false, false };
+    QList<Id> adminOf;
+    bool streamQuality = false;
+    ImageShrinker shrinker;
 };
 
 class FakeGuilds : public GuildDirectory

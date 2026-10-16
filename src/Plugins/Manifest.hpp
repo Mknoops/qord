@@ -36,6 +36,8 @@ struct PluginManifest
     QList<PluginCommand> commands;
     QString notes;
     QStringList gaps;
+    // Upstream behavior aimed at a Discord feature Qord doesn't have at all
+    QStringList notApplicable;
 
     // Parses and validates; on failure returns false and fills `error`.
     static bool parse(const QByteArray &json, PluginManifest &out, QString &error);

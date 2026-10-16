@@ -137,6 +137,9 @@ bool PluginManifest::parse(const QByteArray &json, PluginManifest &out, QString 
         return false;
     if (obj.contains(QLatin1String("gaps")) && !readStringList(obj, "gaps", m.gaps, error))
         return false;
+    if (obj.contains(QLatin1String("notApplicable")) &&
+        !readStringList(obj, "notApplicable", m.notApplicable, error))
+        return false;
     if (m.authors.isEmpty()) {
         error = QStringLiteral("authors must credit the original plugin authors");
         return false;

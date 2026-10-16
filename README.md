@@ -179,7 +179,7 @@ These 64 native plugins are available now (out of the 369 in the pinned Equicord
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
 | **DecodeBase64** | "Decode Base64" and "Copy Decoded" in a message's menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
-| **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality streaming | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
+| **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality Go Live; splits long messages and shrinks large images | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
 | **FollowVoiceUser** | "Follow User" on a friend joins whichever voice channel they move to | read_voice_states, add_ui_elements, read_relationships |
 | **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |

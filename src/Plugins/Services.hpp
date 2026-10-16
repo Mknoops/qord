@@ -411,6 +411,22 @@ public:
     // Let the emoji picker and autocomplete (for messages, not reactions)
     // and the sticker picker offer emojis and stickers Discord would lock
     virtual void setChatBypass(bool emojis, bool stickers) = 0;
+    // Whether you have a permission (Discord's bit) server-wide;
+    // Administrator counts as every permission
+    [[nodiscard]] virtual bool hasGuildPermission(Id accountId, Id guildId, quint64 permission) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        Q_UNUSED(permission);
+        return false;
+    }
+    // Let Go Live offer every resolution and frame rate, as with Nitro
+    virtual void setStreamQualityBypass(bool on) { Q_UNUSED(on); }
+    // An image attached over the upload limit is passed to `shrink`, which
+    // returns a copy that fits or nothing (then it is refused as before).
+    // An empty function stops it.
+    using ImageShrinker = std::function<std::optional<AttachedFile>(const AttachedFile &file, qint64 limit)>;
+    virtual void setOversizeImageHandler(ImageShrinker shrink) { Q_UNUSED(shrink); }
 };
 
 class ReactionService

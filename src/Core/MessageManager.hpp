@@ -94,6 +94,7 @@ public slots:
     void onMessageUpdated(const Discord::Message &message);
     void onMessageDeleted(const Discord::MessageDelete &event);
     void onMessageSendFailed(const QString &nonce, const QString &error);
+    void onMessageSent(const QString &nonce);
     void onReactionAdd(const Discord::MessageReactionAdd &event);
     void onReactionAddMany(const Discord::MessageReactionAddMany &event);
     void onReactionRemove(const Discord::MessageReactionRemove &event);
@@ -136,6 +137,9 @@ public:
 private:
 
     QCache<Snowflake, Discord::Message> messageCache;
+    // Qord: the parts still to send after a message, by its nonce
+    QHash<QString, std::pair<Snowflake, QStringList>> pendingFollowUps;
+    QStringList carriedFollowUps; // handed to the next sendMessage() call
     QHash<Snowflake, Discord::Message> linkedMessages; // Qord: fetched for links
     std::function<Snowflake(Snowflake)> channelParentResolver;
     QHash<Snowflake, MessageSegments> segments;

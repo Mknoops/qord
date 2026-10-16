@@ -702,8 +702,13 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         // Qord: plus stickers display plugins add (FakeNitro)
         QList<Discord::StickerItem> stickers = visible.stickerItems.hasValue() ? *visible.stickerItems
                                                                                : QList<Discord::StickerItem>();
-        if (&visible == &msg)
+        QStringList notes;
+        for (qsizetype i = 0; i < stickers.size(); ++i)
+            notes.append(QString());
+        if (&visible == &msg) {
             stickers += msg.qordAddedStickers;
+            notes += msg.qordAddedStickerNotes;
+        }
         if (stickers.isEmpty())
             return QVariant();
 
@@ -714,6 +719,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             StickerData data;
             data.id = sticker.id;
             data.name = sticker.name;
+            data.note = notes.value(result.size());
             data.stillUrl = Discord::Cdn::stickerStill(sticker.id.get(), sticker.formatType.get(), assetPx);
             data.animatedUrl = Discord::Cdn::stickerAnimated(sticker.id.get(), sticker.formatType.get(), assetPx);
             if (data.hasRasterStill())

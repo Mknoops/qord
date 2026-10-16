@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QFlags>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -42,12 +43,21 @@ struct StickerInfo
     bool standard = false; // one of Discord's own sticker packs
 };
 
+// A file in the message box, waiting to be sent
+struct AttachedFile
+{
+    QString fileName;
+    QString mimeType;
+    QByteArray data;
+};
+
 // A sticker to show on a message.
 struct StickerRef
 {
     Id id = 0;
     QString name;
     int formatType = 1;
+    QString note; // shown under the name when hovered
 };
 
 struct OutgoingMessage
@@ -68,6 +78,9 @@ struct OutgoingMessage
     // gives up and leaves the text in the box. Only one hook may defer.
     using DeferredDone = std::function<void(std::optional<QString> content)>;
     std::function<void(const QString &content, DeferredDone done)> deferred;
+    // New messages only: more messages to send after this one, in order,
+    // each once the one before it was sent (FakeNitro's long messages)
+    QStringList followUps;
 };
 
 // A received message about to be rendered. Hooks may rewrite `content`; the
@@ -99,6 +112,8 @@ struct IncomingMessage
     QList<int> hiddenAttachments;
     QList<int> hiddenEmbeds;
     QList<StickerRef> addedStickers;
+    // Shown after a custom emoji's name when it is hovered, by emoji id
+    QHash<Id, QString> emojiNotes;
 };
 
 // Context for deciding whether replying to a message pings its author.

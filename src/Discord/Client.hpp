@@ -250,6 +250,8 @@ public:
         QList<Sticker> stickers;
     };
     void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
+    // The packs once fetched, else empty
+    [[nodiscard]] QList<StickerPack> cachedStickerPacks() const { return stickerPacks.value_or(QList<StickerPack>()); }
     // Qord: GET /users/{id} (ValidUser); `user` is set on success
     void fetchUser(Snowflake userId, std::function<void(const HttpResponse &response, const std::optional<User> &user)> callback);
     // Qord: GET /users/@me/affinities/v2/users, the people Discord ranks you
@@ -414,6 +416,8 @@ signals:
     void presencesReplaced(const QList<Presence> &presences);
     void sessionsReplaced(const QList<UserSession> &sessions);
     void messageSendFailed(const QString &nonce, const QString &error);
+    // Qord: Discord accepted the message
+    void messageSent(const QString &nonce);
     void guildLeaveFailed(Core::Snowflake guildId, const QString &error);
     void attachmentUploadProgress(const QString &nonce, int fileIndex, qint64 sent, qint64 total);
 

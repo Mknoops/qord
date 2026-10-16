@@ -55,7 +55,8 @@ Qt Widgets (so they can be tested headless); a settings widget goes in `UI_SOURC
   "dependencies": [],
   "commands": [],
   "notes": "How it behaves in Qord.",
-  "gaps": ["What doesn't match upstream yet."]
+  "gaps": ["What doesn't match upstream yet."],
+  "notApplicable": ["Upstream behavior for a Discord feature Qord doesn't have at all."]
 }
 ```
 
@@ -66,6 +67,10 @@ Qt Widgets (so they can be tested headless); a settings widget goes in `UI_SOURC
 - `notes` and `gaps` end up in the
   [compatibility matrix](equicord-plugin-compatibility.md). Be honest in `gaps`: a
   plugin with gaps stays *Tested* and never becomes *Complete* until they're gone.
+- `notApplicable` is narrower: upstream behavior aimed at a Discord feature Qord
+  doesn't have at all (FakeNitro unlocking soundboard sounds, when Qord has no
+  soundboard). It's listed in the matrix but doesn't hold the plugin back. If Qord
+  has the feature, or the plugin could reasonably add what's missing, it's a gap.
 - The host refuses to start a plugin whose `hooks()` differ from the manifest, and
   `tools/check_equicord_plugins.py` rejects unknown hooks or permissions.
 

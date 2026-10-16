@@ -367,6 +367,13 @@ def validate_manifest(path: Path, m, inventory_by_name: dict[str, dict]) -> list
             if not values or s["default"] not in values:
                 issues.append(Issue("manifest", f"{rel}: choice setting {s['key']} needs choices containing its default"))
 
+    for field in ("gaps", "notApplicable"):
+        value = m.get(field, [])
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            issues.append(Issue("manifest", f"{rel}: {field} must be a list of strings"))
+        elif field == "notApplicable" and any(len(v.strip()) < 20 for v in value):
+            issues.append(Issue("manifest", f"{rel}: each notApplicable entry must say what Qord lacks (at least 20 characters)"))
+
     name = m.get("equicordName")
     entry = inventory_by_name.get(name)
     if entry is None:
@@ -570,6 +577,9 @@ def derive_status(rec: PluginRecord, errors: list[Issue], warnings: list[Issue],
     gaps = rec.manifest.get("gaps") or []
     if gaps:
         notes.append("gaps: " + "; ".join(gaps))
+    not_applicable = rec.manifest.get("notApplicable") or []
+    if not_applicable:
+        notes.append("not applicable: " + "; ".join(not_applicable))
     if rec.manifest.get("notes"):
         notes.insert(0, rec.manifest["notes"])
     rec.status = status

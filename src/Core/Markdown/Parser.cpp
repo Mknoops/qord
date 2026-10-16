@@ -232,7 +232,8 @@ QString Parser::toHtmlInternal(const QList<AstNode> &nodes, bool jumboEmoji)
             int emojiSize = jumboEmoji ? JumboEmojiPx : InlineEmojiPx;
             int cdnSize = jumboEmoji ? JumboEmojiCdnPx : InlineEmojiCdnPx;
             QString url = Discord::Cdn::emoji(id, cdnSize, animated).toString();
-            result += QString(R"(<img src="%1" alt=":%2:" width="%3" height="%3" style="vertical-align: middle;" />)")
+            // Qord: the title is shown when hovered
+            result += QString(R"(<img src="%1" alt=":%2:" title=":%2:" width="%3" height="%3" style="vertical-align: middle;" />)")
                               .arg(url.toHtmlEscaped())
                               .arg(name.toHtmlEscaped())
                               .arg(emojiSize);

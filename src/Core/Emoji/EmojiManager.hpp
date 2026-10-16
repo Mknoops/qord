@@ -9,6 +9,7 @@
 #include <QTimer>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 
 #include "Core/Emoji/EmojiMatch.hpp"
@@ -30,11 +31,24 @@ struct FrecencyUserSettings;
 
 namespace Core {
 
-// Qord: FakeNitro lets the pickers offer emojis and stickers Discord would lock
+// Qord: an image made small enough to upload
+struct ShrunkImage
+{
+    QString fileName;
+    QString mimeType;
+    QByteArray data;
+};
+
+// Qord: FakeNitro lets the pickers offer emojis and stickers Discord would
+// lock, Go Live offer Nitro qualities, and shrinks images too large to upload
 struct ExpressionBypass
 {
     bool emojis = false;
     bool stickers = false;
+    bool streamQuality = false;
+    std::function<std::optional<ShrunkImage>(const QString &fileName, const QString &mimeType,
+                                             const QByteArray &data, qint64 limit)>
+            shrinkImage;
 };
 inline ExpressionBypass &expressionBypass()
 {

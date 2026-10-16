@@ -1339,6 +1339,7 @@ struct Message : Core::JsonUtils::JsonObject
     QList<int> qordHiddenAttachments;
     QList<int> qordHiddenEmbeds;
     QList<StickerItem> qordAddedStickers;
+    QStringList qordAddedStickerNotes; // one per added sticker, shown when hovered
     QList<Embed> qordAddedEmbeds; // after the message's own (MessageLinkEmbeds)
     bool qordHighlighted = false; // a plugin treats it as mentioning you (KeywordNotify)
 

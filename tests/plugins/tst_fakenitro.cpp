@@ -679,6 +679,21 @@ private slots:
         QVERIFY(!h.expressions.shrinkVideos);
     }
 
+    void fakeReactionsNeedTheEmojiBypass()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(!h.expressions.fakeReactions); // off by default
+        h.host->settings(h.id)->setValue(QStringLiteral("fakeReactions"), true);
+        QVERIFY(h.expressions.fakeReactions);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableEmojiBypass"), false);
+        QVERIFY(!h.expressions.fakeReactions);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableEmojiBypass"), true);
+        QVERIFY(h.expressions.fakeReactions);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.fakeReactions);
+    }
+
     void shrinksAnimatedGifs()
     {
         if (!QImageWriter::supportedImageFormats().contains("gif") && !QImageReader::supportedImageFormats().contains("gif"))

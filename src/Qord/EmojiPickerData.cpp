@@ -41,7 +41,7 @@ std::optional<EmojiMatch> EmojiManager::matchForKey(const QString &key, Snowflak
     usability.selfId = client->getMe().id.get();
     usability.premium = client->isPremium();
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
-    usability.bypass = !forReaction && expressionBypass().emojis;
+    usability.bypass = forReaction ? expressionBypass().reactions : expressionBypass().emojis;
     bool numeric = false;
     key.toULongLong(&numeric);
     if (numeric) {
@@ -61,6 +61,19 @@ std::optional<EmojiMatch> EmojiManager::matchForKey(const QString &key, Snowflak
     return std::nullopt;
 }
 
+bool EmojiManager::canReactWith(Snowflake emojiId, Snowflake channelId)
+{
+    UsabilityContext usability;
+    usability.channelId = channelId;
+    usability.selfId = client->getMe().id.get();
+    usability.premium = client->isPremium();
+    usability.channelGuildId = client->getGuildIdForChannel(channelId);
+    for (const CustomEmoji &custom : customEmojis())
+        if (custom.emoji.id.get() == emojiId)
+            return isUsable(custom, usability);
+    return false;
+}
+
 QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channelId, bool forReaction)
 {
     UsabilityContext usability;
@@ -68,7 +81,7 @@ QList<EmojiManager::PickerSection> EmojiManager::pickerSections(Snowflake channe
     usability.selfId = client->getMe().id.get();
     usability.premium = client->isPremium();
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
-    usability.bypass = !forReaction && expressionBypass().emojis;
+    usability.bypass = forReaction ? expressionBypass().reactions : expressionBypass().emojis;
 
     const auto customMatchOf = [](const CustomEmoji &custom) {
         return customMatch(custom.emoji.id.get(), custom.originalName, custom.disambiguatedName,

@@ -36,6 +36,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   shows the DeepL key only for DeepL and the Kagi session only for Kagi.
 - A plugin's page says so when an update asks for a permission that hasn't been
   allowed yet.
+- FakeNitro "Fake reactions" (off by default): the reaction picker offers every
+  emoji, and reacting with one you can't use replies to the message with it.
 
 ### Changed
 

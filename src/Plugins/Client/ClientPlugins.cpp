@@ -1273,6 +1273,11 @@ void SessionExpressions::setVideoShrinking(bool on)
     Acheron::Core::expressionBypass().shrinkVideos = on;
 }
 
+void SessionExpressions::setFakeReactions(bool on)
+{
+    Acheron::Core::expressionBypass().reactions = on;
+}
+
 void SessionExpressions::setLongMessageSplitter(SplitCounter count)
 {
     Acheron::Core::expressionBypass().splitCount = std::move(count);

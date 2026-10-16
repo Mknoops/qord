@@ -297,6 +297,13 @@
       "default": true,
       "label": "Shrink large videos",
       "description": "Qord extra: a video over your upload limit is re-encoded (MP4, H.264 and AAC) at a size and quality that fit, instead of being refused. Needs a Qord build with video support."
+    },
+    {
+      "key": "fakeReactions",
+      "type": "bool",
+      "default": false,
+      "label": "Fake reactions",
+      "description": "Qord extra: the reaction picker offers every emoji the message picker does, and reacting with one you can't use replies to the message with it instead (without pinging). Needs \"Emoji bypass\"."
     }
   ],
   "enabledByDefault": false,

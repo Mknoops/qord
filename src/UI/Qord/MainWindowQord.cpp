@@ -694,8 +694,15 @@ void MainWindow::setupQordFeatures()
             return;
         disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
         connect(emojiPicker, &EmojiPicker::emojiPicked, this, [this, channelId, messageId](const Core::EmojiMatch &match) {
-            if (currentInstance)
-                currentInstance->messages()->addReaction(channelId, messageId, EmojiPicker::reactionKey(match), false);
+            if (!currentInstance)
+                return;
+            // FakeNitro: an emoji you can't react with goes as a reply, without a ping
+            if (match.isCustom() && Core::expressionBypass().reactions
+                && !currentInstance->emojis()->canReactWith(match.customId, channelId)) {
+                currentInstance->messages()->sendMessage(channelId, match.insertText, messageId, {}, false);
+                return;
+            }
+            currentInstance->messages()->addReaction(channelId, messageId, EmojiPicker::reactionKey(match), false);
         });
         emojiPicker->open(currentInstance, channelId, true, chatView);
         emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker

@@ -565,6 +565,7 @@ public:
     void setOversizeImageHandler(ImageShrinker shrink) override { shrinker = std::move(shrink); }
     void setLongMessageSplitter(SplitCounter count) override { splitter = std::move(count); }
     void setVideoShrinking(bool on) override { shrinkVideos = on; }
+    void setFakeReactions(bool on) override { fakeReactions = on; }
 
     int premium = 0;
     QHash<Id, CustomEmojiInfo> emojis;
@@ -577,6 +578,7 @@ public:
     ImageShrinker shrinker;
     SplitCounter splitter;
     bool shrinkVideos = false;
+    bool fakeReactions = false;
 };
 
 class FakeGuilds : public GuildDirectory

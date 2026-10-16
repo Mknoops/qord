@@ -49,6 +49,9 @@ struct ExpressionBypass
     // Videos over the upload limit are re-encoded to fit (where Qord has the
     // video encoders)
     bool shrinkVideos = false;
+    // The reaction picker offers what the message picker does; an emoji you
+    // can't react with is sent as a reply instead (FakeNitro)
+    bool reactions = false;
     // How many messages a too-long message is sent as; unset when it isn't split
     std::function<int(const QString &text, int limit)> splitCount;
     std::function<std::optional<ShrunkImage>(const QString &fileName, const QString &mimeType,
@@ -90,6 +93,8 @@ public:
     // Qord: an emoji by frecency key (custom emoji id or Unicode name), if
     // you can use it here
     [[nodiscard]] std::optional<EmojiMatch> matchForKey(const QString &key, Snowflake channelId, bool forReaction);
+    // Qord: whether Discord takes this custom emoji as your reaction here
+    [[nodiscard]] bool canReactWith(Snowflake emojiId, Snowflake channelId);
     // Qord: your Discord favorite emojis (same keys), in Discord's order
     [[nodiscard]] const QStringList &favoriteEmojis() const { return favorites_; }
     // Qord: an emoji as plugins see it

@@ -628,6 +628,7 @@ void FakeNitroPlugin::stop()
             expressions->setStreamQualityBypass(false);
             expressions->setOversizeImageHandler(nullptr);
             expressions->setVideoShrinking(false);
+            expressions->setFakeReactions(false);
             expressions->setLongMessageSplitter(nullptr);
         }
     context = nullptr;
@@ -638,7 +639,8 @@ void FakeNitroPlugin::onSettingChanged(const QString &key)
     if (key == QLatin1String("enableEmojiBypass") || key == QLatin1String("enableStickerBypass"))
         applyPickerBypass();
     if (key == QLatin1String("enableStreamQualityBypass") || key == QLatin1String("shrinkLargeImages") ||
-        key == QLatin1String("shrinkLargeVideos") || key == QLatin1String("splitLongMessages"))
+        key == QLatin1String("shrinkLargeVideos") || key == QLatin1String("splitLongMessages") ||
+        key == QLatin1String("fakeReactions") || key == QLatin1String("enableEmojiBypass"))
         applyQordBypasses();
 }
 
@@ -656,6 +658,9 @@ void FakeNitroPlugin::applyQordBypasses()
     else
         expressions->setOversizeImageHandler(nullptr);
     expressions->setVideoShrinking(context->settings().boolValue(QStringLiteral("shrinkLargeVideos")));
+    // A fake reaction is a reply with the emoji, which needs the emoji bypass to go as a link
+    expressions->setFakeReactions(context->settings().boolValue(QStringLiteral("fakeReactions"))
+                                  && context->settings().boolValue(QStringLiteral("enableEmojiBypass")));
     if (context->settings().boolValue(QStringLiteral("splitLongMessages")))
         expressions->setLongMessageSplitter(
                 [](const QString &text, int limit) { return int(FakeNitro::splitMessage(text, limit).size()); });

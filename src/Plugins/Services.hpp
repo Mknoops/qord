@@ -447,6 +447,9 @@ public:
     // Re-encode videos over the upload limit so they fit, where the client
     // can (it needs ffmpeg's encoders)
     virtual void setVideoShrinking(bool on) { Q_UNUSED(on); }
+    // The reaction picker offers the emojis the message picker does; one you
+    // can't react with is sent as a reply to the message instead
+    virtual void setFakeReactions(bool on) { Q_UNUSED(on); }
 };
 
 class ReactionService

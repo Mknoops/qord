@@ -316,6 +316,7 @@ public:
     void setOversizeImageHandler(ImageShrinker shrink) override;
     void setLongMessageSplitter(SplitCounter count) override;
     void setVideoShrinking(bool on) override;
+    void setFakeReactions(bool on) override;
 
 private:
     Acheron::Core::Session *session;

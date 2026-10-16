@@ -295,7 +295,7 @@ QList<EmojiMatch> EmojiManager::search(const QString &query, Snowflake channelId
     usability.selfId = client->getMe().id.get();
     usability.premium = client->isPremium();
     usability.channelGuildId = client->getGuildIdForChannel(channelId);
-    usability.bypass = !forReaction && expressionBypass().emojis; // Qord
+    usability.bypass = forReaction ? expressionBypass().reactions : expressionBypass().emojis; // Qord
 
     struct Scored
     {

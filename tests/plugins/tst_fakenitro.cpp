@@ -959,6 +959,72 @@ private slots:
         QCOMPARE(reader.nextImageDelay(), 50);
     }
 
+    // Qord: frames after the first are drawn as what changed, and frames like
+    // the one before are merged; the decoded animation is unchanged
+    void gifFramesAreDeltas()
+    {
+        if (!QImageReader::supportedImageFormats().contains("gif"))
+            QSKIP("Qt's GIF reader is not available");
+        // A square moving over a transparent background, then over a still
+        // opaque one; the fourth frame repeats the third
+        QList<QImage> frames;
+        for (int f = 0; f < 6; ++f) {
+            QImage frame(64, 48, QImage::Format_ARGB32);
+            frame.fill(f < 2 ? QColor(Qt::transparent) : QColor(30, 60, 200));
+            const int at = f == 3 ? 2 * 8 : f * 8;
+            for (int y = 10; y < 20; ++y)
+                for (int x = at; x < at + 10; ++x)
+                    frame.setPixel(x, y, qRgba(250, 200, 10, 255));
+            frames.append(frame);
+        }
+        const QByteArray gif = ApngToGif::encodeGif(frames, { 100, 100, 100, 100, 100, 100 });
+        QBuffer in(const_cast<QByteArray *>(&gif));
+        in.open(QIODevice::ReadOnly);
+        QImageReader reader(&in, "gif");
+        QList<QImage> decoded;
+        QList<int> delays;
+        while (reader.canRead()) {
+            const QImage image = reader.read();
+            if (image.isNull())
+                break;
+            delays.append(reader.nextImageDelay());
+            decoded.append(image.convertToFormat(QImage::Format_ARGB32));
+        }
+        QCOMPARE(decoded.size(), 5); // the repeat merged
+        QCOMPARE(delays[2], 200);
+        const QList<int> sources = { 0, 1, 2, 4, 5 };
+        for (int i = 0; i < decoded.size(); ++i) {
+            const QImage &want = frames[sources[i]];
+            for (int y = 0; y < 48; y += 3)
+                for (int x = 0; x < 64; x += 3) {
+                    const QRgb a = want.pixel(x, y);
+                    const QRgb b = decoded[i].pixel(x, y);
+                    QVERIFY2((qAlpha(a) >= 128) == (qAlpha(b) >= 128), qPrintable(QStringLiteral("frame %1 at %2,%3").arg(i).arg(x).arg(y)));
+                    if (qAlpha(a) >= 128)
+                        QVERIFY(qAbs(qRed(a) - qRed(b)) <= 8 && qAbs(qBlue(a) - qBlue(b)) <= 8);
+                }
+        }
+        // Mostly-still frames come out far smaller than whole ones would
+        QList<QImage> still;
+        quint32 seed = 9;
+        QImage background(160, 120, QImage::Format_ARGB32);
+        for (int y = 0; y < 120; ++y)
+            for (int x = 0; x < 160; ++x) {
+                seed = seed * 1664525u + 1013904223u;
+                background.setPixel(x, y, seed | 0xFF000000u);
+            }
+        for (int f = 0; f < 10; ++f) {
+            QImage frame = background;
+            for (int y = 50; y < 60; ++y)
+                for (int x = f * 10; x < f * 10 + 10; ++x)
+                    frame.setPixel(x, y, qRgb(255, 255, 255));
+            still.append(frame);
+        }
+        const QByteArray deltas = ApngToGif::encodeGif(still, QList<double>(10, 80));
+        const QByteArray one = ApngToGif::encodeGif({ still.first() }, { 80 });
+        QVERIFY2(deltas.size() < one.size() * 2, qPrintable(QString::number(deltas.size())));
+    }
+
     void gifKeepsTransparency()
     {
         QImage frame(4, 4, QImage::Format_ARGB32);

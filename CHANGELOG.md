@@ -44,6 +44,9 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   collects up to three (shown above the box, each removable) to send together.
   FakeNitro handles each of them, and sends an animated sticker you can't use as a
   GIF with the message rather than stopping the send.
+- FakeNitro's GIFs (shrunk GIFs and animated stickers) are smaller and much faster
+  to make: frames are encoded in parallel, each frame after the first stores only
+  what changed, repeated frames are merged, and colour tables fit the palette.
 
 ### Changed
 

@@ -540,11 +540,7 @@ std::optional<AttachedFile> shrinkAnimation(QImageReader &reader, const Attached
         const QSize size(qMax(1, int(original.width() * scale)), qMax(1, int(original.height() * scale)));
         if (size.width() < 32 && size.height() < 32)
             break;
-        QList<QImage> scaled;
-        scaled.reserve(frames.size());
-        for (const QImage &frame : std::as_const(frames))
-            scaled.append(size == original ? frame
-                                           : frame.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+        const QList<QImage> scaled = ApngToGif::scaledFrames(frames, size);
         const QByteArray gif = ApngToGif::encodeGif(scaled, delays);
         if (!gif.isEmpty() && gif.size() <= limit)
             return AttachedFile { name, QStringLiteral("image/gif"), gif };

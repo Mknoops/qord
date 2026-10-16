@@ -177,7 +177,7 @@ These 64 native plugins are available now (out of the 369 in the pinned Equicord
 | **CopyFileContents** | A copy button on text file previews | add_ui_elements, write_clipboard |
 | **CopyUserMention** | "Copy Mention" in the user context menu | add_ui_elements, write_clipboard |
 | **CopyUserURLs** | "Copy User URL" in the user context menu | add_ui_elements, write_clipboard |
-| **DecodeBase64** | "Decode Base64" and "Copy Decoded" in a message's menu | add_ui_elements, write_clipboard |
+| **DecodeBase64** | A hover-bar button that decodes or copies a message's Base64; also in its menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality Go Live; splits long messages and shrinks large images | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
@@ -226,7 +226,7 @@ These 64 native plugins are available now (out of the 369 in the pinned Equicord
 | **UserVoiceShow** | A speaker next to people in voice; click to open their channel, double-click to join | read_presences, read_voice_states, add_ui_elements |
 | **ValidUser** | Hover an "@unknown-user" mention to look the user up and show their name | fetch_users |
 | **ViewIcons** | Click avatars and banners to open them full size; "View Icon/Banner/Avatar" menu items | add_ui_elements |
-| **ViewRaw** | View and copy the raw content and JSON of messages, channels and servers | add_ui_elements, write_clipboard |
+| **ViewRaw** | View Raw for messages (hover-bar button), servers, channels, users and roles | add_ui_elements, write_clipboard, read_server_permissions |
 | **VolumeBooster** | User volume sliders go past 200% (up to 1,000%) | control_audio |
 | **WhoReacted** | Avatars of the people who reacted, in each reaction (click one for their profile) | read_reactions |
 | **WriteUpperCase** | Capitalises the first letter of each sentence | modify_outgoing_messages |

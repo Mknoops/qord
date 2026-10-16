@@ -36,6 +36,8 @@
 #include <vector>
 
 #include "Core/ClientInstance.hpp"
+#include "Plugins/PluginHost.hpp"
+#include "UI/Qord/PluginMenus.hpp"
 #include "Core/ImageManager.hpp"
 #include "Core/PermissionComputer.hpp"
 #include "Core/Theme/Icons.hpp"
@@ -1899,6 +1901,23 @@ void GuildRolesPage::showRoleMenu(Core::Snowflake roleId, const QPoint &globalPo
     if (modifiable)
         menu.addAction(tr("Duplicate Role"), this, [this, roleId]() { duplicateRole(roleId); });
     menu.addAction(tr("Copy Role ID"), this, [roleId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(roleId))); });
+    // Qord: plugin items (ViewRaw)
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && instance &&
+                                                            host->hasHook(Qord::Plugins::Hook::RoleContextMenu)) {
+        Qord::Plugins::RoleContext ctx;
+        ctx.accountId = quint64(instance->accountId());
+        ctx.guildId = quint64(guildId);
+        ctx.roleId = quint64(roleId);
+        ctx.name = role.name.get();
+        const auto items = host->dispatchRoleContextMenuItems(ctx);
+        if (!items.isEmpty()) {
+            menu.addSeparator();
+            addPluginMenuItems(&menu, items, [ctx](const QString &pluginId, const QString &itemId) {
+                if (auto *h = Qord::Plugins::PluginHost::instance())
+                    h->dispatchRoleContextMenuAction(pluginId, itemId, ctx);
+            });
+        }
+    }
     if (modifiable) {
         menu.addSeparator();
         QAction *deleteAction = menu.addAction(tr("Delete"), this, [this, roleId]() { confirmDeleteRole(roleId); });

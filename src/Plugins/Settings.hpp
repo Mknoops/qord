@@ -49,6 +49,9 @@ struct SettingSpec
     // String only: an API key or session token. Kept in the system keychain
     // (SecretStore), never in the settings file, and edited as a password.
     bool secret = false;
+    // The editor is shown only while setting `showWhenKey` has one of these values
+    QString showWhenKey;
+    QStringList showWhenValues;
 
     // Returns an error message, or an empty string if `value` is acceptable.
     [[nodiscard]] QString validate(const QJsonValue &value) const;

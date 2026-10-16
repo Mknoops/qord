@@ -25,6 +25,17 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 - A user's right-click menu has Add Friend, Remove Friend, accepting or cancelling a
   friend request, Block (after asking) and Unblock, as in Discord.
+- Plugins can add buttons to a message's hover bar and items to a role's right-click
+  menu. DecodeBase64, Translate, UnitConverter and ViewRaw have their upstream hover
+  buttons; Translate's and UnitConverter's results show their icon.
+- ViewRaw shows the raw data of servers, channels, users, profiles (from the
+  profile's new More button) and roles, as well as messages.
+- Role names in a profile can be right-clicked (Copy Role ID, and plugin items).
+- Clicking someone in the member list opens their profile.
+- A plugin setting can show only while another setting has a given value; Translate
+  shows the DeepL key only for DeepL and the Kagi session only for Kagi.
+- A plugin's page says so when an update asks for a permission that hasn't been
+  allowed yet.
 
 ### Changed
 
@@ -49,6 +60,9 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   channel, instead of staying listed in it with no audio.
 - Plugin buttons in the message box sit in the same row as the GIF and emoji buttons.
 - A selected or hovered DM keeps its avatar visible, and the name no longer touches it.
+- UnitConverter no longer converts a number and unit inside a word, such as the
+  "8g" in a Base64 string or the "5 g" of "5 great".
+- An "&" in a plugin's settings button showed as an underline.
 
 ## [0.1.0]
 

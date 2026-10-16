@@ -845,6 +845,12 @@ void MainWindow::showUserProfile(Core::ClientInstance *instance, Snowflake userI
 {
     auto *popup = new UserProfilePopup(session->getImageManager(), instance, userId, guildId, this);
     connect(popup, &UserProfilePopup::linkActivated, chatView, &ChatView::openLink);
+    QPointer<ClientInstance> popupInstance(instance);
+    connect(popup, &UserProfilePopup::moreMenuRequested, this,
+            [this, popupInstance, userId, guildId](const QPoint &pos, const QString &profileJson) {
+                if (popupInstance)
+                    showUserContextMenu(popupInstance, userId, guildId, pos, profileJson);
+            });
     popup->show();
 }
 
@@ -1376,6 +1382,15 @@ void MainWindow::setupUi()
                 showUserContextMenu(currentInstance, userId, guildId,
                                     memberListView->viewport()->mapToGlobal(pos));
             });
+
+    // Qord: clicking a member opens their profile, as in Discord
+    connect(memberListView, &QAbstractItemView::clicked, this, [this](const QModelIndex &idx) {
+        if (!currentInstance
+            || idx.data(MemberListModel::ItemTypeRole).toInt() != static_cast<int>(Core::MemberListItem::Type::Member))
+            return;
+        showUserProfile(currentInstance, idx.data(MemberListModel::UserIdRole).toULongLong(),
+                        currentInstance->memberList()->currentGuildId());
+    });
 
     userPanel = new UserPanel(session->getImageManager(), this);
     connect(userPanel, &UserPanel::settingsRequested, this, &MainWindow::openSettingsWindow);
@@ -2877,7 +2892,7 @@ QWidget *buildRoleChip(const Discord::Role &role, QWidget *parent)
 } // namespace
 
 void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId, Snowflake guildId,
-                                     QPoint globalPos)
+                                     QPoint globalPos, const QString &profileJson)
 {
     QMenu menu(this);
     QPointer<ClientInstance> instanceGuard(instance);
@@ -3004,6 +3019,7 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         user.guildId = Qord::Plugins::pluginId(guildId);
         user.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
         user.userId = quint64(userId);
+        user.profileJson = profileJson;
         if (instance) {
             const auto u = instance->users()->getUser(userId);
             user.avatarUrl = (u ? Discord::Cdn::userAvatar(userId, u->avatar.valueOr(), 128)

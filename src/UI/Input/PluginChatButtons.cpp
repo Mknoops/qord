@@ -50,13 +50,11 @@ protected:
 namespace Acheron {
 namespace UI {
 
-namespace {
-QIcon iconFromSvg(QByteArray svg, const QColor &color, qreal dpr)
+QIcon pluginIcon(QByteArray svg, const QColor &color, qreal dpr, const QSize &size)
 {
     svg.replace("currentColor", color.name().toLatin1());
     svg.replace("currentcolor", color.name().toLatin1());
     QSvgRenderer renderer(svg);
-    const QSize size(20, 20);
     QPixmap pixmap(size * dpr);
     pixmap.setDevicePixelRatio(dpr);
     pixmap.fill(Qt::transparent);
@@ -65,6 +63,12 @@ QIcon iconFromSvg(QByteArray svg, const QColor &color, qreal dpr)
         renderer.render(&painter, QRectF(QPointF(0, 0), QSizeF(size)));
     }
     return QIcon(pixmap);
+}
+
+namespace {
+QIcon iconFromSvg(const QByteArray &svg, const QColor &color, qreal dpr)
+{
+    return pluginIcon(svg, color, dpr, QSize(20, 20));
 }
 } // namespace
 

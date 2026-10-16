@@ -3,9 +3,14 @@
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QMouseEvent>
+
+#include <functional>
 #include <QToolButton>
 
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
+#include "UI/Input/PluginChatButtons.hpp"
 
 namespace Acheron {
 namespace UI {
@@ -75,6 +80,68 @@ void MessageActionBar::setCanDelete(bool canDelete)
 void MessageActionBar::setMoreButtonDown(bool down)
 {
     moreButton->setDown(down);
+}
+
+namespace {
+// Reports right clicks too; the bar itself has no context menu
+class PluginBarButton : public QToolButton
+{
+public:
+    using QToolButton::QToolButton;
+    std::function<void(bool rightClick)> onClick;
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        const bool inside = rect().contains(event->pos());
+        QToolButton::mouseReleaseEvent(event);
+        if (inside && onClick && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton))
+            onClick(event->button() == Qt::RightButton);
+    }
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        if (event->button() == Qt::RightButton) {
+            setDown(true);
+            event->accept();
+            return;
+        }
+        QToolButton::mousePressEvent(event);
+    }
+};
+} // namespace
+
+void MessageActionBar::setPluginButtons(const QList<PluginButton> &buttons)
+{
+    const auto same = [](const PluginButton &a, const PluginButton &b) {
+        return a.pluginId == b.pluginId && a.id == b.id && a.tooltip == b.tooltip && a.svg == b.svg;
+    };
+    if (buttons.size() == shownPluginButtons.size() &&
+        std::equal(buttons.begin(), buttons.end(), shownPluginButtons.begin(), same))
+        return;
+    shownPluginButtons = buttons;
+    qDeleteAll(pluginButtons);
+    pluginButtons.clear();
+
+    constexpr int IconSize = 18;
+    constexpr int ButtonSize = 24;
+    const QColor color = Core::Theme::Manager::instance().color(Core::Theme::Token::ButtonText);
+    auto *box = static_cast<QHBoxLayout *>(layout());
+    int index = 0;
+    for (const PluginButton &pb : buttons) {
+        auto *button = new PluginBarButton(this);
+        button->setIcon(pluginIcon(pb.svg, color, devicePixelRatioF(), QSize(IconSize, IconSize)));
+        button->setIconSize(QSize(IconSize, IconSize));
+        button->setFixedSize(ButtonSize, ButtonSize);
+        button->setToolTip(pb.tooltip);
+        button->setAutoRaise(true);
+        button->setFocusPolicy(Qt::NoFocus);
+        button->setCursor(Qt::PointingHandCursor);
+        button->onClick = [this, pluginId = pb.pluginId, id = pb.id](bool rightClick) {
+            emit pluginButtonClicked(pluginId, id, rightClick);
+        };
+        box->insertWidget(index++, button);
+        pluginButtons.append(button);
+    }
 }
 
 bool MessageActionBar::eventFilter(QObject *obj, QEvent *event)

@@ -171,6 +171,8 @@ private slots:
     void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight);
     void onActionBarTriggered(MessageActionBar::Action action);
     void onActionBarMoreRequested(const QPoint &buttonTopLeft);
+    void onActionBarPluginButton(const QString &pluginId, const QString &buttonId, bool rightClick);
+    void updatePluginPopoverButtons(const QModelIndex &index);
 
 private:
     // Qord: plugin message filters (hidden rows) and context

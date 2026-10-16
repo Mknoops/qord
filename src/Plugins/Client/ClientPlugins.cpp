@@ -1,5 +1,6 @@
 #include "Core/OpenExternalUrl.hpp"
 #include "ClientPlugins.hpp"
+#include "RawJson.hpp"
 #include <QPointer>
 #include <memory>
 
@@ -1291,6 +1292,62 @@ void SessionExpressions::setOversizeImageHandler(ImageShrinker shrink)
             return std::nullopt;
         return Acheron::Core::ShrunkImage { out->fileName, out->mimeType, out->data };
     };
+}
+
+std::optional<QString> SessionGuilds::rawJson(Id accountId, RawKind kind, Id id, Id guildId) const
+{
+    namespace Raw = Acheron::Discord::RawJson;
+    using Acheron::Core::Snowflake;
+    Acheron::Core::ClientInstance *instance = session->client(Snowflake(accountId));
+    if (!instance || !id)
+        return std::nullopt;
+    QJsonObject json;
+    switch (kind) {
+    case RawKind::Guild: {
+        auto guild = instance->getGuild(Snowflake(id));
+        if (!guild)
+            return std::nullopt;
+        if (!guild->roles.hasValue())
+            guild->roles = instance->getRolesForGuild(Snowflake(id));
+        json = Raw::toJson(*guild);
+        break;
+    }
+    case RawKind::Channel: {
+        const auto channel = instance->getChannel(Snowflake(id));
+        if (!channel)
+            return std::nullopt;
+        json = Raw::toJson(*channel);
+        break;
+    }
+    case RawKind::User: {
+        const auto user = instance->users() ? instance->users()->getUser(Snowflake(id)) : std::nullopt;
+        if (!user)
+            return std::nullopt;
+        json = Raw::toJson(*user);
+        break;
+    }
+    case RawKind::Role: {
+        for (const auto &role : instance->getRolesForGuild(Snowflake(guildId)))
+            if (quint64(role.id.get()) == id)
+                json = Raw::toJson(role);
+        if (json.isEmpty())
+            return std::nullopt;
+        break;
+    }
+    case RawKind::Member: {
+        if (!instance->users())
+            return std::nullopt;
+        const auto member = instance->users()->getMember(Snowflake(guildId), Snowflake(id));
+        if (!member)
+            return std::nullopt;
+        json = Raw::toJson(*member);
+        if (!json.contains(QLatin1String("user")))
+            if (const auto user = instance->users()->getUser(Snowflake(id)))
+                json.insert(QStringLiteral("user"), Raw::toJson(*user));
+        break;
+    }
+    }
+    return QString::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Indented)).trimmed();
 }
 
 std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const

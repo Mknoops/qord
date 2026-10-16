@@ -6,6 +6,7 @@
 #include "Plugins/PluginHost.hpp"
 
 #include <QHash>
+#include <QMap>
 #include <QSet>
 #include <QTemporaryDir>
 #include <QTest>
@@ -596,6 +597,12 @@ public:
     void requestMembers(Id, Id guildId, const QList<Id> &userIds) override { requested.append({ guildId, userIds }); }
     QList<Id> guildIds(Id) const override { return guildOrder; }
     QList<Id> memberIds(Id, Id guildId) const override { return guildMembers.value(guildId); }
+    std::optional<QString> rawJson(Id, RawKind kind, Id id, Id) const override
+    {
+        const auto it = raw.constFind({ int(kind), id });
+        return it == raw.constEnd() ? std::nullopt : std::optional<QString>(*it);
+    }
+    QMap<QPair<int, Id>, QString> raw;
     QList<Id> guildOrder;
     QHash<Id, QList<Id>> guildMembers;
 

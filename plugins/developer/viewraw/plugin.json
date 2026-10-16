@@ -4,20 +4,63 @@
   "equicordPath": "src/plugins/viewRaw",
   "name": "ViewRaw",
   "description": "Copy and view the raw content/data of any message, channel or guild",
-  "summary": "View and copy the raw content and JSON of messages, channels and servers",
-  "categories": ["developer", "chat"],
-  "tags": ["Chat", "Developers"],
-  "authors": ["KingFish", "Ven", "rad", "ImLvna"],
-  "permissions": ["add_ui_elements", "write_clipboard"],
-  "hooks": ["messageContextMenu"],
-  "settings": [],
+  "summary": "View Raw for messages (hover-bar button), servers, channels, users and roles",
+  "categories": [
+    "developer",
+    "chat"
+  ],
+  "tags": [
+    "Chat",
+    "Developers"
+  ],
+  "authors": [
+    "KingFish",
+    "Ven",
+    "rad",
+    "ImLvna"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "write_clipboard",
+    "read_server_permissions"
+  ],
+  "hooks": [
+    "messageContextMenu",
+    "messagePopover",
+    "channelContextMenu",
+    "userContextMenu",
+    "roleContextMenu"
+  ],
+  "settings": [
+    {
+      "key": "clickMethod",
+      "type": "choice",
+      "default": "Left",
+      "label": "Click method",
+      "description": "Change the button to view the raw content/data of any message.",
+      "choices": [
+        {
+          "value": "Left",
+          "label": "Left Click to view the raw content."
+        },
+        {
+          "value": "Right",
+          "label": "Right click to view the raw content."
+        }
+      ]
+    },
+    {
+      "key": "messageContextMenu",
+      "type": "bool",
+      "default": false,
+      "label": "Message context menu",
+      "description": "Show in message context menu"
+    }
+  ],
   "enabledByDefault": false,
   "target": "",
   "dependencies": [],
   "commands": [],
-  "notes": "\"Message Data\" is the message as Qord stores it (sorted keys; no private author fields), which can differ slightly from Discord's payload. The entries are in the message context menu.",
-  "gaps": [
-    "Upstream's hover-bar button (and its left/right click setting) needs plugin buttons in the message action bar",
-    "View Raw for users, channels, servers, roles and profiles needs those context menus to expose their data"
-  ]
+  "notes": "A message's hover bar gets upstream's View Raw button: a left click shows the message's content and data, a right click copies its content (swapped when Click method is Right). With Message context menu on, the message's right-click menu also has View Raw. Servers, channels, threads and group DMs, users (and a profile, from its More button), and roles (in a profile's role list, Server Settings > Roles and PermissionsViewer's list) get View Raw in their right-click menus, showing \"Raw <type> Data\" with a copy button. The data is what Qord has cached, under Discord's field names, so fields Qord doesn't read are missing; message data has sorted keys and no private author fields, and nothing private (email, phone, MFA) is kept on users.",
+  "gaps": []
 }

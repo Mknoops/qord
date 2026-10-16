@@ -373,6 +373,19 @@ public:
         Q_UNUSED(guildId);
         return {};
     }
+    // A cached Discord object as indented JSON under Discord's field names
+    // (ViewRaw); nullopt when the client doesn't have it. Member is a
+    // server member with its user; `guildId` names the server for Role and
+    // Member.
+    enum class RawKind { Guild, Channel, User, Role, Member };
+    [[nodiscard]] virtual std::optional<QString> rawJson(Id accountId, RawKind kind, Id id, Id guildId = 0) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(kind);
+        Q_UNUSED(id);
+        Q_UNUSED(guildId);
+        return std::nullopt;
+    }
 };
 
 // Users on Discord (ValidUser): whether the client knows one, fetching one

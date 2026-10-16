@@ -1,5 +1,7 @@
 #include "Core/OpenExternalUrl.hpp"
 #include "UserProfilePopup.hpp"
+#include "Plugins/Client/RawJson.hpp"
+#include "UI/Qord/PluginMenus.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -8,7 +10,9 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QJsonDocument>
 #include <QLabel>
+#include <QMenu>
 #include <QLocale>
 #include <QMouseEvent>
 #include <QPainter>
@@ -360,6 +364,23 @@ QWidget *UserProfilePopup::buildHeader()
     });
     nameRow->addStretch(1);
     nameRow->addWidget(viewToggle, 0, Qt::AlignVCenter);
+
+    // Qord: Discord's "More" button, the user's menu (with the profile's data
+    // for plugins such as ViewRaw)
+    auto *more = new QToolButton(identityRow);
+    more->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::Ellipsis, Core::Theme::Token::ButtonText));
+    more->setIconSize(QSize(18, 18));
+    more->setAutoRaise(true);
+    more->setToolTip(tr("More"));
+    more->setCursor(Qt::PointingHandCursor);
+    connect(more, &QToolButton::clicked, this, [this, more]() {
+        QString json;
+        if (hasProfile)
+            json = QString::fromUtf8(QJsonDocument(Discord::RawJson::toJson(profile)).toJson(QJsonDocument::Indented))
+                           .trimmed();
+        emit moreMenuRequested(more->mapToGlobal(QPoint(0, more->height())), json);
+    });
+    nameRow->addWidget(more, 0, Qt::AlignVCenter);
     identityCol->addLayout(nameRow);
 
     const QString handleStyle = "color: palette(placeholder-text); font-size: 13px;";
@@ -522,6 +543,36 @@ QWidget *UserProfilePopup::buildBody()
             return;
         QGuiApplication::clipboard()->setText(link.mid(10));
         Toast::show(window(), tr("Copied to clipboard!"), Toast::Type::Success);
+    });
+    // Qord: a role's right-click menu (Copy Role ID, plugin items such as
+    // ViewRaw); role names are links so the label says which one is hovered
+    connect(rolesLabel, &QLabel::linkHovered, this, [this](const QString &link) { hoveredRoleLink = link; });
+    rolesLabel->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(rolesLabel, &QLabel::customContextMenuRequested, this, [this](const QPoint &pos) {
+        if (!hoveredRoleLink.startsWith(QLatin1String("qord-role:")) || !instance)
+            return;
+        const Core::Snowflake roleId(hoveredRoleLink.mid(10).toULongLong());
+        QMenu menu(this);
+        menu.addAction(tr("Copy Role ID"), this,
+                       [roleId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(roleId))); });
+        if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::RoleContextMenu)) {
+            Qord::Plugins::RoleContext ctx;
+            ctx.accountId = quint64(instance->accountId());
+            ctx.guildId = quint64(guildId);
+            ctx.roleId = quint64(roleId);
+            for (const auto &role : instance->getRolesForGuild(guildId))
+                if (role.id.get() == roleId)
+                    ctx.name = role.name.get();
+            const auto items = host->dispatchRoleContextMenuItems(ctx);
+            if (!items.isEmpty()) {
+                menu.addSeparator();
+                addPluginMenuItems(&menu, items, [ctx](const QString &pluginId, const QString &itemId) {
+                    if (auto *h = Qord::Plugins::PluginHost::instance())
+                        h->dispatchRoleContextMenuAction(pluginId, itemId, ctx);
+                });
+            }
+        }
+        menu.exec(rolesLabel->mapToGlobal(pos));
     });
     rolesLayout->addWidget(rolesLabel);
     leftCol->addWidget(rolesSection);
@@ -1298,7 +1349,9 @@ void UserProfilePopup::applyView()
                          .arg(color.red())
                          .arg(color.green())
                          .arg(color.blue())
-                         .arg(dot, role.name.get().toHtmlEscaped());
+                         .arg(dot, QStringLiteral("<a href=\"qord-role:%1\" style=\"color:%2; text-decoration:none;\">%3</a>")
+                                           .arg(quint64(role.id.get()))
+                                           .arg(color.name(), role.name.get().toHtmlEscaped()));
     }
     rolesLabel->setText(chips.join(QStringLiteral("&nbsp; ")));
 }

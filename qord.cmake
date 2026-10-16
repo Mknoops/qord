@@ -15,6 +15,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Plugins/Client/ClientPlugins.cpp
     src/Plugins/Client/MessageContexts.hpp
     src/Plugins/Client/MessageContexts.cpp
+    src/Plugins/Client/RawJson.cpp
     src/UI/Settings/PluginsPage.hpp
     src/UI/Settings/PluginsPage.cpp
     src/UI/Input/PluginChatButtons.hpp

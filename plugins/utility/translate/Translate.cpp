@@ -317,12 +317,27 @@ void TranslatePlugin::onMessageContextMenuAction(const QString &id, const Messag
     });
 }
 
+// Upstream's button on the hover bar, for messages with something to translate
+QList<ChatBarButton> TranslatePlugin::messagePopoverButtons(const MessageContext &message)
+{
+    if (messageContent(message).isEmpty())
+        return {};
+    return { { MenuId, QStringLiteral("Translate"), Icon } };
+}
+
+void TranslatePlugin::onMessagePopoverClicked(const QString &id, const MessageContext &message, bool rightClick)
+{
+    if (!rightClick)
+        onMessageContextMenuAction(id, message);
+}
+
 std::optional<MessageAccessory> TranslatePlugin::messageAccessory(const MessageContext &message)
 {
     const auto it = translations.constFind(message.messageId);
     if (it == translations.constEnd())
         return std::nullopt;
     MessageAccessory accessory;
+    accessory.iconSvg = Icon;
     accessory.content = it->text;
     accessory.footer = QStringLiteral("translated from ") + it->sourceLanguage;
     accessory.links = { { DismissId, QStringLiteral("Dismiss"), {} } };
@@ -362,6 +377,13 @@ void TranslatePlugin::onChatBarButtonClicked(const QString &id, const ChatContex
     if (chat.click == ChatContext::Click::Right || (chat.click == ChatContext::Click::Left && chat.shift))
         toggleAutoTranslate();
     else if (chat.click == ChatContext::Click::Left)
+        openTranslateModal();
+}
+
+// The settings page's "Customize translation languages & Auto-Translate"
+void TranslatePlugin::onSettingAction(const QString &key)
+{
+    if (key == QLatin1String("manageTranslateSettings") && context)
         openTranslateModal();
 }
 
@@ -447,13 +469,12 @@ void TranslatePlugin::onBeforeSend(OutgoingMessage &message)
         }
         const quint64 send = ++nextSend;
         pendingSends.insert(send, done);
-        translate(QStringLiteral("sent"), content, [this, weak, send](std::optional<Translation> translation) {
+        translate(QStringLiteral("sent"), content, [this, weak, send, content](std::optional<Translation> translation) {
             if (auto a = weak.lock(); !a || !*a)
                 return;
-            // Unlike upstream, a failed translation isn't sent untranslated:
-            // the text stays in the message box
+            // As upstream, a failed translation is sent as it was written
             if (auto finish = pendingSends.take(send))
-                finish(translation ? std::optional<QString>(translation->text) : std::nullopt);
+                finish(translation ? translation->text : content);
         });
     };
 }

@@ -114,7 +114,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `transformCopiedMessageLink` | Rewrite message links you copy | `modify_message_links` | NormalizeMessageLinks |
 | `transformIncomingContent` | Change how a received message's text is rendered | `modify_displayed_messages` | FakeNitro, TextReplace, Unindent |
 | `chatBarButtons` | Buttons next to the message box | `add_ui_elements` | Ingtoninator, PreviewMessage, SendTimestamps, SilentMessageToggle, SilentTyping, TalkInReverse, Translate |
-| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons |
+| `userContextMenu` | Items in a user's right-click menu | `add_ui_elements` | CopyUserMention, CopyUserURLs, FollowVoiceUser, PermissionsViewer, ReviewDB, ShowMeYourName, ViewIcons, ViewRaw |
 | `messageContextMenu` | Items in a message's right-click menu | `add_ui_elements` | DecodeBase64, ImageZoom, MessageLogger, ReverseImageSearch, Translate, UnitConverter, UnsuppressEmbeds, ViewRaw |
 | `messageHistory` | Keep deleted and edited messages on screen | `log_messages` | MessageLogger |
 | `messageFilter` | Hide messages, or keep them out of unread counts | `hide_messages` | BlockKeywords, NoBlockedMessages |
@@ -122,7 +122,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `linkWarnings` | Skip the "are you sure?" before opening a link | `trust_links` | AlwaysTrust |
 | `notifications` | Whether a message notifies you | `control_notifications` | OnePingPerDM |
 | `authorNames` | The name shown for a message's author | `modify_displayed_messages` | ShowMeYourName |
-| `channelContextMenu` | Items in a server's or channel's right-click menu | `add_ui_elements` | MessageLogger, PermissionsViewer, PinDMs, ReviewDB, ServerInfo, ViewIcons |
+| `channelContextMenu` | Items in a server's or channel's right-click menu | `add_ui_elements` | MessageLogger, PermissionsViewer, PinDMs, ReviewDB, ServerInfo, ViewIcons, ViewRaw |
 | `serverListButtons` | Buttons above the servers in the server list | `add_ui_elements` | ReadAllNotificationsButton, ServerListIndicators |
 | `memberCounts` | Numbers above the member list and in server tooltips | `add_ui_elements` | MemberCount |
 | `userDecorations` | Icons after user names (clickable), in messages, the member list and profiles | `read_presences` | PlatformIndicators, UserVoiceShow |
@@ -146,6 +146,8 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `memberships` | Your friends, incoming requests, servers and group DMs, and when one of them removes you | `read_memberships` | RelationshipNotifier |
 | `highlights` | Treat a message as if it mentioned you: the gold highlight and a mention's notification | `control_notifications` | KeywordNotify |
 | `inboxTabs` | Tabs of messages in the inbox next to Mentions, with remove and Clear All | `add_ui_elements` | KeywordNotify |
+| `messagePopover` | Buttons on a message's hover bar, before the client's own; left and right click | `add_ui_elements` | DecodeBase64, Translate, UnitConverter, ViewRaw |
+| `roleContextMenu` | Items in a role's right-click menu (server settings' role list, PermissionsViewer) | `add_ui_elements` | ViewRaw |
 <!-- END GENERATED: hooks -->
 
 ## Services

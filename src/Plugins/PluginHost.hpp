@@ -155,6 +155,11 @@ public:
         InboxTab tab;
     };
     [[nodiscard]] QList<PluginInboxTab> dispatchInboxTabs(Id accountId);
+    [[nodiscard]] QList<PluginButton> dispatchMessagePopoverButtons(const MessageContext &message);
+    [[nodiscard]] QList<PluginMenuItem> dispatchRoleContextMenuItems(const RoleContext &role);
+    void dispatchRoleContextMenuAction(const QString &pluginId, const QString &itemId, const RoleContext &role);
+    void dispatchMessagePopoverClicked(const QString &pluginId, const QString &buttonId, const MessageContext &message,
+                                       bool rightClick);
     void dispatchInboxMessageRemoved(const QString &pluginId, const QString &tabId, Id accountId, Id messageId);
     void dispatchInboxCleared(const QString &pluginId, const QString &tabId, Id accountId);
     struct PluginUserPanelButton

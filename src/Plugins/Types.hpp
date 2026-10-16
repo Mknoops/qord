@@ -185,6 +185,16 @@ struct ChannelContext
     QString bannerUrl;
 };
 
+// A role that a context menu was opened for (server settings' role list,
+// PermissionsViewer's list).
+struct RoleContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id roleId = 0;
+    QString name;
+};
+
 // A user that a context menu was opened for.
 struct UserContext
 {
@@ -199,6 +209,9 @@ struct UserContext
     QString memberAvatarUrl;
     bool isBot = false;
     QString username; // the user's username (not display name), when known
+    // Opened from a profile's More button: the loaded profile as JSON (Discord's
+    // field names), else empty
+    QString profileJson;
 };
 
 // A tab a plugin adds to user profiles (MutualGroupDMs): a list of rows,
@@ -1086,6 +1099,7 @@ struct RoleColors
 // Shown under a message's text (Translate's translation).
 struct MessageAccessory
 {
+    QByteArray iconSvg; // drawn before the content at text size (currentColor = the text's color)
     QString content; // markdown, rendered like message text
     QString footer; // small text under it, e.g. "translated from Spanish"
     // Links after the footer ("Dismiss"); a click calls onMessageAccessoryAction

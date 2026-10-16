@@ -309,6 +309,33 @@ public:
         return false;
     }
 
+    // Hook::RoleContextMenu: items for a role's right-click menu
+    virtual QList<MenuItem> roleContextMenuItems(const RoleContext &role)
+    {
+        Q_UNUSED(role);
+        return {};
+    }
+    virtual void onRoleContextMenuAction(const QString &id, const RoleContext &role)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(role);
+    }
+
+    // Hook::MessagePopover: buttons on a message's hover bar, before the
+    // client's own (Vencord's addMessagePopoverButton), and a left or right
+    // click on one. `svg` uses currentColor for the icon color.
+    virtual QList<ChatBarButton> messagePopoverButtons(const MessageContext &message)
+    {
+        Q_UNUSED(message);
+        return {};
+    }
+    virtual void onMessagePopoverClicked(const QString &id, const MessageContext &message, bool rightClick)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(message);
+        Q_UNUSED(rightClick);
+    }
+
     // Hook::InboxTabs: tabs of the inbox after Mentions, a message removed
     // from one (its x) and "Clear All"
     virtual QList<InboxTab> inboxTabs(Id accountId)

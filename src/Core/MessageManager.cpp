@@ -1,7 +1,10 @@
 #include "MessageManager.hpp"
 #include "RoleColors.hpp"
 
+#include <QBuffer>
 #include <QDateTime>
+#include <QPainter>
+#include <QSvgRenderer>
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -288,6 +291,27 @@ QString MessageManager::accessoryHtml(const QString &pluginId, const Qord::Plugi
                                      Snowflake channelId) const
 {
     QString html = QStringLiteral("<div style=\"color: #b5bac1;\">");
+    if (!accessory.iconSvg.isEmpty()) {
+        // As a PNG in a data URL, which Qt's text layout draws inline
+        QByteArray svg = accessory.iconSvg;
+        svg.replace("currentColor", "#b5bac1");
+        QSvgRenderer renderer(svg);
+        if (renderer.isValid()) {
+            constexpr int Px = 32; // drawn at 16, sharp at 2x
+            QImage icon(Px, Px, QImage::Format_ARGB32_Premultiplied);
+            icon.fill(Qt::transparent);
+            QPainter painter(&icon);
+            renderer.render(&painter);
+            painter.end();
+            QByteArray png;
+            QBuffer buffer(&png);
+            buffer.open(QIODevice::WriteOnly);
+            icon.save(&buffer, "PNG");
+            html += QStringLiteral("<img src=\"data:image/png;base64,%1\" width=\"16\" height=\"16\" "
+                                   "style=\"vertical-align: middle;\"> ")
+                            .arg(QString::fromLatin1(png.toBase64()));
+        }
+    }
     if (!accessory.content.isEmpty())
         html += inlineHtml(accessory.content, channelId);
     QStringList links;

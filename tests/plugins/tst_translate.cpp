@@ -61,6 +61,31 @@ class TestTranslate : public QObject
     Q_OBJECT
 
 private slots:
+    void popoverAndSettingsButton()
+    {
+        SinglePluginHost h(qord_register_translate);
+        QVERIFY(h.enableWithAllPermissions());
+        MessageContext m;
+        m.messageId = 3;
+        m.content = QStringLiteral("hola");
+        const auto buttons = h.host->dispatchMessagePopoverButtons(m);
+        QCOMPARE(buttons.size(), 1);
+        QCOMPARE(buttons[0].button.tooltip, QStringLiteral("Translate"));
+        h.host->dispatchMessagePopoverClicked(h.id, buttons[0].button.id, m, false);
+        QCOMPARE(h.network.urls.size(), 1); // asked the service
+        m.content.clear();
+        QVERIFY(h.host->dispatchMessagePopoverButtons(m).isEmpty());
+
+        h.host->dispatchSettingAction(h.id, QStringLiteral("manageTranslateSettings"));
+        QCOMPARE(h.ui.formTitle, QStringLiteral("Translate"));
+
+        // The key fields follow the service
+        const auto *spec = h.host->settings(h.id)->spec(QStringLiteral("deeplApiKey"));
+        QVERIFY(spec);
+        QCOMPARE(spec->showWhenKey, QStringLiteral("service"));
+        QCOMPARE(spec->showWhenValues, (QStringList { QStringLiteral("deepl"), QStringLiteral("deepl-pro") }));
+    }
+
     void languageTables()
     {
         QCOMPARE(TranslatePlugin::googleLanguages().size(), 134);
@@ -300,14 +325,14 @@ private slots:
         QCOMPARE(calls, 1);
         QCOMPARE(sent, std::optional<QString>(QStringLiteral("hallo")));
 
-        // A failure keeps the text in the box
+        // A failure sends the text as written, as upstream
         out.deferred(out.content, [&](std::optional<QString> content) {
             sent = content;
             ++calls;
         });
         QVERIFY(h.network.respond(false, {}, 500));
         QCOMPARE(calls, 2);
-        QVERIFY(!sent);
+        QCOMPARE(sent, std::optional<QString>(out.content));
 
         // The tooltip goes away after two seconds
         QTRY_VERIFY_WITH_TIMEOUT(h.host->dispatchChatBarButtons(ChatContext()).value(0).button.popupTooltip.isEmpty(),

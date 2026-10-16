@@ -96,6 +96,8 @@ enum class Hook : quint64 {
     Memberships = Q_UINT64_C(1) << 35,
     Highlights = Q_UINT64_C(1) << 36,
     InboxTabs = Q_UINT64_C(1) << 37,
+    MessagePopover = Q_UINT64_C(1) << 38,
+    RoleContextMenu = Q_UINT64_C(1) << 39,
 };
 
 // A set of hooks. QFlags holds at most 32 bits on Qt 5, so this is our own.
@@ -148,7 +150,7 @@ constexpr Hooks operator|(Hook a, Hook b)
     return Hooks(a) | Hooks(b);
 }
 
-constexpr int HookCount = 38;
+constexpr int HookCount = 40;
 
 std::optional<Hook> hookFromString(const QString &name);
 QString hookToString(Hook hook);

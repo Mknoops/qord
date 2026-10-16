@@ -25,6 +25,20 @@ class TestUnitConverter : public QObject
     }
 
 private slots:
+    void popoverConvertsWithIcon()
+    {
+        SinglePluginHost h(qord_register_unitconverter);
+        QVERIFY(h.enableWithAllPermissions());
+        const MessageContext m = message(QStringLiteral("it's 20°C"));
+        const auto buttons = h.host->dispatchMessagePopoverButtons(m);
+        QCOMPARE(buttons.size(), 1);
+        QCOMPARE(buttons[0].button.tooltip, QStringLiteral("Convert Units"));
+        h.host->dispatchMessagePopoverClicked(h.id, buttons[0].button.id, m, false);
+        const auto accessories = h.host->dispatchMessageAccessories(m);
+        QCOMPARE(accessories.size(), 1);
+        QVERIFY(accessories[0].accessory.iconSvg.contains("currentColor"));
+    }
+
     void metricToImperial()
     {
         QCOMPARE(convertUnits(QStringLiteral("it's 20°C"), true), QStringLiteral("it's 68.00°F"));
@@ -36,6 +50,10 @@ private slots:
         QCOMPARE(convertUnits(QStringLiteral("500g of flour"), true), QStringLiteral("17.64oz(s) of flour"));
         QCOMPARE(convertUnits(QStringLiteral("2 kg"), true), QStringLiteral("4.41lb(s)"));
         QCOMPARE(convertUnits(QStringLiteral("nothing to convert"), true), QStringLiteral("nothing to convert"));
+        // Not inside words (upstream converts these)
+        QCOMPARE(convertUnits(QStringLiteral("aGVsbG8g and 5 great ideas"), true),
+                 QStringLiteral("aGVsbG8g and 5 great ideas"));
+        QCOMPARE(convertUnits(QStringLiteral("v2m 3m"), true), QStringLiteral("v2m 9ft10.08in"));
     }
 
     void imperialToMetric()

@@ -59,7 +59,7 @@ namespace {
 class DecodeBase64Plugin : public Plugin
 {
 public:
-    [[nodiscard]] Hooks hooks() const override { return Hook::MessageContextMenu; }
+    [[nodiscard]] Hooks hooks() const override { return Hook::MessageContextMenu | Hook::MessagePopover; }
 
     void start(PluginContext &ctx) override { context = &ctx; }
     void stop() override { context = nullptr; }
@@ -74,6 +74,33 @@ public:
         if (context->settings().stringValue(QStringLiteral("clickMethod")) == QLatin1String("Right"))
             return { copy, decode };
         return { decode, copy };
+    }
+
+    // Upstream's button, on every message: one click decodes, the other copies
+    QList<ChatBarButton> messagePopoverButtons(const MessageContext &message) override
+    {
+        Q_UNUSED(message);
+        if (!context)
+            return {};
+        ChatBarButton button;
+        button.id = QStringLiteral("decode");
+        button.tooltip = rightDecodes() ? QStringLiteral("Copy Decoded (Left Click) / Decode Base64 (Right Click)")
+                                        : QStringLiteral("Decode Base64 (Left Click) / Copy Decoded (Right Click)");
+        button.svg = QByteArrayLiteral(
+                R"(<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">)"
+                R"(<path d="M6.5 9.50026H14.0385C15.4063 9.50026 16.0902 9.50026 16.5859 9.82073C16.8235 9.97438 17.0259 )"
+                R"(10.1767 17.1795 10.4144C17.5 10.91 17.5 11.5939 17.5 12.9618C17.5 14.3297 17.5 15.0136 17.1795 )"
+                R"(15.5092C17.0259 15.7469 16.8235 15.9492 16.5859 16.1029C16.0902 16.4233 15.4063 16.4233 14.0385 )"
+                R"(16.4233H9.5M6.5 9.50026L8.75 7.42334M6.5 9.50026L8.75 11.5772" stroke="currentColor" )"
+                R"(stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>)");
+        return { button };
+    }
+
+    void onMessagePopoverClicked(const QString &id, const MessageContext &message, bool rightClick) override
+    {
+        Q_UNUSED(id);
+        const bool decode = rightClick == rightDecodes();
+        onMessageContextMenuAction(decode ? QStringLiteral("decode") : QStringLiteral("copy"), message);
     }
 
     void onMessageContextMenuAction(const QString &id, const MessageContext &message) override
@@ -103,6 +130,11 @@ public:
     }
 
 private:
+    [[nodiscard]] bool rightDecodes() const
+    {
+        return context && context->settings().stringValue(QStringLiteral("clickMethod")) == QLatin1String("Right");
+    }
+
     PluginContext *context = nullptr;
 };
 } // namespace

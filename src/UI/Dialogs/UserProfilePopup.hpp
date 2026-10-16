@@ -40,6 +40,8 @@ public:
 
 signals:
     void linkActivated(const QString &url);
+    // The More button: the user's menu, with the loaded profile as JSON (or empty)
+    void moreMenuRequested(const QPoint &globalPos, const QString &profileJson);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -133,6 +135,7 @@ private:
 
     QWidget *rolesSection = nullptr;
     QLabel *rolesLabel = nullptr;
+    QString hoveredRoleLink; // the role link under the mouse, for its menu
     QHBoxLayout *rolesButtons = nullptr;
 
     QTabWidget *rightTabs = nullptr;

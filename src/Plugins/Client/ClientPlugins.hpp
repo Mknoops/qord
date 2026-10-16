@@ -199,6 +199,7 @@ public:
     void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) override;
     [[nodiscard]] QList<Id> guildIds(Id accountId) const override;
     [[nodiscard]] QList<Id> memberIds(Id accountId, Id guildId) const override;
+    [[nodiscard]] std::optional<QString> rawJson(Id accountId, RawKind kind, Id id, Id guildId) const override;
     // Set by the main window, which lists the servers
     static std::function<QList<Id>(Id accountId)> &guildIdsProvider();
 

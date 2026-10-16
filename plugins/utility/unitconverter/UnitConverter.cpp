@@ -48,7 +48,13 @@ QString applyRule(const QString &text, const Rule &rule)
     while (it.hasNext()) {
         const auto m = it.next();
         out += text.mid(last, m.capturedStart() - last);
-        if (rule.skip && rule.skip(text.left(m.capturedStart())))
+        // Qord: not inside a word, so "aGVsbG8g" and "5 great" are left
+        // alone (upstream would turn their "8g" and "5 g" into ounces)
+        const auto wordChar = [&](qsizetype i) {
+            return i >= 0 && i < text.size() && (text.at(i).isLetterOrNumber() || text.at(i) == u'_');
+        };
+        if (wordChar(m.capturedStart() - 1) || wordChar(m.capturedEnd())
+            || (rule.skip && rule.skip(text.left(m.capturedStart()))))
             out += m.captured(0);
         else
             out += rule.convert(m);
@@ -143,11 +149,25 @@ QString convertUnits(const QString &message, bool toImperial)
 
 namespace {
 
+// Upstream's ConvertIcon
+const QByteArray ConvertIcon = QByteArrayLiteral(
+        R"(<svg viewBox="0 0 98 98" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="m50 16.668v-7.4609)"
+        R"(c0-1.875-2.25-2.7891-3.543-1.457l-11.664 11.625c-0.83594 0.83203-0.83594 2.125 0 2.957l11.625 11.625)"
+        R"(c1.332 1.293 3.582 0.375 3.582-1.5v-7.457c13.793 0 25 11.207 25 25 0 3.293-0.625 6.5-1.832 9.375-0.625 )"
+        R"(1.5-0.16797 3.207 0.95703 4.332 2.125 2.125 5.707 1.375 6.832-1.4141 1.543-3.793 2.375-7.9609 2.375-12.293 )"
+        R"(0-18.418-14.914-33.332-33.332-33.332zm0 58.332c-13.793 0-25-11.207-25-25 0-3.293 0.625-6.5 1.832-9.375 )"
+        R"(0.625-1.5 0.16797-3.207-0.95703-4.332-2.125-2.125-5.707-1.375-6.832 1.4141-1.543 3.793-2.375 7.9609-2.375 )"
+        R"(12.293 0 18.418 14.914 33.332 33.332 33.332v7.4609c0 1.875 2.25 2.7891 3.543 1.457l11.625-11.625c0.83203)"
+        R"(-0.83203 0.83203-2.125 0-2.957l-11.625-11.625c-1.293-1.293-3.543-0.375-3.543 1.5z"/></svg>)");
+
 // "Convert Units" on a message shows it with converted units underneath
 class UnitConverterPlugin : public Plugin
 {
 public:
-    [[nodiscard]] Hooks hooks() const override { return Hook::MessageContextMenu | Hook::MessageAccessories; }
+    [[nodiscard]] Hooks hooks() const override
+    {
+        return Hook::MessageContextMenu | Hook::MessageAccessories | Hook::MessagePopover;
+    }
 
     void start(PluginContext &ctx) override { context = &ctx; }
     void stop() override
@@ -161,6 +181,19 @@ public:
         if (message.content.isEmpty())
             return {};
         return { { QStringLiteral("convert"), QStringLiteral("Convert Units") } };
+    }
+
+    // Upstream's button on the hover bar
+    QList<ChatBarButton> messagePopoverButtons(const MessageContext &message) override
+    {
+        if (message.content.isEmpty())
+            return {};
+        return { { QStringLiteral("convert"), QStringLiteral("Convert Units"), ConvertIcon } };
+    }
+    void onMessagePopoverClicked(const QString &id, const MessageContext &message, bool rightClick) override
+    {
+        if (!rightClick)
+            onMessageContextMenuAction(id, message);
     }
 
     void onMessageContextMenuAction(const QString &id, const MessageContext &message) override
@@ -178,6 +211,7 @@ public:
         if (it == conversions.constEnd())
             return std::nullopt;
         MessageAccessory accessory;
+        accessory.iconSvg = ConvertIcon;
         accessory.content = *it;
         accessory.links = { { QStringLiteral("dismiss"), QStringLiteral("Dismiss"), {} } };
         return accessory;

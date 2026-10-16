@@ -82,6 +82,16 @@ bool parseSetting(const QJsonValue &value, SettingSpec &spec, QString &error)
     spec.multiline = obj.value(QLatin1String("multiline")).toBool();
     spec.hidden = obj.value(QLatin1String("hidden")).toBool();
     spec.secret = obj.value(QLatin1String("secret")).toBool();
+    if (obj.contains(QLatin1String("showWhen"))) {
+        const QJsonObject when = obj.value(QLatin1String("showWhen")).toObject();
+        spec.showWhenKey = when.value(QLatin1String("key")).toString();
+        for (const QJsonValue &v : when.value(QLatin1String("values")).toArray())
+            spec.showWhenValues.append(v.toVariant().toString());
+        if (spec.showWhenKey.isEmpty() || spec.showWhenValues.isEmpty()) {
+            error = QStringLiteral("showWhen of %1 needs a key and values").arg(spec.key);
+            return false;
+        }
+    }
     if (spec.secret && (spec.type != SettingType::String || spec.multiline)) {
         error = QStringLiteral("secret setting %1 must be a one-line string").arg(spec.key);
         return false;

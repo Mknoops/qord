@@ -574,12 +574,15 @@ def derive_status(rec: PluginRecord, errors: list[Issue], warnings: list[Issue],
             notes.append("unwired hooks: " + ", ".join(rec.unwired_hooks))
         elif rec.hooks_wired and not verified:
             notes.append("wired; not yet verified in the running client")
+    def listed(items):
+        return "; ".join(i.strip().rstrip(".") for i in items)
+
     gaps = rec.manifest.get("gaps") or []
     if gaps:
-        notes.append("gaps: " + "; ".join(gaps))
+        notes.append("gaps: " + listed(gaps))
     not_applicable = rec.manifest.get("notApplicable") or []
     if not_applicable:
-        notes.append("not applicable: " + "; ".join(not_applicable))
+        notes.append("not applicable: " + listed(not_applicable))
     if rec.manifest.get("notes"):
         notes.insert(0, rec.manifest["notes"])
     rec.status = status

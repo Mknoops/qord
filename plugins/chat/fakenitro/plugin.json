@@ -299,6 +299,13 @@
       "description": "Qord extra: a video over your upload limit is re-encoded (MP4, H.264 and AAC) at a size and quality that fit, instead of being refused. Needs a Qord build with video support."
     },
     {
+      "key": "uploadWithoutEmbedLinks",
+      "type": "bool",
+      "default": true,
+      "label": "Upload where links don't embed",
+      "description": "Qord extra: in a channel where you can't embed links but can attach files, fake emojis and stickers are sent as image files instead of links that would show only as text."
+    },
+    {
       "key": "fakeReactions",
       "type": "bool",
       "default": false,

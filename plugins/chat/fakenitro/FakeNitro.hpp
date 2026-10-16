@@ -43,6 +43,10 @@ std::optional<QString> queryParam(const QString &url, const QString &name);
 QString emojiLink(Id id, const QString &name, bool animated, int size, bool forSend);
 // getStickerLink() with name and lossless set
 QString stickerLink(Id id, const QString &name, int formatType, int size);
+// Qord: the image to upload for a fake emoji or sticker where links don't embed
+QString uploadUrl(Id id, bool sticker, bool animated, int size);
+// The text with these emojis taken out and the spaces they leave tidied
+QString withoutTokens(QString text, const QStringList &tokens);
 // [text](url) or the bare url
 QString linkMarkup(const QString &url, const QString &name, bool hyperlink, const QString &hyperLinkText);
 
@@ -133,6 +137,13 @@ private:
     [[nodiscard]] QString linkText() const;
     [[nodiscard]] int emojiSizeFor(const QString &content) const;
     void sendAnimatedSticker(const StickerInfo &sticker, const QString &link);
+    struct Upload
+    {
+        QString url;
+        QString fileName;
+        QString mimeType;
+    };
+    void uploadInstead(OutgoingMessage &message, const QString &text, const QList<Upload> &uploads);
 
     PluginContext *context = nullptr;
     std::shared_ptr<bool> alive;

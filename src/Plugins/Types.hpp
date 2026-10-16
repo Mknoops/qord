@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <QtGlobal>
 
+#include <concepts>
 #include <functional>
 #include <optional>
 
@@ -76,7 +77,37 @@ struct OutgoingMessage
     // (Translate's auto-translate). The send waits, with the message box
     // locked, until `done` is called with the final content; done(nullopt)
     // gives up and leaves the text in the box. Only one hook may defer.
-    using DeferredDone = std::function<void(std::optional<QString> content)>;
+    // done(content, files) also uploads `files` with the message (FakeNitro's
+    // emojis where links don't embed).
+    class DeferredDone
+    {
+    public:
+        using Fn = std::function<void(std::optional<QString> content, QList<AttachedFile> files)>;
+        DeferredDone() = default;
+        template <typename F>
+            requires std::invocable<F &, std::optional<QString>, QList<AttachedFile>>
+        DeferredDone(F f) : fn(std::move(f))
+        {
+        }
+        template <typename F>
+            requires(!std::invocable<F &, std::optional<QString>, QList<AttachedFile>>
+                     && std::invocable<F &, std::optional<QString>>)
+        DeferredDone(F f)
+            : fn([f = std::move(f)](std::optional<QString> content, QList<AttachedFile>) mutable {
+                  f(std::move(content));
+              })
+        {
+        }
+        void operator()(std::optional<QString> content, QList<AttachedFile> files = {}) const
+        {
+            if (fn)
+                fn(std::move(content), std::move(files));
+        }
+        explicit operator bool() const { return bool(fn); }
+
+    private:
+        Fn fn;
+    };
     std::function<void(const QString &content, DeferredDone done)> deferred;
     // New messages only: more messages to send after this one, in order,
     // each once the one before it was sent (FakeNitro's long messages)

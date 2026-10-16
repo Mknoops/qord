@@ -202,6 +202,26 @@ QString stickerLink(Id id, const QString &name, int formatType, int size)
             .arg(formEncode(name));
 }
 
+QString uploadUrl(Id id, bool sticker, bool animated, int size)
+{
+    const QString ext = animated ? QStringLiteral("gif") : QStringLiteral("png");
+    return sticker ? QStringLiteral("https://media.discordapp.net/stickers/%1.%2?size=%3").arg(id).arg(ext).arg(size)
+                   : QStringLiteral("https://cdn.discordapp.com/emojis/%1.%2?size=%3").arg(id).arg(ext).arg(size);
+}
+
+QString withoutTokens(QString text, const QStringList &tokens)
+{
+    for (const QString &token : tokens)
+        text.remove(token);
+    // Spaces left where an emoji was, on each line
+    static const QRegularExpression spaces(QStringLiteral("[ \\t]{2,}"));
+    text.replace(spaces, QStringLiteral(" "));
+    QStringList lines = text.split(QLatin1Char('\n'));
+    for (QString &line : lines)
+        line = line.trimmed();
+    return lines.join(QLatin1Char('\n')).trimmed();
+}
+
 QString linkMarkup(const QString &url, const QString &name, bool hyperlink, const QString &hyperLinkText)
 {
     if (!hyperlink)
@@ -770,6 +790,11 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
         return;
 
     bool hasBypass = false;
+    // Qord: what to upload instead when links won't embed here
+    const QString original = message.content;
+    QList<Upload> uploads;
+    QStringList fakeTokens;
+    const int uploadSize = int(s.value(QStringLiteral("emojiSize")).toString().toInt());
 
     if (stickerBypass && !message.stickerIds.isEmpty()) {
         const std::optional<StickerInfo> sticker = expressions->sticker(message.accountId, message.stickerIds.first());
@@ -801,6 +826,10 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
                 return;
             }
             hasBypass = true;
+            const bool gif = sticker->formatType == StickerGif;
+            uploads.append({ uploadUrl(sticker->id, true, gif, size),
+                             sticker->name + (gif ? QStringLiteral(".gif") : QStringLiteral(".png")),
+                             gif ? QStringLiteral("image/gif") : QStringLiteral("image/png") });
             const QString link = stickerLink(sticker->id, sticker->name, sticker->formatType, size);
             message.content += wordBoundary(message.content, message.content.size() - 1) +
                                linkMarkup(link, sticker->name, s.boolValue(QStringLiteral("useStickerHyperLinks")),
@@ -826,6 +855,10 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
             if (!emoji || canUseEmote(*emoji, message.accountId, message.guildId, message.channelId))
                 continue;
             hasBypass = true;
+            fakeTokens.append(emojiString);
+            uploads.append({ uploadUrl(emoji->id, false, emoji->animated, uploadSize),
+                             emoji->name + (emoji->animated ? QStringLiteral(".gif") : QStringLiteral(".png")),
+                             emoji->animated ? QStringLiteral("image/gif") : QStringLiteral("image/png") });
             const int size = emojiSizeFor(message.content);
             const QString link = linkMarkup(emojiLink(emoji->id, emoji->name, emoji->animated, size, true), emoji->name,
                                             s.boolValue(QStringLiteral("useEmojiHyperLinks")), linkText());
@@ -839,10 +872,18 @@ void FakeNitroPlugin::onBeforeSend(OutgoingMessage &message)
         }
     }
 
-    if (hasBypass && !s.boolValue(QStringLiteral("disableEmbedPermissionCheck")) &&
-        !hasPermission(message.accountId, message.channelId, EmbedLinks) && !confirmWithoutEmbeds()) {
-        message.cancel = true;
-        return;
+    if (hasBypass && !hasPermission(message.accountId, message.channelId, EmbedLinks)) {
+        // Qord: where files can be attached, the images go as files instead
+        if (s.boolValue(QStringLiteral("uploadWithoutEmbedLinks")) &&
+            hasPermission(message.accountId, message.channelId, AttachFiles) && !message.deferred &&
+            context->network()) {
+            uploadInstead(message, withoutTokens(original, fakeTokens), uploads);
+            return;
+        }
+        if (!s.boolValue(QStringLiteral("disableEmbedPermissionCheck")) && !confirmWithoutEmbeds()) {
+            message.cancel = true;
+            return;
+        }
     }
 
     if (s.boolValue(QStringLiteral("splitLongMessages")))
@@ -985,6 +1026,52 @@ void FakeNitroPlugin::transformIncomingContent(IncomingMessage &message)
 
 // Animated (APNG) stickers can't be linked: upstream redraws them as a GIF
 // and puts it in the upload queue
+// The message goes once every image is downloaded, with them as its files
+// (Discord takes ten at most)
+void FakeNitroPlugin::uploadInstead(OutgoingMessage &message, const QString &text, const QList<Upload> &uploads)
+{
+    message.content = text;
+    message.stickerIds.clear();
+    const QList<Upload> files = uploads.mid(0, 10);
+    std::weak_ptr<bool> weak = alive;
+    message.deferred = [this, weak, files](const QString &content, OutgoingMessage::DeferredDone done) {
+        struct State
+        {
+            QList<std::optional<AttachedFile>> results;
+            int pending = 0;
+            bool failed = false;
+        };
+        auto state = std::make_shared<State>();
+        state->results.resize(files.size());
+        state->pending = int(files.size());
+        for (int i = 0; i < files.size(); ++i) {
+            const Upload upload = files[i];
+            context->network()->get(QUrl(upload.url), [this, weak, state, i, upload, content,
+                                                      done](const NetworkService::Reply &reply) {
+                auto a = weak.lock();
+                if (!a || !*a || !context)
+                    return done(std::nullopt);
+                if (reply.ok && !reply.body.isEmpty())
+                    state->results[i] = AttachedFile { upload.fileName, upload.mimeType, reply.body };
+                else
+                    state->failed = true;
+                if (--state->pending > 0)
+                    return;
+                if (state->failed) {
+                    if (auto *ui = context->ui())
+                        ui->showToast(QStringLiteral("FakeNitro couldn't download an emoji or sticker to attach."),
+                                      UiService::ToastType::Failure);
+                    return done(std::nullopt);
+                }
+                QList<AttachedFile> attached;
+                for (const auto &file : state->results)
+                    attached.append(*file);
+                done(content, attached);
+            });
+        }
+    };
+}
+
 void FakeNitroPlugin::sendAnimatedSticker(const StickerInfo &sticker, const QString &link)
 {
     auto *network = context->network();

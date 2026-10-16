@@ -813,13 +813,25 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
             // Sent once the plugin has the final text (auto-translate)
             QPointer<MessageManager> self(this);
             out.deferred(content, [self, channelId, replyToMessageId, attachments, mentionRepliedUser, followUps,
-                                   deferredDone](std::optional<QString> finalContent) {
+                                   deferredDone](std::optional<QString> finalContent,
+                                                 QList<Qord::Plugins::AttachedFile> files) {
+                QList<PendingAttachment> all = attachments;
+                for (const auto &file : files) {
+                    PendingAttachment added;
+                    added.data = file.data;
+                    added.filename = file.fileName;
+                    added.mimeType = file.mimeType;
+                    added.size = file.data.size();
+                    if (file.mimeType.startsWith(QLatin1String("image/")))
+                        added.image = QImage::fromData(file.data); // the preview
+                    all.append(added);
+                }
                 bool sent = false;
-                if (self && finalContent && finalContent->trimmed().isEmpty() && attachments.isEmpty())
+                if (self && finalContent && finalContent->trimmed().isEmpty() && all.isEmpty())
                     sent = true;
                 else if (self && finalContent) {
                     self->carriedFollowUps = followUps;
-                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, attachments,
+                    sent = self->sendMessage(channelId, *finalContent, replyToMessageId, all,
                                              mentionRepliedUser, false) == SendResult::Sent;
                     self->carriedFollowUps.clear();
                 }

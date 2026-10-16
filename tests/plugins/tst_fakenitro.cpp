@@ -101,6 +101,8 @@ void applyCase(SinglePluginHost &h, const QJsonObject &c)
         { "enableStickerBypass", true }, { "stickerSize", "160" }, { "transformStickers", true },
         { "transformCompoundSentence", false }, { "useStickerHyperLinks", true }, { "useEmojiHyperLinks", true },
         { "hyperLinkText", "{{NAME}}" }, { "disableEmbedPermissionCheck", false },
+        // Qord-only, so off for upstream's cases
+        { "uploadWithoutEmbedLinks", false },
     };
     QJsonObject settings = defaults;
     const QJsonObject overrides = c[u"settings"].toObject();
@@ -754,6 +756,7 @@ private slots:
         QVERIFY(h.enableWithAllPermissions());
         fillStores(h.expressions, golden());
         h.expressions.denied = FakeNitro::EmbedLinks;
+        h.host->settings(h.id)->setValue(QStringLiteral("uploadWithoutEmbedLinks"), false);
         h.ui.checkboxAnswer = true;
         OutgoingMessage out;
         out.accountId = 1;
@@ -763,6 +766,73 @@ private slots:
         h.host->dispatchBeforeSend(out);
         QVERIFY(!out.cancel);
         QVERIFY(h.host->settings(h.id)->boolValue(QStringLiteral("disableEmbedPermissionCheck")));
+    }
+
+    // Qord: no Embed Links but Attach Files, so the images go as files
+    void uploadsWhereLinksDontEmbed()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.expressions.denied = FakeNitro::EmbedLinks;
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.guildId = 100000000000000001ULL;
+        out.content = QStringLiteral("look <:far_away:200000000000000003>  here\n<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(out);
+        QVERIFY(!out.cancel);
+        QCOMPARE(countConfirmations(h.ui, QStringLiteral("Send Anyway")), 0);
+        QCOMPARE(out.content, QStringLiteral("look here"));
+        QVERIFY(out.deferred);
+
+        std::optional<QString> sent;
+        QList<AttachedFile> files;
+        int calls = 0;
+        out.deferred(out.content, [&](std::optional<QString> content, QList<AttachedFile> attached) {
+            ++calls;
+            sent = content;
+            files = attached;
+        });
+        QCOMPARE(h.network.urls.size(), 1); // once, though it's there twice
+        QCOMPARE(h.network.urls[0].host(), QStringLiteral("cdn.discordapp.com"));
+        QVERIFY(h.network.urls[0].path().startsWith(QLatin1String("/emojis/200000000000000003.")));
+        QCOMPARE(calls, 0);
+        QVERIFY(h.network.respond(true, QByteArray("image bytes")));
+        QCOMPARE(calls, 1);
+        QCOMPARE(sent, std::optional<QString>(QStringLiteral("look here")));
+        QCOMPARE(files.size(), 1);
+        QVERIFY(files[0].fileName.startsWith(QLatin1String("far_away.")));
+        QCOMPARE(files[0].data, QByteArray("image bytes"));
+
+        // A failed download leaves the text in the box
+        OutgoingMessage again;
+        again.accountId = 1;
+        again.channelId = Channel;
+        again.guildId = out.guildId;
+        again.content = QStringLiteral("<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(again);
+        QVERIFY(again.deferred);
+        calls = 0;
+        again.deferred(again.content, [&](std::optional<QString> content, QList<AttachedFile>) {
+            ++calls;
+            sent = content;
+        });
+        QVERIFY(h.network.respond(false, {}, 404));
+        QCOMPARE(calls, 1);
+        QVERIFY(!sent);
+
+        // Without Attach Files, it's upstream's notice
+        h.expressions.denied = FakeNitro::EmbedLinks | FakeNitro::AttachFiles;
+        h.ui.confirmAnswer = true;
+        OutgoingMessage noFiles;
+        noFiles.accountId = 1;
+        noFiles.channelId = Channel;
+        noFiles.guildId = out.guildId;
+        noFiles.content = QStringLiteral("<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(noFiles);
+        QVERIFY(!noFiles.deferred);
+        QCOMPARE(countConfirmations(h.ui, QStringLiteral("Send Anyway")), 1);
     }
 
     void needsPermissions()

@@ -38,6 +38,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   allowed yet.
 - FakeNitro "Fake reactions" (off by default): the reaction picker offers every
   emoji, and reacting with one you can't use replies to the message with it.
+- In a channel where you can't embed links but can attach files, FakeNitro sends
+  fake emojis and stickers as image files ("Upload where links don't embed").
 
 ### Changed
 

@@ -120,9 +120,11 @@ class ChatClickWatcher : public QObject
 public:
     using ClickHandler = std::function<void(const QPoint &pos, int detail, Qt::MouseButton button)>;
 
+    // One application-wide filter: it sees the viewport's mouse events and the
+    // keys held anywhere. A second filter on the viewport itself would see
+    // every press twice, making each click a double click.
     ChatClickWatcher(QWidget *viewport, QObject *parent) : QObject(parent), viewport(viewport)
     {
-        viewport->installEventFilter(this);
         qApp->installEventFilter(this);
     }
 

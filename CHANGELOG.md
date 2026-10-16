@@ -22,6 +22,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Fixed
 
+- MessageClickActions took every click on a message as a double click, so a single
+  click could start an edit or a reply, and each action ran twice.
 - Behind a system or environment proxy, avatars, images and media now load for an
   account without a proxy of its own, like its messages do.
 - When no account connects at startup, the accounts window opens instead of an

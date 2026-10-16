@@ -271,7 +271,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 64 of 369 ported and tested (each has its own test), 22 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 64 of 369 ported and tested (each has its own test), 26 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

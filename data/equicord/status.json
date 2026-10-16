@@ -42,6 +42,14 @@
         "notes": "Copy User URL copied <https://discord.com/users/id>."
       }
     },
+    "DecodeBase64": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed \"hello from Qord\" for a message with aGVsbG8gZnJvbSBRb3Jk in it, and a right click copied it."
+      }
+    },
     "DontRoundMyTimestamps": {
       "verifiedInClient": {
         "date": "2026-10-16",
@@ -154,12 +162,36 @@
         "notes": "A brb → be right back rule: the rule tester and a sent message both read \"ok be right back soon\"."
       }
     },
+    "Translate": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed the translation under the message with the translate icon and Dismiss; the settings button opened the languages window, and the DeepL key and Kagi session fields showed only for their service."
+      }
+    },
     "Unindent": {
       "verifiedInClient": {
         "date": "2026-10-16",
         "build": "38f2ade",
         "by": "Maarten's test account, IK server",
         "notes": "An 8-space indented code block was sent with the common indent removed."
+      }
+    },
+    "UnitConverter": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed 25°C as 77.00°F under the message with the convert icon, leaving the Base64 word next to it alone."
+      }
+    },
+    "ViewRaw": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed the message's content and data and a right click copied the content; View Raw showed the data of #algemeen, the IK server, a member, their profile (from its More button) and a role (from the profile), and appeared in the message menu with that setting on."
       }
     },
     "WhoReacted": {

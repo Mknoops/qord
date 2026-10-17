@@ -226,6 +226,24 @@ struct RoleContext
     QString name;
 };
 
+// A profile about to be shown, for its theme colours (FakeProfileThemes).
+// The colours are 0xRRGGBB.
+struct ProfileThemeContext
+{
+    Id accountId = 0;
+    Id userId = 0;
+    Id guildId = 0; // 0 outside a server
+    QString bio; // as written, invisible characters and all
+    std::optional<quint32> primary; // the profile's own (Nitro) theme, if any
+    std::optional<quint32> accent;
+};
+
+struct ProfileTheme
+{
+    quint32 primary = 0;
+    quint32 accent = 0;
+};
+
 // A user that a context menu was opened for.
 struct UserContext
 {

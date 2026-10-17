@@ -1710,6 +1710,7 @@ struct UserProfileData : Core::JsonUtils::JsonObject
     Field<int, true, true> accentColor;
     Field<QString, true, true> banner;
     Field<QString> pronouns;
+    QList<int> themeColors; // Qord: Nitro profile theme, primary then accent
 
     static UserProfileData fromJson(const QJsonObject &obj)
     {
@@ -1718,6 +1719,8 @@ struct UserProfileData : Core::JsonUtils::JsonObject
         get(obj, "accent_color", p.accentColor);
         get(obj, "banner", p.banner);
         get(obj, "pronouns", p.pronouns);
+        for (const QJsonValue &color : obj.value(QLatin1String("theme_colors")).toArray())
+            p.themeColors.append(color.toInt());
         return p;
     }
 };
@@ -1729,6 +1732,7 @@ struct GuildMemberProfile : Core::JsonUtils::JsonObject
     Field<int, true, true> accentColor;
     Field<QString, true, true> banner;
     Field<QString> pronouns;
+    QList<int> themeColors; // Qord
 
     static GuildMemberProfile fromJson(const QJsonObject &obj)
     {
@@ -1738,6 +1742,8 @@ struct GuildMemberProfile : Core::JsonUtils::JsonObject
         get(obj, "accent_color", p.accentColor);
         get(obj, "banner", p.banner);
         get(obj, "pronouns", p.pronouns);
+        for (const QJsonValue &color : obj.value(QLatin1String("theme_colors")).toArray())
+            p.themeColors.append(color.toInt());
         return p;
     }
 };

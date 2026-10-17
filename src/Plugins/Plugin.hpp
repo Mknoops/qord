@@ -309,6 +309,14 @@ public:
         return false;
     }
 
+    // Hook::ProfileTheme: the theme colours to show a profile with; nullopt
+    // leaves it as it is
+    virtual std::optional<ProfileTheme> profileTheme(const ProfileThemeContext &profile)
+    {
+        Q_UNUSED(profile);
+        return std::nullopt;
+    }
+
     // Hook::RoleContextMenu: items for a role's right-click menu
     virtual QList<MenuItem> roleContextMenuItems(const RoleContext &role)
     {

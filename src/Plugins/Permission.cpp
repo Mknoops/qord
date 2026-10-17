@@ -126,6 +126,7 @@ const HookInfo hookTable[] = {
     { Hook::InboxTabs, "inboxTabs", Permission::AddUiElements },
     { Hook::MessagePopover, "messagePopover", Permission::AddUiElements },
     { Hook::RoleContextMenu, "roleContextMenu", Permission::AddUiElements },
+    { Hook::ProfileTheme, "profileTheme", Permission::ModifyDisplayedMessages },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

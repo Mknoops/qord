@@ -143,6 +143,8 @@ public:
         Q_UNUSED(guildId);
         Q_UNUSED(userId);
     }
+    // The account the window shows (its user id), 0 when none
+    [[nodiscard]] virtual Id currentAccountId() const { return 0; }
     // A dialog of searchable choices and switches (Translate's languages).
     // Each change is reported right away through `changed` with the field's
     // key and its new value (choice value, or "true"/"false" for a switch).

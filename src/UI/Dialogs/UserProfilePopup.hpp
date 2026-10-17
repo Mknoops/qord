@@ -1,9 +1,11 @@
 #pragma once
 
-#include <optional>
-
+#include <QColor>
 #include <QDialog>
 #include <QPointer>
+
+#include <optional>
+#include <utility>
 
 #include "Core/Snowflake.hpp"
 #include "Discord/Entities.hpp"
@@ -49,6 +51,7 @@ protected:
     void hideEvent(QHideEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void buildUi();
@@ -58,6 +61,10 @@ private:
     void renderFromCachedData();
     void renderFromProfile();
     void renderBannerAndBio();
+    // Qord: Nitro profile themes (or a plugin's, FakeProfileThemes): the
+    // popup in a gradient from the primary to the accent colour
+    void applyTheme(const QString &bio);
+    std::optional<std::pair<QColor, QColor>> themeColors;
     void renderPronouns();
     void renderBadges();
     void renderConnections();

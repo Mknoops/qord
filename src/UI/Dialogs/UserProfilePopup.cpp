@@ -12,12 +12,14 @@
 #include <QKeyEvent>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QLinearGradient>
 #include <QMenu>
 #include <QLocale>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSet>
@@ -940,12 +942,77 @@ void UserProfilePopup::renderBannerAndBio()
     else if (profile.userProfile.hasValue() && profile.userProfile.get().bio.hasValue() && !profile.userProfile.get().bio.get().isEmpty())
         bio = profile.userProfile.get().bio.get();
 
-    if (bio.isEmpty()) {
+    applyTheme(bio);
+    // Invisible tag characters (FakeProfileThemes' colours) aren't shown
+    static const QRegularExpression tags(QStringLiteral("[\\x{E0000}-\\x{E007F}]"));
+    bio.remove(tags);
+    if (bio.trimmed().isEmpty()) {
         bioSection->setVisible(false);
     } else {
         bioView->setMessageHtml(instance ? instance->messages()->profileBioHtml(bio) : bio.toHtmlEscaped(), bioView->viewport()->width());
         bioSection->setVisible(true);
     }
+}
+
+void UserProfilePopup::applyTheme(const QString &bio)
+{
+    const QList<int> &own = guildView && profile.guildMemberProfile.hasValue() &&
+                                            profile.guildMemberProfile.get().themeColors.size() >= 2
+                                    ? profile.guildMemberProfile.get().themeColors
+                            : profile.userProfile.hasValue() ? profile.userProfile.get().themeColors
+                                                             : QList<int>();
+    std::optional<std::pair<QColor, QColor>> theme;
+    if (own.size() >= 2)
+        theme = std::make_pair(QColor::fromRgb(QRgb(own[0])), QColor::fromRgb(QRgb(own[1])));
+    if (auto *host = Qord::Plugins::PluginHost::instance(); host && host->hasHook(Qord::Plugins::Hook::ProfileTheme)) {
+        Qord::Plugins::ProfileThemeContext context;
+        context.accountId = quint64(accountId());
+        context.userId = quint64(userId);
+        context.guildId = guildView ? quint64(guildId) : 0;
+        context.bio = bio;
+        if (own.size() >= 2) {
+            context.primary = quint32(own[0]);
+            context.accent = quint32(own[1]);
+        }
+        if (const auto plugin = host->dispatchProfileTheme(context))
+            theme = std::make_pair(QColor::fromRgb(QRgb(plugin->primary)), QColor::fromRgb(QRgb(plugin->accent)));
+    }
+    if (theme == themeColors)
+        return;
+    const bool wasThemed = themeColors.has_value();
+    themeColors = theme;
+    // No banner colour of its own: the theme's primary colour
+    if (themeColors && resolvedAccentColor() == 0) {
+        QPalette pal = bannerLabel->palette();
+        pal.setColor(QPalette::Window, themeColors->first);
+        bannerLabel->setPalette(pal);
+    }
+    // The tabs' pane lets the theme through
+    static const QString Opaque = QStringLiteral("background: palette(base);");
+    static const QString Tinted = QStringLiteral("background: rgba(0, 0, 0, 70);");
+    if (themeColors && !wasThemed)
+        rightTabs->setStyleSheet(rightTabs->styleSheet().replace(Opaque, Tinted));
+    else if (!themeColors && wasThemed)
+        rightTabs->setStyleSheet(rightTabs->styleSheet().replace(Tinted, Opaque));
+    update();
+}
+
+void UserProfilePopup::paintEvent(QPaintEvent *event)
+{
+    if (!themeColors) {
+        QDialog::paintEvent(event);
+        return;
+    }
+    QPainter p(this);
+    QLinearGradient gradient(0, 0, 0, height());
+    gradient.setColorAt(0, themeColors->first);
+    gradient.setColorAt(1, themeColors->second);
+    p.fillRect(rect(), gradient);
+    // Like Discord, the inside is darkened (or lightened) towards the window
+    // colour so text stays readable, leaving a rim of the theme
+    QColor inner = palette().color(QPalette::Window);
+    inner.setAlpha(170);
+    p.fillRect(rect().adjusted(4, BannerHeight, -4, -4), inner);
 }
 
 void UserProfilePopup::renderPronouns()

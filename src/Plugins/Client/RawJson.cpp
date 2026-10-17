@@ -298,6 +298,12 @@ QJsonObject toJson(const UserProfileData &value)
     put(o, "accent_color", value.accentColor);
     put(o, "banner", value.banner);
     put(o, "pronouns", value.pronouns);
+    if (!value.themeColors.isEmpty()) {
+        QJsonArray colors;
+        for (int color : value.themeColors)
+            colors.append(color);
+        o.insert(QStringLiteral("theme_colors"), colors);
+    }
     return o;
 }
 
@@ -309,6 +315,12 @@ QJsonObject toJson(const GuildMemberProfile &value)
     put(o, "accent_color", value.accentColor);
     put(o, "banner", value.banner);
     put(o, "pronouns", value.pronouns);
+    if (!value.themeColors.isEmpty()) {
+        QJsonArray colors;
+        for (int color : value.themeColors)
+            colors.append(color);
+        o.insert(QStringLiteral("theme_colors"), colors);
+    }
     return o;
 }
 

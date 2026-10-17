@@ -1070,6 +1070,18 @@ QList<PluginHost::PluginButton> PluginHost::dispatchMessagePopoverButtons(const 
     return out;
 }
 
+std::optional<ProfileTheme> PluginHost::dispatchProfileTheme(const ProfileThemeContext &profile)
+{
+    const int h = hookIndex(Hook::ProfileTheme);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<ProfileTheme> theme;
+        guarded(tableIds[h][i], "profileTheme", [&] { theme = tables[h][i]->profileTheme(profile); });
+        if (theme)
+            return theme;
+    }
+    return std::nullopt;
+}
+
 QList<PluginHost::PluginMenuItem> PluginHost::dispatchRoleContextMenuItems(const RoleContext &role)
 {
     QList<PluginMenuItem> out;

@@ -615,6 +615,17 @@ void QtUiService::showServerInfo(const ServerInfoView &view)
         serverInfoShower()(view);
 }
 
+Id QtUiService::currentAccountId() const
+{
+    return currentAccountProvider() ? currentAccountProvider()() : 0;
+}
+
+std::function<Id()> &QtUiService::currentAccountProvider()
+{
+    static std::function<Id()> provider;
+    return provider;
+}
+
 void QtUiService::openUserProfile(Id accountId, Id guildId, Id userId)
 {
     if (profileOpener())

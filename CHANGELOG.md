@@ -51,6 +51,10 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   (15 FPS) or smoothness (up to 60 FPS) instead of a balance, keep only the first
   minute, 30 or 15 seconds, and cuts a video too long to fit at all to the part
   that fits.
+- FakeProfileThemes: profile theme colours hidden in bios (as invisible text) are
+  shown on profiles; pick yours in its settings, copy the text for your bio, and
+  preview it. Qord now also shows Nitro profile themes, and plugin settings can be
+  colours.
 
 ### Changed
 

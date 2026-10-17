@@ -156,6 +156,8 @@ public:
     };
     [[nodiscard]] QList<PluginInboxTab> dispatchInboxTabs(Id accountId);
     [[nodiscard]] QList<PluginButton> dispatchMessagePopoverButtons(const MessageContext &message);
+    // First plugin with colours wins
+    [[nodiscard]] std::optional<ProfileTheme> dispatchProfileTheme(const ProfileThemeContext &profile);
     [[nodiscard]] QList<PluginMenuItem> dispatchRoleContextMenuItems(const RoleContext &role);
     void dispatchRoleContextMenuAction(const QString &pluginId, const QString &itemId, const RoleContext &role);
     void dispatchMessagePopoverClicked(const QString &pluginId, const QString &buttonId, const MessageContext &message,

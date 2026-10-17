@@ -505,6 +505,9 @@ void MainWindow::setupQordFeatures()
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
             showUserProfile(instance, Snowflake(userId), Snowflake(guildId));
     };
+    Qord::Plugins::QtUiService::currentAccountProvider() = [this]() -> Qord::Plugins::Id {
+        return currentInstance ? quint64(currentInstance->accountId()) : 0;
+    };
     Qord::Plugins::SessionGuilds::guildIdsProvider() = [this](Qord::Plugins::Id accountId) {
         QList<Qord::Plugins::Id> out;
         for (const Snowflake id : channelTreeModel->guildIds(Snowflake(accountId)))
@@ -568,6 +571,7 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::localMessageShower() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
+        Qord::Plugins::QtUiService::currentAccountProvider() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;
     });
 

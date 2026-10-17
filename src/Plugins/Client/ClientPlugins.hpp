@@ -157,6 +157,8 @@ public:
     void openUserProfile(Id accountId, Id guildId, Id userId) override;
     static std::function<void(const ServerInfoView &)> &serverInfoShower(); // set by the main window
     static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window
+    [[nodiscard]] Id currentAccountId() const override;
+    static std::function<Id()> &currentAccountProvider(); // set by the main window
     void openChannel(Id accountId, Id channelId) override;
     static std::function<void(Id, Id)> &channelOpener(); // set by the main window
     void joinVoiceChannel(Id accountId, Id channelId) override;

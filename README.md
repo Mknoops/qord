@@ -162,7 +162,7 @@ Qord has its own plugin host (`src/Plugins`), designed to be safe and cheap:
 ### Plugins
 
 <!-- BEGIN GENERATED: plugin-table -->
-These 64 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
+These 65 native plugins are available now (out of the 369 in the pinned Equicord inventory). All are off by default; turn them on in **Settings → Plugins**, where each one lists the permissions it asks for.
 
 | Plugin | What it does | Permissions |
 |---|---|---|
@@ -180,6 +180,7 @@ These 64 native plugins are available now (out of the 369 in the pinned Equicord
 | **DecodeBase64** | A hover-bar button that decodes or copies a message's Base64; also in its menu | add_ui_elements, write_clipboard |
 | **DontRoundMyTimestamps** | Rounds relative timestamps down (7.6y shows as 7y, not 8y) | modify_displayed_messages |
 | **FakeNitro** | Sends emojis and stickers you can't use as links; Nitro-quality Go Live; splits long messages and shrinks large images | modify_outgoing_messages, modify_displayed_messages, read_expressions, network, add_ui_elements |
+| **FakeProfileThemes** | Profile theme colours hidden in bios, shown on profiles; pick yours and copy the invisible text | modify_displayed_messages, add_ui_elements, write_clipboard |
 | **FavoriteEmojiFirst** | Favorite emojis first in the emoji autocomplete, and your own aliases for emojis | add_ui_elements, modify_outgoing_messages |
 | **FollowVoiceUser** | "Follow User" on a friend joins whichever voice channel they move to | read_voice_states, add_ui_elements, read_relationships |
 | **ForceOwnerCrown** | The owner crown in the member list even in large servers | modify_displayed_messages |
@@ -271,7 +272,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 64 of 369 ported and tested (each has its own test), 26 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 65 of 369 ported and tested (each has its own test), 26 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

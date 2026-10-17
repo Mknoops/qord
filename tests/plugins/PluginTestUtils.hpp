@@ -173,6 +173,8 @@ public:
         profilesOpened.append({ accountId, userId });
     }
     QList<QPair<Id, Id>> profilesOpened;
+    Id currentAccountId() const override { return currentAccount; }
+    Id currentAccount = 1;
     void showToast(const QString &text, ToastType type) override { toasts.append({ text, type }); }
     QList<QPair<QString, ToastType>> toasts;
     void showPermissions(const PermissionsView &view) override { permissionViews.append(view); }

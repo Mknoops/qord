@@ -148,6 +148,7 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `inboxTabs` | Tabs of messages in the inbox next to Mentions, with remove and Clear All | `add_ui_elements` | KeywordNotify |
 | `messagePopover` | Buttons on a message's hover bar, before the client's own; left and right click | `add_ui_elements` | DecodeBase64, Translate, UnitConverter, ViewRaw |
 | `roleContextMenu` | Items in a role's right-click menu (server settings' role list, PermissionsViewer) | `add_ui_elements` | ViewRaw |
+| `profileTheme` | The theme colours a profile is shown with (FakeProfileThemes) | `modify_displayed_messages` | FakeProfileThemes |
 <!-- END GENERATED: hooks -->
 
 ## Services

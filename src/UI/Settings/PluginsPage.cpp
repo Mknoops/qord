@@ -4,6 +4,7 @@
 #include "Plugins/PluginHost.hpp"
 
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -369,6 +370,31 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
             spin->setValue(settings->numberValue(key));
             connect(spin, &QDoubleSpinBox::editingFinished, editor, [spin, commit] { commit(spin->value()); });
             row->addWidget(spin);
+            row->addStretch();
+            form->addLayout(row);
+            addHelp();
+            break;
+        }
+        case SettingType::Color: {
+            auto *row = new QHBoxLayout;
+            row->addWidget(new QLabel(spec.label, editor));
+            auto *button = new QPushButton(editor);
+            button->setCursor(Qt::PointingHandCursor);
+            const auto show = [button](const QColor &color) {
+                QPixmap swatch(14, 14);
+                swatch.fill(color);
+                button->setIcon(QIcon(swatch));
+                button->setText(color.name());
+            };
+            show(QColor(settings->stringValue(key)));
+            connect(button, &QPushButton::clicked, editor, [button, show, commit, label = spec.label]() {
+                const QColor picked = QColorDialog::getColor(QColor(button->text()), button, label);
+                if (!picked.isValid())
+                    return;
+                show(picked);
+                commit(picked.name());
+            });
+            row->addWidget(button);
             row->addStretch();
             form->addLayout(row);
             addHelp();

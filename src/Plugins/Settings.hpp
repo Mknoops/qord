@@ -23,6 +23,7 @@ enum class SettingType {
     Json, // structured value edited by a plugin-provided widget
     Number, // any number (ImageZoom's zoom of 2.5)
     Action, // a button; clicking it calls Plugin::onSettingAction (no value)
+    Color, // "#rrggbb", picked with a colour dialog
 };
 
 std::optional<SettingType> settingTypeFromString(const QString &name);

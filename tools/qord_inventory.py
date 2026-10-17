@@ -95,7 +95,7 @@ PERMISSIONS = {
     "read_memberships",
 }
 
-SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action"}
+SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action", "color"}
 
 # Hook name -> call that must appear in client code (outside src/Plugins) for
 # the hook to count as wired into the running client. Must match PluginHost.
@@ -140,6 +140,7 @@ HOOK_DISPATCH = {
     "inboxTabs": "dispatchInboxTabs(",
     "messagePopover": "dispatchMessagePopoverButtons(",
     "roleContextMenu": "dispatchRoleContextMenuItems(",
+    "profileTheme": "dispatchProfileTheme(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -184,6 +185,7 @@ HOOK_DOCS = {
     "inboxTabs": "Tabs of messages in the inbox next to Mentions, with remove and Clear All",
     "messagePopover": "Buttons on a message's hover bar, before the client's own; left and right click",
     "roleContextMenu": "Items in a role's right-click menu (server settings' role list, PermissionsViewer)",
+    "profileTheme": "The theme colours a profile is shown with (FakeProfileThemes)",
 }
 
 MANIFEST_REQUIRED = {

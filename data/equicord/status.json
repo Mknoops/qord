@@ -186,6 +186,14 @@
         "notes": "With the toggle on, the sent message had flags 4096 (View Raw)."
       }
     },
+    "SilentTyping": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "8cd7292",
+        "by": "Maarten's test account, IK server (member list dots on the mock server)",
+        "notes": "In #gagbot, /silent-typing was suggested as SilentTyping's; \"/silent-typing chat-icon:false\" removed the chat-bar icon and answered \"Silent typing settings updated.\" as a message only you see, and the message box's right-click Silent Typing submenu showed the settings as checkboxes and Chat Icon brought the icon back. Nobody else was online in IK to type, so the member list dots were checked on the mock server: a typing member got the dots on their avatar, hidden with \"Hide members list typing indicators\" and shown again when it was unticked from the submenu."
+      }
+    },
     "TalkInReverse": {
       "verifiedInClient": {
         "date": "2026-10-16",

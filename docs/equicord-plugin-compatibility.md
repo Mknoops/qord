@@ -12,8 +12,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 34 |
-| Complete | 31 |
+| Tested | 33 |
+| Complete | 32 |
 | Blocked | 0 |
 | **Total** | 369 |
 
@@ -305,7 +305,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Signature | `src/equicordplugins/signature` |  | Not Started |  |
 | SilenceUsers | `src/equicordplugins/silenceUsers` |  | Not Started |  |
 | SilentMessageToggle | `src/plugins/silentMessageToggle` | `plugins/chat/silentmessagetoggle` | Complete | "Persist between channels and restarts" saves the toggle and restores it after a restart; upstream instead starts every channel with the toggle on in that mode. Qord's send path turns the @silent prefix into a silent message the way Discord's client does. |
-| SilentTyping | `src/plugins/silentTyping` | `plugins/privacy/silenttyping` | Tested | Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out. /silent-typing in the message box changes the same settings as upstream's command and answers with a message only you see; the message box's right-click menu has the Silent Typing submenu. "Hide members list typing indicators" hides the typing dots Qord, like Discord, puts on the avatars of members typing in the open channel. wired; not yet verified in the running client. |
+| SilentTyping | `src/plugins/silentTyping` | `plugins/privacy/silenttyping` | Complete | Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out. /silent-typing in the message box changes the same settings as upstream's command and answers with a message only you see; the message box's right-click menu has the Silent Typing submenu. "Hide members list typing indicators" hides the typing dots Qord, like Discord, puts on the avatars of members typing in the open channel. |
 | Snowfall | `src/equicordplugins/snowfall` |  | Not Started |  |
 | SongLink | `src/equicordplugins/songLink.desktop` |  | Not Started |  |
 | SongSpotlight | `src/equicordplugins/songSpotlight.desktop` |  | Not Started |  |

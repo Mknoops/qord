@@ -93,6 +93,10 @@ From Acheron, extended by Qord:
   mentions inbox.
 - **User panel:** status, custom status, mute and deafen.
 - **Devices** (Settings): every device logged in to your account, and logging them out.
+- **Settings like Discord's,** with search: Accessibility (zoom, reduce motion),
+  Chat (link previews, media, reactions, spoilers, emoticons, 12/24-hour time,
+  Ctrl+Enter to send), Notifications, changeable **Keybinds**, open at login and
+  the tray, **Streamer mode**, and Developer mode.
 - **Typing indicators:** both shown and sent.
 - **Notifications:** desktop notifications for DMs and mentions (tray and taskbar
   flash), a message chime, and per-server, per-channel and per-DM mute and

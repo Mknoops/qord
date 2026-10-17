@@ -1,4 +1,5 @@
 #include "UI/Chat/MessageActionBar.hpp"
+#include "Qord/Preferences.hpp"
 
 #include <QApplication>
 #include <QHBoxLayout>
@@ -193,7 +194,7 @@ QToolButton *MessageActionBar::addActionButton(Action action, const QString &ico
 void MessageActionBar::updateButtons()
 {
     const bool showDelete = shiftHeld && canDelete;
-    copyIdButton->setVisible(shiftHeld);
+    copyIdButton->setVisible(shiftHeld && Qord::Preferences::developerMode());
     copyLinkButton->setVisible(shiftHeld);
     deleteButton->setVisible(showDelete);
     moreButton->setVisible(!showDelete);

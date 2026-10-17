@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "Qord/Preferences.hpp"
 #include "UI/Qord/HiddenChannelScreen.hpp"
 
 #include <QApplication>
@@ -230,6 +231,7 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     restoreWindowState();
 
     setupQordFeatures();
+    setupPreferences();
     if (!QSettings().contains("layout/geometry"))
         resize(1280, 800);
 }
@@ -242,6 +244,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    // Qord: the close button can keep Qord in the tray; quitting still closes
+    if (event->spontaneous() && Qord::Preferences::flag(Qord::Pref::CloseToTray) && hideToTray()) {
+        event->ignore();
+        return;
+    }
     saveWindowState();
 
     hide();
@@ -1418,8 +1425,7 @@ void MainWindow::setupUi()
     connect(userPanel, &UserPanel::settingsRequested, this, &MainWindow::openSettingsWindow);
     connect(userPanel, &UserPanel::accountsRequested, this, &MainWindow::openAccountsWindow);
     connect(userPanel, &UserPanel::menuBarToggleRequested, this, [this]() {
-        menuBar()->setVisible(!menuBar()->isVisible());
-        QSettings().setValue("ui/showMenuBar", menuBar()->isVisible());
+        Qord::Preferences::set(Qord::Pref::ShowMenuBar, !menuBar()->isVisible());
     });
 
     addServerButton = new QToolButton(this);
@@ -1504,8 +1510,6 @@ void MainWindow::setupUi()
     animatedImages->setCacheLimitMiB(QSettings().value("chat/animation_cache_mb", Core::AnimatedImageCache::CacheLimit.fallback).toInt());
     animatedImages->setAnimationLimitMiB(QSettings().value("chat/animation_max_mb", Core::AnimatedImageCache::AnimationLimit.fallback).toInt());
     chatView->frameAnimator()->setCache(animatedImages);
-    chatView->frameAnimator()->setEmojiEnabled(QSettings().value("chat/animate_emoji", true).toBool());
-    chatView->frameAnimator()->setStickersEnabled(QSettings().value("chat/animate_stickers", true).toBool());
     chatView->setItemDelegate(new ChatDelegate(session->getImageManager(), chatView));
     chatView->setIconSize(QSize(24, 24));
     chatView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -2697,33 +2701,17 @@ void MainWindow::setupMenu()
     channelListToggle = viewMenu->addAction(tr("Channel &List"));
     channelListToggle->setCheckable(true);
     channelListToggle->setChecked(!channelListHidden);
-    channelListToggle->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
     connect(channelListToggle, &QAction::toggled, this, [this](bool checked) { setChannelListHidden(!checked); });
 
     memberListToggle = viewMenu->addAction(tr("&Member List"));
     memberListToggle->setCheckable(true);
     memberListToggle->setChecked(!memberListHidden);
     memberListToggle->setEnabled(false);
-    memberListToggle->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_U));
     connect(memberListToggle, &QAction::toggled, this, [this](bool checked) { setMemberListHidden(!checked); });
 
     // Qord: Discord has no menu bar; the user panel can bring it back
-    menuBar->setVisible(QSettings().value("ui/showMenuBar", false).toBool());
-    for (QAction *a : { channelListToggle, memberListToggle })
-        addAction(a); // keep the shortcuts working while the menu bar is hidden
-    auto *settingsShortcut = new QAction(this);
-    settingsShortcut->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
-    connect(settingsShortcut, &QAction::triggered, this, &MainWindow::openSettingsWindow);
-    addAction(settingsShortcut);
-
-    // DEBUG: Ctrl+Shift+R to force a Gateway reconnect
-    auto *debugReconnect = new QAction(this);
-    debugReconnect->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
-    addAction(debugReconnect);
-    connect(debugReconnect, &QAction::triggered, this, [this]() {
-        if (currentInstance)
-            currentInstance->discord()->debugForceReconnect();
-    });
+    menuBar->setVisible(Qord::Preferences::flag(Qord::Pref::ShowMenuBar));
+    // The keyboard shortcuts are Settings > Keybinds (setupKeybinds)
 }
 
 void MainWindow::showAccountsOnStartup()
@@ -2753,12 +2741,6 @@ void MainWindow::openSettingsWindow()
         connect(settingsWindow, &SettingsWindow::roleStyleChanged, this, [this]() {
             memberListView->viewport()->update();
             chatView->viewport()->update();
-        });
-        connect(settingsWindow, &SettingsWindow::animateEmojiChanged, this, [this](bool enabled) {
-            chatView->frameAnimator()->setEmojiEnabled(enabled);
-        });
-        connect(settingsWindow, &SettingsWindow::animateStickersChanged, this, [this](bool enabled) {
-            chatView->frameAnimator()->setStickersEnabled(enabled);
         });
         connect(settingsWindow, &SettingsWindow::animationCacheLimitChanged, session->getAnimatedImageCache(),
                 &Core::AnimatedImageCache::setCacheLimitMiB);
@@ -3040,11 +3022,13 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
             MemberModeration::addModerationActions(&menu, this, instance, *target);
     }
 
-    menu.addSeparator();
-    QAction *copyIdAction = menu.addAction(tr("Copy User ID"));
-    connect(copyIdAction, &QAction::triggered, this, [userId]() {
-        QGuiApplication::clipboard()->setText(QString::number(quint64(userId)));
-    });
+    if (Qord::Preferences::developerMode()) {
+        menu.addSeparator();
+        QAction *copyIdAction = menu.addAction(tr("Copy User ID"));
+        connect(copyIdAction, &QAction::triggered, this, [userId]() {
+            QGuiApplication::clipboard()->setText(QString::number(quint64(userId)));
+        });
+    }
 
     if (auto *plugins = Qord::Plugins::PluginHost::instance();
         plugins && plugins->hasHook(Qord::Plugins::Hook::UserContextMenu)) {

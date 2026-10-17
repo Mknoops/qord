@@ -40,6 +40,9 @@ public:
     // notifications are on); `clicked` runs if it is clicked
     void notify(const QString &title, const QString &body, std::function<void()> clicked);
 
+    // The tray icon is showing, so the window can hide in it
+    [[nodiscard]] bool hasTray() const;
+
 signals:
     void openRequested(Core::Snowflake accountId, Core::Snowflake channelId, Core::Snowflake messageId);
 

@@ -35,6 +35,9 @@ public:
     // Re-applies mute/deafen to the active voice connection (after joining)
     void applyVoiceFlags();
     void applyLocalVoiceFlags();
+    // Keybinds: the same as clicking the mute and deafen buttons
+    void toggleMute();
+    void toggleDeafen();
 
 signals:
     void settingsRequested();

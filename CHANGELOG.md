@@ -5,7 +5,24 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ## [Unreleased]
 
+### Added
+
+- Many more settings, after Discord's: Accessibility (zoom, reduce motion, always
+  underline links, mention highlighting), Voice & video, Chat (link previews and
+  their media, uploaded images, reactions, emoticons to emoji, always show
+  spoilers, 12/24-hour time, space between message groups, Ctrl+Enter to send),
+  Notifications (DMs, mentions, message text, taskbar flash, sound volume),
+  Keybinds (channel and unread navigation, mark as read, mute, deafen, search,
+  streamer mode and more, all changeable), Startup & window (open at login, start
+  minimized, minimize or close to the tray, menu bar), Streamer mode (hides invite
+  links, your status and device locations, silences notifications and sounds) and
+  Advanced (Developer mode for Copy ID, memory limits, the data folder). Settings
+  has a search box.
+
 ### Changed
+
+- Links in messages are no longer underlined unless Accessibility asks for it, and
+  Copy ID menu items follow Developer mode (on by default).
 
 - Qord has its own look: navy surfaces with a teal accent and amber mentions, and
   IBM Plex Sans (bundled) for the interface and messages. A line now runs from the

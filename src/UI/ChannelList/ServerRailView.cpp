@@ -1,4 +1,5 @@
 #include "ServerRailView.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "MentionJumpIndicator.hpp"
 #include "ServerRailModel.hpp"
@@ -136,11 +137,13 @@ void ServerRailView::execMenu(Core::Snowflake accountId, Core::Snowflake id, boo
             emit leaveGuildRequested(accountId, id);
         });
 
-        menu.addSeparator();
-        QAction *copyIdAction = menu.addAction(tr("Copy Server ID"));
-        connect(copyIdAction, &QAction::triggered, this, [id]() {
-            QGuiApplication::clipboard()->setText(QString::number(quint64(id)));
-        });
+        if (Qord::Preferences::developerMode()) {
+            menu.addSeparator();
+            QAction *copyIdAction = menu.addAction(tr("Copy Server ID"));
+            connect(copyIdAction, &QAction::triggered, this, [id]() {
+                QGuiApplication::clipboard()->setText(QString::number(quint64(id)));
+            });
+        }
     }
 
     menu.exec(globalPos);

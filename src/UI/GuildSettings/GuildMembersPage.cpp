@@ -1,4 +1,5 @@
 #include "GuildMembersPage.hpp"
+#include "Qord/Preferences.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -1035,8 +1036,11 @@ void GuildMembersPage::showContextMenu(const QPoint &pos)
     menu.addAction(tr("Profile"), this, [this, userId]() { openProfile(userId); });
     menu.addSeparator();
     MemberModeration::addModerationActions(&menu, this, instance, targetOf(result.value()));
-    menu.addSeparator();
-    menu.addAction(tr("Copy User ID"), this, [userId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(userId))); });
+    if (Qord::Preferences::developerMode()) {
+        menu.addSeparator();
+        menu.addAction(tr("Copy User ID"), this,
+                       [userId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(userId))); });
+    }
     menu.exec(table->viewport()->mapToGlobal(pos));
 }
 

@@ -302,12 +302,20 @@ static QString buildQordStyleSheet()
                           "#SettingsEsc { color: %3; font-size: 11px; font-weight: 600; }"
                           "#SettingsHelp { color: %3; }"
                           "#SettingsSectionTitle { color: %7; font-size: 12px; font-weight: 700; }"
+                          "#SettingsRowTitle { color: %7; font-size: 15px; font-weight: 500; }"
+                          "#SettingsFormBody, #SettingsRow { background: transparent; }"
+                          "#SettingsContent QScrollArea { background: transparent; border: none; }"
+                          "#SettingsDivider { background-color: %4; border: none; }"
+                          "QLineEdit#SettingsSearch { background-color: %8; border: none; border-radius: 4px; padding: 5px 8px; }"
+                          "#SettingsKeyTable { background: transparent; border: none; outline: none; }"
+                          "#SettingsKeyTable::item { padding: 6px 4px; border-bottom: 1px solid %4; }"
                           "#PluginList { background-color: %1; border: none; border-radius: 8px; padding: 6px; outline: none; }"
                           "#PluginList::item { color: %5; padding-left: 6px; border-radius: 4px; }"
                           "#PluginList::item:hover { background-color: %4; }"
                           "#PluginList::item:selected { background-color: %6; color: %7; }"
                           "#SettingsContent QSplitter::handle { background: transparent; }")
-                   .arg(hex(sidebar), hex(chat), hex(muted), hex(hover), hex(text), hex(selected), hex(header));
+                   .arg(hex(sidebar), hex(chat), hex(muted), hex(hover), hex(text), hex(selected), hex(header))
+                   .arg(hex(rail));
     qss += QStringLiteral("QMenu { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px;"
                           "  padding: 6px; }"
                           "QMenu::item { padding: 6px 24px 6px 10px; border-radius: 2px; }"

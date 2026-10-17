@@ -1,5 +1,6 @@
 #include "App.hpp"
 #include "UI/MainWindow.hpp"
+#include "Qord/Preferences.hpp"
 #include "Storage/DatabaseManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/Logging.hpp"
@@ -80,6 +81,12 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName(Qord::DevMock::enabled() ? "Qord-Mock" : "Qord");
     QApplication::setApplicationVersion(QStringLiteral(QORD_VERSION));
     applyFontEngineSetting();
+    // Settings > Accessibility > Zoom, unless the environment already scales
+    if (qEnvironmentVariableIsEmpty("QT_SCALE_FACTOR")) {
+        const int zoom = Qord::Preferences::number(Qord::Pref::Zoom);
+        if (zoom != 100 && zoom >= 50 && zoom <= 300)
+            qputenv("QT_SCALE_FACTOR", QByteArray::number(zoom / 100.0));
+    }
 
     App app(argc, argv);
     app.setDesktopFileName("io.github.mknoops.qord");
@@ -138,7 +145,7 @@ int main(int argc, char *argv[])
         Core::Session session;
         Qord::Plugins::ClientPlugins plugins(&session);
         UI::MainWindow window(&session);
-        window.show();
+        window.showAtStart();
 
         if (session.autoConnectAccounts() == 0)
             window.showAccountsOnStartup();

@@ -1,4 +1,5 @@
 #include "GuildBansPage.hpp"
+#include "Qord/Preferences.hpp"
 
 #include <QClipboard>
 #include <QDialog>
@@ -344,7 +345,11 @@ void GuildBansPage::showContextMenu(const QPoint &pos)
         menu.addAction(tr("Revoke Ban"), this, [this, userId]() { revoke(userId); });
         menu.addSeparator();
     }
-    menu.addAction(tr("Copy User ID"), this, [userId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(userId))); });
+    if (Qord::Preferences::developerMode())
+        menu.addAction(tr("Copy User ID"), this,
+                       [userId]() { QGuiApplication::clipboard()->setText(QString::number(quint64(userId))); });
+    if (menu.isEmpty())
+        return;
     menu.exec(list->viewport()->mapToGlobal(pos));
 }
 

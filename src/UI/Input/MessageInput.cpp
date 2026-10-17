@@ -1,6 +1,7 @@
 #include "MessageInput.hpp"
 #include "AttachmentPreviewPanel.hpp"
 #include "TextEdgeNavigation.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "Core/Emoji/UnicodeEmojiIndex.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
@@ -50,8 +51,16 @@ void ChatTextEdit::contextMenuEvent(QContextMenuEvent *e)
 void ChatTextEdit::keyPressEvent(QKeyEvent *e)
 {
     if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) {
-        if (!(e->modifiers() & Qt::ShiftModifier)) {
+        // Qord: Settings > Chat can make Enter a new line and Ctrl+Enter send
+        const bool ctrlSends = Qord::Preferences::flag(Qord::Pref::CtrlEnterSends);
+        const bool sends = ctrlSends ? bool(e->modifiers() & Qt::ControlModifier)
+                                     : !(e->modifiers() & Qt::ShiftModifier);
+        if (sends) {
             emit returnPressed();
+            return;
+        }
+        if (ctrlSends) {
+            textCursor().insertText(QStringLiteral("\n"));
             return;
         }
     }
@@ -317,9 +326,12 @@ void MessageInput::submit()
 {
     if (sendBlocked || sending)
         return;
-    const QString txt = draftText();
+    QString txt = draftText();
     if (txt.isEmpty() && !attachmentPanel->hasAttachments() && stagedStickers.isEmpty())
         return;
+    // Qord: :) to 🙂 and the like, when Settings > Chat asks (not in commands)
+    if (Qord::Preferences::flag(Qord::Pref::ConvertEmoticons) && !txt.startsWith(QLatin1Char('/')))
+        txt = Qord::Preferences::convertEmoticons(txt);
     emit sendMessage(txt, attachmentPanel->attachments());
     if (keepAfterSend)
         keepAfterSend = false;

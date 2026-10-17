@@ -73,6 +73,11 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/Qord/EmojiPickerData.cpp
     src/Qord/SlashCommands.hpp
     src/Qord/SlashCommands.cpp
+    src/Qord/Preferences.hpp
+    src/Qord/Preferences.cpp
+    src/Qord/Keybinds.hpp
+    src/Qord/Keybinds.cpp
+    src/UI/Qord/MainWindowSettings.cpp
     src/Qord/Video/H264Rtp.hpp
     src/Qord/Video/H264Rtp.cpp
     src/Qord/Video/Pacer.hpp
@@ -183,6 +188,15 @@ if(BUILD_TESTS)
         target_compile_options(TestSlashCommands PRIVATE /utf-8)
     endif()
     add_test(NAME QordSlashCommandTests COMMAND TestSlashCommands)
+
+    qt_add_executable(TestPreferences tests/qord/tst_preferences.cpp src/Qord/Preferences.cpp src/Qord/Keybinds.cpp)
+    target_link_libraries(TestPreferences PRIVATE Qt::Core Qt::Gui Qt::Test)
+    target_include_directories(TestPreferences PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(TestPreferences PROPERTIES AUTOMOC ON)
+    if(MSVC)
+        target_compile_options(TestPreferences PRIVATE /utf-8)
+    endif()
+    add_test(NAME QordPreferencesTests COMMAND TestPreferences)
 
     qt_add_executable(TestMockTokenStore tests/qord/tst_mock_token_store.cpp
         tests/qord/fake_keychain/qtkeychain/keychain.h src/Core/TokenStore.cpp

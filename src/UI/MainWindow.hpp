@@ -69,6 +69,8 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent *event) override;
+    void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
@@ -121,6 +123,8 @@ public:
     // Qord: shown at startup when no account connects automatically, so a
     // first run doesn't open on an empty window
     void showAccountsOnStartup();
+    // Qord: shown, or minimized / in the tray when Settings asks
+    void showAtStart();
 
 private:
     void showChannelTopic(Core::ClientInstance *instance, Core::Snowflake channelId);
@@ -278,6 +282,12 @@ private:
 
     // --- Qord: Discord-style chrome and core features (MainWindowQord.cpp) ---
     void setupQordFeatures();
+    // Qord: Settings applied to the window (UI/Qord/MainWindowSettings.cpp)
+    void setupPreferences();
+    void setupKeybinds();
+    void stepChannel(int step, bool unreadOnly);
+    bool hideToTray();
+    QHash<QString, QAction *> keybindActions;
     void applyQordSurfaces();
     void openPinnedMessages();
     void openMessageSearch(const QString &query);

@@ -1,4 +1,5 @@
 #include "ChatDelegate.hpp"
+#include "Qord/Preferences.hpp"
 #include "Core/RoleColors.hpp"
 
 #include <QLocale>
@@ -380,7 +381,7 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     QRect messageRect = option.rect;
     if (layout.hasSeparator)
         messageRect.setTop(layout.separatorRect.bottom() + 1);
-    if (index.data(ChatModel::MentionsMeRole).toBool()) {
+    if (index.data(ChatModel::MentionsMeRole).toBool() && Qord::Preferences::flag(Qord::Pref::HighlightMentions)) {
         // Qord: Discord's gold highlight and bar on messages that mention you
         const auto &theme = Core::Theme::Manager::instance();
         painter->fillRect(messageRect, theme.color(Core::Theme::Token::MentionedMessageBg));
@@ -640,7 +641,7 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText));
         painter->drawText(timestampRect, Qt::AlignLeft | Qt::AlignVCenter, timestampText);
         tips.append({ timestampRect, QLocale().toString(timestamp.date(), QLocale::LongFormat) + QLatin1Char(' ') +
-                                             QLocale().toString(timestamp.time(), QLocale::ShortFormat) });
+                                             Qord::Preferences::timeText(timestamp.time()) });
         if (lastHeaderTips.size() > 512)
             lastHeaderTips.clear();
         lastHeaderTips.insert(quint64(headerMessageId), tips);
@@ -1337,7 +1338,7 @@ void ChatDelegate::paintTextPreview(QPainter *painter, const QStyleOptionViewIte
 QString ChatDelegate::headerTimestamp(const QDateTime &timestamp)
 {
     const QLocale locale;
-    const QString time = locale.toString(timestamp.time(), QLocale::ShortFormat);
+    const QString time = Qord::Preferences::timeText(timestamp.time());
     const qint64 days = timestamp.date().daysTo(QDate::currentDate());
     if (days == 0)
         return tr("Today at %1").arg(time);

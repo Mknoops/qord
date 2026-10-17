@@ -1,20 +1,13 @@
 #include "SettingsWindow.hpp"
 
 #include "AppearancePage.hpp"
-#include "GeneralPage.hpp"
 #include "PluginsPage.hpp"
-#include "UI/Qord/DesktopNotifier.hpp"
+#include "SettingsForm.hpp"
 #include "UI/Qord/DevicesPage.hpp"
-#include "UI/Qord/NotificationSound.hpp"
 
-#include <QCheckBox>
 #include <QLabel>
-#include <QPushButton>
+#include <QLineEdit>
 #include <QVBoxLayout>
-
-#ifdef ACHERON_HAVE_MINIAUDIO
-#include "AudioPage.hpp"
-#endif
 
 namespace Acheron {
 namespace UI {
@@ -56,6 +49,50 @@ void SettingsWindow::showDevices()
     showPage(devicesPage);
 }
 
+void SettingsWindow::filterPages(const QString &query)
+{
+    // Pages whose name or settings mention the words; headers stay while
+    // a page under them does
+    const QStringList terms = query.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    const auto matches = [&terms](const QStringList &haystack) {
+        for (const QString &term : terms) {
+            bool found = false;
+            for (const QString &text : haystack)
+                if (text.contains(term, Qt::CaseInsensitive)) {
+                    found = true;
+                    break;
+                }
+            if (!found)
+                return false;
+        }
+        return true;
+    };
+    int header = -1;
+    bool headerUsed = false;
+    int firstMatch = -1;
+    for (int i = 0; i < categoryList->count(); ++i) {
+        QListWidgetItem *item = categoryList->item(i);
+        if (!(item->flags() & Qt::ItemIsEnabled)) {
+            if (header >= 0)
+                categoryList->item(header)->setHidden(!headerUsed);
+            header = i;
+            headerUsed = false;
+            continue;
+        }
+        QWidget *page = pages->widget(item->data(Qt::UserRole).toInt());
+        const bool shown = matches(QStringList{ item->text() } + pageWords.value(page));
+        item->setHidden(!shown);
+        headerUsed |= shown;
+        if (shown && firstMatch < 0)
+            firstMatch = i;
+    }
+    if (header >= 0)
+        categoryList->item(header)->setHidden(!headerUsed);
+    QListWidgetItem *current = categoryList->currentItem();
+    if (firstMatch >= 0 && (!current || current->isHidden()))
+        categoryList->setCurrentRow(firstMatch);
+}
+
 void SettingsWindow::setupUi()
 {
     // Discord's settings: a sidebar of grouped pages, the page on the right
@@ -70,6 +107,13 @@ void SettingsWindow::setupUi()
     sidebar->setFixedWidth(232);
     auto *sidebarLayout = new QVBoxLayout(sidebar);
     sidebarLayout->setContentsMargins(16, 40, 8, 16);
+    sidebarLayout->setSpacing(8);
+    search = new QLineEdit(sidebar);
+    search->setObjectName(QStringLiteral("SettingsSearch"));
+    search->setPlaceholderText(tr("Search"));
+    search->setClearButtonEnabled(true);
+    connect(search, &QLineEdit::textChanged, this, &SettingsWindow::filterPages);
+    sidebarLayout->addWidget(search);
     categoryList = new QListWidget(sidebar);
     categoryList->setObjectName(QStringLiteral("SettingsNav"));
     categoryList->setFrameShape(QFrame::NoFrame);
@@ -122,60 +166,31 @@ void SettingsWindow::setupUi()
         auto *item = new QListWidgetItem(name, categoryList);
         item->setData(Qt::UserRole, pages->addWidget(page));
         item->setSizeHint(QSize(0, 34));
+        if (auto *form = qobject_cast<SettingsForm *>(page))
+            pageWords[page] += form->searchText();
     };
 
-    // Qord: Discord's Devices, under User Settings
+    // Grouped as Discord groups them; every switch here does something in Qord
     addHeader(tr("User settings"));
     devicesPage = new DevicesPage(this);
     addPage(tr("Devices"), devicesPage);
 
     addHeader(tr("App settings"));
-    auto *general = new GeneralPage(this);
-    addPage(tr("General"), general);
-    connect(general, &GeneralPage::animateEmojiChanged, this, &SettingsWindow::animateEmojiChanged);
-    connect(general, &GeneralPage::animateStickersChanged, this, &SettingsWindow::animateStickersChanged);
-    connect(general, &GeneralPage::animationCacheLimitChanged, this, &SettingsWindow::animationCacheLimitChanged);
-    connect(general, &GeneralPage::animationSizeLimitChanged, this, &SettingsWindow::animationSizeLimitChanged);
-
     auto *appearance = new AppearancePage(this);
     addPage(tr("Appearance"), appearance);
+    pageWords.insert(appearance, { tr("theme"), tr("colors"), tr("font"), tr("channel list"), tr("role colors") });
     connect(appearance, &AppearancePage::channelListModeChanged, this, &SettingsWindow::channelListModeChanged);
     connect(appearance, &AppearancePage::channelListIndentChanged, this, &SettingsWindow::channelListIndentChanged);
     connect(appearance, &AppearancePage::roleStyleChanged, this, &SettingsWindow::roleStyleChanged);
-
-#ifdef ACHERON_HAVE_MINIAUDIO
-    addPage(tr("Audio"), new AudioPage(this));
-#endif
-
-    // Qord: Discord's Notifications settings
-    {
-        auto *page = new QWidget(this);
-        auto *v = new QVBoxLayout(page);
-        auto *desktop = new QCheckBox(tr("Enable Desktop Notifications"), page);
-        desktop->setChecked(DesktopNotifier::enabled());
-        connect(desktop, &QCheckBox::toggled, page, [](bool on) { DesktopNotifier::setEnabled(on); });
-        v->addWidget(desktop);
-        auto *desktopHelp = new QLabel(tr("Show a notification for direct messages and mentions when you are not "
-                                          "looking at the conversation. Muted servers and channels, and Do Not "
-                                          "Disturb, stay quiet."),
-                                       page);
-        desktopHelp->setWordWrap(true);
-        desktopHelp->setForegroundRole(QPalette::PlaceholderText);
-        v->addWidget(desktopHelp);
-        auto *sound = new QCheckBox(tr("Message sound"), page);
-        sound->setChecked(NotificationSound::enabled());
-        connect(sound, &QCheckBox::toggled, page, [](bool on) { NotificationSound::setEnabled(on); });
-        auto *preview = new QPushButton(tr("Play"), page);
-        auto *player = new NotificationSound(page);
-        connect(preview, &QPushButton::clicked, player, &NotificationSound::play);
-        auto *soundRow = new QHBoxLayout;
-        soundRow->addWidget(sound);
-        soundRow->addWidget(preview);
-        soundRow->addStretch();
-        v->addLayout(soundRow);
-        v->addStretch();
-        addPage(tr("Notifications"), page);
-    }
+    addPage(tr("Accessibility"), buildAccessibilityPage());
+    addPage(tr("Voice & video"), buildVoicePage());
+    auto *chat = buildChatPage();
+    addPage(tr("Chat"), chat);
+    addPage(tr("Notifications"), buildNotificationsPage());
+    addPage(tr("Keybinds"), buildKeybindsPage());
+    addPage(tr("Startup & window"), buildWindowPage());
+    addPage(tr("Streamer mode"), buildStreamerPage());
+    addPage(tr("Advanced"), buildAdvancedPage());
 
     addHeader(tr("Qord"));
     pluginsPage = new PluginsPage(this);
@@ -188,7 +203,7 @@ void SettingsWindow::setupUi()
         pages->setCurrentIndex(item->data(Qt::UserRole).toInt());
         pageTitle->setText(item->text());
     });
-    showPage(general);
+    showPage(chat);
 
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(content, 1);

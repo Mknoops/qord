@@ -1,4 +1,5 @@
 #include "Core/OpenExternalUrl.hpp"
+#include "Qord/Preferences.hpp"
 #include "ChatView.hpp"
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/Toast.hpp"
@@ -1200,8 +1201,10 @@ void ChatView::onActionBarMoreRequested(const QPoint &buttonTopLeft)
     addMessageAction(menu, Action::CopyLink, actionBarMessageId);
     if (canDeleteMessage(hoveredMessage))
         addMessageAction(menu, Action::Delete, actionBarMessageId);
-    menu.addSeparator();
-    addMessageAction(menu, Action::CopyId, actionBarMessageId);
+    if (Qord::Preferences::developerMode()) {
+        menu.addSeparator();
+        addMessageAction(menu, Action::CopyId, actionBarMessageId);
+    }
 
     actionBar->setMoreButtonDown(true);
 
@@ -1454,7 +1457,8 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
 
     menu.addSeparator();
     addMessageAction(menu, MessageActionBar::Action::CopyLink, messageId);
-    addMessageAction(menu, MessageActionBar::Action::CopyId, messageId);
+    if (Qord::Preferences::developerMode())
+        addMessageAction(menu, MessageActionBar::Action::CopyId, messageId);
 
     execMessageMenu(menu, event->globalPos());
 }

@@ -3,8 +3,10 @@
 
 #include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "Qord/Preferences.hpp"
 
 #include <QImageReader>
+#include <QRegularExpression>
 
 #include <algorithm>
 #include <cmath>
@@ -432,7 +434,7 @@ ForwardOriginData ChatModel::forwardOrigin(const Discord::Message &msg) const
     if (msg.snapshotMessage && msg.snapshotMessage->timestamp.hasValue()) {
         QDateTime sent = msg.snapshotMessage->timestamp->toLocalTime();
         QString sentText = sent.date() == QDate::currentDate()
-                                   ? sent.toString(QStringLiteral("hh:mm"))
+                                   ? Qord::Preferences::timeText(sent.time())
                                    : sent.toString(QStringLiteral("MMM d, yyyy h:mm AP"));
         origin.text += QStringLiteral("  •  %1").arg(sentText);
     }
@@ -446,6 +448,63 @@ int ChatModel::rowCount(const QModelIndex &parent) const
 }
 
 QVariant ChatModel::data(const QModelIndex &index, int role) const
+{
+    // Qord: Settings > Chat and Streamer mode
+    namespace Pref = Qord::Pref;
+    using Qord::Preferences;
+    switch (role) {
+    case EmbedsRole: {
+        if (!Preferences::flag(Pref::ShowEmbeds))
+            return {};
+        QVariant value = unfilteredData(index, role);
+        if (Preferences::flag(Pref::ShowLinkMedia) || !value.isValid())
+            return value;
+        QList<EmbedData> embeds;
+        for (EmbedData embed : value.value<QList<EmbedData>>()) {
+            if (embed.type == EmbedType::Image || embed.type == EmbedType::Gifv || embed.type == EmbedType::Video)
+                continue; // just the link, which stays in the text
+            embed.thumbnailUrl.clear();
+            embed.thumbnail = QPixmap();
+            embed.images.clear();
+            embed.videoThumbnailUrl.clear();
+            embed.videoThumbnail = QPixmap();
+            embed.videoUrl.clear();
+            embed.videoPlayable = false;
+            embeds.append(embed);
+        }
+        return embeds.isEmpty() ? QVariant() : QVariant::fromValue(embeds);
+    }
+    case AttachmentsRole: {
+        QVariant value = unfilteredData(index, role);
+        if (Preferences::flag(Pref::ShowAttachmentMedia) || !value.isValid())
+            return value;
+        // Hidden behind the spoiler cover until clicked
+        auto attachments = value.value<QList<AttachmentData>>();
+        for (AttachmentData &attachment : attachments)
+            if (attachment.isMedia())
+                attachment.isSpoiler = true;
+        return QVariant::fromValue(attachments);
+    }
+    case ReactionsRole:
+        return Preferences::flag(Pref::ShowReactions) ? unfilteredData(index, role) : QVariant();
+    case HtmlRole: {
+        QString html = unfilteredData(index, role).toString();
+        if (Preferences::flag(Pref::RevealSpoilers))
+            html.replace(QLatin1String(Core::Markdown::SpoilerHiddenStyle), QLatin1String(Core::Markdown::SpoilerShownStyle));
+        if (Preferences::streamerHides(Pref::StreamerHideInvites)) {
+            static const QRegularExpression invite(
+                    QStringLiteral(R"(((?:discord(?:app)?\.com/invite|discord\.gg)/)[A-Za-z0-9-]+)"),
+                    QRegularExpression::CaseInsensitiveOption);
+            html.replace(invite, QStringLiteral("\\1\u2022\u2022\u2022\u2022\u2022\u2022"));
+        }
+        return html;
+    }
+    default:
+        return unfilteredData(index, role);
+    }
+}
+
+QVariant ChatModel::unfilteredData(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return {};
@@ -563,7 +622,9 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         if (visible.embeds.hasValue() && visible.embeds->size() == 1) {
             const auto &embed = visible.embeds->first();
             QString embedType = embed.type.hasValue() ? *embed.type : QString();
-            if (embedType == "image") {
+            // Qord: unless link previews are off, when the link is all there is
+            if (embedType == "image" && Qord::Preferences::flag(Qord::Pref::ShowEmbeds)
+                && Qord::Preferences::flag(Qord::Pref::ShowLinkMedia)) {
                 QString embedUrl = embed.url.hasValue() ? *embed.url : QString();
                 if (!embedUrl.isEmpty() && visible.content == embedUrl)
                     html.clear();
@@ -1553,6 +1614,9 @@ void ChatModel::revealSpoiler(Snowflake attachmentId)
 
 bool ChatModel::isSpoilerRevealed(Snowflake attachmentId) const
 {
+    // Qord: Settings > Chat shows spoilers, but not media hidden by "show images"
+    if (Qord::Preferences::flag(Qord::Pref::RevealSpoilers) && Qord::Preferences::flag(Qord::Pref::ShowAttachmentMedia))
+        return true;
     return revealedSpoilers.contains(attachmentId);
 }
 

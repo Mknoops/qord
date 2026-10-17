@@ -1,4 +1,5 @@
 #include "ChannelTreeView.hpp"
+#include "Qord/Preferences.hpp"
 #include "Plugins/PluginHost.hpp"
 #include "ChannelFilterProxyModel.hpp"
 #include "ChannelTreeModel.hpp"
@@ -297,7 +298,7 @@ void ChannelTreeView::contextMenuEvent(QContextMenuEvent *event)
         emit markAsReadRequested(proxyIndex);
     });
 
-    if (nodeType != ChannelNode::Type::Folder) {
+    if (nodeType != ChannelNode::Type::Folder && Qord::Preferences::developerMode()) {
         Core::Snowflake nodeId(sourceIndex.data(ChannelTreeModel::IdRole).toULongLong());
         QString label = nodeType == ChannelNode::Type::Server ? tr("Copy Server ID") : tr("Copy Channel ID");
         menu.addSeparator();

@@ -12,8 +12,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 35 |
-| Complete | 30 |
+| Tested | 34 |
+| Complete | 31 |
 | Blocked | 0 |
 | **Total** | 369 |
 
@@ -189,7 +189,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | MemberCount | `src/plugins/memberCount` | `plugins/utility/membercount` | Tested | The numbers come from the member list Discord sends (online members in the channel's list, total server members) and from the voice states of channels you can see. wired; not yet verified in the running client. gaps: Online counts for servers you have not opened: upstream preloads each hovered server's member list to learn its online count; Qord shows "?" until you open the server; Thread member lists: Qord has no thread member list, so threads use the parent channel's count. |
 | MentionAvatars | `src/plugins/mentionAvatars` |  | Not Started |  |
 | MessageBurst | `src/equicordplugins/messageBurst` |  | Not Started |  |
-| MessageClickActions | `src/plugins/messageClickActions` | `plugins/chat/messageclickactions` | Tested | Clicks are counted in the chat like the browser's click detail (single, double, triple); held Shift/Ctrl/Alt and Backspace/Delete count as modifiers. Which message types can be replied to follows the types Discord documents (MessageTypeSets.REPLYABLE only exists at runtime in Discord's client). Copies confirm with upstream's toasts ("Link copied!") and a missing permission warns ("Cannot pin: Missing permissions"). Open Thread opens the message's thread, or starts one as Create Thread does, asking for its name. Delete on a message MessageLogger kept takes it off the screen. The reaction settings have a Pick Emoji button. wired; not yet verified in the running client. |
+| MessageClickActions | `src/plugins/messageClickActions` | `plugins/chat/messageclickactions` | Complete | Clicks are counted in the chat like the browser's click detail (single, double, triple); held Shift/Ctrl/Alt and Backspace/Delete count as modifiers. Which message types can be replied to follows the types Discord documents (MessageTypeSets.REPLYABLE only exists at runtime in Discord's client). Copies confirm with upstream's toasts ("Link copied!") and a missing permission warns ("Cannot pin: Missing permissions"). Open Thread opens the message's thread, or starts one as Create Thread does, asking for its name. Delete on a message MessageLogger kept takes it off the screen. The reaction settings have a Pick Emoji button. |
 | MessageColors | `src/equicordplugins/messageColors` |  | Not Started |  |
 | MessageFetchTimer | `src/equicordplugins/messageFetchTimer` |  | Not Started |  |
 | MessageLatency | `src/plugins/messageLatency` |  | Not Started |  |

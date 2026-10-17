@@ -643,6 +643,19 @@ bool PluginHost::dispatchShouldShowTypers(const ChatContext &chat)
     return true;
 }
 
+bool PluginHost::dispatchShouldShowMemberListTypers(const ChatContext &chat)
+{
+    const int h = hookIndex(Hook::Typing);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<bool> answer;
+        guarded(tableIds[h][i], "shouldShowMemberListTypers",
+                [&] { answer = tables[h][i]->shouldShowMemberListTypers(chat); });
+        if (answer && !*answer)
+            return false;
+    }
+    return true;
+}
+
 bool PluginHost::dispatchShouldConfirmLink(const QString &url)
 {
     const int h = hookIndex(Hook::LinkWarnings);
@@ -1092,6 +1105,45 @@ QList<PluginHost::PluginMenuItem> PluginHost::dispatchRoleContextMenuItems(const
                 out.append({ tableIds[h][i], item });
         });
     return out;
+}
+
+QList<PluginHost::PluginSlashCommand> PluginHost::slashCommands() const
+{
+    QList<PluginSlashCommand> out;
+    const int h = hookIndex(Hook::SlashCommands);
+    for (const QString &id : tableIds[h])
+        if (const PluginInfo *plugin = info(id))
+            for (const PluginCommand &command : plugin->manifest.commands)
+                out.append({ id, plugin->manifest.name, command });
+    return out;
+}
+
+std::optional<QString> PluginHost::dispatchSlashCommand(const QString &pluginId, const QString &name,
+                                                        const QJsonObject &options, const ChatContext &chat)
+{
+    std::optional<QString> content;
+    if (Plugin *plugin = tablePlugin(Hook::SlashCommands, pluginId))
+        guarded(pluginId, "onSlashCommand", [&] { content = plugin->onSlashCommand(name, options, chat); });
+    return content;
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchChatInputContextMenuItems(const ChatContext &chat)
+{
+    QList<PluginMenuItem> out;
+    const int h = hookIndex(Hook::ChatInputContextMenu);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "chatInputContextMenuItems", [&] {
+            for (const auto &item : tables[h][i]->chatInputContextMenuItems(chat))
+                out.append({ tableIds[h][i], item });
+        });
+    return out;
+}
+
+void PluginHost::dispatchChatInputContextMenuAction(const QString &pluginId, const QString &itemId,
+                                                    const ChatContext &chat)
+{
+    if (Plugin *plugin = tablePlugin(Hook::ChatInputContextMenu, pluginId))
+        guarded(pluginId, "onChatInputContextMenuAction", [&] { plugin->onChatInputContextMenuAction(itemId, chat); });
 }
 
 void PluginHost::dispatchRoleContextMenuAction(const QString &pluginId, const QString &itemId, const RoleContext &role)

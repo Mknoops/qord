@@ -4,11 +4,14 @@
 #include <QTextEdit>
 #include <QLabel>
 
+#include <functional>
+
 #include "Core/PendingAttachment.hpp"
 #include "Core/Snowflake.hpp"
 #include "EmojiAutocompletePopup.hpp"
 
 class QHBoxLayout;
+class QMenu;
 class QToolButton;
 
 namespace Acheron {
@@ -21,9 +24,12 @@ class ChatTextEdit : public QTextEdit
     Q_OBJECT
 public:
     explicit ChatTextEdit(QWidget *parent = nullptr);
+    // Qord: adds items to the right-click menu before it opens (plugins')
+    std::function<void(QMenu *menu)> extendContextMenu;
 
 protected:
     void keyPressEvent(QKeyEvent *e) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
     bool canInsertFromMimeData(const QMimeData *source) const override;
     void insertFromMimeData(const QMimeData *source) override;
 signals:
@@ -55,6 +61,7 @@ public:
     void insertText(const QString &text);
     // Qord: the text box (slash command menu)
     [[nodiscard]] QTextEdit *editor() const;
+    [[nodiscard]] ChatTextEdit *chatEditor() const { return textEdit; }
     // Places a widget to the right of the text box (used for plugin buttons)
     void addTrailingWidget(QWidget *widget);
     // Qord: the text as it would be sent, and whether files are attached
@@ -103,6 +110,8 @@ signals:
 public:
     // Qord: Discord's length limit for the account; the box counts down near it
     void setMessageLengthLimit(int limit);
+    // Qord: the files waiting to be sent with the message (PreviewMessage)
+    [[nodiscard]] QList<Core::PendingAttachment> pendingAttachments() const;
 
 private:
     QLabel *lengthCounter = nullptr;

@@ -236,6 +236,11 @@ public:
         Q_UNUSED(channelId);
         Q_UNUSED(content);
     }
+    // Like showLocalMessage, with the message box's attachments too (PreviewMessage)
+    virtual void previewDraft(Id accountId, Id channelId, const QString &content)
+    {
+        showLocalMessage(accountId, channelId, content);
+    }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {
@@ -260,6 +265,9 @@ public:
         Q_UNUSED(shiftHeld);
         Q_UNUSED(mention);
     }
+    // Opens the thread started from a message, or starts one from it as
+    // Discord's "Create Thread" does (asking for its name) where allowed
+    virtual void openThread(const MessageContext &message) { Q_UNUSED(message); }
     // Shows a Discord-hosted image (cdn.discordapp.com, media.discordapp.net)
     // in the client's image viewer; other URLs are ignored.
     virtual void openImage(const QUrl &url) { Q_UNUSED(url); }
@@ -297,6 +305,16 @@ public:
         Q_UNUSED(initial);
         Q_UNUSED(maxLength);
         Q_UNUSED(done);
+    }
+    // promptText with a placeholder shown in the empty field and a button
+    // (labelled `resetLabel`) that clears it
+    virtual void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                                     const QString &placeholder, const QString &resetLabel,
+                                     std::function<void(const QString &text)> done)
+    {
+        Q_UNUSED(placeholder);
+        Q_UNUSED(resetLabel);
+        promptText(title, label, initial, 0, std::move(done));
     }
 };
 

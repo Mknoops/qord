@@ -43,7 +43,13 @@ public:
     QList<MenuItem> emojiContextMenuItems(const EmojiContext &emoji) override
     {
         Q_UNUSED(emoji);
-        return { { QStringLiteral("vc-copy-emoji-markdown"), QStringLiteral("Copy Emoji Markdown") } };
+        MenuItem item { QStringLiteral("vc-copy-emoji-markdown"), QStringLiteral("Copy Emoji Markdown") };
+        // Vencord's CopyIcon
+        item.svg = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">)"
+                   R"(<path d="M3 16a1 1 0 0 1-1-1v-5a8 8 0 0 1 8-8h5a1 1 0 0 1 1 1v.5a.5.5 0 0 1-.5.5H10a6 6 0 0 0-6 6v5.5a.5.5 0 0 1-.5.5H3Z"/>)"
+                   R"(<path d="M6 18a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-4h-3a5 5 0 0 1-5-5V6h-4a4 4 0 0 0-4 4v8Z"/>)"
+                   R"(<path d="M21.73 12a3 3 0 0 0-.6-.88l-4.25-4.24a3 3 0 0 0-.88-.61V9a3 3 0 0 0 3 3h2.73Z"/></svg>)";
+        return { item };
     }
 
     void onEmojiContextMenuAction(const QString &id, const EmojiContext &emoji) override

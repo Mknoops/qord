@@ -51,6 +51,7 @@
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
+#include "UI/Settings/PluginsPage.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/ChannelList/ChannelFilterProxyModel.hpp"
 #include "UI/ChannelList/ChannelNode.hpp"
@@ -480,6 +481,38 @@ void MainWindow::setupQordFeatures()
         connect(host, &Qord::Plugins::PluginHost::presentationChanged, this,
                 [updateTyping]() { updateTyping(Snowflake::Invalid); });
 
+    // Discord's typing dots on the avatars of members typing in the open
+    // channel; SilentTyping can hide them
+    memberListModel->setTypingProvider([this](Snowflake userId) {
+        if (!currentInstance || !typingTracker->typers(chatModel->getActiveChannelId()).contains(userId))
+            return false;
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host || !host->hasHook(Qord::Plugins::Hook::Typing))
+            return true;
+        Qord::Plugins::ChatContext chat;
+        chat.accountId = quint64(currentInstance->accountId());
+        chat.channelId = Qord::Plugins::pluginId(chatModel->getActiveChannelId());
+        chat.guildId = Qord::Plugins::pluginId(chatModel->getActiveGuildId());
+        return host->dispatchShouldShowMemberListTypers(chat);
+    });
+    auto *memberTypingAnimation = new QTimer(this);
+    memberTypingAnimation->setInterval(100);
+    connect(memberTypingAnimation, &QTimer::timeout, this, [this]() { memberListView->viewport()->update(); });
+    auto updateMemberTyping = [this, memberTypingAnimation](Snowflake channelId) {
+        const Snowflake active = chatModel->getActiveChannelId();
+        if (channelId.isValid() && channelId != active)
+            return;
+        memberListModel->typingChanged();
+        if (typingTracker->typers(active).isEmpty())
+            memberTypingAnimation->stop();
+        else if (!memberTypingAnimation->isActive())
+            memberTypingAnimation->start();
+    };
+    connect(typingTracker, &Core::TypingTracker::channelTypersChanged, this, updateMemberTyping);
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        connect(host, &Qord::Plugins::PluginHost::presentationChanged, this,
+                [updateMemberTyping]() { updateMemberTyping(Snowflake::Invalid); });
+
     // ServerInfo: its window, profiles, and the servers for mutual users
     Qord::Plugins::QtUiService::serverInfoShower() = [this](const Qord::Plugins::ServerInfoView &view) {
         ServerInfoDialog::Actions actions;
@@ -546,9 +579,11 @@ void MainWindow::setupQordFeatures()
         return out;
     };
     Qord::Plugins::QtUiService::localMessageShower() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId,
-                                                               const QString &content) {
+                                                               const QString &content, bool withDraftAttachments) {
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
-            instance->messages()->addLocalMessage(Snowflake(channelId), content);
+            instance->messages()->addLocalMessage(Snowflake(channelId), content,
+                                                  withDraftAttachments ? messageInput->pendingAttachments()
+                                                                       : QList<Core::PendingAttachment>());
     };
     Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
         selectChannelInTree(Snowflake(accountId), Snowflake(channelId));
@@ -693,6 +728,60 @@ void MainWindow::setupQordFeatures()
         });
         emojiPicker->open(currentInstance, chatModel->getActiveChannelId(), false, anchor);
     });
+    // Plugin items in the message box's right-click menu (SilentTyping)
+    messageInput->chatEditor()->extendContextMenu = [this](QMenu *menu) {
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host || !currentInstance || !host->hasHook(Qord::Plugins::Hook::ChatInputContextMenu))
+            return;
+        Qord::Plugins::ChatContext chat;
+        chat.accountId = quint64(currentInstance->accountId());
+        chat.channelId = quint64(chatModel->getActiveChannelId());
+        chat.guildId = quint64(chatModel->getActiveGuildId());
+        chat.draft = messageInput->editor()->toPlainText();
+        const auto items = host->dispatchChatInputContextMenuItems(chat);
+        if (items.isEmpty())
+            return;
+        // At the top, as upstream puts them before "Send Message"
+        QAction *first = menu->actions().value(0);
+        QAction *separator = new QAction(menu);
+        separator->setSeparator(true);
+        menu->insertAction(first, separator);
+        std::function<void(QMenu *, QAction *, const QString &, const Qord::Plugins::MenuItem &)> addItem =
+                [&](QMenu *target, QAction *before, const QString &pluginId, const Qord::Plugins::MenuItem &item) {
+                    if (!item.children.isEmpty()) {
+                        auto *sub = new QMenu(item.label, target);
+                        for (const auto &child : item.children)
+                            addItem(sub, nullptr, pluginId, child);
+                        target->insertMenu(before, sub);
+                        return;
+                    }
+                    auto *action = new QAction(item.label, target);
+                    if (!item.svg.isEmpty())
+                        action->setIcon(pluginSvgIcon(item.svg, 16, devicePixelRatioF()));
+                    if (item.checked) {
+                        action->setCheckable(true);
+                        action->setChecked(*item.checked);
+                    }
+                    connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, chat]() {
+                        if (auto *h = Qord::Plugins::PluginHost::instance())
+                            h->dispatchChatInputContextMenuAction(pluginId, itemId, chat);
+                    });
+                    target->insertAction(before, action);
+                };
+        for (const auto &entry : items)
+            addItem(menu, separator, entry.pluginId, entry.item);
+    };
+
+    // Plugin settings with an emoji picker (MessageClickActions' reactions)
+    PluginsPage::emojiPickerOpener() = [this](QWidget *anchor, std::function<void(const QString &)> picked) {
+        if (!currentInstance)
+            return;
+        disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
+        connect(emojiPicker, &EmojiPicker::emojiPicked, this, [picked = std::move(picked)](const Core::EmojiMatch &match) {
+            picked(EmojiPicker::reactionKey(match));
+        });
+        emojiPicker->open(currentInstance, chatModel->getActiveChannelId(), true, anchor);
+    };
     connect(chatView, &ChatView::addReactionRequested, this, [this](Snowflake channelId, Snowflake messageId) {
         if (!currentInstance)
             return;
@@ -752,6 +841,7 @@ void MainWindow::setupQordFeatures()
                                                               perms->hasChannelPermission(me, channelId, Discord::Permission::READ_MESSAGE_HISTORY);
                                          }
                                          click.pinned = msg->pinned;
+                                         click.isSystemDm = click.message.isDm && isSystemDm(currentInstance, channelId);
                                          if (msg->reactions.hasValue())
                                              for (const auto &r : msg->reactions.get())
                                                  if (r.me.get())
@@ -764,6 +854,19 @@ void MainWindow::setupQordFeatures()
                                      };
     Qord::Plugins::QtUiService::editStarter() = [this](const Qord::Plugins::MessageContext &message) {
         chatView->startEditingMessage(Snowflake(message.messageId));
+    };
+    Qord::Plugins::QtUiService::threadOpener() = [this](const Qord::Plugins::MessageContext &message) {
+        const Snowflake messageId(message.messageId);
+        const int row = chatModel->rowForMessage(messageId);
+        const Discord::Message *msg = row >= 0 ? chatModel->messageAt(row) : nullptr;
+        if (!msg || !currentInstance || msg->isPendingOutbound || msg->qordDeleted)
+            return;
+        // A thread started from a message has the message's id
+        if (msg->flags.hasValue() && msg->flags->testFlag(Discord::MessageFlag::HAS_THREAD))
+            navigateToChannel(messageId);
+        else if (canCreateThreadsIn(currentInstance, Snowflake(message.channelId)) &&
+                 !chatModel->index(row, 0).data(ChatModel::IsSystemMessageRole).toBool())
+            createThreadFromMessage(Snowflake(message.channelId), messageId, ChatView::threadNameSuggestion(*msg));
     };
     Qord::Plugins::QtUiService::replyStarter() = [this](const Qord::Plugins::MessageContext &message, bool,
                                                         std::optional<bool> mention) {
@@ -991,6 +1094,8 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::imageOpener() = nullptr;
         Qord::Plugins::QtReadStates::allServersMarker() = nullptr;
         Qord::Plugins::QtUiService::editStarter() = nullptr;
+        Qord::Plugins::QtUiService::threadOpener() = nullptr;
+        PluginsPage::emojiPickerOpener() = nullptr;
         Qord::Plugins::QtUiService::fileAttacher() = nullptr;
         Qord::Plugins::QtUiService::replyStarter() = nullptr;
     });
@@ -1142,9 +1247,21 @@ const Qord::SlashCommands::Index *MainWindow::slashIndex()
     const QString key = slashScopeKey();
     if (key.isEmpty())
         return nullptr;
+    // Plugins' commands (SilentTyping's /silent-typing), shown with Discord's
+    QList<Qord::SlashCommands::Command> local;
+    if (auto *host = Qord::Plugins::PluginHost::instance())
+        for (const auto &entry : host->slashCommands())
+            local.append(Qord::SlashCommands::localCommand(entry.pluginId, entry.pluginName, entry.command.name,
+                                                           entry.command.description, entry.command.options));
+    const auto merged = [this, &local](const Qord::SlashCommands::Index *discord) -> const Qord::SlashCommands::Index * {
+        if (local.isEmpty())
+            return discord;
+        slashMerged = Qord::SlashCommands::withLocalCommands(discord ? *discord : Qord::SlashCommands::Index(), local);
+        return &slashMerged;
+    };
     auto it = slashIndexes.constFind(key);
     if (it != slashIndexes.constEnd())
-        return &it.value();
+        return merged(&it.value());
     if (!slashLoading.contains(key)) {
         slashLoading.insert(key);
         const QPointer<MainWindow> guard(this);
@@ -1160,7 +1277,7 @@ const Qord::SlashCommands::Index *MainWindow::slashIndex()
                         guard->slashPopup->refresh();
                 });
     }
-    return nullptr;
+    return merged(nullptr);
 }
 
 void MainWindow::requestAutocomplete(const Qord::SlashCommands::Command &command, const QJsonObject &data,
@@ -1215,6 +1332,23 @@ bool MainWindow::trySendSlashCommand(const QString &text)
         // Keep what was typed and say what is wrong
         messageInput->insertText(text);
         QToolTip::showText(messageInput->mapToGlobal(QPoint(12, -8)), built.error, messageInput);
+        return true;
+    }
+    if (built.command->local) {
+        // A plugin's command runs here; what it returns is sent as your message
+        if (slashPopup)
+            slashPopup->clearPicks();
+        auto *host = Qord::Plugins::PluginHost::instance();
+        if (!host)
+            return true;
+        Qord::Plugins::ChatContext chat;
+        chat.accountId = quint64(currentInstance->accountId());
+        chat.channelId = quint64(chatModel->getActiveChannelId());
+        chat.guildId = quint64(chatModel->getActiveGuildId());
+        const std::optional<QString> content = host->dispatchSlashCommand(
+                built.command->applicationId, built.command->name, Qord::SlashCommands::optionValues(built.data), chat);
+        if (content && !content->isEmpty())
+            currentInstance->messages()->sendMessage(chatModel->getActiveChannelId(), *content);
         return true;
     }
     QJsonObject payload {
@@ -1723,6 +1857,8 @@ void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowfla
                     return;
                 }
                 QAction *action = target->addAction(item.label);
+                if (!item.svg.isEmpty())
+                    action->setIcon(pluginSvgIcon(item.svg, 16, devicePixelRatioF()));
                 connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, ctx]() {
                     if (auto *h = Qord::Plugins::PluginHost::instance())
                         h->dispatchChannelContextMenuAction(pluginId, itemId, ctx);

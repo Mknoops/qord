@@ -18,9 +18,15 @@ constexpr int padding() noexcept
 {
     return 8;
 }
-constexpr int blockTopPadding() noexcept
+// Qord: the space above a new group of messages (Settings > Chat)
+inline int &groupSpacing() noexcept
 {
-    return 14;
+    static int spacing = 16;
+    return spacing;
+}
+inline int blockTopPadding() noexcept
+{
+    return groupSpacing() > 2 ? groupSpacing() - 2 : 0;
 }
 constexpr int avatarSize() noexcept
 {

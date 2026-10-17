@@ -1,4 +1,5 @@
 #include "VoiceWindow.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "Core/Audio/VoiceManager.hpp"
 #include "Core/Audio/VolumeLimit.hpp"
@@ -597,15 +598,23 @@ void VoiceWindow::buildAdvancedSection(QVBoxLayout *parentLayout)
 
 #ifdef ACHERON_HAVE_RNNOISE
     connect(noiseSuppressionCheckbox, &QCheckBox::toggled, this, [this](bool checked) {
-        QSettings().setValue("voice/noise_suppression", checked);
+        Qord::Preferences::set(Qord::Pref::NoiseSuppression, checked);
         if (voiceManager)
             voiceManager->setNoiseSuppressionEnabled(checked);
     });
 
     connect(rnnoiseVadCheckbox, &QCheckBox::toggled, this, [this](bool checked) {
-        QSettings().setValue("voice/rnnoise_vad", checked);
+        Qord::Preferences::set(Qord::Pref::RnnoiseVad, checked);
         if (voiceManager)
             voiceManager->setUseRnnoiseVad(checked);
+    });
+
+    // Qord: the same switches in Settings > Voice & video
+    connect(&Qord::Preferences::instance(), &Qord::Preferences::changed, this, [this](const QString &key) {
+        if (key == QLatin1String(Qord::Pref::NoiseSuppression))
+            noiseSuppressionCheckbox->setChecked(Qord::Preferences::flag(Qord::Pref::NoiseSuppression));
+        else if (key == QLatin1String(Qord::Pref::RnnoiseVad))
+            rnnoiseVadCheckbox->setChecked(Qord::Preferences::flag(Qord::Pref::RnnoiseVad));
     });
 #endif
 }

@@ -42,6 +42,7 @@ public:
         AccountIdRole, // Qord: for name decorations
         GuildIdRole,
         OwnerCrownRole, // Qord: the server owner's crown is shown
+        IsTypingRole, // Qord: typing in the open channel (Discord's dots on the avatar)
     };
 
     // Qord: the crown next to a server's owner. Like Discord, it is left out
@@ -50,6 +51,11 @@ public:
     static constexpr int LargeServerCrownLimit = 1000;
     using OwnerProvider = std::function<Core::Snowflake(Core::Snowflake guildId)>;
     void setOwnerProvider(OwnerProvider provider) { ownerProvider = std::move(provider); }
+    // Qord: who is typing in the open channel
+    using TypingProvider = std::function<bool(Core::Snowflake userId)>;
+    void setTypingProvider(TypingProvider provider) { typingProvider = std::move(provider); }
+    // Repaints the typing dots after the typers changed
+    void typingChanged();
 
     explicit MemberListModel(Core::ImageManager *imageManager, QObject *parent = nullptr);
 
@@ -84,6 +90,7 @@ private:
 
     mutable AvatarRequestTracker<QPersistentModelIndex> avatarTracker;
     OwnerProvider ownerProvider;
+    TypingProvider typingProvider;
     mutable QHash<Core::Snowflake, Core::Snowflake> owners; // by guild
 };
 

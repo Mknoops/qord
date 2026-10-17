@@ -195,11 +195,16 @@ public:
     {
         localMessages.append({ accountId, channelId, content });
     }
+    void previewDraft(Id accountId, Id channelId, const QString &content) override
+    {
+        localMessages.append({ accountId, channelId, content, true });
+    }
     struct LocalMessage
     {
         Id accountId;
         Id channelId;
         QString content;
+        bool withDraftAttachments = false;
     };
     QList<LocalMessage> localMessages;
     QList<QPair<Id, Id>> joinedVoice;
@@ -232,6 +237,8 @@ public:
     QList<MemberPermissionsView> memberPermissionViews;
     void openImage(const QUrl &url) override { images.append(url); }
     void startEditing(const MessageContext &message) override { edits.append(message.messageId); }
+    void openThread(const MessageContext &message) override { threads.append(message.messageId); }
+    QList<Id> threads;
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
     {
         replies.append({ message.messageId, shiftHeld, mention });
@@ -290,6 +297,15 @@ public:
         promptInitial = initial;
         pendingPrompt = std::move(done);
     }
+    void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                             const QString &placeholder, const QString &resetLabel,
+                             std::function<void(const QString &)> done) override
+    {
+        promptPlaceholder = placeholder;
+        promptResetLabel = resetLabel;
+        promptText(title, label, initial, 0, std::move(done));
+    }
+    QString promptPlaceholder, promptResetLabel;
     bool confirm(Confirmation &confirmation) override
     {
         confirmations.append(confirmation);

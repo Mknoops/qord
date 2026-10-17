@@ -1,6 +1,7 @@
 #include "HiddenChannelScreen.hpp"
 
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
 #include "UI/Chat/ChatDelegate.hpp"
 
 #include <QApplication>
@@ -51,7 +52,7 @@ QPixmap chipIcon(const PermissionsEntry &entry, const QPixmap &avatar)
         if (!avatar.isNull())
             p.drawPixmap(QRectF(0, 0, 20, 20), avatar, avatar.rect());
         else
-            p.fillPath(clip, QColor(0x58, 0x65, 0xf2));
+            p.fillPath(clip, Core::Theme::Manager::instance().color(Core::Theme::Token::Highlight));
     } else {
         p.setPen(Qt::NoPen);
         p.setBrush(entry.color ? QColor::fromRgb(entry.color) : DefaultRoleColor);

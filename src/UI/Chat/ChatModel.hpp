@@ -319,6 +319,8 @@ public:
 
     int rowCount(const QModelIndex &parent = {}) const override;
     QVariant data(const QModelIndex &index, int role) const override;
+    // Qord: data() before the chat preferences (Settings > Chat) filter it
+    QVariant unfilteredData(const QModelIndex &index, int role) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
     [[nodiscard]] Snowflake getOldestMessageId() const;

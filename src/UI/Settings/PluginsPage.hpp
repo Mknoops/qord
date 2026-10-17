@@ -2,6 +2,8 @@
 
 #include <QWidget>
 
+#include <functional>
+
 class QComboBox;
 class QLabel;
 class QLineEdit;
@@ -27,6 +29,9 @@ public:
     explicit PluginsPage(QWidget *parent = nullptr);
     // Selects a plugin (clears the filters so it is visible)
     void selectPlugin(const QString &id);
+    // Opens the emoji picker by `anchor` for settings with emojiPicker; set by
+    // the main window. `picked` gets "name:id" for a custom emoji, else the emoji.
+    static std::function<void(QWidget *anchor, std::function<void(const QString &picked)> picked)> &emojiPickerOpener();
 
 private:
     void populate();

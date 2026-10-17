@@ -2,6 +2,7 @@
 #include "Core/RoleColors.hpp"
 
 #include <QAbstractItemView>
+#include <QDateTime>
 #include <QHelpEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -87,16 +88,7 @@ void MemberListDelegate::paintGroup(QPainter *painter, const QStyleOptionViewIte
     QString groupName = index.data(MemberListModel::GroupNameRole).toString();
     int groupCount = index.data(MemberListModel::GroupCountRole).toInt();
 
-    // separator except for the first
-    if (index.row() > 0) {
-        QColor sepColor = option.palette.mid().color();
-        sepColor.setAlpha(60);
-        painter->setPen(QPen(sepColor, 1));
-        painter->drawLine(option.rect.left() + HorizontalPadding,
-                          option.rect.top(),
-                          option.rect.right() - HorizontalPadding,
-                          option.rect.top());
-    }
+    // Qord: no separator line, as Discord's groups are set apart by space only
 
     QString text = groupName.toUpper() + QString::fromUtf8(" \u2014 ") + QString::number(groupCount);
 
@@ -159,9 +151,15 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
         painter->drawRoundedRect(avatarRect, AvatarRadius, AvatarRadius);
     }
 
-    StatusIndicator::paintOnAvatar(
-            *painter, avatarRect, StatusDotSize,
-            index.data(MemberListModel::PresenceBadgeRole).value<Core::PresenceBadge>(), rowColor);
+    const auto badge = index.data(MemberListModel::PresenceBadgeRole).value<Core::PresenceBadge>();
+    if (index.data(MemberListModel::IsTypingRole).toBool()) {
+        // Qord: Discord's typing dots, cycling once every 1.2 s (the view
+        // repaints while someone types)
+        const qreal phase = (QDateTime::currentMSecsSinceEpoch() % 1200) / 1200.0;
+        StatusIndicator::paintTypingOnAvatar(*painter, avatarRect, StatusDotSize, badge, rowColor, phase);
+    } else {
+        StatusIndicator::paintOnAvatar(*painter, avatarRect, StatusDotSize, badge, rowColor);
+    }
 
     x += AvatarSize + AvatarTextSpacing;
     int textWidth = option.rect.right() - x - HorizontalPadding;

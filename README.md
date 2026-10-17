@@ -93,6 +93,10 @@ From Acheron, extended by Qord:
   mentions inbox.
 - **User panel:** status, custom status, mute and deafen.
 - **Devices** (Settings): every device logged in to your account, and logging them out.
+- **Settings like Discord's,** with search: Accessibility (zoom, reduce motion),
+  Chat (link previews, media, reactions, spoilers, emoticons, 12/24-hour time,
+  Ctrl+Enter to send), Notifications, changeable **Keybinds**, open at login and
+  the tray, **Streamer mode**, and Developer mode.
 - **Typing indicators:** both shown and sent.
 - **Notifications:** desktop notifications for DMs and mentions (tray and taskbar
   flash), a message chime, and per-server, per-channel and per-DM mute and
@@ -272,7 +276,7 @@ Blocked, with notes and known gaps) is in
 | Qt 5 build | Kept compiling (voice and ffmpeg off); not regularly tested |
 
 <!-- BEGIN GENERATED: plugin-status -->
-**Plugins:** 65 of 369 ported and tested (each has its own test), 27 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
+**Plugins:** 65 of 369 ported and tested (each has its own test), 32 of them verified in a logged-in client (Complete); 0 can't be done natively (Blocked).
 <!-- END GENERATED: plugin-status -->
 
 Design decisions are recorded in [docs/decisions.md](docs/decisions.md).

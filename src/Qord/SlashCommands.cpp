@@ -190,6 +190,47 @@ Index parseIndex(const QJsonObject &json)
     return index;
 }
 
+Command localCommand(const QString &pluginId, const QString &pluginName, const QString &name,
+                     const QString &description, const QJsonArray &options)
+{
+    Command c;
+    c.id = QStringLiteral("local:%1:%2").arg(pluginId, name);
+    c.applicationId = pluginId;
+    c.applicationName = pluginName;
+    c.name = name;
+    c.description = description;
+    for (const auto &opt : options)
+        c.options.append(parseOption(opt.toObject()));
+    c.local = true;
+    return c;
+}
+
+Index withLocalCommands(const Index &index, const QList<Command> &local)
+{
+    Index merged;
+    merged.commands = local + index.commands;
+    std::stable_sort(merged.commands.begin(), merged.commands.end(),
+                     [](const Command &a, const Command &b) { return a.name < b.name; });
+    return merged;
+}
+
+QJsonObject optionValues(const QJsonObject &data)
+{
+    QJsonObject out;
+    for (const auto &v : data.value(QStringLiteral("options")).toArray()) {
+        const QJsonObject o = v.toObject();
+        const int type = o.value(QStringLiteral("type")).toInt();
+        if (type == SubCommand || type == SubCommandGroup) {
+            const QJsonObject inner = optionValues(o);
+            for (auto it = inner.begin(); it != inner.end(); ++it)
+                out.insert(it.key(), it.value());
+        } else {
+            out.insert(o.value(QStringLiteral("name")).toString(), o.value(QStringLiteral("value")));
+        }
+    }
+    return out;
+}
+
 QList<Command> suggest(const Index &index, const QString &typed, int limit)
 {
     QList<Command> starts;

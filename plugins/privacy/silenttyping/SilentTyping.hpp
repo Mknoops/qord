@@ -45,15 +45,23 @@ QStringList toggled(QStringList list, const QString &id);
 class SilentTypingPlugin : public Plugin
 {
 public:
-    [[nodiscard]] Hooks hooks() const override { return Hook::Typing | Hook::ChatBarButtons; }
+    [[nodiscard]] Hooks hooks() const override
+    {
+        return Hook::Typing | Hook::ChatBarButtons | Hook::SlashCommands | Hook::ChatInputContextMenu;
+    }
 
     void start(PluginContext &context) override;
     void onSettingChanged(const QString &key) override;
 
     std::optional<bool> shouldSendTyping(const TypingContext &typing) override;
     std::optional<bool> shouldShowTypers(const ChatContext &chat) override;
+    std::optional<bool> shouldShowMemberListTypers(const ChatContext &chat) override;
     QList<ChatBarButton> chatBarButtons(const ChatContext &chat) override;
     void onChatBarButtonClicked(const QString &id, const ChatContext &chat) override;
+    std::optional<QString> onSlashCommand(const QString &name, const QJsonObject &options,
+                                          const ChatContext &chat) override;
+    QList<MenuItem> chatInputContextMenuItems(const ChatContext &chat) override;
+    void onChatInputContextMenuAction(const QString &id, const ChatContext &chat) override;
 
 private:
     SilentTyping::Config readConfig() const;

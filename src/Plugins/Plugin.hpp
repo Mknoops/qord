@@ -3,6 +3,8 @@
 #include "Permission.hpp"
 #include "Types.hpp"
 
+#include <QJsonObject>
+
 #include <optional>
 
 namespace Qord {
@@ -116,6 +118,13 @@ public:
     }
     // Hook::Typing: whether to show who else is typing above the input.
     virtual std::optional<bool> shouldShowTypers(const ChatContext &chat)
+    {
+        Q_UNUSED(chat);
+        return std::nullopt;
+    }
+    // Hook::Typing: whether the member list shows who is typing (the dots on
+    // their avatars).
+    virtual std::optional<bool> shouldShowMemberListTypers(const ChatContext &chat)
     {
         Q_UNUSED(chat);
         return std::nullopt;
@@ -315,6 +324,32 @@ public:
     {
         Q_UNUSED(profile);
         return std::nullopt;
+    }
+
+    // Hook::SlashCommands: one of the manifest's commands was run in the
+    // message box. `options` holds each given option's value by name. A
+    // returned text is sent as your message (Vencord's execute returning
+    // { content }).
+    virtual std::optional<QString> onSlashCommand(const QString &name, const QJsonObject &options,
+                                                  const ChatContext &chat)
+    {
+        Q_UNUSED(name);
+        Q_UNUSED(options);
+        Q_UNUSED(chat);
+        return std::nullopt;
+    }
+
+    // Hook::ChatInputContextMenu: items for the message box's right-click
+    // menu (Vencord's "textarea-context")
+    virtual QList<MenuItem> chatInputContextMenuItems(const ChatContext &chat)
+    {
+        Q_UNUSED(chat);
+        return {};
+    }
+    virtual void onChatInputContextMenuAction(const QString &id, const ChatContext &chat)
+    {
+        Q_UNUSED(id);
+        Q_UNUSED(chat);
     }
 
     // Hook::RoleContextMenu: items for a role's right-click menu

@@ -1,5 +1,7 @@
 #include "NotificationSound.hpp"
 
+#include "Qord/Preferences.hpp"
+
 #include <QApplication>
 #include <QSettings>
 #include <QTimer>
@@ -47,14 +49,16 @@ struct NotificationSound::Device
     bool initialized = false;
     std::vector<float> samples = chime();
     std::atomic<size_t> position { 0 };
+    std::atomic<float> gain { 1.0f }; // Settings > Notifications volume
 
     static void callback(ma_device *d, void *output, const void *, ma_uint32 frames)
     {
         auto *self = static_cast<Device *>(d->pUserData);
         auto *out = static_cast<float *>(output);
         size_t pos = self->position.load();
+        const float gain = self->gain.load();
         for (ma_uint32 i = 0; i < frames; ++i)
-            out[i] = pos < self->samples.size() ? self->samples[pos++] : 0.0f;
+            out[i] = pos < self->samples.size() ? gain * self->samples[pos++] : 0.0f;
         self->position.store(pos);
     }
 };
@@ -82,7 +86,7 @@ bool NotificationSound::enabled()
 
 void NotificationSound::setEnabled(bool enabled)
 {
-    QSettings().setValue(EnabledKey, enabled);
+    Qord::Preferences::set(Qord::Pref::NotifySound, enabled);
 }
 
 void NotificationSound::play()
@@ -102,6 +106,7 @@ void NotificationSound::play()
         QApplication::beep();
         return;
     }
+    device->gain.store(float(qBound(0, Qord::Preferences::number(Qord::Pref::NotifyVolume), 100)) / 100.0f);
     device->position.store(0);
     if (!ma_device_is_started(&device->device))
         ma_device_start(&device->device);

@@ -141,6 +141,8 @@ HOOK_DISPATCH = {
     "messagePopover": "dispatchMessagePopoverButtons(",
     "roleContextMenu": "dispatchRoleContextMenuItems(",
     "profileTheme": "dispatchProfileTheme(",
+    "slashCommands": "dispatchSlashCommand(",
+    "chatInputContextMenu": "dispatchChatInputContextMenuItems(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -186,6 +188,8 @@ HOOK_DOCS = {
     "messagePopover": "Buttons on a message's hover bar, before the client's own; left and right click",
     "roleContextMenu": "Items in a role's right-click menu (server settings' role list, PermissionsViewer)",
     "profileTheme": "The theme colours a profile is shown with (FakeProfileThemes)",
+    "slashCommands": "Runs the manifest's slash commands typed in the message box (SilentTyping's /silent-typing)",
+    "chatInputContextMenu": "Items in the message box's right-click menu (SilentTyping)",
 }
 
 MANIFEST_REQUIRED = {
@@ -382,6 +386,9 @@ def validate_manifest(path: Path, m, inventory_by_name: dict[str, dict]) -> list
             issues.append(Issue("manifest", f"{rel}: {field} must be a list of strings"))
         elif field == "notApplicable" and any(len(v.strip()) < 20 for v in value):
             issues.append(Issue("manifest", f"{rel}: each notApplicable entry must say what Qord lacks (at least 20 characters)"))
+
+    if not isinstance(m.get("settingsNote", ""), str):
+        issues.append(Issue("manifest", f"{rel}: settingsNote must be a string"))
 
     for s in m.get("settings") or []:
         when = s.get("showWhen") if isinstance(s, dict) else None

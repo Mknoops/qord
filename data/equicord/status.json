@@ -10,12 +10,28 @@
         "notes": "With role colors next to names, clicking the role dot after a name in a message and in the member list copied the role color (#206694)."
       }
     },
+    "BetterSessions": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "bc47913",
+        "by": "Maarten's test account, IK server",
+        "notes": "Settings → Devices showed both devices with OS colours, platform badges and NEW; Rename on the phone showed \"Test phone*\" and cleared NEW, and Reset Name emptied the field (placeholder \"iOS · Mobile Safari\") so saving brought the default name back."
+      }
+    },
     "ClearURLs": {
       "verifiedInClient": {
         "date": "2026-10-16",
         "build": "38f2ade",
         "by": "Maarten's test account, IK server",
         "notes": "Sent a link with utm_source, utm_medium and fbclid; it arrived with only id=5 left."
+      }
+    },
+    "CopyEmojiMarkdown": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "bc47913",
+        "by": "Maarten's test account, IK server",
+        "notes": "Right-clicking the IK server's animated emoji in the picker showed Copy Emoji Markdown with the copy icon; it put <a:name:id> on the clipboard and showed the success toast."
       }
     },
     "CopyFileContents": {
@@ -82,6 +98,14 @@
         "notes": "With the chat-bar toggle on, \"ingtoninator check\" was sent with \"ington\" added to a word; toggled off afterwards."
       }
     },
+    "MessageClickActions": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "d1f7160",
+        "by": "Maarten's test account, IK server",
+        "notes": "In #gagbot: double-click (Copy Link) copied the message link with the \"Link copied!\" toast; Backspace-click deleted the message, MessageLogger kept it in red, and a second Backspace-click took it off the screen without another request to Discord; with Open Thread, Backspace-click showed Create Thread with the message's text as the name (cancelled). Pick Emoji set the react emoji to 👍 and added ❤️ and 👀 to the additional list, ❤️ only once."
+      }
+    },
     "NoBlockedMessages": {
       "verifiedInClient": {
         "date": "2026-10-16",
@@ -122,6 +146,14 @@
         "notes": "\"case test. second sentence here. im ok and dont worry\" was sent as \"Case test. Second sentence here. I'm ok and don't worry\"."
       }
     },
+    "PreviewMessage": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "19d6dac",
+        "by": "Maarten's test account, IK server",
+        "notes": "In #gagbot with \"preview check\" typed and an image pasted, the eye button showed the text and the image as an \"Only you can see this\" message; with the text cleared it previewed the image alone. Both were dismissed and nothing was sent."
+      }
+    },
     "QuickReply": {
       "verifiedInClient": {
         "date": "2026-10-16",
@@ -152,6 +184,14 @@
         "build": "38f2ade",
         "by": "Maarten's test account, IK server",
         "notes": "With the toggle on, the sent message had flags 4096 (View Raw)."
+      }
+    },
+    "SilentTyping": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "8cd7292",
+        "by": "Maarten's test account, IK server (member list dots on the mock server)",
+        "notes": "In #gagbot, /silent-typing was suggested as SilentTyping's; \"/silent-typing chat-icon:false\" removed the chat-bar icon and answered \"Silent typing settings updated.\" as a message only you see, and the message box's right-click Silent Typing submenu showed the settings as checkboxes and Chat Icon brought the icon back. Nobody else was online in IK to type, so the member list dots were checked on the mock server: a typing member got the dots on their avatar, hidden with \"Hide members list typing indicators\" and shown again when it was unticked from the submenu."
       }
     },
     "TalkInReverse": {

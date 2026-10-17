@@ -37,8 +37,5 @@
   "target": "",
   "dependencies": [],
   "commands": [],
-  "notes": "Right-clicking an emoji in the emoji picker offers \"Copy Emoji Markdown\": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with \"Copy Unicode\" off; \"Success! Copied emoji markdown.\" confirms it.",
-  "gaps": [
-    "The menu item has no copy icon."
-  ]
+  "notes": "Right-clicking an emoji in the emoji picker offers \"Copy Emoji Markdown\": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with \"Copy Unicode\" off; \"Success! Copied emoji markdown.\" confirms it."
 }

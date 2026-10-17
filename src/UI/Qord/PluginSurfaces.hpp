@@ -8,8 +8,14 @@
 class QHBoxLayout;
 class QVBoxLayout;
 
+class QIcon;
+
 namespace Acheron {
 namespace UI {
+
+// A plugin's SVG icon ("currentColor" in the theme's muted text color),
+// size x size logical pixels at the given device pixel ratio. Null if empty.
+QIcon pluginSvgIcon(const QByteArray &svg, int size, qreal devicePixelRatio);
 
 // Plugin buttons above the servers in the server list
 // (Hook::ServerListButtons, e.g. ReadAllNotificationsButton's "Read All").

@@ -18,7 +18,7 @@ if(FFMPEG_FROM_VCPKG)
     list(APPEND VCPKG_MANIFEST_FEATURES "ffmpeg")
 endif()
 
-project(acheron VERSION 0.1.0 LANGUAGES CXX)
+project(acheron VERSION 0.2.0 LANGUAGES CXX)
 
 include(qt.cmake)
 
@@ -219,7 +219,8 @@ set(PROJECT_SOURCES
     src/UI/VideoFullscreenWindow.cpp
     src/UI/Accounts/AccountsWindow.cpp
     src/UI/Settings/SettingsWindow.cpp
-    src/UI/Settings/GeneralPage.cpp
+    src/UI/Settings/SettingsForm.cpp
+    src/UI/Settings/SettingsPages.cpp
     src/UI/Settings/AppearancePage.cpp
     src/UI/GuildSettings/AuditLogFormatter.cpp
     src/UI/GuildSettings/GuildAuditLogPage.cpp
@@ -338,7 +339,6 @@ if(ENABLE_VOICE OR TARGET ffmpeg)
     list(APPEND PROJECT_SOURCES
         src/Core/Audio/MiniaudioImpl.cpp
         src/Core/Audio/AudioBackends.cpp
-        src/UI/Settings/AudioPage.cpp
     )
 endif()
 

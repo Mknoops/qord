@@ -153,6 +153,17 @@ public:
                 done(text);
         });
     }
+    void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                             const QString &placeholder, const QString &resetLabel,
+                             std::function<void(const QString &)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->promptTextWithReset(title, label, initial, placeholder, resetLabel,
+                                   [weak, done = std::move(done)](const QString &text) {
+                                       if (auto a = weak.lock(); a && *a)
+                                           done(text);
+                                   });
+    }
     // The answer may come after the plugin stopped; drop it then
     void pickTimestamp(std::function<void(const QString &)> done) override
     {
@@ -174,6 +185,10 @@ public:
     void showLocalMessage(Id accountId, Id channelId, const QString &content) override
     {
         inner->showLocalMessage(accountId, channelId, content);
+    }
+    void previewDraft(Id accountId, Id channelId, const QString &content) override
+    {
+        inner->previewDraft(accountId, channelId, content);
     }
     void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
     {
@@ -297,6 +312,7 @@ public:
         inner->showMemberPermissions(guardedView);
     }
     void startEditing(const MessageContext &message) override { inner->startEditing(message); }
+    void openThread(const MessageContext &message) override { inner->openThread(message); }
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
     {
         inner->startReply(message, shiftHeld, mention);

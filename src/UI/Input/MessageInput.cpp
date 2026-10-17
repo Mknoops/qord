@@ -1,6 +1,7 @@
 #include "MessageInput.hpp"
 #include "AttachmentPreviewPanel.hpp"
 #include "TextEdgeNavigation.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "Core/Emoji/UnicodeEmojiIndex.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
@@ -17,6 +18,10 @@
 #include <QMimeData>
 #include <QToolButton>
 #include <QFileDialog>
+#include <QContextMenuEvent>
+#include <QMenu>
+
+#include <memory>
 
 #include <algorithm>
 
@@ -35,11 +40,27 @@ ChatTextEdit::ChatTextEdit(QWidget *parent) : QTextEdit(parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
+void ChatTextEdit::contextMenuEvent(QContextMenuEvent *e)
+{
+    std::unique_ptr<QMenu> menu(createStandardContextMenu(e->pos()));
+    if (extendContextMenu)
+        extendContextMenu(menu.get());
+    menu->exec(e->globalPos());
+}
+
 void ChatTextEdit::keyPressEvent(QKeyEvent *e)
 {
     if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) {
-        if (!(e->modifiers() & Qt::ShiftModifier)) {
+        // Qord: Settings > Chat can make Enter a new line and Ctrl+Enter send
+        const bool ctrlSends = Qord::Preferences::flag(Qord::Pref::CtrlEnterSends);
+        const bool sends = ctrlSends ? bool(e->modifiers() & Qt::ControlModifier)
+                                     : !(e->modifiers() & Qt::ShiftModifier);
+        if (sends) {
             emit returnPressed();
+            return;
+        }
+        if (ctrlSends) {
+            textCursor().insertText(QStringLiteral("\n"));
             return;
         }
     }
@@ -305,9 +326,12 @@ void MessageInput::submit()
 {
     if (sendBlocked || sending)
         return;
-    const QString txt = draftText();
+    QString txt = draftText();
     if (txt.isEmpty() && !attachmentPanel->hasAttachments() && stagedStickers.isEmpty())
         return;
+    // Qord: :) to 🙂 and the like, when Settings > Chat asks (not in commands)
+    if (Qord::Preferences::flag(Qord::Pref::ConvertEmoticons) && !txt.startsWith(QLatin1Char('/')))
+        txt = Qord::Preferences::convertEmoticons(txt);
     emit sendMessage(txt, attachmentPanel->attachments());
     if (keepAfterSend)
         keepAfterSend = false;
@@ -333,6 +357,11 @@ QList<Core::Snowflake> MessageInput::stickerIds() const
     for (const StagedSticker &staged : stagedStickers)
         ids.append(staged.id);
     return ids;
+}
+
+QList<Core::PendingAttachment> MessageInput::pendingAttachments() const
+{
+    return attachmentPanel->attachments();
 }
 
 void MessageInput::clearStickers()
@@ -445,7 +474,8 @@ void MessageInput::updateReplyMentionButton()
 {
     replyMentionButton->setText(replyMention ? tr("@ ON") : tr("@ OFF"));
     replyMentionButton->setStyleSheet(
-            replyMention ? QStringLiteral("QToolButton { border: none; color: #5865f2; font-weight: bold; font-size: 12px; }")
+            replyMention ? QStringLiteral("QToolButton { border: none; color: %1; font-weight: bold; font-size: 12px; }")
+                                   .arg(Core::Theme::Manager::instance().color(Core::Theme::Token::LinkText).name())
                          : QStringLiteral("QToolButton { border: none; color: #b5bac1; font-weight: bold; font-size: 12px; }"));
 }
 

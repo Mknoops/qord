@@ -140,6 +140,46 @@ private slots:
         QVERIFY(h.host->settings(h.id)->setValue("chatIcon", false).isEmpty());
         QVERIFY(h.host->dispatchChatBarButtons(chat).isEmpty());
     }
+
+    void commandAndMenu()
+    {
+        SinglePluginHost h(qord_register_silenttyping);
+        QVERIFY(h.enableWithAllPermissions());
+        auto *s = h.host->settings(h.id);
+        const auto commands = h.host->slashCommands();
+        QCOMPARE(commands.size(), 1);
+        QCOMPARE(commands[0].command.name, QStringLiteral("silent-typing"));
+        QCOMPARE(commands[0].command.options.size(), 6);
+
+        ChatContext chat;
+        chat.accountId = 1;
+        chat.channelId = 10;
+        chat.guildId = 100;
+        // /silent-typing toggle:Channel chat-icon:False
+        const QJsonObject options { { QStringLiteral("toggle"), QStringLiteral("channel") },
+                                    { QStringLiteral("chat-icon"), false } };
+        QVERIFY(!h.host->dispatchSlashCommand(h.id, QStringLiteral("silent-typing"), options, chat));
+        QCOMPARE(s->stringValue("disabledLocations"), QStringLiteral("10"));
+        QVERIFY(!s->boolValue("chatIcon"));
+        QCOMPARE(h.ui.localMessages.last().content, QStringLiteral("Silent typing settings updated."));
+        h.host->dispatchSlashCommand(h.id, QStringLiteral("silent-typing"), {}, chat);
+        QCOMPARE(h.ui.localMessages.last().content, QStringLiteral("No changes made to silent typing settings."));
+
+        // The message box menu: a submenu of checkboxes
+        QVERIFY(h.host->dispatchShouldShowMemberListTypers(chat));
+        auto items = h.host->dispatchChatInputContextMenuItems(chat);
+        QCOMPARE(items.size(), 1);
+        QCOMPARE(items[0].item.label, QStringLiteral("Silent Typing"));
+        QCOMPARE(items[0].item.children.size(), 5);
+        QCOMPARE(items[0].item.children[0].checked, std::optional<bool>(true)); // Enabled
+        h.host->dispatchChatInputContextMenuAction(h.id, items[0].item.children[0].id, chat);
+        QVERIFY(!s->boolValue("enabledGlobally"));
+        h.host->dispatchChatInputContextMenuAction(h.id, QStringLiteral("vc-silent-typing-members-list-indicators"), chat);
+        QVERIFY(s->boolValue("hideMembersListTypingIndicators"));
+        QVERIFY(!h.host->dispatchShouldShowMemberListTypers(chat));
+        QVERIFY(s->setValue("chatContextMenu", false).isEmpty());
+        QVERIFY(h.host->dispatchChatInputContextMenuItems(chat).isEmpty());
+    }
 };
 
 QTEST_GUILESS_MAIN(TestSilentTyping)

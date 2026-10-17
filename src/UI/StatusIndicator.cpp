@@ -7,6 +7,8 @@
 #include <QPolygonF>
 #include <QtMath>
 
+#include <cmath>
+
 #include "Core/Theme/Manager.hpp"
 
 namespace Acheron {
@@ -176,6 +178,34 @@ void paintOnAvatar(QPainter &painter, const QRect &avatarRect, int dotSize, cons
                       size.height());
 
     paintWithRing(painter, rect, ringWidth(dotSize), badge, ringColor);
+}
+
+void paintTypingOnAvatar(QPainter &painter, const QRect &avatarRect, int dotSize, const PresenceBadge &badge,
+                         const QColor &ringColor, qreal phase)
+{
+    if (dotSize <= 0)
+        return;
+    const qreal ring = ringWidth(dotSize);
+    const QRectF rect(avatarRect.right() + 1 - dotSize * 2.2, avatarRect.bottom() + 1 - dotSize, dotSize * 2.2,
+                      dotSize);
+    const QRectF outer = rect.adjusted(-ring, -ring, ring, ring);
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(ringColor);
+    painter.drawRoundedRect(outer, outer.height() / 2.0, outer.height() / 2.0);
+    painter.setBrush(color(badge));
+    painter.drawRoundedRect(rect, rect.height() / 2.0, rect.height() / 2.0);
+    const qreal radius = dotSize * 0.16;
+    for (int i = 0; i < 3; ++i) {
+        // Each dot is brightest for its third of the cycle
+        const qreal distance = qAbs(std::fmod(phase * 3.0 - i + 3.0, 3.0) - 0.5);
+        QColor dot = ringColor;
+        dot.setAlphaF(distance < 0.75 ? 1.0 : 0.45);
+        painter.setBrush(dot);
+        painter.drawEllipse(QPointF(rect.center().x() + (i - 1) * radius * 2.8, rect.center().y()), radius, radius);
+    }
+    painter.restore();
 }
 
 } // namespace StatusIndicator

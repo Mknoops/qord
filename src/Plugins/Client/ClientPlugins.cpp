@@ -333,16 +333,22 @@ void QtUiService::leaveVoice(Id accountId)
         voiceLeaver()(accountId);
 }
 
-std::function<void(Id, Id, const QString &)> &QtUiService::localMessageShower()
+std::function<void(Id, Id, const QString &, bool)> &QtUiService::localMessageShower()
 {
-    static std::function<void(Id, Id, const QString &)> shower;
+    static std::function<void(Id, Id, const QString &, bool)> shower;
     return shower;
 }
 
 void QtUiService::showLocalMessage(Id accountId, Id channelId, const QString &content)
 {
     if (localMessageShower())
-        localMessageShower()(accountId, channelId, content);
+        localMessageShower()(accountId, channelId, content, false);
+}
+
+void QtUiService::previewDraft(Id accountId, Id channelId, const QString &content)
+{
+    if (localMessageShower())
+        localMessageShower()(accountId, channelId, content, true);
 }
 
 void QtAudioOptions::setUserVolumeMultiplier(double multiplier)
@@ -827,6 +833,18 @@ std::function<void(const MessageContext &, bool, std::optional<bool>)> &QtUiServ
     return starter;
 }
 
+std::function<void(const MessageContext &)> &QtUiService::threadOpener()
+{
+    static std::function<void(const MessageContext &)> opener;
+    return opener;
+}
+
+void QtUiService::openThread(const MessageContext &message)
+{
+    if (threadOpener())
+        threadOpener()(message);
+}
+
 void QtUiService::startEditing(const MessageContext &message)
 {
     if (editStarter())
@@ -958,6 +976,20 @@ void QtUiService::openPluginSettings(const QString &pluginId)
 void QtUiService::promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                              std::function<void(const QString &)> done)
 {
+    showTextPrompt(title, label, initial, maxLength, QString(), QString(), std::move(done));
+}
+
+void QtUiService::promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                                      const QString &placeholder, const QString &resetLabel,
+                                      std::function<void(const QString &)> done)
+{
+    showTextPrompt(title, label, initial, 0, placeholder, resetLabel, std::move(done));
+}
+
+void QtUiService::showTextPrompt(const QString &title, const QString &label, const QString &initial, int maxLength,
+                                 const QString &placeholder, const QString &resetLabel,
+                                 std::function<void(const QString &)> done)
+{
     auto *dialog = new QDialog(QApplication::activeWindow());
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->setWindowTitle(title);
@@ -969,8 +1001,16 @@ void QtUiService::promptText(const QString &title, const QString &label, const Q
     auto *field = new QLineEdit(initial, dialog);
     if (maxLength > 0)
         field->setMaxLength(maxLength);
+    field->setPlaceholderText(placeholder);
     layout->addWidget(field);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, dialog);
+    if (!resetLabel.isEmpty()) {
+        QPushButton *reset = buttons->addButton(resetLabel, QDialogButtonBox::ResetRole);
+        QObject::connect(reset, &QPushButton::clicked, field, [field]() {
+            field->clear();
+            field->setFocus();
+        });
+    }
     layout->addWidget(buttons);
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
     QObject::connect(buttons, &QDialogButtonBox::accepted, dialog, [dialog, field, done]() {
@@ -1673,6 +1713,11 @@ void SessionMessageActions::deleteMessage(Id accountId, Id channelId, Id message
     auto *client = session->client(Acheron::Core::Snowflake(accountId));
     if (!client)
         return;
+    // Already gone on Discord, kept on screen by MessageLogger: just take it off
+    if (client->messages()->isKeptDeleted(Acheron::Core::Snowflake(messageId))) {
+        client->messages()->removeKeptMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+        return;
+    }
     client->discord()->deleteMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
 }
 

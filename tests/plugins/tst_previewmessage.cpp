@@ -50,9 +50,15 @@ private slots:
         QCOMPARE(h.ui.localMessages[0].accountId, Id(1));
         QCOMPARE(h.ui.localMessages[0].channelId, Id(2));
         QCOMPARE(h.ui.localMessages[0].content, QStringLiteral("**bold** plan"));
-        // Files alone: nothing to show yet
+        QVERIFY(h.ui.localMessages[0].withDraftAttachments);
+        // Files alone are previewed too
         h.host->dispatchChatBarButtonClicked(buttons[0].pluginId, buttons[0].button.id, chat({}, true));
-        QCOMPARE(h.ui.localMessages.size(), 1);
+        QCOMPARE(h.ui.localMessages.size(), 2);
+        QVERIFY(h.ui.localMessages[1].content.isEmpty());
+        QVERIFY(h.ui.localMessages[1].withDraftAttachments);
+        // Nothing at all: nothing to show
+        h.host->dispatchChatBarButtonClicked(buttons[0].pluginId, buttons[0].button.id, chat({}, false));
+        QCOMPARE(h.ui.localMessages.size(), 2);
     }
 };
 

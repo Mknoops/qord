@@ -1,4 +1,5 @@
 #include "ChatLayout.hpp"
+#include "Qord/Preferences.hpp"
 
 #include <QFontDatabase>
 
@@ -57,11 +58,15 @@ QString richTextStyleSheet()
                                       Manager::instance().color(Token::Divider).lighter(125).name(),
                                       Manager::instance().color(Token::MutedText).name());
 
-    return QStringLiteral("a { color: %1; } "
+    // Qord: links without underlines, like Discord, unless Accessibility asks for them
+    const QString underline = Qord::Preferences::flag(Qord::Pref::UnderlineLinks) ? QStringLiteral("underline")
+                                                                                 : QStringLiteral("none");
+    return QStringLiteral("a { color: %1; text-decoration: %4; } "
                           ".mention { color: %2; background-color: %3; text-decoration: none; } ")
                    .arg(link.name(QColor::HexRgb))
                    .arg(mentionText.name(QColor::HexRgb))
-                   .arg(mentionBgRgba) +
+                   .arg(mentionBgRgba)
+                   .arg(underline) +
            code + qord;
 }
 

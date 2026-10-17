@@ -159,6 +159,18 @@ public:
     // First plugin with colours wins
     [[nodiscard]] std::optional<ProfileTheme> dispatchProfileTheme(const ProfileThemeContext &profile);
     [[nodiscard]] QList<PluginMenuItem> dispatchRoleContextMenuItems(const RoleContext &role);
+    // The commands of running plugins with Hook::SlashCommands
+    struct PluginSlashCommand
+    {
+        QString pluginId;
+        QString pluginName;
+        PluginCommand command;
+    };
+    [[nodiscard]] QList<PluginSlashCommand> slashCommands() const;
+    std::optional<QString> dispatchSlashCommand(const QString &pluginId, const QString &name, const QJsonObject &options,
+                                                const ChatContext &chat);
+    [[nodiscard]] QList<PluginMenuItem> dispatchChatInputContextMenuItems(const ChatContext &chat);
+    void dispatchChatInputContextMenuAction(const QString &pluginId, const QString &itemId, const ChatContext &chat);
     void dispatchRoleContextMenuAction(const QString &pluginId, const QString &itemId, const RoleContext &role);
     void dispatchMessagePopoverClicked(const QString &pluginId, const QString &buttonId, const MessageContext &message,
                                        bool rightClick);
@@ -195,6 +207,7 @@ public:
     // Any plugin saying no wins (default: send / show).
     [[nodiscard]] bool dispatchShouldSendTyping(const TypingContext &typing);
     [[nodiscard]] bool dispatchShouldShowTypers(const ChatContext &chat);
+    [[nodiscard]] bool dispatchShouldShowMemberListTypers(const ChatContext &chat);
     // Any plugin saying no skips the warning (default: confirm).
     [[nodiscard]] bool dispatchShouldConfirmLink(const QString &url);
     // Any plugin saying no suppresses the notification (default: notify).

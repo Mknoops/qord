@@ -1,4 +1,5 @@
 #include "UserPanel.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "Core/ClientInstance.hpp"
 #include "Core/ImageManager.hpp"
@@ -78,6 +79,10 @@ UserPanel::UserPanel(Core::ImageManager *images, QWidget *parent) : QWidget(pare
     setObjectName(QStringLiteral("UserPanel"));
     setAttribute(Qt::WA_StyledBackground, true);
     setFixedHeight(52);
+    connect(&Qord::Preferences::instance(), &Qord::Preferences::changed, this, [this](const QString &key) {
+        if (key.startsWith(QLatin1String("streamer/")))
+            refresh();
+    });
 
     auto *layout = new QHBoxLayout(this);
     panelLayout = layout;
@@ -249,6 +254,16 @@ void UserPanel::rebuildPluginButtons()
     }
 }
 
+void UserPanel::toggleMute()
+{
+    muteButton->click();
+}
+
+void UserPanel::toggleDeafen()
+{
+    deafenButton->click();
+}
+
 void UserPanel::refresh()
 {
     if (!instance) {
@@ -260,7 +275,9 @@ void UserPanel::refresh()
     const Core::AccountInfo &info = instance->accountInfo();
     nameLabel->setText(info.displayName.isEmpty() ? info.username : info.displayName);
     statusDot->setBadge(instance->presences()->badge(instance->accountId()));
-    subtitleLabel->setText(currentStatusText());
+    // Streamer mode shows that it is on instead of your custom status
+    subtitleLabel->setText(Qord::Preferences::streamerHides(Qord::Pref::StreamerHidePersonal) ? tr("Streamer mode")
+                                                                                              : currentStatusText());
 }
 
 QString UserPanel::currentStatusText() const
@@ -369,10 +386,11 @@ void UserPanel::showStatusMenu()
                 setStatus(chosenStatus.isEmpty() ? QStringLiteral("online") : chosenStatus);
             });
         }
-        menu.addAction(tr("Copy User ID"), this, [this]() {
-            if (instance)
-                QGuiApplication::clipboard()->setText(QString::number(quint64(instance->accountId())));
-        });
+        if (Qord::Preferences::developerMode())
+            menu.addAction(tr("Copy User ID"), this, [this]() {
+                if (instance)
+                    QGuiApplication::clipboard()->setText(QString::number(quint64(instance->accountId())));
+            });
         menu.addSeparator();
     }
     menu.addAction(tr("Switch Accounts…"), this, &UserPanel::accountsRequested);

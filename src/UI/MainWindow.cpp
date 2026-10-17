@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "Qord/Preferences.hpp"
 #include "UI/Qord/HiddenChannelScreen.hpp"
 
 #include <QApplication>
@@ -67,6 +68,7 @@
 #include "Qord/UserPanel.hpp"
 #include "Qord/MessageListPopup.hpp"
 #include "Qord/FriendsPage.hpp"
+#include "Qord/CordOverlay.hpp"
 #include "Qord/PluginSurfaces.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -229,6 +231,7 @@ MainWindow::MainWindow(Session *session, QWidget *parent) : QMainWindow(parent),
     restoreWindowState();
 
     setupQordFeatures();
+    setupPreferences();
     if (!QSettings().contains("layout/geometry"))
         resize(1280, 800);
 }
@@ -241,6 +244,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    // Qord: the close button can keep Qord in the tray; quitting still closes
+    if (event->spontaneous() && Qord::Preferences::flag(Qord::Pref::CloseToTray) && hideToTray()) {
+        event->ignore();
+        return;
+    }
     saveWindowState();
 
     hide();
@@ -253,6 +261,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *ev)
 {
+    if (obj == guildHeaderLabel && ev->type() == QEvent::MouseButtonRelease && railHasSelection && !railSelectedIsHome
+        && static_cast<QMouseEvent *>(ev)->button() == Qt::LeftButton) {
+        ServerRailView *rail = folderSidebar && folderSidebar->isVisible() ? folderSidebar : serverRail;
+        if (rail)
+            rail->showGuildMenu(railSelectedAccountId, railSelectedGuildId,
+                                guildHeaderLabel->mapToGlobal(QPoint(8, guildHeaderLabel->height() + 4)));
+        return true;
+    }
     if (ev->type() == QEvent::MouseButtonPress && isActiveWindow()) {
         auto *me = static_cast<QMouseEvent *>(ev);
         if (me->button() == Qt::BackButton) {
@@ -1156,6 +1172,19 @@ void MainWindow::setupUi()
         guildHeaderLabel->setFont(headerFont);
     }
     guildHeaderLabel->hide();
+    // Qord: Discord's server name opens the server's menu, with a chevron
+    guildHeaderLabel->setAttribute(Qt::WA_Hover);
+    guildHeaderLabel->installEventFilter(this);
+    {
+        auto *row = new QHBoxLayout(guildHeaderLabel);
+        row->setContentsMargins(0, 0, 0, 0);
+        row->addStretch();
+        guildHeaderChevron = new QLabel(guildHeaderLabel);
+        guildHeaderChevron->setPixmap(Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::ChevronDown, 18,
+                                                                 Core::Theme::Token::HeaderText, devicePixelRatioF()));
+        guildHeaderChevron->setAttribute(Qt::WA_TransparentForMouseEvents);
+        row->addWidget(guildHeaderChevron);
+    }
 
     auto *rightSideWidget = new QWidget(central);
     rightSideWidget->setObjectName("ChatArea");
@@ -1396,8 +1425,7 @@ void MainWindow::setupUi()
     connect(userPanel, &UserPanel::settingsRequested, this, &MainWindow::openSettingsWindow);
     connect(userPanel, &UserPanel::accountsRequested, this, &MainWindow::openAccountsWindow);
     connect(userPanel, &UserPanel::menuBarToggleRequested, this, [this]() {
-        menuBar()->setVisible(!menuBar()->isVisible());
-        QSettings().setValue("ui/showMenuBar", menuBar()->isVisible());
+        Qord::Preferences::set(Qord::Pref::ShowMenuBar, !menuBar()->isVisible());
     });
 
     addServerButton = new QToolButton(this);
@@ -1421,6 +1449,7 @@ void MainWindow::setupUi()
     leftSideWidget = buildLeftSide();
 
     mainSplitter = new QSplitter(this);
+    mainSplitter->setHandleWidth(1); // Qord: Discord's columns meet without a gap
     mainSplitter->addWidget(leftSideWidget);
     mainSplitter->addWidget(rightSideWidget);
     mainSplitter->addWidget(memberListView);
@@ -1481,8 +1510,6 @@ void MainWindow::setupUi()
     animatedImages->setCacheLimitMiB(QSettings().value("chat/animation_cache_mb", Core::AnimatedImageCache::CacheLimit.fallback).toInt());
     animatedImages->setAnimationLimitMiB(QSettings().value("chat/animation_max_mb", Core::AnimatedImageCache::AnimationLimit.fallback).toInt());
     chatView->frameAnimator()->setCache(animatedImages);
-    chatView->frameAnimator()->setEmojiEnabled(QSettings().value("chat/animate_emoji", true).toBool());
-    chatView->frameAnimator()->setStickersEnabled(QSettings().value("chat/animate_stickers", true).toBool());
     chatView->setItemDelegate(new ChatDelegate(session->getImageManager(), chatView));
     chatView->setIconSize(QSize(24, 24));
     chatView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -1830,6 +1857,8 @@ QWidget *MainWindow::buildLeftSide()
         v->addWidget(userPanel, 0);
         userPanel->show();
         h->addWidget(secondary, 1);
+        // Qord's cord, from the selected server to the open channel
+        new CordOverlay(serverRail, channelTree, container);
     } else {
         auto *v = new QVBoxLayout(container);
         v->setContentsMargins(0, 0, 0, 0);
@@ -1945,6 +1974,10 @@ void MainWindow::onRailGuildSelected(Snowflake accountId, Snowflake guildId)
     QString guildName = src.data(Qt::DisplayRole).toString();
     guildHeaderLabel->setText(guildName);
     guildHeaderLabel->setVisible(!guildName.isEmpty());
+    guildHeaderLabel->setCursor(Qt::PointingHandCursor);
+    guildHeaderLabel->setProperty("clickable", true);
+    guildHeaderLabel->style()->polish(guildHeaderLabel);
+    guildHeaderChevron->show();
     if (channelListMode == ChannelListMode::Classic) {
         friendsButton->hide();
         hideFriendsPage();
@@ -1974,6 +2007,10 @@ void MainWindow::onRailAccountHomeSelected(Snowflake accountId)
     serverRailModel->setSelected(ServerRailModel::Kind::AccountHome, accountId, accountId);
     guildHeaderLabel->setText(tr("Direct Messages"));
     guildHeaderLabel->show();
+    guildHeaderLabel->unsetCursor();
+    guildHeaderLabel->setProperty("clickable", false);
+    guildHeaderLabel->style()->polish(guildHeaderLabel);
+    guildHeaderChevron->hide();
     friendsButton->show();
     railHasSelection = true;
     railSelectedIsHome = true;
@@ -2664,33 +2701,17 @@ void MainWindow::setupMenu()
     channelListToggle = viewMenu->addAction(tr("Channel &List"));
     channelListToggle->setCheckable(true);
     channelListToggle->setChecked(!channelListHidden);
-    channelListToggle->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
     connect(channelListToggle, &QAction::toggled, this, [this](bool checked) { setChannelListHidden(!checked); });
 
     memberListToggle = viewMenu->addAction(tr("&Member List"));
     memberListToggle->setCheckable(true);
     memberListToggle->setChecked(!memberListHidden);
     memberListToggle->setEnabled(false);
-    memberListToggle->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_U));
     connect(memberListToggle, &QAction::toggled, this, [this](bool checked) { setMemberListHidden(!checked); });
 
     // Qord: Discord has no menu bar; the user panel can bring it back
-    menuBar->setVisible(QSettings().value("ui/showMenuBar", false).toBool());
-    for (QAction *a : { channelListToggle, memberListToggle })
-        addAction(a); // keep the shortcuts working while the menu bar is hidden
-    auto *settingsShortcut = new QAction(this);
-    settingsShortcut->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
-    connect(settingsShortcut, &QAction::triggered, this, &MainWindow::openSettingsWindow);
-    addAction(settingsShortcut);
-
-    // DEBUG: Ctrl+Shift+R to force a Gateway reconnect
-    auto *debugReconnect = new QAction(this);
-    debugReconnect->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
-    addAction(debugReconnect);
-    connect(debugReconnect, &QAction::triggered, this, [this]() {
-        if (currentInstance)
-            currentInstance->discord()->debugForceReconnect();
-    });
+    menuBar->setVisible(Qord::Preferences::flag(Qord::Pref::ShowMenuBar));
+    // The keyboard shortcuts are Settings > Keybinds (setupKeybinds)
 }
 
 void MainWindow::showAccountsOnStartup()
@@ -2720,12 +2741,6 @@ void MainWindow::openSettingsWindow()
         connect(settingsWindow, &SettingsWindow::roleStyleChanged, this, [this]() {
             memberListView->viewport()->update();
             chatView->viewport()->update();
-        });
-        connect(settingsWindow, &SettingsWindow::animateEmojiChanged, this, [this](bool enabled) {
-            chatView->frameAnimator()->setEmojiEnabled(enabled);
-        });
-        connect(settingsWindow, &SettingsWindow::animateStickersChanged, this, [this](bool enabled) {
-            chatView->frameAnimator()->setStickersEnabled(enabled);
         });
         connect(settingsWindow, &SettingsWindow::animationCacheLimitChanged, session->getAnimatedImageCache(),
                 &Core::AnimatedImageCache::setCacheLimitMiB);
@@ -3007,11 +3022,13 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
             MemberModeration::addModerationActions(&menu, this, instance, *target);
     }
 
-    menu.addSeparator();
-    QAction *copyIdAction = menu.addAction(tr("Copy User ID"));
-    connect(copyIdAction, &QAction::triggered, this, [userId]() {
-        QGuiApplication::clipboard()->setText(QString::number(quint64(userId)));
-    });
+    if (Qord::Preferences::developerMode()) {
+        menu.addSeparator();
+        QAction *copyIdAction = menu.addAction(tr("Copy User ID"));
+        connect(copyIdAction, &QAction::triggered, this, [userId]() {
+            QGuiApplication::clipboard()->setText(QString::number(quint64(userId)));
+        });
+    }
 
     if (auto *plugins = Qord::Plugins::PluginHost::instance();
         plugins && plugins->hasHook(Qord::Plugins::Hook::UserContextMenu)) {
@@ -3035,6 +3052,8 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         }
         for (const auto &entry : plugins->dispatchUserContextMenuItems(user)) {
             QAction *action = menu.addAction(entry.item.label);
+            if (!entry.item.svg.isEmpty())
+                action->setIcon(pluginSvgIcon(entry.item.svg, 16, devicePixelRatioF()));
             if (entry.item.checked) { // Qord: checkbox items (FollowVoiceUser)
                 action->setCheckable(true);
                 action->setChecked(*entry.item.checked);

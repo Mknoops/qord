@@ -1,4 +1,5 @@
 #include "DevicesPage.hpp"
+#include "Qord/Preferences.hpp"
 
 #include "Core/ClientInstance.hpp"
 #include "Core/Markdown/Parser.hpp"
@@ -272,7 +273,11 @@ QWidget *DevicesPage::row(const Qord::Plugins::DeviceSession &session)
     // "Location · 3 hours ago"; the current device is in use, so no time
     auto *subRow = new QHBoxLayout;
     subRow->setSpacing(0);
-    auto *location = new QLabel(session.location, w);
+    // Streamer mode keeps where you log in from off screen
+    auto *location = new QLabel(Qord::Preferences::streamerHides(Qord::Pref::StreamerHidePersonal)
+                                        ? tr("Location hidden")
+                                        : session.location,
+                                w);
     location->setForegroundRole(QPalette::PlaceholderText);
     subRow->addWidget(location);
     if (!session.current && session.lastUsedMs > 0) {

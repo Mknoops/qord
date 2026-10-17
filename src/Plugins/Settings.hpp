@@ -46,6 +46,10 @@ struct SettingSpec
     std::optional<double> minimum; // Int and Number only
     std::optional<double> maximum; // Int and Number only
     bool multiline = false; // String only
+    // String only: a "Pick Emoji" button beside the field. It sets a one-line
+    // value, and adds to a multiline one as a comma-separated list. Emojis are
+    // written as "name:id" for custom ones, else the emoji itself.
+    bool emojiPicker = false;
     bool hidden = false; // internal state; no editor is generated
     // String only: an API key or session token. Kept in the system keychain
     // (SecretStore), never in the settings file, and edited as a password.

@@ -1,6 +1,17 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/placeholder.png</file>
+        <file>resources/fonts/plex/IBMPlexMono-Bold.ttf</file>
+        <file>resources/fonts/plex/IBMPlexMono-Italic.ttf</file>
+        <file>resources/fonts/plex/IBMPlexMono-Regular.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-Bold.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-BoldItalic.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-Italic.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-Medium.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-MediumItalic.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-Regular.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-SemiBold.ttf</file>
+        <file>resources/fonts/plex/IBMPlexSans-SemiBoldItalic.ttf</file>
         <file>resources/emoji_data.json</file>
         <file>resources/icons/lucide/arrow-down.svg</file>
         <file>resources/icons/lucide/arrow-left.svg</file>

@@ -3,9 +3,60 @@
 Qord's releases. Each version's section becomes its GitHub Release notes; the
 reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
-## [Unreleased]
+## [0.2.0]
+
+Settings like Discord's, with search, changeable keybinds and streamer mode; Qord's
+own look; plugin slash commands; and more plugins verified against Discord.
 
 ### Added
+
+- Many more settings, after Discord's: Accessibility (zoom, reduce motion, always
+  underline links, mention highlighting), Voice & video, Chat (link previews and
+  their media, uploaded images, reactions, emoticons to emoji, always show
+  spoilers, 12/24-hour time, space between message groups, Ctrl+Enter to send),
+  Notifications (DMs, mentions, message text, taskbar flash, sound volume),
+  Keybinds (channel and unread navigation, mark as read, mute, deafen, search,
+  streamer mode and more, all changeable), Startup & window (open at login, start
+  minimized, minimize or close to the tray, menu bar), Streamer mode (hides invite
+  links, your status and device locations, silences notifications and sounds) and
+  Advanced (Developer mode for Copy ID, memory limits, the data folder). Settings
+  has a search box.
+
+### Changed
+
+- Links in messages are no longer underlined unless Accessibility asks for it, and
+  Copy ID menu items follow Developer mode (on by default).
+
+- Qord has its own look: navy surfaces with a teal accent and amber mentions, and
+  IBM Plex Sans (bundled) for the interface and messages. A line now runs from the
+  selected server to the open channel, so you can see where you are at a glance.
+  Appearance › "Use Discord's colors" brings back Discord's palette.
+- Settings looks like Discord's: pages grouped under User Settings, App Settings and
+  Qord in a sidebar, each page under its title, an ESC button to close, and a
+  roomier plugin list. Buttons, fields, checkboxes, menus and sliders in settings
+  windows and dialogs are drawn in Discord's style, and dialog buttons lose their
+  icons. Server Settings uses the same sidebar.
+- The server name above the channel list opens the server's menu, as in Discord,
+  with a chevron and a hover highlight.
+- The member list no longer draws lines between role groups, and the columns of
+  the main window meet without a gap.
+
+### Added
+
+- Plugins can add slash commands, shown in the message box's "/" suggestions with
+  Discord's: SilentTyping's /silent-typing changes its settings. Plugins can also
+  add to the message box's right-click menu (SilentTyping's submenu).
+- Members typing in the open channel get Discord's typing dots on their avatar in
+  the member list. SilentTyping's "Hide members list typing indicators" hides them.
+- MessageClickActions confirms copies with a toast and warns when a permission is
+  missing, its Open Thread action opens or starts the message's thread, deleting a
+  message MessageLogger kept takes it off the screen, and its reaction settings
+  have a Pick Emoji button. "Disable in system DMs" now works.
+- PreviewMessage's preview shows the files you attached too, and works with files
+  and no text.
+- BetterSessions' rename dialog has a Reset Name button and shows the default name
+  as a placeholder. CopyEmojiMarkdown's menu item has a copy icon, and
+  FollowVoiceUser's settings show upstream's note.
 
 - FakeNitro splits a message that's over Discord's length limit into several, and
   closes and reopens a code block cut in two. Turn it off with "Split long messages".

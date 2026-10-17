@@ -59,6 +59,22 @@ QColor badgeColor(Qord::Plugins::CountBadge::Icon icon)
 }
 } // namespace
 
+QIcon pluginSvgIcon(const QByteArray &svg, int size, qreal devicePixelRatio)
+{
+    if (svg.isEmpty())
+        return {};
+    QByteArray themed = svg;
+    themed.replace("currentColor", Core::Theme::Manager::instance().color(Token::MutedText).name().toLatin1());
+    QSvgRenderer renderer(themed);
+    QPixmap pixmap(QSize(size, size) * devicePixelRatio);
+    pixmap.setDevicePixelRatio(devicePixelRatio);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    renderer.render(&painter, QRectF(0, 0, size, size));
+    painter.end();
+    return QIcon(pixmap);
+}
+
 ServerListButtonBar::ServerListButtonBar(QWidget *parent)
     : QWidget(parent), layout(new QVBoxLayout(this))
 {
@@ -89,17 +105,7 @@ void ServerListButtonBar::refresh(Core::Snowflake account, int serverCount)
         if (!entry.button.tooltip.isEmpty())
             button->setToolTip(entry.button.tooltip);
         if (!entry.button.svg.isEmpty()) {
-            QByteArray svg = entry.button.svg;
-            svg.replace("currentColor", Core::Theme::Manager::instance().color(Core::Theme::Token::MutedText).name().toLatin1());
-            QSvgRenderer renderer(svg);
-            const qreal dpr = devicePixelRatioF();
-            QPixmap pixmap(QSize(14, 14) * dpr);
-            pixmap.setDevicePixelRatio(dpr);
-            pixmap.fill(Qt::transparent);
-            QPainter painter(&pixmap);
-            renderer.render(&painter, QRectF(0, 0, 14, 14));
-            painter.end();
-            button->setIcon(QIcon(pixmap));
+            button->setIcon(pluginSvgIcon(entry.button.svg, 14, devicePixelRatioF()));
             button->setIconSize(QSize(14, 14));
         }
         connect(button, &QPushButton::clicked, this, [pluginId = entry.pluginId, id = entry.button.id, ctx]() {

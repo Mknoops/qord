@@ -148,8 +148,9 @@ QWidget *ListDialog::itemWidget(const Qord::Plugins::ListDialogItem &item)
     const QString muted = palette().color(QPalette::PlaceholderText).name();
     QString headHtml = QStringLiteral("<b>%1</b>").arg(item.title.toHtmlEscaped());
     if (!item.badge.isEmpty())
-        headHtml += QStringLiteral(" <span style=\"background:#5865f2; color:white; font-size:10px;\">&nbsp;%1&nbsp;</span>")
-                            .arg(item.badge.toHtmlEscaped());
+        headHtml += QStringLiteral(" <span style=\"background:%1; color:white; font-size:10px;\">&nbsp;%2&nbsp;</span>")
+                            .arg(Core::Theme::Manager::instance().color(Core::Theme::Token::Highlight).name(),
+                                 item.badge.toHtmlEscaped());
     if (!item.meta.isEmpty())
         headHtml += QStringLiteral(" <span style=\"color:%1; font-size:11px;\">%2</span>").arg(muted, item.meta.toHtmlEscaped());
     head->setText(headHtml);

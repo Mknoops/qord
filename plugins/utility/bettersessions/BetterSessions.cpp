@@ -183,14 +183,15 @@ void BetterSessionsPlugin::onDeviceSessionButton(Id accountId, const QString &bu
         return;
     std::weak_ptr<bool> weak = alive;
     const QString current = saved.value(accountId).value(session.idHash).name;
-    ui->promptText(QStringLiteral("Rename"), QStringLiteral("New device name"), current, 0,
-                   [this, weak, accountId, hash = session.idHash](const QString &name) {
-                       if (weak.expired())
-                           return;
-                       saved[accountId].insert(hash, { name.trimmed(), false });
-                       save();
-                       context->sessions()->refreshDevicesPage();
-                   });
+    ui->promptTextWithReset(QStringLiteral("Rename"), QStringLiteral("New device name"), current,
+                            defaultName(session), QStringLiteral("Reset Name"),
+                            [this, weak, accountId, hash = session.idHash](const QString &name) {
+                                if (weak.expired())
+                                    return;
+                                saved[accountId].insert(hash, { name.trimmed(), false });
+                                save();
+                                context->sessions()->refreshDevicesPage();
+                            });
 }
 
 void BetterSessionsPlugin::onDevicesPageClosed(Id accountId, const QList<DeviceSession> &sessions)

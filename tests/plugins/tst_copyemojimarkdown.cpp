@@ -52,6 +52,7 @@ private slots:
         const auto items = h.host->dispatchEmojiContextMenuItems(ctx);
         QCOMPARE(items.size(), 1);
         QCOMPARE(items[0].item.label, QStringLiteral("Copy Emoji Markdown"));
+        QVERIFY(items[0].item.svg.contains("<svg"));
         h.host->dispatchEmojiContextMenuAction(items[0].pluginId, items[0].item.id, ctx);
         QCOMPARE(h.clipboard.text, QStringLiteral("<:blobcatcozy:1026533070955872337>"));
         QCOMPARE(h.ui.toasts.size(), 1);

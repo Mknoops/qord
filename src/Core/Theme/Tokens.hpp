@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QHash>
 #include <QHashFunctions>
 #include <QPalette>
 #include <QString>
@@ -75,6 +76,9 @@ inline size_t qHash(Token key, size_t seed = 0) noexcept
 {
     return ::qHash(static_cast<std::underlying_type_t<Token>>(key), seed);
 }
+
+// Qord: Discord's colours, which Qord used before its own palette
+QHash<Token, QColor> discordPalette();
 
 } // namespace Theme
 } // namespace Core

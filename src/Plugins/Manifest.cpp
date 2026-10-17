@@ -80,6 +80,7 @@ bool parseSetting(const QJsonValue &value, SettingSpec &spec, QString &error)
     if (obj.contains(QLatin1String("max")))
         spec.maximum = obj.value(QLatin1String("max")).toDouble();
     spec.multiline = obj.value(QLatin1String("multiline")).toBool();
+    spec.emojiPicker = obj.value(QLatin1String("emojiPicker")).toBool();
     spec.hidden = obj.value(QLatin1String("hidden")).toBool();
     spec.secret = obj.value(QLatin1String("secret")).toBool();
     if (obj.contains(QLatin1String("showWhen"))) {
@@ -91,6 +92,10 @@ bool parseSetting(const QJsonValue &value, SettingSpec &spec, QString &error)
             error = QStringLiteral("showWhen of %1 needs a key and values").arg(spec.key);
             return false;
         }
+    }
+    if (spec.emojiPicker && (spec.type != SettingType::String || spec.secret)) {
+        error = QStringLiteral("emojiPicker setting %1 must be a string").arg(spec.key);
+        return false;
     }
     if (spec.secret && (spec.type != SettingType::String || spec.multiline)) {
         error = QStringLiteral("secret setting %1 must be a one-line string").arg(spec.key);
@@ -129,7 +134,8 @@ bool PluginManifest::parse(const QByteArray &json, PluginManifest &out, QString 
     if (!readString(obj, "id", m.id, error) || !readString(obj, "equicordName", m.equicordName, error) ||
         !readString(obj, "equicordPath", m.equicordPath, error) || !readString(obj, "name", m.name, error) ||
         !readString(obj, "description", m.description, error) || !readString(obj, "target", m.target, error) ||
-        !readString(obj, "notes", m.notes, error, false))
+        !readString(obj, "notes", m.notes, error, false) ||
+        !readString(obj, "settingsNote", m.settingsNote, error, false))
         return false;
 
     static const QRegularExpression idPattern(QStringLiteral("^[a-z0-9][a-z0-9_]*$"));
@@ -209,10 +215,17 @@ bool PluginManifest::parse(const QByteArray &json, PluginManifest &out, QString 
         error = QStringLiteral("\"commands\" must be an array");
         return false;
     }
+    static const QRegularExpression commandName(QStringLiteral("^[-_a-z0-9]{1,32}$"));
     for (const auto &c : commands.toArray()) {
         const QJsonObject co = c.toObject();
-        m.commands.append({ co.value(QLatin1String("name")).toString(),
-                            co.value(QLatin1String("description")).toString() });
+        PluginCommand command { co.value(QLatin1String("name")).toString(),
+                                co.value(QLatin1String("description")).toString(),
+                                co.value(QLatin1String("options")).toArray() };
+        if (!commandName.match(command.name).hasMatch()) {
+            error = QStringLiteral("invalid command name \"%1\"").arg(command.name);
+            return false;
+        }
+        m.commands.append(command);
     }
 
     out = std::move(m);

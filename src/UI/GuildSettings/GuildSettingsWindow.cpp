@@ -107,6 +107,7 @@ GuildSettingsWindow::GuildSettingsWindow(Core::ImageManager *images, Core::Clien
     : QWidget(parent, Qt::Window), instance(instance), images(images), guildId(guildId)
 {
     setAttribute(Qt::WA_DeleteOnClose);
+    setProperty("qordForm", true); // Discord's controls (Core/Theme/Stylesheet.cpp)
     setAttribute(Qt::WA_QuitOnClose, false);
     resize(980, 700);
 
@@ -115,7 +116,9 @@ GuildSettingsWindow::GuildSettingsWindow(Core::ImageManager *images, Core::Clien
     layout->setSpacing(0);
 
     navigation = new QListWidget(this);
-    navigation->setFixedWidth(210);
+    navigation->setObjectName(QStringLiteral("GuildSettingsNav"));
+    navigation->setFocusPolicy(Qt::NoFocus);
+    navigation->setFixedWidth(232);
     navigation->setFrameShape(QFrame::NoFrame);
     navigation->setSpacing(1);
     layout->addWidget(navigation);

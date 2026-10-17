@@ -122,6 +122,9 @@ public:
                         std::function<void(const QHash<QString, QString> &)> done) override;
     void promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                     std::function<void(const QString &)> done) override;
+    void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                             const QString &placeholder, const QString &resetLabel,
+                             std::function<void(const QString &)> done) override;
     static std::function<void(const QString &)> &pluginSettingsOpener();
     void openImage(const QUrl &url) override;
     // Set by the main window, which owns the image viewer's parent
@@ -131,6 +134,8 @@ public:
     // Set by the main window (chat and message box)
     static std::function<void(const MessageContext &)> &editStarter();
     static std::function<void(const MessageContext &, bool, std::optional<bool>)> &replyStarter();
+    void openThread(const MessageContext &message) override;
+    static std::function<void(const MessageContext &)> &threadOpener(); // set by the main window
     bool confirm(Confirmation &confirmation) override;
     void showPermissions(const PermissionsView &view) override;
     void showMemberPermissions(const MemberPermissionsView &view) override;
@@ -164,13 +169,20 @@ public:
     void joinVoiceChannel(Id accountId, Id channelId) override;
     void leaveVoice(Id accountId) override;
     void showLocalMessage(Id accountId, Id channelId, const QString &content) override;
+    void previewDraft(Id accountId, Id channelId, const QString &content) override;
     static std::function<void(Id, Id)> &voiceJoiner(); // set by the main window
     static std::function<void(Id)> &voiceLeaver(); // set by the main window
-    static std::function<void(Id, Id, const QString &)> &localMessageShower(); // set by the main window
+    // Set by the main window; true adds the message box's attachments
+    static std::function<void(Id, Id, const QString &, bool)> &localMessageShower();
     static std::function<void(Id, Id, Id)> &attachmentRefresher(); // set by the main window
     void attachFile(const QString &fileName, const QByteArray &data, const QString &mimeType) override;
     // Set by the main window, which owns the message box
     static std::function<void(const QString &, const QByteArray &, const QString &)> &fileAttacher();
+
+private:
+    static void showTextPrompt(const QString &title, const QString &label, const QString &initial, int maxLength,
+                               const QString &placeholder, const QString &resetLabel,
+                               std::function<void(const QString &)> done);
 };
 
 // Emojis, stickers, Nitro status and channel permissions from the session

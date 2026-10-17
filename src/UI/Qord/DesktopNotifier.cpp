@@ -6,6 +6,7 @@
 #include "Core/UserManager.hpp"
 #include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "Qord/Preferences.hpp"
 #include "UI/Qord/NotificationSound.hpp"
 
 #include <QApplication>
@@ -65,18 +66,24 @@ bool DesktopNotifier::enabled()
 
 void DesktopNotifier::setEnabled(bool enabled)
 {
-    QSettings().setValue(EnabledKey, enabled);
+    Qord::Preferences::set(Qord::Pref::NotifyDesktop, enabled);
 }
 
 void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Message &message, bool mentionsMe,
                                bool wasUnread, Core::Snowflake viewedChannelId)
 {
-    const bool toast = enabled();
-    const bool chime = NotificationSound::enabled();
+    namespace Pref = Qord::Pref;
+    using Qord::Preferences;
+    const bool toast = enabled() && !Preferences::streamerHides(Pref::StreamerNoNotifications);
+    const bool chime = NotificationSound::enabled() && !Preferences::streamerHides(Pref::StreamerNoSounds);
     if (!instance || (!toast && !chime))
         return;
     const bool isDm = !message.guildId.hasValue();
     if (!isDm && !mentionsMe)
+        return;
+    // Settings > Notifications: which kinds to be told about
+    if (isDm ? !Preferences::flag(Pref::NotifyDms) && !(mentionsMe && Preferences::flag(Pref::NotifyMentions))
+             : !Preferences::flag(Pref::NotifyMentions))
         return;
     const Core::Snowflake channelId = message.channelId.get();
     // Looking at it already
@@ -116,6 +123,8 @@ void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Me
         body = tr("Uploaded a file");
     if (body.size() > 200)
         body = body.left(200) + QStringLiteral("…");
+    if (!Preferences::flag(Pref::NotifyShowContent))
+        body = isDm ? tr("New direct message") : tr("New mention");
 
     if (chime)
         sound->play();
@@ -127,12 +136,18 @@ void DesktopNotifier::consider(Core::ClientInstance *instance, const Discord::Me
     pendingClick = nullptr;
     if (tray)
         tray->showMessage(title, body, QSystemTrayIcon::Information, 5000);
-    QApplication::alert(window, 0);
+    if (Preferences::flag(Pref::NotifyFlash))
+        QApplication::alert(window, 0);
+}
+
+bool DesktopNotifier::hasTray() const
+{
+    return tray && tray->isVisible();
 }
 
 void DesktopNotifier::notify(const QString &title, const QString &body, std::function<void()> clicked)
 {
-    if (!enabled())
+    if (!enabled() || Qord::Preferences::streamerHides(Qord::Pref::StreamerNoNotifications))
         return;
     lastChannel = Core::Snowflake();
     pendingClick = std::move(clicked);

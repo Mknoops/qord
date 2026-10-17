@@ -22,9 +22,5 @@
   "target": "",
   "dependencies": [],
   "commands": [],
-  "notes": "In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on \"3 hours ago\", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name brings back \"OS · Platform\". When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each (\"New session:\" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll.",
-  "gaps": [
-    "The rename dialog has no \"Reset Name\" button or placeholder; clearing the field does the same.",
-    "Discord's mobile badge icon is drawn with Material Icons' phone, which Discord's matches."
-  ]
+  "notes": "In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on \"3 hours ago\", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name (Reset Name clears the field, whose placeholder is the default) brings back \"OS · Platform\". Mobile devices get Discord's phone icon (the same path as Material Icons' phone_iphone). When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each (\"New session:\" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll."
 }

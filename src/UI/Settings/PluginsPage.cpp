@@ -17,6 +17,7 @@
 #include <QPlainTextEdit>
 #include <QPointer>
 #include <QPushButton>
+#include <QRegularExpression>
 
 #include <memory>
 #include <QScrollArea>
@@ -83,13 +84,18 @@ PluginsPage::PluginsPage(QWidget *parent)
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
     list = new QListWidget(splitter);
-    list->setMinimumWidth(170);
+    list->setObjectName(QStringLiteral("PluginList"));
+    list->setMinimumWidth(240);
+    list->setFrameShape(QFrame::NoFrame);
+    list->setSpacing(1);
     detailsScroll = new QScrollArea(splitter);
     detailsScroll->setWidgetResizable(true);
     detailsScroll->setFrameShape(QFrame::NoFrame);
     splitter->addWidget(list);
     splitter->addWidget(detailsScroll);
     splitter->setStretchFactor(1, 1);
+    splitter->setHandleWidth(12);
+    splitter->setSizes({ 260, 600 });
     layout->addWidget(splitter, 1);
 
     populate();
@@ -125,6 +131,7 @@ void PluginsPage::populate()
         auto *item = new QListWidgetItem(m.name, list);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         item->setCheckState(info->enabled ? Qt::Checked : Qt::Unchecked);
+        item->setSizeHint(QSize(0, 32));
         item->setData(IdRole, id);
         item->setData(SearchRole, QStringList { m.name, m.description, m.equicordName, m.tags.join(' ') }.join(' ').toLower());
         item->setData(CategoriesRole, m.categories);
@@ -208,6 +215,12 @@ void PluginsPage::selectPlugin(const QString &id)
     }
 }
 
+std::function<void(QWidget *, std::function<void(const QString &)>)> &PluginsPage::emojiPickerOpener()
+{
+    static std::function<void(QWidget *, std::function<void(const QString &)>)> opener;
+    return opener;
+}
+
 void PluginsPage::showDetails(const QString &id)
 {
     shownId = id;
@@ -275,6 +288,8 @@ void PluginsPage::showDetails(const QString &id)
     if (hasVisibleSettings) {
         auto *box = new QGroupBox(tr("Settings"), page);
         auto *boxLayout = new QVBoxLayout(box);
+        if (!m.settingsNote.isEmpty())
+            boxLayout->addWidget(helpLabel(m.settingsNote, box));
         boxLayout->addWidget(buildSettingsEditor(id, box));
         layout->addWidget(box);
     }
@@ -422,6 +437,19 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
             form->addWidget(new QLabel(spec.label, editor));
             addHelp();
             const bool isList = spec.type == SettingType::StringList;
+            // Upstream's emoji picker settings (MessageClickActions' reactions)
+            const auto addPickButton = [editor, &spec](QHBoxLayout *row, std::function<void(const QString &)> picked) {
+                if (!spec.emojiPicker || !emojiPickerOpener())
+                    return;
+                auto *pick = new QPushButton(tr("Pick Emoji"), editor);
+                pick->setCursor(Qt::PointingHandCursor);
+                connect(pick, &QPushButton::clicked, editor, [pick, picked]() {
+                    if (emojiPickerOpener())
+                        emojiPickerOpener()(pick, picked);
+                });
+                row->addWidget(pick, 0, Qt::AlignTop);
+            };
+            auto *row = new QHBoxLayout;
             if (isList || spec.multiline) {
                 auto *edit = new CommitOnBlurEdit;
                 edit->setParent(editor);
@@ -433,7 +461,21 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
                     else
                         commit(text);
                 };
-                form->addWidget(edit);
+                row->addWidget(edit);
+                QPointer<CommitOnBlurEdit> guard(edit);
+                addPickButton(row, [guard, commit](const QString &emoji) {
+                    if (!guard)
+                        return;
+                    // Added to the list once, as upstream's addEmojiToList
+                    QStringList list;
+                    for (const QString &entry : guard->toPlainText().split(QRegularExpression(QStringLiteral("[\n,]"))))
+                        if (!entry.trimmed().isEmpty() && !list.contains(entry.trimmed()))
+                            list.append(entry.trimmed());
+                    if (!list.contains(emoji))
+                        list.append(emoji);
+                    guard->setPlainText(list.join(QStringLiteral(", ")));
+                    commit(guard->toPlainText());
+                });
             } else {
                 auto *edit = new QLineEdit(settings->stringValue(key), editor);
                 if (spec.secret) {
@@ -442,8 +484,16 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
                     edit->setPlaceholderText(QObject::tr("Stored in the system keychain"));
                 }
                 connect(edit, &QLineEdit::editingFinished, editor, [edit, commit] { commit(edit->text()); });
-                form->addWidget(edit);
+                row->addWidget(edit);
+                QPointer<QLineEdit> guard(edit);
+                addPickButton(row, [guard, commit](const QString &emoji) {
+                    if (!guard)
+                        return;
+                    guard->setText(emoji);
+                    commit(emoji);
+                });
             }
+            form->addLayout(row);
             break;
         }
         case SettingType::Json: {

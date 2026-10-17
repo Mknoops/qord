@@ -19,6 +19,9 @@ class ServerRailView : public QListView
     Q_OBJECT
 public:
     explicit ServerRailView(QWidget *parent = nullptr);
+    // Qord: the server's menu (as on right-click) at globalPos, for the
+    // server name above the channel list
+    void showGuildMenu(Core::Snowflake accountId, Core::Snowflake guildId, const QPoint &globalPos);
 
     void setModel(QAbstractItemModel *model) override;
     void setGuildSettingsProvider(GuildSettingsAccess::SectionsProvider provider);
@@ -35,6 +38,8 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+    void execMenu(Core::Snowflake accountId, Core::Snowflake id, bool isFolder, bool isUnread, int mentions,
+                  Core::Snowflake ownerId, const QPoint &globalPos);
 
 public:
     // Qord: lets the window add items (mute, notifications, plugins) to a server's menu

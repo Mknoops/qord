@@ -12,6 +12,8 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
   roomier plugin list. Buttons, fields, checkboxes, menus and sliders in settings
   windows and dialogs are drawn in Discord's style, and dialog buttons lose their
   icons. Server Settings uses the same sidebar.
+- The server name above the channel list opens the server's menu, as in Discord,
+  with a chevron and a hover highlight.
 - The member list no longer draws lines between role groups, and the columns of
   the main window meet without a gap.
 

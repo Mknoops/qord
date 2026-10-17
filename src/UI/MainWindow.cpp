@@ -253,6 +253,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *ev)
 {
+    if (obj == guildHeaderLabel && ev->type() == QEvent::MouseButtonRelease && railHasSelection && !railSelectedIsHome
+        && static_cast<QMouseEvent *>(ev)->button() == Qt::LeftButton) {
+        ServerRailView *rail = folderSidebar && folderSidebar->isVisible() ? folderSidebar : serverRail;
+        if (rail)
+            rail->showGuildMenu(railSelectedAccountId, railSelectedGuildId,
+                                guildHeaderLabel->mapToGlobal(QPoint(8, guildHeaderLabel->height() + 4)));
+        return true;
+    }
     if (ev->type() == QEvent::MouseButtonPress && isActiveWindow()) {
         auto *me = static_cast<QMouseEvent *>(ev);
         if (me->button() == Qt::BackButton) {
@@ -1156,6 +1164,19 @@ void MainWindow::setupUi()
         guildHeaderLabel->setFont(headerFont);
     }
     guildHeaderLabel->hide();
+    // Qord: Discord's server name opens the server's menu, with a chevron
+    guildHeaderLabel->setAttribute(Qt::WA_Hover);
+    guildHeaderLabel->installEventFilter(this);
+    {
+        auto *row = new QHBoxLayout(guildHeaderLabel);
+        row->setContentsMargins(0, 0, 0, 0);
+        row->addStretch();
+        guildHeaderChevron = new QLabel(guildHeaderLabel);
+        guildHeaderChevron->setPixmap(Core::Theme::Icons::pixmap(Core::Theme::Icons::Name::ChevronDown, 18,
+                                                                 Core::Theme::Token::HeaderText, devicePixelRatioF()));
+        guildHeaderChevron->setAttribute(Qt::WA_TransparentForMouseEvents);
+        row->addWidget(guildHeaderChevron);
+    }
 
     auto *rightSideWidget = new QWidget(central);
     rightSideWidget->setObjectName("ChatArea");
@@ -1946,6 +1967,10 @@ void MainWindow::onRailGuildSelected(Snowflake accountId, Snowflake guildId)
     QString guildName = src.data(Qt::DisplayRole).toString();
     guildHeaderLabel->setText(guildName);
     guildHeaderLabel->setVisible(!guildName.isEmpty());
+    guildHeaderLabel->setCursor(Qt::PointingHandCursor);
+    guildHeaderLabel->setProperty("clickable", true);
+    guildHeaderLabel->style()->polish(guildHeaderLabel);
+    guildHeaderChevron->show();
     if (channelListMode == ChannelListMode::Classic) {
         friendsButton->hide();
         hideFriendsPage();
@@ -1975,6 +2000,10 @@ void MainWindow::onRailAccountHomeSelected(Snowflake accountId)
     serverRailModel->setSelected(ServerRailModel::Kind::AccountHome, accountId, accountId);
     guildHeaderLabel->setText(tr("Direct Messages"));
     guildHeaderLabel->show();
+    guildHeaderLabel->unsetCursor();
+    guildHeaderLabel->setProperty("clickable", false);
+    guildHeaderLabel->style()->polish(guildHeaderLabel);
+    guildHeaderChevron->hide();
     friendsButton->show();
     railHasSelection = true;
     railSelectedIsHome = true;

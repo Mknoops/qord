@@ -89,10 +89,31 @@ void ServerRailView::contextMenuEvent(QContextMenuEvent *event)
 
     Core::Snowflake accountId(idx.data(ServerRailModel::AccountIdRole).toULongLong());
     Core::Snowflake id(idx.data(ServerRailModel::IdRole).toULongLong());
-    const bool isFolder = kind == ServerRailModel::Kind::Folder;
-    const bool isUnread = idx.data(ServerRailModel::IsUnreadRole).toBool();
-    const int mentions = idx.data(ServerRailModel::MentionCountRole).toInt();
+    execMenu(accountId, id, kind == ServerRailModel::Kind::Folder, idx.data(ServerRailModel::IsUnreadRole).toBool(),
+             idx.data(ServerRailModel::MentionCountRole).toInt(),
+             Core::Snowflake(idx.data(ServerRailModel::OwnerIdRole).toULongLong()), event->globalPos());
+}
 
+void ServerRailView::showGuildMenu(Core::Snowflake accountId, Core::Snowflake guildId, const QPoint &globalPos)
+{
+    // The server's row, for its unread state and owner; a server in a closed
+    // folder has none, and its menu still opens
+    QModelIndex found;
+    for (int row = 0; model() && row < model()->rowCount() && !found.isValid(); ++row) {
+        const QModelIndex idx = model()->index(row, 0);
+        if (static_cast<ServerRailModel::Kind>(idx.data(ServerRailModel::KindRole).toInt()) == ServerRailModel::Kind::Server
+            && Core::Snowflake(idx.data(ServerRailModel::AccountIdRole).toULongLong()) == accountId
+            && Core::Snowflake(idx.data(ServerRailModel::IdRole).toULongLong()) == guildId)
+            found = idx;
+    }
+    execMenu(accountId, guildId, false, !found.isValid() || found.data(ServerRailModel::IsUnreadRole).toBool(),
+             found.data(ServerRailModel::MentionCountRole).toInt(),
+             Core::Snowflake(found.data(ServerRailModel::OwnerIdRole).toULongLong()), globalPos);
+}
+
+void ServerRailView::execMenu(Core::Snowflake accountId, Core::Snowflake id, bool isFolder, bool isUnread, int mentions,
+                              Core::Snowflake ownerId, const QPoint &globalPos)
+{
     QMenu menu(this);
     QAction *markRead = menu.addAction(tr("Mark As Read"));
     markRead->setEnabled(isUnread || mentions > 0);
@@ -101,8 +122,6 @@ void ServerRailView::contextMenuEvent(QContextMenuEvent *event)
     });
 
     if (!isFolder) {
-        Core::Snowflake ownerId(idx.data(ServerRailModel::OwnerIdRole).toULongLong());
-
         GuildSettingsAccess::addMenu(&menu, guildSettingsProvider, accountId, id, [this, accountId, id](GuildSettingsSection section) {
             emit guildSettingsRequested(accountId, id, section);
         });
@@ -124,7 +143,7 @@ void ServerRailView::contextMenuEvent(QContextMenuEvent *event)
         });
     }
 
-    menu.exec(event->globalPos());
+    menu.exec(globalPos);
 }
 
 bool ServerRailView::viewportEvent(QEvent *event)

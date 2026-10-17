@@ -205,10 +205,11 @@ static QString buildQordStyleSheet()
     qss += QStringLiteral("#ChannelSidebar { background-color: %1; }"
                           "#GuildHeader { background-color: %1; color: %2; font-weight: 600;"
                           "  border-bottom: 1px solid rgba(0, 0, 0, 0.35); }"
+                          "#GuildHeader[clickable=\"true\"]:hover { background-color: %5; }"
                           "#ChatArea { background-color: %3; }"
                           "#ChannelHeaderName { color: %2; font-weight: 600; }"
                           "#ChannelHeaderDivider { background-color: %4; border: none; }")
-                   .arg(hex(sidebar), hex(header), hex(chat), hex(divider));
+                   .arg(hex(sidebar), hex(header), hex(chat), hex(divider), hex(hover));
     qss += QStringLiteral("#UserPanelIdentity { border-radius: 4px; }"
                           "#UserPanelIdentity:hover { background-color: %1; }"
                           "#UserPanelName { color: %2; font-weight: 600; }"

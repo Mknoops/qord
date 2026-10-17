@@ -195,6 +195,7 @@ private:
     ChannelListMode channelListMode = ChannelListMode::Tree;
     QWidget *leftSideWidget = nullptr;
     ServerRailView *serverRail = nullptr;
+    QLabel *guildHeaderChevron = nullptr; // Qord: the server name's menu chevron
     ServerRailModel *serverRailModel = nullptr;
     // Qord: BetterFolders' second rail with the open folders' servers
     ServerRailView *folderSidebar = nullptr;

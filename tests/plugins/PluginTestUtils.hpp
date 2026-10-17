@@ -290,6 +290,15 @@ public:
         promptInitial = initial;
         pendingPrompt = std::move(done);
     }
+    void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                             const QString &placeholder, const QString &resetLabel,
+                             std::function<void(const QString &)> done) override
+    {
+        promptPlaceholder = placeholder;
+        promptResetLabel = resetLabel;
+        promptText(title, label, initial, 0, std::move(done));
+    }
+    QString promptPlaceholder, promptResetLabel;
     bool confirm(Confirmation &confirmation) override
     {
         confirmations.append(confirmation);

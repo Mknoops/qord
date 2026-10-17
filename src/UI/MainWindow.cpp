@@ -3035,6 +3035,8 @@ void MainWindow::showUserContextMenu(ClientInstance *instance, Snowflake userId,
         }
         for (const auto &entry : plugins->dispatchUserContextMenuItems(user)) {
             QAction *action = menu.addAction(entry.item.label);
+            if (!entry.item.svg.isEmpty())
+                action->setIcon(pluginSvgIcon(entry.item.svg, 16, devicePixelRatioF()));
             if (entry.item.checked) { // Qord: checkbox items (FollowVoiceUser)
                 action->setCheckable(true);
                 action->setChecked(*entry.item.checked);

@@ -153,6 +153,17 @@ public:
                 done(text);
         });
     }
+    void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                             const QString &placeholder, const QString &resetLabel,
+                             std::function<void(const QString &)> done) override
+    {
+        std::weak_ptr<bool> weak = alive;
+        inner->promptTextWithReset(title, label, initial, placeholder, resetLabel,
+                                   [weak, done = std::move(done)](const QString &text) {
+                                       if (auto a = weak.lock(); a && *a)
+                                           done(text);
+                                   });
+    }
     // The answer may come after the plugin stopped; drop it then
     void pickTimestamp(std::function<void(const QString &)> done) override
     {

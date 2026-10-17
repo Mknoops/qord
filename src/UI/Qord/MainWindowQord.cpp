@@ -1723,6 +1723,8 @@ void MainWindow::addPluginChannelItems(QMenu *menu, Snowflake accountId, Snowfla
                     return;
                 }
                 QAction *action = target->addAction(item.label);
+                if (!item.svg.isEmpty())
+                    action->setIcon(pluginSvgIcon(item.svg, 16, devicePixelRatioF()));
                 connect(action, &QAction::triggered, this, [pluginId, itemId = item.id, ctx]() {
                     if (auto *h = Qord::Plugins::PluginHost::instance())
                         h->dispatchChannelContextMenuAction(pluginId, itemId, ctx);

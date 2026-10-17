@@ -298,6 +298,16 @@ public:
         Q_UNUSED(maxLength);
         Q_UNUSED(done);
     }
+    // promptText with a placeholder shown in the empty field and a button
+    // (labelled `resetLabel`) that clears it
+    virtual void promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                                     const QString &placeholder, const QString &resetLabel,
+                                     std::function<void(const QString &text)> done)
+    {
+        Q_UNUSED(placeholder);
+        Q_UNUSED(resetLabel);
+        promptText(title, label, initial, 0, std::move(done));
+    }
 };
 
 // How the client renders things that are not message content.

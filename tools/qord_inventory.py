@@ -383,6 +383,9 @@ def validate_manifest(path: Path, m, inventory_by_name: dict[str, dict]) -> list
         elif field == "notApplicable" and any(len(v.strip()) < 20 for v in value):
             issues.append(Issue("manifest", f"{rel}: each notApplicable entry must say what Qord lacks (at least 20 characters)"))
 
+    if not isinstance(m.get("settingsNote", ""), str):
+        issues.append(Issue("manifest", f"{rel}: settingsNote must be a string"))
+
     for s in m.get("settings") or []:
         when = s.get("showWhen") if isinstance(s, dict) else None
         if isinstance(when, dict) and when.get("key") and when["key"] not in keys:

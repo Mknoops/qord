@@ -65,6 +65,7 @@ Qt Widgets (so they can be tested headless); a settings widget goes in `UI_SOURC
 - `authors` credits the **original** authors. Keep them.
 - `contributors` (optional) credits whoever added to the Qord port beyond upstream;
   the settings page shows "Qord additions by ...".
+- `settingsNote` (optional) is upstream's note shown above the plugin's settings.
 - `summary` is the README's one-liner; `description` stays upstream's.
 - `notes` and `gaps` end up in the
   [compatibility matrix](equicord-plugin-compatibility.md). Be honest in `gaps`: a

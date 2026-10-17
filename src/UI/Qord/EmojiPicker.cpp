@@ -6,6 +6,7 @@
 #include "Core/Theme/Manager.hpp"
 #include "Plugins/Client/MessageContexts.hpp"
 #include "Plugins/PluginHost.hpp"
+#include "PluginSurfaces.hpp"
 
 #include <QKeyEvent>
 #include <QLabel>
@@ -166,6 +167,8 @@ EmojiPicker::EmojiPicker(Core::ImageManager *images, QWidget *parent)
         QMenu menu(this);
         for (const auto &entry : items) {
             QAction *action = menu.addAction(entry.item.label);
+            if (!entry.item.svg.isEmpty())
+                action->setIcon(pluginSvgIcon(entry.item.svg, 16, devicePixelRatioF()));
             connect(action, &QAction::triggered, this, [this, pluginId = entry.pluginId, itemId = entry.item.id, context]() {
                 hide();
                 if (auto *h = Qord::Plugins::PluginHost::instance())

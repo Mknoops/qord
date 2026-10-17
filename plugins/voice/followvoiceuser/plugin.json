@@ -44,7 +44,5 @@
   "dependencies": [],
   "commands": [],
   "notes": "A friend's right-click menu gets a \"Follow User\" checkbox (one person at a time; checking someone else follows them instead, unchecking stops). While you follow them, each time they join or move to a voice channel Qord joins it too, as clicking it would, only while you are in voice yourself unless \"Only when in voice\" is off. With \"Leave when user leaves\", Qord disconnects when they leave voice. Following stops when they are no longer your friend, as upstream, and is forgotten when Qord or the plugin restarts.",
-  "gaps": [
-    "Upstream's settings note (\"This Plugin is used to follow a Friend/Friends into voice chat(s).\") isn't shown."
-  ]
+  "settingsNote": "This Plugin is used to follow a Friend/Friends into voice chat(s)."
 }

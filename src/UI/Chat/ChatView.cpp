@@ -3,6 +3,7 @@
 #include "UI/Qord/NameDecorations.hpp"
 #include "UI/Qord/Toast.hpp"
 #include "UI/Qord/TextFileDialog.hpp"
+#include "UI/Qord/PluginSurfaces.hpp"
 
 #include <QPointer>
 #include <QClipboard>
@@ -1445,6 +1446,8 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
                             return;
                         }
                         QAction *action = target->addAction(item.label);
+                        if (!item.svg.isEmpty())
+                            action->setIcon(pluginSvgIcon(item.svg, 16, devicePixelRatioF()));
                         if (item.checked) {
                             action->setCheckable(true);
                             action->setChecked(*item.checked);

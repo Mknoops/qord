@@ -508,6 +508,8 @@ struct MenuItem
     QString label;
     QList<MenuItem> children;
     std::optional<bool> checked = std::nullopt; // a checkbox item (message and user menus)
+    // An SVG drawn before the label; "currentColor" is the theme's icon color
+    QByteArray svg;
 };
 
 // A message as plugins see it (from the client's cache).

@@ -36,6 +36,8 @@ struct PluginManifest
     QStringList dependencies;
     QList<PluginCommand> commands;
     QString notes;
+    // Upstream's note above the plugin's settings (Vencord's settingsAboutComponent text)
+    QString settingsNote;
     QStringList gaps;
     // Upstream behavior aimed at a Discord feature Qord doesn't have at all
     QStringList notApplicable;

@@ -129,7 +129,8 @@ bool PluginManifest::parse(const QByteArray &json, PluginManifest &out, QString 
     if (!readString(obj, "id", m.id, error) || !readString(obj, "equicordName", m.equicordName, error) ||
         !readString(obj, "equicordPath", m.equicordPath, error) || !readString(obj, "name", m.name, error) ||
         !readString(obj, "description", m.description, error) || !readString(obj, "target", m.target, error) ||
-        !readString(obj, "notes", m.notes, error, false))
+        !readString(obj, "notes", m.notes, error, false) ||
+        !readString(obj, "settingsNote", m.settingsNote, error, false))
         return false;
 
     static const QRegularExpression idPattern(QStringLiteral("^[a-z0-9][a-z0-9_]*$"));

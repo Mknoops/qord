@@ -93,6 +93,8 @@ private slots:
         // Rename shows the name with a *; an empty name brings back the default
         h.host->dispatchDeviceSessionButton(h.id, 1, v.buttons[0].id, session("a"));
         QCOMPARE(h.ui.promptTitle, QStringLiteral("Rename"));
+        QCOMPARE(h.ui.promptPlaceholder, QStringLiteral("Windows · Discord Client"));
+        QCOMPARE(h.ui.promptResetLabel, QStringLiteral("Reset Name"));
         h.ui.pendingPrompt(QStringLiteral("Desk PC"));
         QVERIFY(h.sessions.refreshes > 0);
         v = view(h, session("a"));

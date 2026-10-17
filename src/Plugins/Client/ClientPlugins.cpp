@@ -958,6 +958,20 @@ void QtUiService::openPluginSettings(const QString &pluginId)
 void QtUiService::promptText(const QString &title, const QString &label, const QString &initial, int maxLength,
                              std::function<void(const QString &)> done)
 {
+    showTextPrompt(title, label, initial, maxLength, QString(), QString(), std::move(done));
+}
+
+void QtUiService::promptTextWithReset(const QString &title, const QString &label, const QString &initial,
+                                      const QString &placeholder, const QString &resetLabel,
+                                      std::function<void(const QString &)> done)
+{
+    showTextPrompt(title, label, initial, 0, placeholder, resetLabel, std::move(done));
+}
+
+void QtUiService::showTextPrompt(const QString &title, const QString &label, const QString &initial, int maxLength,
+                                 const QString &placeholder, const QString &resetLabel,
+                                 std::function<void(const QString &)> done)
+{
     auto *dialog = new QDialog(QApplication::activeWindow());
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->setWindowTitle(title);
@@ -969,8 +983,16 @@ void QtUiService::promptText(const QString &title, const QString &label, const Q
     auto *field = new QLineEdit(initial, dialog);
     if (maxLength > 0)
         field->setMaxLength(maxLength);
+    field->setPlaceholderText(placeholder);
     layout->addWidget(field);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, dialog);
+    if (!resetLabel.isEmpty()) {
+        QPushButton *reset = buttons->addButton(resetLabel, QDialogButtonBox::ResetRole);
+        QObject::connect(reset, &QPushButton::clicked, field, [field]() {
+            field->clear();
+            field->setFocus();
+        });
+    }
     layout->addWidget(buttons);
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
     QObject::connect(buttons, &QDialogButtonBox::accepted, dialog, [dialog, field, done]() {

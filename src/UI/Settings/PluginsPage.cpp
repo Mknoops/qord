@@ -275,6 +275,8 @@ void PluginsPage::showDetails(const QString &id)
     if (hasVisibleSettings) {
         auto *box = new QGroupBox(tr("Settings"), page);
         auto *boxLayout = new QVBoxLayout(box);
+        if (!m.settingsNote.isEmpty())
+            boxLayout->addWidget(helpLabel(m.settingsNote, box));
         boxLayout->addWidget(buildSettingsEditor(id, box));
         layout->addWidget(box);
     }

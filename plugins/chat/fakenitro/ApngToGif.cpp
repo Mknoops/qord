@@ -4,6 +4,7 @@
  * Equicord's src/utils/apng.ts (apng-canvas, MIT, David Mzareulyan); the
  * frame drawing follows FakeNitro's sendAnimatedSticker(). Upstream encodes
  * with gifenc; this is a small GIF89a writer instead.
+ * The GIF writer (parallel, frame deltas): Maarten
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "ApngToGif.hpp"

@@ -229,6 +229,8 @@ void PluginsPage::showDetails(const QString &id)
     desc->setWordWrap(true);
     layout->addWidget(desc);
     layout->addWidget(helpLabel(tr("Port of Equicord's %1 by %2").arg(m.equicordName, m.authors.join(QStringLiteral(", "))), page));
+    if (!m.contributors.isEmpty())
+        layout->addWidget(helpLabel(tr("Qord additions by %1").arg(m.contributors.join(QStringLiteral(", "))), page));
     if (!m.notes.isEmpty())
         layout->addWidget(helpLabel(m.notes, page));
     for (const QString &gap : m.gaps)

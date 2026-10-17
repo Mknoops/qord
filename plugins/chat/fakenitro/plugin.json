@@ -24,6 +24,9 @@
     "AutumnVN",
     "sadan"
   ],
+  "contributors": [
+    "Maarten"
+  ],
   "permissions": [
     "modify_outgoing_messages",
     "modify_displayed_messages",

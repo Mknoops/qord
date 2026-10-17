@@ -27,6 +27,7 @@ struct PluginManifest
     QStringList categories;
     QStringList tags;
     QStringList authors;
+    QStringList contributors; // Qord: who added to the port beyond upstream
     Permissions permissions;
     Hooks hooks;
     SettingsSchema settings;

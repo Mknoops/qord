@@ -376,7 +376,7 @@ def validate_manifest(path: Path, m, inventory_by_name: dict[str, dict]) -> list
             if not values or s["default"] not in values:
                 issues.append(Issue("manifest", f"{rel}: choice setting {s['key']} needs choices containing its default"))
 
-    for field in ("gaps", "notApplicable"):
+    for field in ("gaps", "notApplicable", "contributors"):
         value = m.get(field, [])
         if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
             issues.append(Issue("manifest", f"{rel}: {field} must be a list of strings"))

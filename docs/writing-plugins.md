@@ -63,6 +63,8 @@ Qt Widgets (so they can be tested headless); a settings widget goes in `UI_SOURC
 - `equicordName` and `equicordPath` must match the pinned inventory
   (`data/equicord/plugins.json`); `tools/new_plugin.py` fills them in.
 - `authors` credits the **original** authors. Keep them.
+- `contributors` (optional) credits whoever added to the Qord port beyond upstream;
+  the settings page shows "Qord additions by ...".
 - `summary` is the README's one-liner; `description` stays upstream's.
 - `notes` and `gaps` end up in the
   [compatibility matrix](equicord-plugin-compatibility.md). Be honest in `gaps`: a

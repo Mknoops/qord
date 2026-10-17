@@ -3,6 +3,8 @@
  * Port of Equicord's FakeNitro plugin (src/plugins/fakeNitro)
  * Original: Copyright (c) Vendicated and contributors, authors Arjix, D3SOX, Ven, fawn, captain, Nuckyz,
  * AutumnVN, sadan
+ * Qord additions (long messages, image/GIF/video shrinking, fake reactions, uploads,
+ * several stickers and more): Maarten
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "FakeNitro.hpp"

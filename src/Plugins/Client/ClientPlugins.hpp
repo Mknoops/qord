@@ -134,6 +134,8 @@ public:
     // Set by the main window (chat and message box)
     static std::function<void(const MessageContext &)> &editStarter();
     static std::function<void(const MessageContext &, bool, std::optional<bool>)> &replyStarter();
+    void openThread(const MessageContext &message) override;
+    static std::function<void(const MessageContext &)> &threadOpener(); // set by the main window
     bool confirm(Confirmation &confirmation) override;
     void showPermissions(const PermissionsView &view) override;
     void showMemberPermissions(const MemberPermissionsView &view) override;

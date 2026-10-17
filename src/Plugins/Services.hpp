@@ -265,6 +265,9 @@ public:
         Q_UNUSED(shiftHeld);
         Q_UNUSED(mention);
     }
+    // Opens the thread started from a message, or starts one from it as
+    // Discord's "Create Thread" does (asking for its name) where allowed
+    virtual void openThread(const MessageContext &message) { Q_UNUSED(message); }
     // Shows a Discord-hosted image (cdn.discordapp.com, media.discordapp.net)
     // in the client's image viewer; other URLs are ignored.
     virtual void openImage(const QUrl &url) { Q_UNUSED(url); }

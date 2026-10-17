@@ -1393,21 +1393,11 @@ void ChatView::contextMenuEvent(QContextMenuEvent *event)
             QAction *openThread = menu.addAction(tr("Open Thread"));
             connect(openThread, &QAction::triggered, this, [this, messageId]() { emit openThreadRequested(messageId); });
         } else if (canCreateThreads && !index.data(ChatModel::IsSystemMessageRole).toBool()) {
-            QString suggested = menuMessage->contentMessage().content.hasValue()
-                    ? menuMessage->contentMessage().content.get()
-                    : QString();
-            // Mentions and custom emojis are markup, not words: drop them
-            // (emojis keep their :name:)
-            static const QRegularExpression mentions(QStringLiteral("<(@[!&]?|#)\\d+>"));
-            static const QRegularExpression emojis(QStringLiteral("<a?(:\\w+:)\\d+>"));
-            suggested.replace(mentions, QString()).replace(emojis, QStringLiteral("\\1"));
-            suggested = suggested.simplified();
-            if (suggested.isEmpty() && menuMessage->author.hasValue())
-                suggested = menuMessage->author->username.hasValue() ? menuMessage->author->username.get() : QString();
             QAction *createThread = menu.addAction(tr("Create Thread"));
-            connect(createThread, &QAction::triggered, this, [this, channelId, messageId, suggested]() {
-                emit createThreadRequested(channelId, messageId, suggested.left(100));
-            });
+            connect(createThread, &QAction::triggered, this,
+                    [this, channelId, messageId, suggested = threadNameSuggestion(*menuMessage)]() {
+                        emit createThreadRequested(channelId, messageId, suggested);
+                    });
         }
     }
 
@@ -1568,6 +1558,20 @@ void ChatView::copyMessageContent(const QModelIndex &index)
     QString content = index.data(ChatModel::ContentRole).toString();
     if (!content.isEmpty())
         QGuiApplication::clipboard()->setText(content);
+}
+
+QString ChatView::threadNameSuggestion(const Discord::Message &message)
+{
+    QString suggested = message.contentMessage().content.hasValue() ? message.contentMessage().content.get() : QString();
+    // Mentions and custom emojis are markup, not words: drop them
+    // (emojis keep their :name:)
+    static const QRegularExpression mentions(QStringLiteral("<(@[!&]?|#)\\d+>"));
+    static const QRegularExpression emojis(QStringLiteral("<a?(:\\w+:)\\d+>"));
+    suggested.replace(mentions, QString()).replace(emojis, QStringLiteral("\\1"));
+    suggested = suggested.simplified();
+    if (suggested.isEmpty() && message.author.hasValue())
+        suggested = message.author->username.hasValue() ? message.author->username.get() : QString();
+    return suggested.left(100);
 }
 
 void ChatView::copyMessageId(Core::Snowflake messageId)

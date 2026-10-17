@@ -51,6 +51,7 @@
 #include "UI/Settings/SettingsWindow.hpp"
 #include "Core/RoleStyle.hpp"
 #include "UI/Qord/PluginSurfaces.hpp"
+#include "UI/Settings/PluginsPage.hpp"
 #include "UI/ChannelList/ChannelTreeModel.hpp"
 #include "UI/ChannelList/ChannelFilterProxyModel.hpp"
 #include "UI/ChannelList/ChannelNode.hpp"
@@ -695,6 +696,16 @@ void MainWindow::setupQordFeatures()
         });
         emojiPicker->open(currentInstance, chatModel->getActiveChannelId(), false, anchor);
     });
+    // Plugin settings with an emoji picker (MessageClickActions' reactions)
+    PluginsPage::emojiPickerOpener() = [this](QWidget *anchor, std::function<void(const QString &)> picked) {
+        if (!currentInstance)
+            return;
+        disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
+        connect(emojiPicker, &EmojiPicker::emojiPicked, this, [picked = std::move(picked)](const Core::EmojiMatch &match) {
+            picked(EmojiPicker::reactionKey(match));
+        });
+        emojiPicker->open(currentInstance, chatModel->getActiveChannelId(), true, anchor);
+    };
     connect(chatView, &ChatView::addReactionRequested, this, [this](Snowflake channelId, Snowflake messageId) {
         if (!currentInstance)
             return;
@@ -754,6 +765,7 @@ void MainWindow::setupQordFeatures()
                                                               perms->hasChannelPermission(me, channelId, Discord::Permission::READ_MESSAGE_HISTORY);
                                          }
                                          click.pinned = msg->pinned;
+                                         click.isSystemDm = click.message.isDm && isSystemDm(currentInstance, channelId);
                                          if (msg->reactions.hasValue())
                                              for (const auto &r : msg->reactions.get())
                                                  if (r.me.get())
@@ -766,6 +778,19 @@ void MainWindow::setupQordFeatures()
                                      };
     Qord::Plugins::QtUiService::editStarter() = [this](const Qord::Plugins::MessageContext &message) {
         chatView->startEditingMessage(Snowflake(message.messageId));
+    };
+    Qord::Plugins::QtUiService::threadOpener() = [this](const Qord::Plugins::MessageContext &message) {
+        const Snowflake messageId(message.messageId);
+        const int row = chatModel->rowForMessage(messageId);
+        const Discord::Message *msg = row >= 0 ? chatModel->messageAt(row) : nullptr;
+        if (!msg || !currentInstance || msg->isPendingOutbound || msg->qordDeleted)
+            return;
+        // A thread started from a message has the message's id
+        if (msg->flags.hasValue() && msg->flags->testFlag(Discord::MessageFlag::HAS_THREAD))
+            navigateToChannel(messageId);
+        else if (canCreateThreadsIn(currentInstance, Snowflake(message.channelId)) &&
+                 !chatModel->index(row, 0).data(ChatModel::IsSystemMessageRole).toBool())
+            createThreadFromMessage(Snowflake(message.channelId), messageId, ChatView::threadNameSuggestion(*msg));
     };
     Qord::Plugins::QtUiService::replyStarter() = [this](const Qord::Plugins::MessageContext &message, bool,
                                                         std::optional<bool> mention) {
@@ -993,6 +1018,8 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::imageOpener() = nullptr;
         Qord::Plugins::QtReadStates::allServersMarker() = nullptr;
         Qord::Plugins::QtUiService::editStarter() = nullptr;
+        Qord::Plugins::QtUiService::threadOpener() = nullptr;
+        PluginsPage::emojiPickerOpener() = nullptr;
         Qord::Plugins::QtUiService::fileAttacher() = nullptr;
         Qord::Plugins::QtUiService::replyStarter() = nullptr;
     });

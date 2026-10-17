@@ -833,6 +833,18 @@ std::function<void(const MessageContext &, bool, std::optional<bool>)> &QtUiServ
     return starter;
 }
 
+std::function<void(const MessageContext &)> &QtUiService::threadOpener()
+{
+    static std::function<void(const MessageContext &)> opener;
+    return opener;
+}
+
+void QtUiService::openThread(const MessageContext &message)
+{
+    if (threadOpener())
+        threadOpener()(message);
+}
+
 void QtUiService::startEditing(const MessageContext &message)
 {
     if (editStarter())
@@ -1701,6 +1713,11 @@ void SessionMessageActions::deleteMessage(Id accountId, Id channelId, Id message
     auto *client = session->client(Acheron::Core::Snowflake(accountId));
     if (!client)
         return;
+    // Already gone on Discord, kept on screen by MessageLogger: just take it off
+    if (client->messages()->isKeptDeleted(Acheron::Core::Snowflake(messageId))) {
+        client->messages()->removeKeptMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
+        return;
+    }
     client->discord()->deleteMessage(Acheron::Core::Snowflake(channelId), Acheron::Core::Snowflake(messageId));
 }
 

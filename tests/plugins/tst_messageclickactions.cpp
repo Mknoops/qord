@@ -198,15 +198,54 @@ private slots:
         s->setValue(QStringLiteral("doubleClickOthersAction"), QStringLiteral("COPY_LINK"));
         doubleClick(h, click(false, 2, 0), 5000);
         QCOMPARE(h.clipboard.text, QStringLiteral("https://discord.com/channels/2/3/4"));
+        QCOMPARE(h.ui.toasts.last().first, QStringLiteral("Link copied!"));
 
         s->setValue(QStringLiteral("doubleClickOthersAction"), QStringLiteral("PIN"));
         auto pin = click(false, 2, 0);
-        doubleClick(h, pin, 9000); // no Manage Messages: nothing
+        doubleClick(h, pin, 9000); // no Manage Messages: a warning
         QVERIFY(h.messageActions.pins.isEmpty());
+        QCOMPARE(h.ui.toasts.last().first, QStringLiteral("Cannot pin: Missing permissions"));
         pin.canManageMessages = true;
         pin.pinned = true;
         doubleClick(h, pin, 13000);
         QCOMPARE(h.messageActions.pins.value(0).second, false);
+    }
+
+    void openThreadAndKeptMessages()
+    {
+        SinglePluginHost h(qord_register_messageclickactions);
+        QVERIFY(h.enableWithAllPermissions());
+        auto *s = h.host->settings(h.id);
+        s->setValue(QStringLiteral("singleClickOthersAction"), QStringLiteral("OPEN_THREAD"));
+        auto other = click(false, 1, 1010);
+        other.backspace = true;
+        h.host->dispatchChatMouseDown(1000);
+        h.host->dispatchMessageClicked(other);
+        QCOMPARE(h.ui.threads, QList<Id> { 4 });
+
+        // Deleting a message MessageLogger kept goes through the delete
+        // service, which only takes it off the screen
+        auto c = click(true, 1, 5010);
+        c.message.deleted = true;
+        c.backspace = true;
+        h.host->dispatchChatMouseDown(5000);
+        h.host->dispatchMessageClicked(c);
+        QCOMPARE(h.messageActions.deleted, QList<Id> { 4 });
+    }
+
+    void disabledInSystemDms()
+    {
+        SinglePluginHost h(qord_register_messageclickactions);
+        QVERIFY(h.enableWithAllPermissions());
+        auto c = click(false, 2, 0);
+        c.message.isDm = true;
+        c.message.guildId = 0;
+        c.isSystemDm = true;
+        doubleClick(h, c, 1000); // on by default
+        QVERIFY(h.ui.replies.isEmpty());
+        h.host->settings(h.id)->setValue(QStringLiteral("disableInSystemDms"), false);
+        doubleClick(h, c, 5000);
+        QCOMPARE(h.ui.replies.size(), 1);
     }
 
     void disabledInDms()

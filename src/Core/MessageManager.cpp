@@ -440,6 +440,12 @@ void MessageManager::addLocalMessage(Snowflake channelId, const QString &content
     emit messagesReceived({ true, Discord::Client::MessageLoadType::Created, channelId, { msg } });
 }
 
+bool MessageManager::isKeptDeleted(Snowflake messageId) const
+{
+    const Discord::Message *cached = messageCache.object(messageId);
+    return cached && cached->qordDeleted;
+}
+
 void MessageManager::removeKeptMessage(Snowflake channelId, Snowflake messageId)
 {
     messageCache.remove(messageId);

@@ -283,24 +283,34 @@ void MessageClickActionsPlugin::executeAction(const QString &action, const Messa
     MessageActionService *messages = context->messageActions();
     ClipboardService *clipboard = context->clipboard();
 
-    if (action == QLatin1String("DELETE")) {
-        // Already deleted (kept on screen by MessageLogger): see the manifest's gaps
-        if ((!msg.isOwn && !click.canManageMessages) || msg.deleted)
+    // Copies with a toast saying so, as upstream's copyWithToast
+    const auto copy = [clipboard, ui](const QString &text, const QString &toast) {
+        if (!clipboard)
             return;
+        clipboard->setText(text);
+        if (ui)
+            ui->showToast(toast, UiService::ToastType::Success);
+    };
+    const auto warn = [ui](const QString &text) {
+        if (ui)
+            ui->showToast(text, UiService::ToastType::Failure);
+    };
+
+    if (action == QLatin1String("DELETE")) {
+        if (!msg.isOwn && !click.canManageMessages)
+            return;
+        // A message MessageLogger kept after deletion is only taken off the
+        // screen (upstream's mlDeleted)
         if (messages)
             messages->deleteMessage(msg.accountId, msg.channelId, msg.messageId);
     } else if (action == QLatin1String("COPY_LINK")) {
-        if (clipboard)
-            clipboard->setText(messageLink(msg));
+        copy(messageLink(msg), QStringLiteral("Link copied!"));
     } else if (action == QLatin1String("COPY_ID")) {
-        if (clipboard)
-            clipboard->setText(QString::number(msg.messageId));
+        copy(QString::number(msg.messageId), QStringLiteral("Message ID copied!"));
     } else if (action == QLatin1String("COPY_CONTENT")) {
-        if (clipboard)
-            clipboard->setText(msg.content);
+        copy(msg.content, QStringLiteral("Message content copied!"));
     } else if (action == QLatin1String("COPY_USER_ID")) {
-        if (clipboard)
-            clipboard->setText(QString::number(msg.authorId));
+        copy(QString::number(msg.authorId), QStringLiteral("User ID copied!"));
     } else if (action == QLatin1String("EDIT")) {
         if (msg.isOwn && ui)
             ui->startEditing(msg);
@@ -316,7 +326,11 @@ void MessageClickActionsPlugin::executeAction(const QString &action, const Messa
         else if (canReply(msg) && click.canSend)
             ui->startReply(msg, false, std::nullopt);
     } else if (action == QLatin1String("QUOTE")) {
-        if (!canReply(msg) || !ui)
+        if (!canReply(msg)) {
+            warn(QStringLiteral("Cannot quote this message type"));
+            return;
+        }
+        if (!ui)
             return;
         QString content = msg.content;
         if (context->settings().boolValue(QStringLiteral("useSelectionForQuote"))) {
@@ -330,11 +344,19 @@ void MessageClickActionsPlugin::executeAction(const QString &action, const Messa
         if (context->settings().boolValue(QStringLiteral("quoteWithReply")))
             ui->startReply(msg, false, false);
     } else if (action == QLatin1String("PIN")) {
-        if (!click.canManageMessages || !messages)
+        if (!click.canManageMessages) {
+            warn(QStringLiteral("Cannot pin: Missing permissions"));
+            return;
+        }
+        if (!messages)
             return;
         messages->setPinned(msg.accountId, msg.channelId, msg.messageId, !click.pinned);
     } else if (action == QLatin1String("REACT")) {
-        if (!messages || (msg.guildId && !click.canReact))
+        if (msg.guildId && !click.canReact) {
+            warn(QStringLiteral("Cannot react: Missing permissions"));
+            return;
+        }
+        if (!messages)
             return;
         const QStringList emojis = MessageClickActions::configuredReactions(
                 text("reactEmoji"), context->settings().boolValue(QStringLiteral("addAdditionalReacts")),
@@ -365,8 +387,10 @@ void MessageClickActionsPlugin::executeAction(const QString &action, const Messa
     } else if (action == QLatin1String("OPEN_TAB")) {
         if (ui)
             ui->openUrl(QUrl(messageLink(msg)));
+    } else if (action == QLatin1String("OPEN_THREAD")) {
+        if (ui)
+            ui->openThread(msg);
     }
-    // OPEN_THREAD: Qord cannot start a thread from a message yet (see the manifest's gaps)
 }
 
 QByteArray qord_manifest_messageclickactions();

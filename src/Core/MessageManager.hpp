@@ -59,6 +59,8 @@ public:
     // Qord: a message from you that only this client shows, marked as only
     // you can see it (PreviewMessage); its "Dismiss message" removes it
     // A message only shown here; `attachments` (PreviewMessage's draft) are shown from memory or disk
+    // Qord: true for a message deleted on Discord that a plugin keeps on screen
+    [[nodiscard]] bool isKeptDeleted(Snowflake messageId) const;
     void addLocalMessage(Snowflake channelId, const QString &content,
                          const QList<PendingAttachment> &attachments = {});
     static constexpr const char *DismissMessageHref = "acheron://dismiss-message";

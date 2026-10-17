@@ -237,6 +237,8 @@ public:
     QList<MemberPermissionsView> memberPermissionViews;
     void openImage(const QUrl &url) override { images.append(url); }
     void startEditing(const MessageContext &message) override { edits.append(message.messageId); }
+    void openThread(const MessageContext &message) override { threads.append(message.messageId); }
+    QList<Id> threads;
     void startReply(const MessageContext &message, bool shiftHeld, std::optional<bool> mention) override
     {
         replies.append({ message.messageId, shiftHeld, mention });

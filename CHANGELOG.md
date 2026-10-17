@@ -7,6 +7,10 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Added
 
+- MessageClickActions confirms copies with a toast and warns when a permission is
+  missing, its Open Thread action opens or starts the message's thread, deleting a
+  message MessageLogger kept takes it off the screen, and its reaction settings
+  have a Pick Emoji button. "Disable in system DMs" now works.
 - PreviewMessage's preview shows the files you attached too, and works with files
   and no text.
 - BetterSessions' rename dialog has a Reset Name button and shows the default name

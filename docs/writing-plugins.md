@@ -196,7 +196,7 @@ them with `context->settings().boolValue("key")` (or `intValue`, `numberValue`,
 |---|---|---|
 | `bool` | true/false | |
 | `int`, `number` | a number | `min`, `max` |
-| `string` | text | `multiline`; `secret` keeps it in the system keychain (API keys) |
+| `string` | text | `multiline`; `secret` keeps it in the system keychain (API keys); `emojiPicker` adds a Pick Emoji button ("name:id" for custom emoji) |
 | `choice` | one of `choices` (`[{ "value": "...", "label": "..." }]`) | |
 | `stringlist` | a list of strings | |
 | `json` | anything, edited by a widget the plugin provides (`UI_SOURCES`) | |

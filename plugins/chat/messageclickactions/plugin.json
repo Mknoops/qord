@@ -409,6 +409,7 @@
       "key": "reactEmoji",
       "type": "string",
       "default": "💀",
+      "emojiPicker": true,
       "label": "React emoji",
       "description": "Emoji to use for react actions."
     },
@@ -424,6 +425,13 @@
       "type": "string",
       "default": "",
       "multiline": true,
+      "emojiPicker": true,
+      "showWhen": {
+        "key": "addAdditionalReacts",
+        "values": [
+          "true"
+        ]
+      },
       "label": "Additional reaction emojis",
       "description": "Additional emojis to add when using React action (comma/newline separated, max 8)"
     },
@@ -494,12 +502,5 @@
   "target": "",
   "dependencies": [],
   "commands": [],
-  "gaps": [
-    "Open Thread: Qord cannot start a thread from a message yet.",
-    "Toasts: upstream confirms copies (\"Link copied!\") and missing permissions with a toast; Qord has no toast yet, so these happen silently.",
-    "The emoji setting is a text field instead of upstream's emoji picker.",
-    "Delete on a message MessageLogger kept after deletion: upstream removes it from the chat; Qord leaves it.",
-    "Disable in system DMs: Qord does not recognise DMs with Discord's system account yet."
-  ],
-  "notes": "Clicks are counted in the chat like the browser's click detail (single, double, triple); held Shift/Ctrl/Alt and Backspace/Delete count as modifiers. Which message types can be replied to follows the types Discord documents (MessageTypeSets.REPLYABLE only exists at runtime in Discord's client)."
+  "notes": "Clicks are counted in the chat like the browser's click detail (single, double, triple); held Shift/Ctrl/Alt and Backspace/Delete count as modifiers. Which message types can be replied to follows the types Discord documents (MessageTypeSets.REPLYABLE only exists at runtime in Discord's client). Copies confirm with upstream's toasts (\"Link copied!\") and a missing permission warns (\"Cannot pin: Missing permissions\"). Open Thread opens the message's thread, or starts one as Create Thread does, asking for its name. Delete on a message MessageLogger kept takes it off the screen. The reaction settings have a Pick Emoji button."
 }

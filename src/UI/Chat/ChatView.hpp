@@ -98,6 +98,8 @@ public:
     void setCanPinMessages(bool canPin);
     // Qord: Create Thread on messages (a text channel, with permission)
     void setCanCreateThreads(bool canCreate) { canCreateThreads = canCreate; }
+    // Qord: a new thread's name, from the message it starts from (Discord's suggestion)
+    static QString threadNameSuggestion(const Discord::Message &message);
     void setCanManageMessages(bool canManage);
     // Qord: tells the plugin a name decoration at `pos` was clicked
     bool clickHeaderDecoration(const QPoint &pos, bool doubleClick, bool dryRun = false);

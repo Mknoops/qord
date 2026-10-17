@@ -18,7 +18,7 @@ if(FFMPEG_FROM_VCPKG)
     list(APPEND VCPKG_MANIFEST_FEATURES "ffmpeg")
 endif()
 
-project(acheron VERSION 0.1.0 LANGUAGES CXX)
+project(acheron VERSION 0.2.0 LANGUAGES CXX)
 
 include(qt.cmake)
 

@@ -3,7 +3,10 @@
 Qord's releases. Each version's section becomes its GitHub Release notes; the
 reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
-## [Unreleased]
+## [0.2.0]
+
+Settings like Discord's, with search, changeable keybinds and streamer mode; Qord's
+own look; plugin slash commands; and more plugins verified against Discord.
 
 ### Added
 

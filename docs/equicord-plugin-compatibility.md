@@ -12,8 +12,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 36 |
-| Complete | 29 |
+| Tested | 35 |
+| Complete | 30 |
 | Blocked | 0 |
 | **Total** | 369 |
 
@@ -252,7 +252,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | PlatformIndicators | `src/plugins/platformIndicators` | `plugins/appearance/platformindicators` | Complete | Icons follow the platforms in a user's presence (client_status) and, for yourself, your sessions, coloured with the theme's status colours. Qord reads client_status as a JSON object, which sorts the platforms alphabetically, where Discord keeps the order it received. Color mobile indicator shows the phone-shaped status dot for mobile users whatever their status (upstream's isMobileOnline patches); it needs modify_displayed_messages. |
 | PlatformSpoofer | `src/equicordplugins/platformSpoofer` |  | Not Started |  |
 | PolishWording | `src/equicordplugins/polishWording` | `plugins/chat/polishwording` | Complete | A __CODE_BLOCK_n__ placeholder typed by the user is left as typed; upstream replaces it with "undefined". |
-| PreviewMessage | `src/plugins/previewMessage` | `plugins/chat/previewmessage` | Tested | While the message box holds text (or files), an eye button, "Preview Message", appears beside it. Clicking it adds your message to the chat as Discord's "Only you can see this" messages look: from you, with your formatting, mentions and emojis rendered, and a "Dismiss message" link that removes it. Nothing is sent to Discord; the preview disappears when you switch channels or restart, as upstream's does. wired; not yet verified in the running client. gaps: Attached files aren't shown in the preview, only the text; with files and no text, the button does nothing; The eye icon is Material Icons' rather than Discord's. |
+| PreviewMessage | `src/plugins/previewMessage` | `plugins/chat/previewmessage` | Complete | While the message box holds text (or files), an eye button, "Preview Message", appears beside it. Clicking it adds your message to the chat as Discord's "Only you can see this" messages look: from you, with your formatting, mentions and emojis rendered and the files you attached (images shown, other files by name and size), and a "Dismiss message" link that removes it. Nothing is sent to Discord; the preview disappears when you switch channels or restart, as upstream's does. |
 | ProfileSets | `src/equicordplugins/profileSets` |  | Not Started |  |
 | Questify | `src/equicordplugins/questify` |  | Not Started |  |
 | QuickMention | `src/plugins/quickMention` |  | Not Started |  |

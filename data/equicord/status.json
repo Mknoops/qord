@@ -138,6 +138,14 @@
         "notes": "\"case test. second sentence here. im ok and dont worry\" was sent as \"Case test. Second sentence here. I'm ok and don't worry\"."
       }
     },
+    "PreviewMessage": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "19d6dac",
+        "by": "Maarten's test account, IK server",
+        "notes": "In #gagbot with \"preview check\" typed and an image pasted, the eye button showed the text and the image as an \"Only you can see this\" message; with the text cleared it previewed the image alone. Both were dismissed and nothing was sent."
+      }
+    },
     "QuickReply": {
       "verifiedInClient": {
         "date": "2026-10-16",

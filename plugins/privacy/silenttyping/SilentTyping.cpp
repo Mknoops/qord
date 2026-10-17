@@ -140,6 +140,14 @@ std::optional<bool> SilentTypingPlugin::shouldShowTypers(const ChatContext &chat
     return std::nullopt;
 }
 
+std::optional<bool> SilentTypingPlugin::shouldShowMemberListTypers(const ChatContext &chat)
+{
+    Q_UNUSED(chat);
+    if (context->settings().boolValue(QStringLiteral("hideMembersListTypingIndicators")))
+        return false;
+    return std::nullopt;
+}
+
 QList<ChatBarButton> SilentTypingPlugin::chatBarButtons(const ChatContext &chat)
 {
     if (!context->settings().boolValue(QStringLiteral("chatIcon")))
@@ -167,6 +175,75 @@ void SilentTypingPlugin::onChatBarButtonClicked(const QString &id, const ChatCon
                       : chat.click == ChatContext::Click::Right ? "chatIconRightClickAction"
                                                                 : "chatIconLeftClickAction";
     perform(context->settings().stringValue(QString::fromLatin1(key)), chat);
+}
+
+std::optional<QString> SilentTypingPlugin::onSlashCommand(const QString &name, const QJsonObject &options,
+                                                          const ChatContext &chat)
+{
+    if (name != QLatin1String("silent-typing"))
+        return std::nullopt;
+    // As upstream's execute: the toggle and three of the settings
+    auto &s = context->settings();
+    bool updated = false;
+    if (options.value(QStringLiteral("toggle")).isString()) {
+        updated = true;
+        perform(options.value(QStringLiteral("toggle")).toString(), chat);
+    }
+    const std::pair<const char *, const char *> booleans[] = {
+        { "chat-icon", "chatIcon" },
+        { "chat-context-menu", "chatContextMenu" },
+        { "default-hidden", "defaultHidden" },
+    };
+    for (const auto &[option, key] : booleans) {
+        const QJsonValue value = options.value(QLatin1String(option));
+        if (value.isBool()) {
+            updated = true;
+            s.setValue(QLatin1String(key), value.toBool());
+        }
+    }
+    if (UiService *ui = context->ui())
+        ui->showLocalMessage(chat.accountId, chat.channelId,
+                             updated ? QStringLiteral("Silent typing settings updated.")
+                                     : QStringLiteral("No changes made to silent typing settings."));
+    return std::nullopt;
+}
+
+namespace {
+// The message box menu's checkboxes: item id -> setting
+const std::pair<const char *, const char *> MenuToggles[] = {
+    { "vc-silent-typing-enabled", "enabledGlobally" },
+    { "vc-silent-typing-chat-bar-indicators", "hideChatBoxTypingIndicators" },
+    { "vc-silent-typing-members-list-indicators", "hideMembersListTypingIndicators" },
+    { "vc-silent-typing-chat-icon", "chatIcon" },
+    { "vc-silent-typing-default", "defaultHidden" },
+};
+} // namespace
+
+QList<MenuItem> SilentTypingPlugin::chatInputContextMenuItems(const ChatContext &chat)
+{
+    Q_UNUSED(chat);
+    auto &s = context->settings();
+    if (!s.boolValue(QStringLiteral("chatContextMenu")))
+        return {};
+    const QString labels[] = { QStringLiteral("Enabled"), QStringLiteral("Chat Bar Indicators"),
+                               QStringLiteral("Members List Indicators"), QStringLiteral("Chat Icon"),
+                               QStringLiteral("Default Hidden") };
+    MenuItem menu { QStringLiteral("vc-silent-typing"), QStringLiteral("Silent Typing") };
+    for (size_t i = 0; i < std::size(MenuToggles); ++i) {
+        MenuItem item { QString::fromLatin1(MenuToggles[i].first), labels[i] };
+        item.checked = s.boolValue(QLatin1String(MenuToggles[i].second));
+        menu.children.append(item);
+    }
+    return { menu };
+}
+
+void SilentTypingPlugin::onChatInputContextMenuAction(const QString &id, const ChatContext &chat)
+{
+    Q_UNUSED(chat);
+    auto &s = context->settings();
+    for (const auto &[itemId, key] : MenuToggles)
+        if (id == QLatin1String(itemId))
+            s.setValue(QLatin1String(key), !s.boolValue(QLatin1String(key)));
 }
 
 void SilentTypingPlugin::perform(const QString &action, const ChatContext &chat)

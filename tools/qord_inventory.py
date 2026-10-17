@@ -141,6 +141,8 @@ HOOK_DISPATCH = {
     "messagePopover": "dispatchMessagePopoverButtons(",
     "roleContextMenu": "dispatchRoleContextMenuItems(",
     "profileTheme": "dispatchProfileTheme(",
+    "slashCommands": "dispatchSlashCommand(",
+    "chatInputContextMenu": "dispatchChatInputContextMenuItems(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -186,6 +188,8 @@ HOOK_DOCS = {
     "messagePopover": "Buttons on a message's hover bar, before the client's own; left and right click",
     "roleContextMenu": "Items in a role's right-click menu (server settings' role list, PermissionsViewer)",
     "profileTheme": "The theme colours a profile is shown with (FakeProfileThemes)",
+    "slashCommands": "Runs the manifest's slash commands typed in the message box (SilentTyping's /silent-typing)",
+    "chatInputContextMenu": "Items in the message box's right-click menu (SilentTyping)",
 }
 
 MANIFEST_REQUIRED = {

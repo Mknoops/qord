@@ -127,6 +127,8 @@ const HookInfo hookTable[] = {
     { Hook::MessagePopover, "messagePopover", Permission::AddUiElements },
     { Hook::RoleContextMenu, "roleContextMenu", Permission::AddUiElements },
     { Hook::ProfileTheme, "profileTheme", Permission::ModifyDisplayedMessages },
+    { Hook::SlashCommands, "slashCommands", Permission::AddUiElements },
+    { Hook::ChatInputContextMenu, "chatInputContextMenu", Permission::AddUiElements },
 };
 static_assert(std::size(hookTable) == HookCount);
 } // namespace

@@ -215,10 +215,17 @@ bool PluginManifest::parse(const QByteArray &json, PluginManifest &out, QString 
         error = QStringLiteral("\"commands\" must be an array");
         return false;
     }
+    static const QRegularExpression commandName(QStringLiteral("^[-_a-z0-9]{1,32}$"));
     for (const auto &c : commands.toArray()) {
         const QJsonObject co = c.toObject();
-        m.commands.append({ co.value(QLatin1String("name")).toString(),
-                            co.value(QLatin1String("description")).toString() });
+        PluginCommand command { co.value(QLatin1String("name")).toString(),
+                                co.value(QLatin1String("description")).toString(),
+                                co.value(QLatin1String("options")).toArray() };
+        if (!commandName.match(command.name).hasMatch()) {
+            error = QStringLiteral("invalid command name \"%1\"").arg(command.name);
+            return false;
+        }
+        m.commands.append(command);
     }
 
     out = std::move(m);

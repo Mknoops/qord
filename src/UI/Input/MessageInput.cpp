@@ -17,6 +17,10 @@
 #include <QMimeData>
 #include <QToolButton>
 #include <QFileDialog>
+#include <QContextMenuEvent>
+#include <QMenu>
+
+#include <memory>
 
 #include <algorithm>
 
@@ -33,6 +37,14 @@ ChatTextEdit::ChatTextEdit(QWidget *parent) : QTextEdit(parent)
 
     setPlaceholderText("Message...");
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+}
+
+void ChatTextEdit::contextMenuEvent(QContextMenuEvent *e)
+{
+    std::unique_ptr<QMenu> menu(createStandardContextMenu(e->pos()));
+    if (extendContextMenu)
+        extendContextMenu(menu.get());
+    menu->exec(e->globalPos());
 }
 
 void ChatTextEdit::keyPressEvent(QKeyEvent *e)

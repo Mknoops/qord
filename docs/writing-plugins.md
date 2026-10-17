@@ -65,6 +65,10 @@ Qt Widgets (so they can be tested headless); a settings widget goes in `UI_SOURC
 - `authors` credits the **original** authors. Keep them.
 - `contributors` (optional) credits whoever added to the Qord port beyond upstream;
   the settings page shows "Qord additions by ...".
+- `commands` are slash commands (Vencord's commands API): `name`, `description` and
+  `options` in Discord's application command format (`type` 3 for text, 5 for
+  true/false, `choices`, `required`). They show in the message box's "/" suggestions
+  with Discord's, and the plugin runs them with the `slashCommands` hook.
 - `settingsNote` (optional) is upstream's note shown above the plugin's settings.
 - `summary` is the README's one-liner; `description` stays upstream's.
 - `notes` and `gaps` end up in the
@@ -152,6 +156,8 @@ hook's functions and their exact meaning are in `src/Plugins/Plugin.hpp`.
 | `messagePopover` | Buttons on a message's hover bar, before the client's own; left and right click | `add_ui_elements` | DecodeBase64, Translate, UnitConverter, ViewRaw |
 | `roleContextMenu` | Items in a role's right-click menu (server settings' role list, PermissionsViewer) | `add_ui_elements` | ViewRaw |
 | `profileTheme` | The theme colours a profile is shown with (FakeProfileThemes) | `modify_displayed_messages` | FakeProfileThemes |
+| `slashCommands` | Runs the manifest's slash commands typed in the message box (SilentTyping's /silent-typing) | `add_ui_elements` | SilentTyping |
+| `chatInputContextMenu` | Items in the message box's right-click menu (SilentTyping) | `add_ui_elements` | SilentTyping |
 <!-- END GENERATED: hooks -->
 
 ## Services

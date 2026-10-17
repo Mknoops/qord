@@ -289,6 +289,7 @@ private:
     // Slash commands: the command index per server/DM, loaded on first "/"
     QHash<QString, Qord::SlashCommands::Index> slashIndexes;
     QSet<QString> slashLoading;
+    Qord::SlashCommands::Index slashMerged; // Discord's commands with the plugins' ones
     class SlashCommandPopup *slashPopup = nullptr;
     QString slashScopeKey() const;
     const Qord::SlashCommands::Index *slashIndex();

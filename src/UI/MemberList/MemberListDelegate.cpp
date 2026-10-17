@@ -2,6 +2,7 @@
 #include "Core/RoleColors.hpp"
 
 #include <QAbstractItemView>
+#include <QDateTime>
 #include <QHelpEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -159,9 +160,15 @@ void MemberListDelegate::paintMember(QPainter *painter, const QStyleOptionViewIt
         painter->drawRoundedRect(avatarRect, AvatarRadius, AvatarRadius);
     }
 
-    StatusIndicator::paintOnAvatar(
-            *painter, avatarRect, StatusDotSize,
-            index.data(MemberListModel::PresenceBadgeRole).value<Core::PresenceBadge>(), rowColor);
+    const auto badge = index.data(MemberListModel::PresenceBadgeRole).value<Core::PresenceBadge>();
+    if (index.data(MemberListModel::IsTypingRole).toBool()) {
+        // Qord: Discord's typing dots, cycling once every 1.2 s (the view
+        // repaints while someone types)
+        const qreal phase = (QDateTime::currentMSecsSinceEpoch() % 1200) / 1200.0;
+        StatusIndicator::paintTypingOnAvatar(*painter, avatarRect, StatusDotSize, badge, rowColor, phase);
+    } else {
+        StatusIndicator::paintOnAvatar(*painter, avatarRect, StatusDotSize, badge, rowColor);
+    }
 
     x += AvatarSize + AvatarTextSpacing;
     int textWidth = option.rect.right() - x - HorizontalPadding;

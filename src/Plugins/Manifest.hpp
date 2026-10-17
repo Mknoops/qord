@@ -3,16 +3,21 @@
 #include "Permission.hpp"
 #include "Settings.hpp"
 
+#include <QJsonArray>
 #include <QString>
 #include <QStringList>
 
 namespace Qord {
 namespace Plugins {
 
+// A slash command (Vencord's commands API, Discord's built-in commands).
+// `options` are Discord's application command options (type, name,
+// description, required, choices).
 struct PluginCommand
 {
     QString name;
     QString description;
+    QJsonArray options;
 };
 
 // Parsed plugin.json. This file is the single source of truth for both the

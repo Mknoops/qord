@@ -7,6 +7,11 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Added
 
+- Plugins can add slash commands, shown in the message box's "/" suggestions with
+  Discord's: SilentTyping's /silent-typing changes its settings. Plugins can also
+  add to the message box's right-click menu (SilentTyping's submenu).
+- Members typing in the open channel get Discord's typing dots on their avatar in
+  the member list. SilentTyping's "Hide members list typing indicators" hides them.
 - MessageClickActions confirms copies with a toast and warns when a permission is
   missing, its Open Thread action opens or starts the message's thread, deleting a
   message MessageLogger kept takes it off the screen, and its reaction settings

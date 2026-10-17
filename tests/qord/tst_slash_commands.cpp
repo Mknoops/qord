@@ -215,6 +215,31 @@ private slots:
         const Built edited = build(index, QStringLiteral("/weather city:Parma"), picks);
         QCOMPARE(edited.data.value("options").toArray()[0].toObject().value("value").toString(), QStringLiteral("Parma"));
     }
+
+    void localCommands()
+    {
+        // A plugin's command joins Discord's and is built the same way
+        const QJsonArray options = QJsonDocument::fromJson(R"([
+            { "type": 3, "name": "toggle", "description": "Where",
+              "choices": [ { "name": "Global", "value": "global" }, { "name": "Channel", "value": "channel" } ] },
+            { "type": 5, "name": "chat-icon", "description": "Icon" }
+        ])").array();
+        const Command local = localCommand(QStringLiteral("silenttyping"), QStringLiteral("SilentTyping"),
+                                           QStringLiteral("silent-typing"), QStringLiteral("Hide typing"), options);
+        QVERIFY(local.local);
+        const Index merged = withLocalCommands(index, { local });
+        QCOMPARE(merged.commands.size(), index.commands.size() + 1);
+        QCOMPARE(suggest(merged, QStringLiteral("sil")).value(0).name, QStringLiteral("silent-typing"));
+        QCOMPARE(suggest(merged, QStringLiteral("sil")).value(0).applicationName, QStringLiteral("SilentTyping"));
+        const Built built = build(merged, QStringLiteral("/silent-typing toggle:Channel chat-icon:false"));
+        QVERIFY2(built.ok, qPrintable(built.error));
+        QVERIFY(built.command->local);
+        QCOMPARE(built.command->applicationId, QStringLiteral("silenttyping"));
+        const QJsonObject values = optionValues(built.data);
+        QCOMPARE(values.value("toggle").toString(), QStringLiteral("channel"));
+        QCOMPARE(values.value("chat-icon").toBool(true), false);
+        QVERIFY(!values.contains("missing"));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestSlashCommands)

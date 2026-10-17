@@ -76,6 +76,8 @@ QVariant MemberListModel::data(const QModelIndex &index, int role) const
             return false;
         return Core::forceOwnerCrown() || manager->guildMemberCount(guildId) < LargeServerCrownLimit;
     }
+    case IsTypingRole:
+        return item->type == Core::MemberListItem::Type::Member && typingProvider && typingProvider(item->userId);
     case UserIdRole:
         return item->type == Core::MemberListItem::Type::Member
                        ? QVariant::fromValue(static_cast<quint64>(item->userId))
@@ -197,6 +199,12 @@ void MemberListModel::setPresenceManager(Core::PresenceManager *presences)
 void MemberListModel::setAccount(Core::Snowflake id)
 {
     accountId = id;
+}
+
+void MemberListModel::typingChanged()
+{
+    if (rowCount() > 0)
+        emit dataChanged(index(0), index(rowCount() - 1), { IsTypingRole });
 }
 
 void MemberListModel::notifyRows(const QList<int> &rows)

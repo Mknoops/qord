@@ -9,7 +9,7 @@
   "tags": ["Chat", "Privacy"],
   "authors": ["V", "rini", "Im_Banana", "Etorix"],
   "permissions": ["control_typing", "add_ui_elements"],
-  "hooks": ["typing", "chatBarButtons"],
+  "hooks": ["typing", "chatBarButtons", "slashCommands", "chatInputContextMenu"],
   "settings": [
     { "key": "enabledGlobally", "type": "bool", "default": true, "label": "Enabled globally",
       "description": "Toggle functionality of your own typing indicator globally." },
@@ -61,11 +61,18 @@
   "enabledByDefault": false,
   "target": "",
   "dependencies": [],
-  "commands": ["silent-typing"],
-  "gaps": [
-    "The /silent-typing command: Qord has no slash commands yet.",
-    "The \"Silent Typing\" submenu in the message box's right-click menu: the message box has no plugin menu surface yet.",
-    "\"Hide members list typing indicators\" has nothing to hide: Qord's member list does not show who is typing."
+  "commands": [
+    { "name": "silent-typing", "description": "Hide your typing indicator from chat.",
+      "options": [
+        { "type": 3, "name": "toggle", "description": "Toggle functionality globally, for the channel, or for the guild.",
+          "choices": [ { "name": "Global", "value": "global" }, { "name": "Channel", "value": "channel" },
+                       { "name": "Guild", "value": "guild" } ] },
+        { "type": 5, "name": "chat-bar-indicators", "description": "Hide other users' typing indicators from above the chat bar." },
+        { "type": 5, "name": "members-list-indicators", "description": "Hide other users' typing indicators from the members list." },
+        { "type": 5, "name": "chat-icon", "description": "Show an icon in the chat bar for toggling the plugin on the go." },
+        { "type": 5, "name": "chat-context-menu", "description": "Show a dropdown in the chat context menu to toggle plugin settings on the go." },
+        { "type": 5, "name": "default-hidden", "description": "Whether to hide typing in DMs/channels/guilds by default or not." }
+      ] }
   ],
-  "notes": "Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out."
+  "notes": "Qord sends Discord's typing indicator like the official client (about once every 9 seconds while you type); this plugin decides per channel whether it goes out. /silent-typing in the message box changes the same settings as upstream's command and answers with a message only you see; the message box's right-click menu has the Silent Typing submenu. \"Hide members list typing indicators\" hides the typing dots Qord, like Discord, puts on the avatars of members typing in the open channel."
 }

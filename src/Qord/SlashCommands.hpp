@@ -5,6 +5,7 @@
 // Pure data handling (no network), so it is unit tested.
 
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QList>
@@ -52,6 +53,9 @@ struct Command
     QString description;
     QList<Option> options;
     QJsonObject raw; // sent back as data.application_command
+    // A plugin's command, run by the client and never sent to Discord;
+    // applicationId is then the plugin's id
+    bool local = false;
 };
 
 struct Index
@@ -61,6 +65,14 @@ struct Index
 
 // GET /guilds/{id}/application-command-index (or a channel's) response
 Index parseIndex(const QJsonObject &json);
+
+// A plugin's command (`options` in Discord's format), shown as from `pluginName`
+Command localCommand(const QString &pluginId, const QString &pluginName, const QString &name,
+                     const QString &description, const QJsonArray &options);
+// `index` with the local commands added; they win over an app's command of the same name
+Index withLocalCommands(const Index &index, const QList<Command> &local);
+// The option values in an interaction's "data" by name (subcommands' too)
+QJsonObject optionValues(const QJsonObject &data);
 
 // Commands whose name starts with `typed` (then those containing it), at most `limit`
 QList<Command> suggest(const Index &index, const QString &typed, int limit = 25);

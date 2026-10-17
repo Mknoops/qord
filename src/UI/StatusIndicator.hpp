@@ -18,6 +18,10 @@ QString tooltip(const Core::PresenceBadge &badge);
 
 void paintOnAvatar(QPainter &painter, const QRect &avatarRect, int dotSize,
                    const Core::PresenceBadge &badge, const QColor &ringColor);
+// Discord's typing badge: a pill in the status colour with three dots that
+// light up in turn; `phase` (0..1) is where the animation is
+void paintTypingOnAvatar(QPainter &painter, const QRect &avatarRect, int dotSize,
+                         const Core::PresenceBadge &badge, const QColor &ringColor, qreal phase);
 
 } // namespace StatusIndicator
 

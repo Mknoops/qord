@@ -12,8 +12,8 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | Analyzing | 0 |
 | In Progress | 0 |
 | Implemented | 0 |
-| Tested | 38 |
-| Complete | 27 |
+| Tested | 36 |
+| Complete | 29 |
 | Blocked | 0 |
 | **Total** | 369 |
 
@@ -48,7 +48,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | BetterPlusReacts | `src/equicordplugins/betterPlusReacts` |  | Not Started |  |
 | BetterRoleContext | `src/plugins/betterRoleContext` |  | Not Started |  |
 | BetterRoleDot | `src/plugins/betterRoleDot` | `plugins/appearance/betterroledot` | Complete | With Appearance > Role colors set to "Show role colors next to names", the dot after a name in messages and the member list copies the role color ("#rrggbb", with "Copied to clipboard!") when clicked. Both styles keeps names in their role color next to the dot (whatever the setting); the profile option makes the dot before each role in a profile copy its color too, as Both styles also does. |
-| BetterSessions | `src/plugins/betterSessions` | `plugins/utility/bettersessions` | Tested | In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on "3 hours ago", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name (Reset Name clears the field, whose placeholder is the default) brings back "OS · Platform". Mobile devices get Discord's phone icon (the same path as Material Icons' phone_iphone). When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each ("New session:" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll. wired; not yet verified in the running client. |
+| BetterSessions | `src/plugins/betterSessions` | `plugins/utility/bettersessions` | Complete | In Settings → Devices each device gets upstream's icon colour for its OS and a badge for its platform (Discord, Chrome, Edge, Firefox, Internet Explorer, Opera, Safari, mobile or unknown), the exact time as a tooltip on "3 hours ago", a NEW badge until you leave the page, and Rename: the name you give is shown with a *, and an empty name (Reset Name clears the field, whose placeholder is the default) brings back "OS · Platform". Mobile devices get Discord's phone icon (the same path as Material Icons' phone_iphone). When the plugin starts it looks for devices it hasn't seen and shows a permanent notification for each ("New session:" with OS, platform and location; clicking opens Devices). With Background check on, it looks again when Discord reports that your sessions changed, at most once per check interval, instead of upstream's timer: Qord doesn't poll. |
 | BetterSettings | `src/plugins/betterSettings` |  | Not Started |  |
 | BetterUploadButton | `src/plugins/betterUploadButton` |  | Not Started |  |
 | BiggerStreamPreview | `src/plugins/biggerStreamPreview` |  | Not Started |  |
@@ -78,7 +78,7 @@ Statuses are derived from evidence in the repository, see `docs/plugin-status.md
 | ConsoleJanitor | `src/plugins/consoleJanitor` |  | Not Started |  |
 | ConsoleShortcuts | `src/plugins/consoleShortcuts` |  | Not Started |  |
 | ContentWarning | `src/equicordplugins/contentWarning` |  | Not Started |  |
-| CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` | `plugins/emotes/copyemojimarkdown` | Tested | Right-clicking an emoji in the emoji picker offers "Copy Emoji Markdown": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with "Copy Unicode" off; "Success! Copied emoji markdown." confirms it. wired; not yet verified in the running client. |
+| CopyEmojiMarkdown | `src/plugins/copyEmojiMarkdown` | `plugins/emotes/copyemojimarkdown` | Complete | Right-clicking an emoji in the emoji picker offers "Copy Emoji Markdown": a server emoji copies as <:name:id> (<a:name:id> when animated, without the ~1 Discord adds to repeated names), and a standard emoji copies as the character itself, or as :name: with "Copy Unicode" off; "Success! Copied emoji markdown." confirms it. |
 | CopyFileContents | `src/plugins/copyFileContents` | `plugins/utility/copyfilecontents` | Complete | The copy button sits in a text file's preview and in its "View whole file" window. It copies with a "Copied to clipboard!" toast and shows a check mark for two seconds; a file Qord loaded only the start of (over 50,000 bytes) can't be copied, as upstream says, "File too large to copy". |
 | CopyProfileColors | `src/equicordplugins/copyProfileColors` |  | Not Started |  |
 | CopyStatusUrls | `src/equicordplugins/copyStatusUrls` |  | Not Started |  |

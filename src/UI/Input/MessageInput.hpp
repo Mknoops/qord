@@ -103,6 +103,8 @@ signals:
 public:
     // Qord: Discord's length limit for the account; the box counts down near it
     void setMessageLengthLimit(int limit);
+    // Qord: the files waiting to be sent with the message (PreviewMessage)
+    [[nodiscard]] QList<Core::PendingAttachment> pendingAttachments() const;
 
 private:
     QLabel *lengthCounter = nullptr;

@@ -74,6 +74,39 @@ static QString resolveSystemMessageContent(const Discord::Message &msg, const st
     }
 }
 
+// Attachments for a message shown before (or instead of) uploading: pasted
+// images from memory, picked images from disk, other files by name and size
+static QList<Discord::Attachment> localAttachments(const QList<PendingAttachment> &attachments, Snowflake baseId)
+{
+    QList<Discord::Attachment> out;
+    for (int i = 0; i < attachments.size(); i++) {
+        const auto &att = attachments[i];
+        Discord::Attachment a;
+        a.id = Snowflake(baseId + i + 1);
+        a.filename = att.filename;
+        a.size = att.size;
+        a.contentType = att.mimeType;
+        if (!att.image.isNull()) {
+            a.localPreview = att.image;
+            a.width = att.image.width();
+            a.height = att.image.height();
+        } else if (att.mimeType.startsWith("image/") && !att.filePath.isEmpty()) {
+            QString localUrl = QUrl::fromLocalFile(att.filePath).toString();
+            a.url = localUrl;
+            a.proxyUrl = localUrl;
+            QSize dims = QImageReader(att.filePath).size();
+            if (dims.isValid()) {
+                a.width = dims.width();
+                a.height = dims.height();
+            }
+        }
+        if (att.isSpoiler)
+            a.flags = Discord::AttachmentFlags(Discord::AttachmentFlag::IS_SPOILER);
+        out.append(a);
+    }
+    return out;
+}
+
 MessageManager::MessageManager(Snowflake accountId, Discord::Client *client,
                                UserManager *userManager, QObject *parent)
     : QObject(parent), client(client), userManager(userManager), repo(accountId), parser(std::make_unique<Markdown::Parser>())
@@ -388,7 +421,8 @@ void MessageManager::fetchLinkedMessage(Snowflake channelId, Snowflake messageId
     });
 }
 
-void MessageManager::addLocalMessage(Snowflake channelId, const QString &content)
+void MessageManager::addLocalMessage(Snowflake channelId, const QString &content,
+                                     const QList<PendingAttachment> &attachments)
 {
     Discord::Message msg;
     msg.id = Snowflake::generateNonce();
@@ -398,7 +432,8 @@ void MessageManager::addLocalMessage(Snowflake channelId, const QString &content
     msg.author = client->getMe();
     msg.type = Discord::MessageType::DEFAULT;
     msg.flags = Discord::MessageFlags(Discord::MessageFlag::EPHEMERAL);
-    msg.attachments = QList<Discord::Attachment>();
+    msg.attachments = localAttachments(attachments, msg.id);
+    msg.isDraftPreview = !attachments.isEmpty();
     msg.embeds = QList<Discord::Embed>();
     parseMessageContent(msg);
     messageCache.insert(msg.id, new Discord::Message(msg));
@@ -897,35 +932,8 @@ MessageManager::SendResult MessageManager::sendMessage(Snowflake channelId, cons
         preview.stickerItems = items;
     }
 
-    if (!outgoing.isEmpty()) {
-        QList<Discord::Attachment> previewAttachments;
-        for (int i = 0; i < outgoing.size(); i++) {
-            const auto &att = outgoing[i];
-            Discord::Attachment a;
-            a.id = Snowflake(nonceId + i + 1);
-            a.filename = att.filename;
-            a.size = att.size;
-            a.contentType = att.mimeType;
-            if (!att.image.isNull()) {
-                a.localPreview = att.image;
-                a.width = att.image.width();
-                a.height = att.image.height();
-            } else if (att.mimeType.startsWith("image/") && !att.filePath.isEmpty()) {
-                QString localUrl = QUrl::fromLocalFile(att.filePath).toString();
-                a.url = localUrl;
-                a.proxyUrl = localUrl;
-                QSize dims = QImageReader(att.filePath).size();
-                if (dims.isValid()) {
-                    a.width = dims.width();
-                    a.height = dims.height();
-                }
-            }
-            if (att.isSpoiler)
-                a.flags = Discord::AttachmentFlags(Discord::AttachmentFlag::IS_SPOILER);
-            previewAttachments.append(a);
-        }
-        preview.attachments = previewAttachments;
-    }
+    if (!outgoing.isEmpty())
+        preview.attachments = localAttachments(outgoing, nonceId);
 
     if (replyToMessageId.isValid()) {
         preview.type = Discord::MessageType::REPLY;

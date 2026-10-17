@@ -1332,6 +1332,8 @@ struct Message : Core::JsonUtils::JsonObject
 
     // sent
     bool isPendingOutbound = false;
+    // Qord: a draft shown only here (PreviewMessage); its attachments are local files
+    bool isDraftPreview = false;
 
     // Qord: deleted on Discord but kept on screen by a plugin (MessageLogger)
     bool qordDeleted = false;

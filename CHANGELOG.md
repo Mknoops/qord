@@ -7,6 +7,12 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Added
 
+- PreviewMessage's preview shows the files you attached too, and works with files
+  and no text.
+- BetterSessions' rename dialog has a Reset Name button and shows the default name
+  as a placeholder. CopyEmojiMarkdown's menu item has a copy icon, and
+  FollowVoiceUser's settings show upstream's note.
+
 - FakeNitro splits a message that's over Discord's length limit into several, and
   closes and reopens a code block cut in two. Turn it off with "Split long messages".
 - FakeNitro shrinks an image that's over your upload limit until it fits, instead of

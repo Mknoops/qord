@@ -195,11 +195,16 @@ public:
     {
         localMessages.append({ accountId, channelId, content });
     }
+    void previewDraft(Id accountId, Id channelId, const QString &content) override
+    {
+        localMessages.append({ accountId, channelId, content, true });
+    }
     struct LocalMessage
     {
         Id accountId;
         Id channelId;
         QString content;
+        bool withDraftAttachments = false;
     };
     QList<LocalMessage> localMessages;
     QList<QPair<Id, Id>> joinedVoice;

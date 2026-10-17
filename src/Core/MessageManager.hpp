@@ -58,7 +58,9 @@ public:
     void removeKeptMessage(Snowflake channelId, Snowflake messageId);
     // Qord: a message from you that only this client shows, marked as only
     // you can see it (PreviewMessage); its "Dismiss message" removes it
-    void addLocalMessage(Snowflake channelId, const QString &content);
+    // A message only shown here; `attachments` (PreviewMessage's draft) are shown from memory or disk
+    void addLocalMessage(Snowflake channelId, const QString &content,
+                         const QList<PendingAttachment> &attachments = {});
     static constexpr const char *DismissMessageHref = "acheron://dismiss-message";
     void setChannelLinkResolver(Markdown::ChannelLinkResolverFn resolver);
     void setEmojiManager(EmojiManager *manager);

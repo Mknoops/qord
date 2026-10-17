@@ -186,6 +186,10 @@ public:
     {
         inner->showLocalMessage(accountId, channelId, content);
     }
+    void previewDraft(Id accountId, Id channelId, const QString &content) override
+    {
+        inner->previewDraft(accountId, channelId, content);
+    }
     void showNotification(const PluginNotification &notification, std::function<void()> clicked) override
     {
         // The click may come after the plugin stopped

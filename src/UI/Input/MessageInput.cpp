@@ -335,6 +335,11 @@ QList<Core::Snowflake> MessageInput::stickerIds() const
     return ids;
 }
 
+QList<Core::PendingAttachment> MessageInput::pendingAttachments() const
+{
+    return attachmentPanel->attachments();
+}
+
 void MessageInput::clearStickers()
 {
     if (stagedStickers.isEmpty())

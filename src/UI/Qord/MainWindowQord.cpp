@@ -546,9 +546,11 @@ void MainWindow::setupQordFeatures()
         return out;
     };
     Qord::Plugins::QtUiService::localMessageShower() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId,
-                                                               const QString &content) {
+                                                               const QString &content, bool withDraftAttachments) {
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
-            instance->messages()->addLocalMessage(Snowflake(channelId), content);
+            instance->messages()->addLocalMessage(Snowflake(channelId), content,
+                                                  withDraftAttachments ? messageInput->pendingAttachments()
+                                                                       : QList<Core::PendingAttachment>());
     };
     Qord::Plugins::QtUiService::channelOpener() = [this](Qord::Plugins::Id accountId, Qord::Plugins::Id channelId) {
         selectChannelInTree(Snowflake(accountId), Snowflake(channelId));

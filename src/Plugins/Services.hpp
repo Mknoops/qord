@@ -236,6 +236,11 @@ public:
         Q_UNUSED(channelId);
         Q_UNUSED(content);
     }
+    // Like showLocalMessage, with the message box's attachments too (PreviewMessage)
+    virtual void previewDraft(Id accountId, Id channelId, const QString &content)
+    {
+        showLocalMessage(accountId, channelId, content);
+    }
     // Re-asks for a message's attachment buttons (their state changed)
     virtual void refreshAttachments(Id accountId, Id channelId, Id messageId)
     {

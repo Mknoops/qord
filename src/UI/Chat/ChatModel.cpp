@@ -624,7 +624,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             data.id = att.id;
             data.proxyUrl = QUrl(*att.proxyUrl);
             data.originalUrl = QUrl(*att.url);
-            data.isLocalPreview = visible.isPendingOutbound;
+            data.isLocalPreview = visible.isPendingOutbound || visible.isDraftPreview;
             const MediaFlags media = mediaFlagsFor(att, visible);
             data.isImage = media.isImage;
             data.contentType = media.contentType;

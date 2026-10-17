@@ -10,12 +10,28 @@
         "notes": "With role colors next to names, clicking the role dot after a name in a message and in the member list copied the role color (#206694)."
       }
     },
+    "BetterSessions": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "bc47913",
+        "by": "Maarten's test account, IK server",
+        "notes": "Settings → Devices showed both devices with OS colours, platform badges and NEW; Rename on the phone showed \"Test phone*\" and cleared NEW, and Reset Name emptied the field (placeholder \"iOS · Mobile Safari\") so saving brought the default name back."
+      }
+    },
     "ClearURLs": {
       "verifiedInClient": {
         "date": "2026-10-16",
         "build": "38f2ade",
         "by": "Maarten's test account, IK server",
         "notes": "Sent a link with utm_source, utm_medium and fbclid; it arrived with only id=5 left."
+      }
+    },
+    "CopyEmojiMarkdown": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "bc47913",
+        "by": "Maarten's test account, IK server",
+        "notes": "Right-clicking the IK server's animated emoji in the picker showed Copy Emoji Markdown with the copy icon; it put <a:name:id> on the clipboard and showed the success toast."
       }
     },
     "CopyFileContents": {

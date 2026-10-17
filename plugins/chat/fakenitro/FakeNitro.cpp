@@ -22,6 +22,7 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QUrl>
+#include <QVector>
 
 namespace Qord {
 namespace Plugins {
@@ -1059,7 +1060,7 @@ void FakeNitroPlugin::uploadInstead(OutgoingMessage &message, const QString &tex
     message.deferred = [this, weak, files, stickerSize](const QString &content, OutgoingMessage::DeferredDone done) {
         struct State
         {
-            QList<std::optional<AttachedFile>> results;
+            QVector<std::optional<AttachedFile>> results;
             int pending = 0;
             bool failed = false;
         };

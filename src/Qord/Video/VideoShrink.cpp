@@ -35,20 +35,31 @@ void setOption(AVCodecContext *ctx, const char *key, const char *value)
     av_opt_set(ctx->priv_data, key, value, 0);
 }
 
-template <typename T>
-const T *supported(const AVCodec *codec, AVCodecContext *ctx, int which, const T *legacy)
+// The formats an encoder takes. Newer ffmpeg asks avcodec_get_supported_config()
+// and has dropped AVCodec's lists, so those are only named for older versions.
+const AVPixelFormat *supportedPixelFormats(const AVCodec *codec, AVCodecContext *ctx)
 {
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 13, 100)
-    Q_UNUSED(legacy);
     const void *out = nullptr;
     int count = 0;
-    avcodec_get_supported_config(ctx, codec, AVCodecConfig(which), 0, &out, &count);
-    return static_cast<const T *>(out);
+    avcodec_get_supported_config(ctx, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, &out, &count);
+    return static_cast<const AVPixelFormat *>(out);
 #else
-    Q_UNUSED(codec);
     Q_UNUSED(ctx);
-    Q_UNUSED(which);
-    return legacy;
+    return codec->pix_fmts;
+#endif
+}
+
+const AVSampleFormat *supportedSampleFormats(const AVCodec *codec, AVCodecContext *ctx)
+{
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 13, 100)
+    const void *out = nullptr;
+    int count = 0;
+    avcodec_get_supported_config(ctx, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, &out, &count);
+    return static_cast<const AVSampleFormat *>(out);
+#else
+    Q_UNUSED(ctx);
+    return codec->sample_fmts;
 #endif
 }
 
@@ -253,8 +264,7 @@ AVCodecContext *openVideoEncoder(const ShrinkPlan &plan, bool globalHeader)
         AVCodecContext *ctx = avcodec_alloc_context3(codec);
         if (!ctx)
             continue;
-        const AVPixelFormat *formats =
-                supported<AVPixelFormat>(codec, ctx, 0 /* AV_CODEC_CONFIG_PIX_FORMAT */, codec->pix_fmts);
+        const AVPixelFormat *formats = supportedPixelFormats(codec, ctx);
         AVPixelFormat format = AV_PIX_FMT_YUV420P;
         if (formats) {
             format = formats[0];
@@ -279,6 +289,10 @@ AVCodecContext *openVideoEncoder(const ShrinkPlan &plan, bool globalHeader)
         if (qstrcmp(name, "libx264") == 0) {
             setOption(ctx, "preset", "faster");
             setOption(ctx, "profile", "high");
+        } else if (qstrcmp(name, "libopenh264") == 0) {
+            // OpenH264 only keeps to a bitrate when it may skip frames
+            setOption(ctx, "rc_mode", "bitrate");
+            setOption(ctx, "allow_skip_frames", "1");
         } else if (qstrcmp(name, "h264_nvenc") == 0) {
             setOption(ctx, "preset", "p5");
             setOption(ctx, "rc", "vbr");
@@ -301,8 +315,7 @@ AVCodecContext *openAudioEncoder(qint64 bitrate, bool globalHeader)
     if (!ctx)
         return nullptr;
     ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
-    const AVSampleFormat *formats =
-            supported<AVSampleFormat>(codec, ctx, 3 /* AV_CODEC_CONFIG_SAMPLE_FORMAT */, codec->sample_fmts);
+    const AVSampleFormat *formats = supportedSampleFormats(codec, ctx);
     if (formats && formats[0] != AV_SAMPLE_FMT_NONE)
         ctx->sample_fmt = formats[0];
     ctx->sample_rate = 48000;

@@ -367,7 +367,9 @@ void MessageInput::rebuildStickerBar()
             chip->setToolTip(tr("Remove"));
             const Core::Snowflake id = staged.id;
             connect(chip, &QToolButton::clicked, this, [this, id]() {
-                stagedStickers.removeIf([id](const StagedSticker &s) { return s.id == id; });
+                for (qsizetype i = 0; i < stagedStickers.size(); ++i)
+                    if (stagedStickers[i].id == id)
+                        stagedStickers.removeAt(i--);
                 rebuildStickerBar();
             });
             stickerLayout->addWidget(chip);

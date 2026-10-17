@@ -13,6 +13,7 @@
 
 #include <QHash>
 #include <QPainter>
+#include <QVector>
 
 #include <algorithm>
 #include <array>
@@ -506,7 +507,7 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
     if (width <= 0 || height <= 0 || width > 0xFFFF || height > 0xFFFF)
         return {};
 
-    QList<QImage> images(frames.size());
+    QVector<QImage> images(frames.size()); // sized up front: filled by index on several threads
     parallelFor(frames.size(), [&](qsizetype i) { images[i] = frames[i].convertToFormat(QImage::Format_ARGB32); });
     // Qord: a frame like the one before only adds its time to it
     QList<QImage> kept;
@@ -530,7 +531,7 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
     // A pixel turning transparent can't be drawn that way, so then the
     // frame before is cleared (disposal 2) and this one drawn whole.
     const qsizetype count = kept.size();
-    QList<FramePlan> plans(count);
+    QVector<FramePlan> plans(count);
     parallelFor(count, [&](qsizetype i) {
         FramePlan &plan = plans[i];
         plan.rect = QRect(0, 0, width, height);
@@ -565,7 +566,7 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
         plans[i].disposal = i + 1 < count && plans[i + 1].delta ? 1 : 2;
 
     // Each frame quantized and compressed on its own thread, joined in order
-    QList<QByteArray> blocks(count);
+    QVector<QByteArray> blocks(count);
     parallelFor(count, [&](qsizetype i) {
         blocks[i] = encodeFrame(kept[i], i ? &kept[i - 1] : nullptr, plans[i], times[i]);
     });
@@ -586,12 +587,12 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
 
 QList<QImage> scaledFrames(const QList<QImage> &frames, const QSize &size)
 {
-    QList<QImage> scaled(frames.size());
+    QVector<QImage> scaled(frames.size());
     parallelFor(frames.size(), [&](qsizetype i) {
         scaled[i] = frames[i].size() == size ? frames[i]
                                              : frames[i].scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     });
-    return scaled;
+    return QList<QImage>(scaled.begin(), scaled.end());
 }
 
 } // namespace ApngToGif

@@ -1035,7 +1035,7 @@ private slots:
                     frame.setPixel(x, y, qRgb(255, 255, 255));
             still.append(frame);
         }
-        const QByteArray deltas = ApngToGif::encodeGif(still, QList<double>(10, 80));
+        const QByteArray deltas = ApngToGif::encodeGif(still, { 80, 80, 80, 80, 80, 80, 80, 80, 80, 80 });
         const QByteArray one = ApngToGif::encodeGif({ still.first() }, { 80 });
         QVERIFY2(deltas.size() < one.size() * 2, qPrintable(QString::number(deltas.size())));
     }

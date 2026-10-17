@@ -30,7 +30,7 @@ private slots:
     {
         const QString text = FakeProfileThemes::encode(0x5865f2, 0xeb459e);
         QVERIFY(text.startsWith(QLatin1Char(' ')));
-        const QList<uint> codes = text.mid(1).toUcs4();
+        const auto codes = text.mid(1).toUcs4(); // QVector on Qt 5, QList on Qt 6
         QCOMPARE(codes.size(), 17); // "[#5865f2,#eb459e]"
         QCOMPARE(codes.first(), uint(0xE0000 + '['));
         for (uint code : codes)

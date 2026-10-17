@@ -63,7 +63,15 @@
         "date": "2026-10-16",
         "build": "38f2ade",
         "by": "Maarten's test account, IK server",
-        "notes": "Without Nitro, an animated emoji from the server was offered by the picker and sent as a link; alone it showed as the emoji with its embed hidden, and hovering it showed the FakeNitro note. A 3,805-character message went out as two messages and a 2,902-character code block as two code blocks; an 18 MB PNG was attached as a 4.33 MB JPEG and sent. Not checked: fake stickers (the account is in one server only) and Go Live quality (UDP is blocked here)."
+        "notes": "Without Nitro, an animated emoji from the server was offered by the picker and sent as a link; alone it showed as the emoji with its embed hidden, and hovering it showed the FakeNitro note. A 3,805-character message went out as two messages and a 2,902-character code block as two code blocks; an 18 MB PNG was attached as a 4.33 MB JPEG and sent. Not checked: fake stickers (the account is in one server only) and Go Live quality (UDP is blocked here). Round three (build a0b6b7c): with Fake reactions on, the reaction picker offered the server's animated emoji and picking it sent a reply holding it as a link; in #gagbot with Embed Links denied, a fake emoji went as a 128 px GIF attachment; text and two shift-clicked stickers went as one message; a 164 MB video showed a progress bar and Cancel stopped it, and with \"The first 15 seconds\" it was cut to 15 s (9.59 MB)."
+      }
+    },
+    "FakeProfileThemes": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "a0b6b7c",
+        "by": "Maarten's test account, IK server",
+        "notes": "The colour settings picked #5865f2 and #eb459e, Copy 3y3 put \" [#5865f2,#eb459e]\" as tag characters on the clipboard, and Preview opened the account's own profile in a blue-to-pink gradient with the banner in the primary colour. Not checked live: another user's bio with the text in it (no account with one); decoding is covered by the plugin's test."
       }
     },
     "Ingtoninator": {

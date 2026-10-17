@@ -109,11 +109,11 @@ void SettingsWindow::setupUi()
     contentLayout->addWidget(pages, 1);
 
     auto addHeader = [this](const QString &name) {
-        auto *item = new QListWidgetItem(name.toUpper(), categoryList);
+        auto *item = new QListWidgetItem(name, categoryList);
         item->setFlags(Qt::NoItemFlags);
         QFont font = categoryList->font();
-        font.setPixelSize(11);
-        font.setBold(true);
+        font.setPixelSize(12);
+        font.setWeight(QFont::DemiBold);
         item->setFont(font);
         item->setSizeHint(QSize(0, categoryList->count() > 1 ? 40 : 26));
         item->setTextAlignment(Qt::AlignLeft | Qt::AlignBottom);
@@ -125,11 +125,11 @@ void SettingsWindow::setupUi()
     };
 
     // Qord: Discord's Devices, under User Settings
-    addHeader(tr("User Settings"));
+    addHeader(tr("User settings"));
     devicesPage = new DevicesPage(this);
     addPage(tr("Devices"), devicesPage);
 
-    addHeader(tr("App Settings"));
+    addHeader(tr("App settings"));
     auto *general = new GeneralPage(this);
     addPage(tr("General"), general);
     connect(general, &GeneralPage::animateEmojiChanged, this, &SettingsWindow::animateEmojiChanged);

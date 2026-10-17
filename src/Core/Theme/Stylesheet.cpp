@@ -250,13 +250,14 @@ static QString buildQordStyleSheet()
                           "#AddFriendField { background: transparent; border: none; color: %3; }"
                           "#PrimaryButton { background-color: %9; color: #ffffff; border: none; border-radius: 3px;"
                           "  padding: 6px 14px; font-weight: 500; }"
-                          "#PrimaryButton:disabled { background-color: rgba(88, 101, 242, 0.5); color: rgba(255, 255, 255, 0.6); }")
+                          "#PrimaryButton:disabled { background-color: %10; color: rgba(255, 255, 255, 0.6); }")
                    .arg(hex(muted), hex(hover), hex(text), hex(selected), hex(header), hex(chat), hex(divider), hex(rail),
-                        hex(accent));
+                        hex(accent))
+                   .arg(rgba(accent, 128));
     qss += QStringLiteral("#ServerRailColumn { background-color: %1; }"
                           "#AddServerButton { background-color: %2; border: none; border-radius: 24px; }"
-                          "#AddServerButton:hover { background-color: #23a55a; border-radius: 16px; }")
-                   .arg(hex(rail), hex(chat));
+                          "#AddServerButton:hover { background-color: %3; border-radius: 16px; }")
+                   .arg(hex(rail), hex(chat), hex(m.color(Token::StatusOnline)));
     // GIF / sticker buttons in the message box and the picker tabs
     qss += QStringLiteral("#MessageBoxTextButton { border: none; background: transparent; color: %1;"
                           "  font-weight: bold; font-size: 12px; }"

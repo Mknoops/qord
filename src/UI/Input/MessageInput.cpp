@@ -462,7 +462,8 @@ void MessageInput::updateReplyMentionButton()
 {
     replyMentionButton->setText(replyMention ? tr("@ ON") : tr("@ OFF"));
     replyMentionButton->setStyleSheet(
-            replyMention ? QStringLiteral("QToolButton { border: none; color: #5865f2; font-weight: bold; font-size: 12px; }")
+            replyMention ? QStringLiteral("QToolButton { border: none; color: %1; font-weight: bold; font-size: 12px; }")
+                                   .arg(Core::Theme::Manager::instance().color(Core::Theme::Token::LinkText).name())
                          : QStringLiteral("QToolButton { border: none; color: #b5bac1; font-weight: bold; font-size: 12px; }"));
 }
 

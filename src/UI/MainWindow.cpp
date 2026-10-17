@@ -67,6 +67,7 @@
 #include "Qord/UserPanel.hpp"
 #include "Qord/MessageListPopup.hpp"
 #include "Qord/FriendsPage.hpp"
+#include "Qord/CordOverlay.hpp"
 #include "Qord/PluginSurfaces.hpp"
 #ifndef ACHERON_NO_VOICE
 #include "Core/Audio/VoiceManager.hpp"
@@ -1852,6 +1853,8 @@ QWidget *MainWindow::buildLeftSide()
         v->addWidget(userPanel, 0);
         userPanel->show();
         h->addWidget(secondary, 1);
+        // Qord's cord, from the selected server to the open channel
+        new CordOverlay(serverRail, channelTree, container);
     } else {
         auto *v = new QVBoxLayout(container);
         v->setContentsMargins(0, 0, 0, 0);

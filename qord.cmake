@@ -61,7 +61,9 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/UI/Qord/NameDecorations.hpp
     src/UI/Qord/NameDecorations.cpp
     src/UI/Qord/PluginSurfaces.hpp
+    src/UI/Qord/CordOverlay.hpp
     src/UI/Qord/PluginSurfaces.cpp
+    src/UI/Qord/CordOverlay.cpp
     src/UI/Qord/NotificationSound.hpp
     src/UI/Qord/NotificationSound.cpp
     src/UI/Qord/ExpressionPicker.hpp

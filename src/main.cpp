@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
     if (!Core::Theme::Manager::startsWithSystemStyle())
         app.setStyle("Fusion");
 
+    Core::Theme::registerBundledFonts();
     Core::Theme::Manager::instance().load();
     Core::Theme::Manager::instance().apply();
     Core::Theme::Manager::instance().applyFonts();

@@ -2,6 +2,7 @@
 
 #include "Core/Audio/VoiceManager.hpp"
 #include "Core/ClientInstance.hpp"
+#include "Core/Theme/Manager.hpp"
 #include "Core/Emoji/EmojiManager.hpp"
 #include "Core/Session.hpp"
 #include "Core/UserManager.hpp"
@@ -129,9 +130,11 @@ ScreenSharePicker::ScreenSharePicker(const QList<GoLive::Quality> &allowed, QWid
     goLive = new QPushButton(tr("Go Live"), this);
     goLive->setDefault(true);
     goLive->setEnabled(false);
-    goLive->setStyleSheet(QStringLiteral("QPushButton { background: #5865F2; color: white; border: none; border-radius: 3px;"
+    const QColor accent = Core::Theme::Manager::instance().color(Core::Theme::Token::Highlight);
+    goLive->setStyleSheet(QStringLiteral("QPushButton { background: %1; color: white; border: none; border-radius: 3px;"
                                          " padding: 6px 18px; font-weight: bold; }"
-                                         "QPushButton:disabled { background: #4752c4; color: #b9bbbe; }"));
+                                         "QPushButton:disabled { background: %2; color: #b9bbbe; }")
+                                  .arg(accent.name(), accent.darker(125).name()));
     connect(goLive, &QPushButton::clicked, this, &QDialog::accept);
     buttons->addWidget(goLive);
     layout->addLayout(buttons);

@@ -25,6 +25,10 @@ struct FontDescriptor
     QFont defaultFont;
 };
 
+// Qord: loads the bundled IBM Plex Sans and Mono (the default fonts); call
+// before the first fontRegistry()
+void registerBundledFonts();
+
 const std::vector<FontDescriptor> &fontRegistry();
 const FontDescriptor *findFontById(const QString &id);
 const FontDescriptor &fontDescriptor(FontRole role);

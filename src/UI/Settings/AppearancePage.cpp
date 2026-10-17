@@ -320,9 +320,13 @@ AppearancePage::AppearancePage(QWidget *parent)
 
     auto *actions = new QHBoxLayout();
     auto *resetAll = new QPushButton(tr("Reset all"), this);
+    resetAll->setToolTip(tr("Back to Qord's colors and fonts"));
+    // Qord: Discord's colors, which Qord used before its own
+    auto *discordColors = new QPushButton(tr("Use Discord's colors"), this);
     auto *exportBtn = new QPushButton(tr("Export"), this);
     auto *importBtn = new QPushButton(tr("Import"), this);
     actions->addWidget(resetAll);
+    actions->addWidget(discordColors);
     actions->addStretch(1);
     actions->addWidget(exportBtn);
     actions->addWidget(importBtn);
@@ -343,6 +347,12 @@ AppearancePage::AppearancePage(QWidget *parent)
         Manager::instance().applyFonts();
         Manager::instance().save();
         refreshFontControls();
+    });
+
+    connect(discordColors, &QPushButton::clicked, this, []() {
+        Manager::instance().setOverrides(Core::Theme::discordPalette());
+        Manager::instance().apply();
+        Manager::instance().save();
     });
 
     connect(exportBtn, &QPushButton::clicked, this, [this]() {

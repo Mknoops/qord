@@ -7,6 +7,10 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ### Changed
 
+- Qord has its own look: navy surfaces with a teal accent and amber mentions, and
+  IBM Plex Sans (bundled) for the interface and messages. A line now runs from the
+  selected server to the open channel, so you can see where you are at a glance.
+  Appearance › "Use Discord's colors" brings back Discord's palette.
 - Settings looks like Discord's: pages grouped under User Settings, App Settings and
   Qord in a sidebar, each page under its title, an ESC button to close, and a
   roomier plugin list. Buttons, fields, checkboxes, menus and sliders in settings

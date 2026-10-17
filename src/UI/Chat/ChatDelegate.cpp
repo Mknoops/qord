@@ -608,7 +608,7 @@ void ChatDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
             painter->save();
             painter->setRenderHint(QPainter::Antialiasing);
             painter->setPen(Qt::NoPen);
-            painter->setBrush(QColor(0x58, 0x65, 0xf2));
+            painter->setBrush(Core::Theme::Manager::instance().color(Core::Theme::Token::Highlight));
             painter->drawRoundedRect(tagRect, 3, 3);
             painter->setPen(Qt::white);
             painter->setFont(tagFont);

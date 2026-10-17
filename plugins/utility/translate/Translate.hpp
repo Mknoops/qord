@@ -48,7 +48,8 @@ public:
 
     [[nodiscard]] Hooks hooks() const override
     {
-        return Hook::MessageContextMenu | Hook::ChatBarButtons | Hook::BeforeSend | Hook::MessageAccessories;
+        return Hook::MessageContextMenu | Hook::ChatBarButtons | Hook::BeforeSend | Hook::MessageAccessories |
+               Hook::MessagePopover;
     }
     void start(PluginContext &context) override;
     void stop() override;
@@ -56,6 +57,9 @@ public:
 
     QList<MenuItem> messageContextMenuItems(const MessageContext &message) override;
     void onMessageContextMenuAction(const QString &id, const MessageContext &message) override;
+    QList<ChatBarButton> messagePopoverButtons(const MessageContext &message) override;
+    void onSettingAction(const QString &key) override;
+    void onMessagePopoverClicked(const QString &id, const MessageContext &message, bool rightClick) override;
     std::optional<MessageAccessory> messageAccessory(const MessageContext &message) override;
     void onMessageAccessoryAction(const QString &id, const MessageContext &message) override;
     QList<ChatBarButton> chatBarButtons(const ChatContext &chat) override;

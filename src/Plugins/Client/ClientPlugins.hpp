@@ -157,6 +157,8 @@ public:
     void openUserProfile(Id accountId, Id guildId, Id userId) override;
     static std::function<void(const ServerInfoView &)> &serverInfoShower(); // set by the main window
     static std::function<void(Id, Id, Id)> &profileOpener(); // set by the main window
+    [[nodiscard]] Id currentAccountId() const override;
+    static std::function<Id()> &currentAccountProvider(); // set by the main window
     void openChannel(Id accountId, Id channelId) override;
     static std::function<void(Id, Id)> &channelOpener(); // set by the main window
     void joinVoiceChannel(Id accountId, Id channelId) override;
@@ -199,6 +201,7 @@ public:
     void requestMembers(Id accountId, Id guildId, const QList<Id> &userIds) override;
     [[nodiscard]] QList<Id> guildIds(Id accountId) const override;
     [[nodiscard]] QList<Id> memberIds(Id accountId, Id guildId) const override;
+    [[nodiscard]] std::optional<QString> rawJson(Id accountId, RawKind kind, Id id, Id guildId) const override;
     // Set by the main window, which lists the servers
     static std::function<QList<Id>(Id accountId)> &guildIdsProvider();
 
@@ -310,6 +313,13 @@ public:
     [[nodiscard]] QList<Id> ownRoles(Id accountId, Id guildId) const override;
     [[nodiscard]] bool hasChannelPermission(Id accountId, Id channelId, quint64 permission) const override;
     void setChatBypass(bool emojis, bool stickers) override;
+    [[nodiscard]] bool hasGuildPermission(Id accountId, Id guildId, quint64 permission) const override;
+    void setStreamQualityBypass(bool on) override;
+    void setOversizeImageHandler(ImageShrinker shrink) override;
+    void setLongMessageSplitter(SplitCounter count) override;
+    void setVideoShrinking(bool on) override;
+    void setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit) override;
+    void setFakeReactions(bool on) override;
 
 private:
     Acheron::Core::Session *session;

@@ -1,0 +1,80 @@
+{
+  "id": "fakeprofilethemes",
+  "equicordName": "FakeProfileThemes",
+  "equicordPath": "src/plugins/fakeProfileThemes",
+  "name": "FakeProfileThemes",
+  "description": "Allows profile theming by hiding the colors in your bio thanks to invisible 3y3 encoding",
+  "summary": "Profile theme colours hidden in bios, shown on profiles; pick yours and copy the invisible text",
+  "categories": [
+    "appearance"
+  ],
+  "tags": [
+    "Appearance",
+    "Customisation"
+  ],
+  "authors": [
+    "Alyxia",
+    "Remty"
+  ],
+  "permissions": [
+    "modify_displayed_messages",
+    "add_ui_elements",
+    "write_clipboard"
+  ],
+  "hooks": [
+    "profileTheme"
+  ],
+  "settings": [
+    {
+      "key": "nitroFirst",
+      "type": "choice",
+      "default": "nitro",
+      "label": "Default color source if both are present",
+      "description": "Default color source if both are present",
+      "choices": [
+        {
+          "value": "nitro",
+          "label": "Nitro colors"
+        },
+        {
+          "value": "fake",
+          "label": "Fake colors"
+        }
+      ]
+    },
+    {
+      "key": "primaryColor",
+      "type": "color",
+      "default": "#000000",
+      "label": "Primary",
+      "description": "Your profile's primary (top) colour."
+    },
+    {
+      "key": "accentColor",
+      "type": "color",
+      "default": "#000000",
+      "label": "Accent",
+      "description": "Your profile's accent (bottom) colour."
+    },
+    {
+      "key": "copy3y3",
+      "type": "action",
+      "default": "",
+      "label": "Copy 3y3",
+      "description": "Copies the invisible text for these colours; paste it anywhere in your bio (in Discord's profile settings)."
+    },
+    {
+      "key": "preview",
+      "type": "action",
+      "default": "",
+      "label": "Preview",
+      "description": "Opens your profile with these colours (for a minute; only you see it)."
+    }
+  ],
+  "enabledByDefault": false,
+  "target": "",
+  "dependencies": [],
+  "commands": [],
+  "notes": "Like upstream, a bio holding \"[#rrggbb,#rrggbb]\" as invisible Unicode tag characters (3y3) shows that profile with those theme colours: the popup in a gradient from the primary to the accent colour, the banner in the primary one when it has no image or colour of its own. With \"Nitro colors\" first, a profile's own Nitro theme wins. The settings page has upstream's colour pickers and \"Copy 3y3\", which copies the invisible text to paste into your bio; its preview is \"Preview\", which opens your profile with the picked colours for a minute. Qord itself now shows Nitro profile themes (theme_colors), which it didn't before, and leaves the tag characters out of shown bios, as Discord does. Upstream's \"Copy 3y3\" button in Discord's own profile editor has no counterpart: Qord has no profile editor, so the bio is edited in Discord.",
+  "gaps": []
+}

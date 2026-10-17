@@ -1,9 +1,11 @@
 #pragma once
 
-#include <optional>
-
+#include <QColor>
 #include <QDialog>
 #include <QPointer>
+
+#include <optional>
+#include <utility>
 
 #include "Core/Snowflake.hpp"
 #include "Discord/Entities.hpp"
@@ -40,6 +42,8 @@ public:
 
 signals:
     void linkActivated(const QString &url);
+    // The More button: the user's menu, with the loaded profile as JSON (or empty)
+    void moreMenuRequested(const QPoint &globalPos, const QString &profileJson);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -47,6 +51,7 @@ protected:
     void hideEvent(QHideEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void buildUi();
@@ -56,6 +61,10 @@ private:
     void renderFromCachedData();
     void renderFromProfile();
     void renderBannerAndBio();
+    // Qord: Nitro profile themes (or a plugin's, FakeProfileThemes): the
+    // popup in a gradient from the primary to the accent colour
+    void applyTheme(const QString &bio);
+    std::optional<std::pair<QColor, QColor>> themeColors;
     void renderPronouns();
     void renderBadges();
     void renderConnections();
@@ -133,6 +142,7 @@ private:
 
     QWidget *rolesSection = nullptr;
     QLabel *rolesLabel = nullptr;
+    QString hoveredRoleLink; // the role link under the mouse, for its menu
     QHBoxLayout *rolesButtons = nullptr;
 
     QTabWidget *rightTabs = nullptr;

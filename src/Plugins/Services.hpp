@@ -143,6 +143,8 @@ public:
         Q_UNUSED(guildId);
         Q_UNUSED(userId);
     }
+    // The account the window shows (its user id), 0 when none
+    [[nodiscard]] virtual Id currentAccountId() const { return 0; }
     // A dialog of searchable choices and switches (Translate's languages).
     // Each change is reported right away through `changed` with the field's
     // key and its new value (choice value, or "true"/"false" for a switch).
@@ -373,6 +375,19 @@ public:
         Q_UNUSED(guildId);
         return {};
     }
+    // A cached Discord object as indented JSON under Discord's field names
+    // (ViewRaw); nullopt when the client doesn't have it. Member is a
+    // server member with its user; `guildId` names the server for Role and
+    // Member.
+    enum class RawKind { Guild, Channel, User, Role, Member };
+    [[nodiscard]] virtual std::optional<QString> rawJson(Id accountId, RawKind kind, Id id, Id guildId = 0) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(kind);
+        Q_UNUSED(id);
+        Q_UNUSED(guildId);
+        return std::nullopt;
+    }
 };
 
 // Users on Discord (ValidUser): whether the client knows one, fetching one
@@ -411,6 +426,41 @@ public:
     // Let the emoji picker and autocomplete (for messages, not reactions)
     // and the sticker picker offer emojis and stickers Discord would lock
     virtual void setChatBypass(bool emojis, bool stickers) = 0;
+    // Whether you have a permission (Discord's bit) server-wide;
+    // Administrator counts as every permission
+    [[nodiscard]] virtual bool hasGuildPermission(Id accountId, Id guildId, quint64 permission) const
+    {
+        Q_UNUSED(accountId);
+        Q_UNUSED(guildId);
+        Q_UNUSED(permission);
+        return false;
+    }
+    // Let Go Live offer every resolution and frame rate, as with Nitro
+    virtual void setStreamQualityBypass(bool on) { Q_UNUSED(on); }
+    // An image attached over the upload limit is passed to `shrink`, which
+    // returns a copy that fits or nothing (then it is refused as before).
+    // An empty function stops it.
+    using ImageShrinker = std::function<std::optional<AttachedFile>(const AttachedFile &file, qint64 limit)>;
+    virtual void setOversizeImageHandler(ImageShrinker shrink) { Q_UNUSED(shrink); }
+    // How many messages a plugin will send a too-long message as (shown by
+    // the message box's counter); an empty function says it isn't split
+    using SplitCounter = std::function<int(const QString &text, int limit)>;
+    virtual void setLongMessageSplitter(SplitCounter count) { Q_UNUSED(count); }
+    // Re-encode videos over the upload limit so they fit, where the client
+    // can (it needs ffmpeg's encoders)
+    virtual void setVideoShrinking(bool on) { Q_UNUSED(on); }
+    // How videos are shrunk: priority 0 balanced, 1 sharper (fewer frames),
+    // 2 smoother (fewer lines); keep only the first maxSeconds (0 keeps all);
+    // cut a video too long to fit to what does
+    virtual void setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit)
+    {
+        Q_UNUSED(priority);
+        Q_UNUSED(maxSeconds);
+        Q_UNUSED(trimToFit);
+    }
+    // The reaction picker offers the emojis the message picker does; one you
+    // can't react with is sent as a reply to the message instead
+    virtual void setFakeReactions(bool on) { Q_UNUSED(on); }
 };
 
 class ReactionService

@@ -232,6 +232,7 @@ ClientInstance::ClientInstance(const AccountInfo &info,
     connect(client, &Discord::Client::messageUpdated, messageManager, &MessageManager::onMessageUpdated);
     connect(client, &Discord::Client::messageDeleted, messageManager, &MessageManager::onMessageDeleted);
     connect(client, &Discord::Client::messageSendFailed, messageManager, &MessageManager::onMessageSendFailed);
+    connect(client, &Discord::Client::messageSent, messageManager, &MessageManager::onMessageSent);
     connect(client, &Discord::Client::attachmentUploadProgress, messageManager, &MessageManager::attachmentUploadProgress);
     connect(client, &Discord::Client::messageReactionAdd, messageManager, &MessageManager::onReactionAdd);
     connect(client, &Discord::Client::messageReactionAddMany, messageManager, &MessageManager::onReactionAddMany);

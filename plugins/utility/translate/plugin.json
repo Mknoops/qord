@@ -5,48 +5,152 @@
   "name": "Translate",
   "description": "Translate messages with Google Translate, DeepL or Kagi.",
   "summary": "Translate messages (shown under them) and, optionally, your own before sending, with Google, DeepL or Kagi",
-  "categories": ["utility"],
-  "tags": ["Chat", "Utility"],
-  "authors": ["Ven", "AshtonMemer", "koish1"],
-  "permissions": ["add_ui_elements", "network", "modify_outgoing_messages", "modify_displayed_messages"],
-  "hooks": ["messageContextMenu", "chatBarButtons", "onBeforeSend", "messageAccessories"],
+  "categories": [
+    "utility"
+  ],
+  "tags": [
+    "Chat",
+    "Utility"
+  ],
+  "authors": [
+    "Ven",
+    "AshtonMemer",
+    "koish1"
+  ],
+  "permissions": [
+    "add_ui_elements",
+    "network",
+    "modify_outgoing_messages",
+    "modify_displayed_messages"
+  ],
+  "hooks": [
+    "messageContextMenu",
+    "chatBarButtons",
+    "onBeforeSend",
+    "messageAccessories",
+    "messagePopover"
+  ],
   "settings": [
-    { "key": "receivedInput", "type": "string", "default": "auto", "label": "Received input",
-      "description": "Language incoming messages are translated from", "hidden": true },
-    { "key": "receivedOutput", "type": "string", "default": "en", "label": "Received output",
-      "description": "Language incoming messages are translated to", "hidden": true },
-    { "key": "sentInput", "type": "string", "default": "auto", "label": "Sent input",
-      "description": "Language your messages are translated from", "hidden": true },
-    { "key": "sentOutput", "type": "string", "default": "en", "label": "Sent output",
-      "description": "Language your messages are translated to", "hidden": true },
-    { "key": "service", "type": "choice", "default": "google", "label": "Service",
+    {
+      "key": "receivedInput",
+      "type": "string",
+      "default": "auto",
+      "label": "Received input",
+      "description": "Language incoming messages are translated from",
+      "hidden": true
+    },
+    {
+      "key": "receivedOutput",
+      "type": "string",
+      "default": "en",
+      "label": "Received output",
+      "description": "Language incoming messages are translated to",
+      "hidden": true
+    },
+    {
+      "key": "sentInput",
+      "type": "string",
+      "default": "auto",
+      "label": "Sent input",
+      "description": "Language your messages are translated from",
+      "hidden": true
+    },
+    {
+      "key": "sentOutput",
+      "type": "string",
+      "default": "en",
+      "label": "Sent output",
+      "description": "Language your messages are translated to",
+      "hidden": true
+    },
+    {
+      "key": "service",
+      "type": "choice",
+      "default": "google",
+      "label": "Service",
       "description": "Translation provider",
       "choices": [
-        { "value": "google", "label": "Google Translate" },
-        { "value": "deepl", "label": "DeepL Free - API key required" },
-        { "value": "deepl-pro", "label": "DeepL Pro - API key required" },
-        { "value": "kagi", "label": "Kagi Translate - API key required" }
-      ] },
-    { "key": "deeplApiKey", "type": "string", "default": "", "label": "DeepL API Key", "secret": true,
-      "description": "Your DeepL API key (from deepl.com/your-account). Only used with DeepL; kept in the system keychain" },
-    { "key": "kagiSession", "type": "string", "default": "", "label": "Kagi Session", "secret": true,
-      "description": "Your Kagi session token (from kagi.com/settings?p=user_details). Only used with Kagi; kept in the system keychain" },
-    { "key": "autoTranslate", "type": "bool", "default": false, "label": "Auto Translate",
-      "description": "Automatically translate your messages before sending. You can also Shift+click or right-click the translate button to toggle this" },
-    { "key": "showAutoTranslateTooltip", "type": "bool", "default": true, "label": "Show auto translate tooltip",
-      "description": "Show a tooltip on the chat bar button when a message is auto-translated" },
-    { "key": "dismissedAutoTranslateAlert", "type": "bool", "default": false, "label": "Dismissed auto translate alert",
-      "description": "", "hidden": true }
+        {
+          "value": "google",
+          "label": "Google Translate"
+        },
+        {
+          "value": "deepl",
+          "label": "DeepL Free - API key required"
+        },
+        {
+          "value": "deepl-pro",
+          "label": "DeepL Pro - API key required"
+        },
+        {
+          "value": "kagi",
+          "label": "Kagi Translate - API key required"
+        }
+      ]
+    },
+    {
+      "key": "deeplApiKey",
+      "type": "string",
+      "default": "",
+      "label": "DeepL API Key",
+      "secret": true,
+      "description": "Your DeepL API key (from deepl.com/your-account). Only used with DeepL; kept in the system keychain",
+      "showWhen": {
+        "key": "service",
+        "values": [
+          "deepl",
+          "deepl-pro"
+        ]
+      }
+    },
+    {
+      "key": "kagiSession",
+      "type": "string",
+      "default": "",
+      "label": "Kagi Session",
+      "secret": true,
+      "description": "Your Kagi session token (from kagi.com/settings?p=user_details). Only used with Kagi; kept in the system keychain",
+      "showWhen": {
+        "key": "service",
+        "values": [
+          "kagi"
+        ]
+      }
+    },
+    {
+      "key": "autoTranslate",
+      "type": "bool",
+      "default": false,
+      "label": "Auto Translate",
+      "description": "Automatically translate your messages before sending. You can also Shift+click or right-click the translate button to toggle this"
+    },
+    {
+      "key": "showAutoTranslateTooltip",
+      "type": "bool",
+      "default": true,
+      "label": "Show auto translate tooltip",
+      "description": "Show a tooltip on the chat bar button when a message is auto-translated"
+    },
+    {
+      "key": "manageTranslateSettings",
+      "type": "action",
+      "default": "",
+      "label": "Customize translation languages & Auto-Translate",
+      "description": ""
+    },
+    {
+      "key": "dismissedAutoTranslateAlert",
+      "type": "bool",
+      "default": false,
+      "label": "Dismissed auto translate alert",
+      "description": "",
+      "hidden": true
+    }
   ],
   "enabledByDefault": false,
   "target": "",
   "dependencies": [],
   "commands": [],
-  "notes": "\"Translate\" in a message's menu shows the translation under it (\"translated from X - Dismiss\"). The chat bar button opens the languages window (searchable lists for the received and sent languages, and Auto Translate); Shift+click or right-click toggles auto-translate, with upstream's notice the first time. With auto-translate on, a message waits in the locked message box until it is translated, with \"Auto Translate Enabled\" over the button for two seconds. Google needs no key; DeepL (free or pro, falling back to Google when the quota runs out) and Kagi take an API key or session token, which Qord keeps in the system keychain instead of the settings file.",
-  "gaps": [
-    "No translate button in a message's hover bar (Qord has no message popover hook yet); use the message menu.",
-    "A failed auto-translation leaves the text in the message box instead of sending it untranslated as upstream does.",
-    "The settings page has no button for the languages window; it opens from the chat bar button.",
-    "The DeepL key and Kagi session fields show whatever service is chosen."
-  ]
+  "notes": "A message's hover bar has upstream's Translate button (and its right-click menu has Translate too); the translation is shown under it after the translate icon. \"Translate\" in a message's menu shows the translation under it (\"translated from X - Dismiss\"). The chat bar button opens the languages window (searchable lists for the received and sent languages, and Auto Translate); Shift+click or right-click toggles auto-translate, with upstream's notice the first time. With auto-translate on, a message waits in the locked message box until it is translated, with \"Auto Translate Enabled\" over the button for two seconds. Google needs no key; DeepL (free or pro, falling back to Google when the quota runs out) and Kagi take an API key or session token, which Qord keeps in the system keychain instead of the settings file. The settings page has upstream's \"Customize translation languages & Auto-Translate\" button, which opens the languages window, and shows the DeepL key only while DeepL is chosen and the Kagi session only while Kagi is. A message auto-translation fails on is sent as written, as upstream does.",
+  "gaps": []
 }

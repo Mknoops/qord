@@ -1,6 +1,8 @@
 #include "PermissionsView.hpp"
 
 #include "UI/GuildSettings/GuildRolesPage.hpp"
+#include "Plugins/PluginHost.hpp"
+#include "UI/Qord/PluginMenus.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -213,7 +215,7 @@ void showDialog(const Qord::Plugins::PermissionsView &view, const ImageLoader &l
             if (row >= 0 && row < all.size())
                 fillPermissions(permissions, all[row]);
         });
-        QObject::connect(entries, &QListWidget::customContextMenuRequested, entries, [entries, all](const QPoint &pos) {
+        QObject::connect(entries, &QListWidget::customContextMenuRequested, entries, [entries, all, view](const QPoint &pos) {
             const int row = entries->indexAt(pos).row();
             if (row < 0 || row >= all.size() || all[row].kind == PermissionsEntry::Kind::Owner)
                 return;
@@ -225,6 +227,24 @@ void showDialog(const Qord::Plugins::PermissionsView &view, const ImageLoader &l
             const QString id = QString::number(entry.id);
             QObject::connect(menu.addAction(label), &QAction::triggered, entries,
                              [id]() { QGuiApplication::clipboard()->setText(id); });
+            // Qord: plugin items for roles (ViewRaw)
+            auto *host = Qord::Plugins::PluginHost::instance();
+            if (entry.kind == PermissionsEntry::Kind::Role && host &&
+                host->hasHook(Qord::Plugins::Hook::RoleContextMenu)) {
+                Qord::Plugins::RoleContext ctx;
+                ctx.accountId = view.accountId;
+                ctx.guildId = view.guildId;
+                ctx.roleId = entry.id;
+                ctx.name = entry.name;
+                const auto items = host->dispatchRoleContextMenuItems(ctx);
+                if (!items.isEmpty()) {
+                    menu.addSeparator();
+                    addPluginMenuItems(&menu, items, [ctx](const QString &pluginId, const QString &itemId) {
+                        if (auto *h = Qord::Plugins::PluginHost::instance())
+                            h->dispatchRoleContextMenuAction(pluginId, itemId, ctx);
+                    });
+                }
+            }
             menu.exec(entries->viewport()->mapToGlobal(pos));
         });
         entries->setCurrentRow(0);

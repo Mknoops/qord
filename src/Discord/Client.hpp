@@ -124,7 +124,8 @@ public:
     void sendMessage(Snowflake channelId, const QString &content, const QString &nonce,
                      Snowflake replyToMessageId = Snowflake::Invalid,
                      const QList<Core::PendingAttachment> &attachments = {},
-                     bool mentionRepliedUser = true, int flags = 0);
+                     bool mentionRepliedUser = true, int flags = 0,
+                     const QList<Snowflake> &stickerIds = {});
     bool cancelMessageSend(const QString &nonce);
     void editMessage(Snowflake channelId, Snowflake messageId, const QString &content);
     void deleteMessage(Snowflake channelId, Snowflake messageId);
@@ -171,6 +172,11 @@ public:
 
     [[nodiscard]] PremiumTier getGuildPremiumTier(Snowflake guildId) const;
     [[nodiscard]] qint64 getMaxUploadSize(Snowflake channelId) const;
+    // Qord: Discord's message length limit, 4000 with Nitro and 2000 otherwise
+    [[nodiscard]] int messageLengthLimit() const
+    {
+        return me.premiumType.hasValue() && me.premiumType.get() == PremiumType::TIER_2 ? 4000 : 2000;
+    }
 
     using FrecencyCallback = std::function<void(const Core::Result<Proto::FrecencyUserSettings> &)>;
     void fetchFrecencySettings(FrecencyCallback callback);
@@ -250,6 +256,8 @@ public:
         QList<Sticker> stickers;
     };
     void fetchStickerPacks(ResultCallback<QList<StickerPack>> callback);
+    // The packs once fetched, else empty
+    [[nodiscard]] QList<StickerPack> cachedStickerPacks() const { return stickerPacks.value_or(QList<StickerPack>()); }
     // Qord: GET /users/{id} (ValidUser); `user` is set on success
     void fetchUser(Snowflake userId, std::function<void(const HttpResponse &response, const std::optional<User> &user)> callback);
     // Qord: GET /users/@me/affinities/v2/users, the people Discord ranks you
@@ -350,9 +358,6 @@ public:
     // POST /interactions (type 2 = application command); replies arrive over the gateway
     void sendInteraction(const QJsonObject &payload, ActionCallback callback);
     [[nodiscard]] QString gatewaySessionId() const;
-    // A message with just a sticker; it arrives as MESSAGE_CREATE
-    void sendSticker(Snowflake channelId, Snowflake stickerId, Snowflake replyToMessageId, ActionCallback callback,
-                     const QString &content = {});
 
 signals:
     void stateChanged(Core::ConnectionState state);
@@ -414,6 +419,8 @@ signals:
     void presencesReplaced(const QList<Presence> &presences);
     void sessionsReplaced(const QList<UserSession> &sessions);
     void messageSendFailed(const QString &nonce, const QString &error);
+    // Qord: Discord accepted the message
+    void messageSent(const QString &nonce);
     void guildLeaveFailed(Core::Snowflake guildId, const QString &error);
     void attachmentUploadProgress(const QString &nonce, int fileIndex, qint64 sent, qint64 total);
 

@@ -39,7 +39,8 @@ public:
 
 signals:
     void gifPicked(const QString &url);
-    void stickerPicked(Core::Snowflake stickerId);
+    // `more`: shift was held, so the picker stays open to add more stickers
+    void stickerPicked(Core::Snowflake stickerId, const QString &name, bool more);
     void emojiTabRequested(QWidget *anchor);
 
 private:

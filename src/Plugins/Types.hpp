@@ -3,11 +3,13 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QFlags>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
 #include <QtGlobal>
 
+#include <concepts>
 #include <functional>
 #include <optional>
 
@@ -42,12 +44,21 @@ struct StickerInfo
     bool standard = false; // one of Discord's own sticker packs
 };
 
+// A file in the message box, waiting to be sent
+struct AttachedFile
+{
+    QString fileName;
+    QString mimeType;
+    QByteArray data;
+};
+
 // A sticker to show on a message.
 struct StickerRef
 {
     Id id = 0;
     QString name;
     int formatType = 1;
+    QString note; // shown under the name when hovered
 };
 
 struct OutgoingMessage
@@ -66,8 +77,41 @@ struct OutgoingMessage
     // (Translate's auto-translate). The send waits, with the message box
     // locked, until `done` is called with the final content; done(nullopt)
     // gives up and leaves the text in the box. Only one hook may defer.
-    using DeferredDone = std::function<void(std::optional<QString> content)>;
+    // done(content, files) also uploads `files` with the message (FakeNitro's
+    // emojis where links don't embed).
+    class DeferredDone
+    {
+    public:
+        using Fn = std::function<void(std::optional<QString> content, QList<AttachedFile> files)>;
+        DeferredDone() = default;
+        template <typename F>
+            requires std::invocable<F &, std::optional<QString>, QList<AttachedFile>>
+        DeferredDone(F f) : fn(std::move(f))
+        {
+        }
+        template <typename F>
+            requires(!std::invocable<F &, std::optional<QString>, QList<AttachedFile>>
+                     && std::invocable<F &, std::optional<QString>>)
+        DeferredDone(F f)
+            : fn([f = std::move(f)](std::optional<QString> content, QList<AttachedFile>) mutable {
+                  f(std::move(content));
+              })
+        {
+        }
+        void operator()(std::optional<QString> content, QList<AttachedFile> files = {}) const
+        {
+            if (fn)
+                fn(std::move(content), std::move(files));
+        }
+        explicit operator bool() const { return bool(fn); }
+
+    private:
+        Fn fn;
+    };
     std::function<void(const QString &content, DeferredDone done)> deferred;
+    // New messages only: more messages to send after this one, in order,
+    // each once the one before it was sent (FakeNitro's long messages)
+    QStringList followUps;
 };
 
 // A received message about to be rendered. Hooks may rewrite `content`; the
@@ -99,6 +143,8 @@ struct IncomingMessage
     QList<int> hiddenAttachments;
     QList<int> hiddenEmbeds;
     QList<StickerRef> addedStickers;
+    // Shown after a custom emoji's name when it is hovered, by emoji id
+    QHash<Id, QString> emojiNotes;
 };
 
 // Context for deciding whether replying to a message pings its author.
@@ -170,6 +216,34 @@ struct ChannelContext
     QString bannerUrl;
 };
 
+// A role that a context menu was opened for (server settings' role list,
+// PermissionsViewer's list).
+struct RoleContext
+{
+    Id accountId = 0;
+    Id guildId = 0;
+    Id roleId = 0;
+    QString name;
+};
+
+// A profile about to be shown, for its theme colours (FakeProfileThemes).
+// The colours are 0xRRGGBB.
+struct ProfileThemeContext
+{
+    Id accountId = 0;
+    Id userId = 0;
+    Id guildId = 0; // 0 outside a server
+    QString bio; // as written, invisible characters and all
+    std::optional<quint32> primary; // the profile's own (Nitro) theme, if any
+    std::optional<quint32> accent;
+};
+
+struct ProfileTheme
+{
+    quint32 primary = 0;
+    quint32 accent = 0;
+};
+
 // A user that a context menu was opened for.
 struct UserContext
 {
@@ -184,6 +258,9 @@ struct UserContext
     QString memberAvatarUrl;
     bool isBot = false;
     QString username; // the user's username (not display name), when known
+    // Opened from a profile's More button: the loaded profile as JSON (Discord's
+    // field names), else empty
+    QString profileJson;
 };
 
 // A tab a plugin adds to user profiles (MutualGroupDMs): a list of rows,
@@ -1071,6 +1148,7 @@ struct RoleColors
 // Shown under a message's text (Translate's translation).
 struct MessageAccessory
 {
+    QByteArray iconSvg; // drawn before the content at text size (currentColor = the text's color)
     QString content; // markdown, rendered like message text
     QString footer; // small text under it, e.g. "translated from Spanish"
     // Links after the footer ("Dismiss"); a click calls onMessageAccessoryAction

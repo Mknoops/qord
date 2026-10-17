@@ -5,6 +5,7 @@
 #include <QBuffer>
 #include <QFile>
 #include <QImageReader>
+#include <QImageWriter>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -100,6 +101,8 @@ void applyCase(SinglePluginHost &h, const QJsonObject &c)
         { "enableStickerBypass", true }, { "stickerSize", "160" }, { "transformStickers", true },
         { "transformCompoundSentence", false }, { "useStickerHyperLinks", true }, { "useEmojiHyperLinks", true },
         { "hyperLinkText", "{{NAME}}" }, { "disableEmbedPermissionCheck", false },
+        // Qord-only, so off for upstream's cases
+        { "uploadWithoutEmbedLinks", false }, { "attachAnimatedStickers", false },
     };
     QJsonObject settings = defaults;
     const QJsonObject overrides = c[u"settings"].toObject();
@@ -451,12 +454,324 @@ private slots:
         QCOMPARE(h.expressions.bypass, std::make_pair(false, false));
     }
 
+    void streamQualityAndShrinkFollowSettings()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(h.expressions.streamQuality);
+        QVERIFY(bool(h.expressions.shrinker));
+        h.host->settings(h.id)->setValue(QStringLiteral("enableStreamQualityBypass"), false);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeImages"), false);
+        QVERIFY(!h.expressions.streamQuality);
+        QVERIFY(!h.expressions.shrinker);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableStreamQualityBypass"), true);
+        QVERIFY(h.expressions.streamQuality);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.streamQuality);
+    }
+
+    // An emoji kept to roles you don't have is sent as a link, even with Nitro
+    void roleLockedEmojiIsLinked()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        constexpr Id Guild = 100000000000000001ULL;
+        CustomEmojiInfo locked;
+        locked.id = 200000000000000099ULL;
+        locked.name = QStringLiteral("vip");
+        locked.guildId = Guild;
+        locked.roles = { 700000000000000001ULL };
+        h.expressions.emojis.insert(locked.id, locked);
+        h.expressions.premium = 2;
+        const auto send = [&] {
+            OutgoingMessage out;
+            out.accountId = 1;
+            out.channelId = Channel;
+            out.guildId = Guild;
+            out.content = QStringLiteral("<:vip:200000000000000099>");
+            h.host->dispatchBeforeSend(out);
+            return out.content;
+        };
+        QVERIFY(send().contains(QLatin1String("cdn.discordapp.com/emojis/200000000000000099")));
+        h.expressions.roles[Guild] = { 700000000000000001ULL };
+        QCOMPARE(send(), QStringLiteral("<:vip:200000000000000099>"));
+        h.expressions.roles.clear();
+        h.expressions.adminOf = { Guild };
+        QCOMPARE(send(), QStringLiteral("<:vip:200000000000000099>"));
+    }
+
+    void splitsLongMessages_data()
+    {
+        QTest::addColumn<QString>("content");
+        QTest::addColumn<int>("limit");
+        QTest::addColumn<QStringList>("parts");
+        QTest::newRow("short") << QStringLiteral("hello") << 100 << QStringList { QStringLiteral("hello") };
+        const QString line = QString(60, QLatin1Char('a'));
+        QTest::newRow("at a line break") << line + QLatin1Char('\n') + line << 100 << QStringList { line, line };
+        const QString words = QString(70, QLatin1Char('b')) + QLatin1Char(' ') + QString(50, QLatin1Char('c'));
+        QTest::newRow("at a space") << words << 100
+                                    << QStringList { QString(70, QLatin1Char('b')), QString(50, QLatin1Char('c')) };
+        const QString solid(250, QLatin1Char('d'));
+        QTest::newRow("hard cut") << solid << 100
+                                  << QStringList { solid.left(100), solid.mid(100, 100), solid.mid(200) };
+    }
+
+    void splitsLongMessages()
+    {
+        QFETCH(QString, content);
+        QFETCH(int, limit);
+        QFETCH(QStringList, parts);
+        QCOMPARE(FakeNitro::splitMessage(content, limit), parts);
+    }
+
+    void splitReopensCodeBlocks()
+    {
+        QString code = QStringLiteral("```cpp\n");
+        for (int i = 0; i < 20; ++i)
+            code += QStringLiteral("int value%1 = %1;\n").arg(i, 2, 10, QLatin1Char('0'));
+        code += QStringLiteral("```");
+        const QStringList parts = FakeNitro::splitMessage(code, 200);
+        QVERIFY(parts.size() > 1);
+        for (const QString &part : parts) {
+            QVERIFY2(part.size() <= 200, qPrintable(part));
+            QCOMPARE(part.count(QLatin1String("```")) % 2, 0); // every part closes what it opens
+            QVERIFY(part.startsWith(QLatin1String("```cpp\n")));
+        }
+        // Nothing lost: the lines are all there, in order
+        QString joined = parts.join(QLatin1Char('\n'));
+        for (int i = 0; i < 20; ++i)
+            QVERIFY(joined.contains(QStringLiteral("int value%1 = %1;").arg(i, 2, 10, QLatin1Char('0'))));
+    }
+
+    void splitKeepsSurrogatePairs()
+    {
+        QString emoji;
+        for (int i = 0; i < 120; ++i)
+            emoji += QString::fromUtf8("\xF0\x9F\x98\x80"); // two UTF-16 units each
+        for (const QString &part : FakeNitro::splitMessage(emoji, 101)) {
+            QVERIFY(part.size() <= 101);
+            QVERIFY(!part.front().isLowSurrogate());
+            QVERIFY(!part.back().isHighSurrogate());
+        }
+    }
+
+    void sendSplitsByPremium()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QCOMPARE(FakeNitro::messageLengthLimit(0), 2000);
+        QCOMPARE(FakeNitro::messageLengthLimit(3), 2000);
+        QCOMPARE(FakeNitro::messageLengthLimit(2), 4000);
+        const QString text = QString(1500, QLatin1Char('x')) + QLatin1Char('\n') + QString(1500, QLatin1Char('y'));
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.content = QStringLiteral("@silent ") + text;
+        h.host->dispatchBeforeSend(out);
+        QCOMPARE(out.content, QStringLiteral("@silent ") + QString(1500, QLatin1Char('x')));
+        QCOMPARE(out.followUps, QStringList { QStringLiteral("@silent ") + QString(1500, QLatin1Char('y')) });
+
+        h.expressions.premium = 2; // 4000 with Nitro
+        OutgoingMessage nitro;
+        nitro.content = text;
+        h.host->dispatchBeforeSend(nitro);
+        QCOMPARE(nitro.content, text);
+        QVERIFY(nitro.followUps.isEmpty());
+
+        h.expressions.premium = 0;
+        h.host->settings(h.id)->setValue(QStringLiteral("splitLongMessages"), false);
+        OutgoingMessage off;
+        off.content = text;
+        h.host->dispatchBeforeSend(off);
+        QCOMPARE(off.content, text);
+        QVERIFY(off.followUps.isEmpty());
+    }
+
+    void shrinksImages()
+    {
+        // Noise compresses badly, so the PNG is large
+        QImage noise(1200, 900, QImage::Format_RGB32);
+        quint32 seed = 1;
+        for (int y = 0; y < noise.height(); ++y)
+            for (int x = 0; x < noise.width(); ++x) {
+                seed = seed * 1664525u + 1013904223u;
+                noise.setPixel(x, y, seed | 0xFF000000u);
+            }
+        QByteArray png;
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        QVERIFY(noise.save(&buffer, "PNG"));
+        buffer.close();
+        const AttachedFile file { QStringLiteral("photo.png"), QStringLiteral("image/png"), png };
+
+        if (!QImageWriter::supportedImageFormats().contains("jpeg"))
+            QSKIP("Qt's JPEG writer is not available");
+        const qint64 limit = png.size() / 8;
+        const std::optional<AttachedFile> out = FakeNitro::shrinkImage(file, limit);
+        QVERIFY(out);
+        QVERIFY(out->data.size() <= limit);
+        QCOMPARE(out->fileName, QStringLiteral("photo.jpg"));
+        QCOMPARE(out->mimeType, QStringLiteral("image/jpeg"));
+        QVERIFY(!QImage::fromData(out->data).isNull());
+
+        // Transparency stays: PNG, scaled down
+        QImage clear(noise.convertToFormat(QImage::Format_ARGB32));
+        for (int y = 0; y < 100; ++y)
+            for (int x = 0; x < 100; ++x)
+                clear.setPixel(x, y, qRgba(0, 0, 0, 0));
+        QByteArray alpha;
+        QBuffer alphaBuffer(&alpha);
+        alphaBuffer.open(QIODevice::WriteOnly);
+        QVERIFY(clear.save(&alphaBuffer, "PNG"));
+        const std::optional<AttachedFile> png2 =
+                FakeNitro::shrinkImage({ QStringLiteral("a.png"), QStringLiteral("image/png"), alpha }, alpha.size() / 3);
+        QVERIFY(png2);
+        QCOMPARE(png2->mimeType, QStringLiteral("image/png"));
+        const QImage decoded = QImage::fromData(png2->data);
+        QVERIFY(decoded.width() < clear.width());
+        QCOMPARE(qAlpha(decoded.pixel(2, 2)), 0);
+
+        // Not an image; can't get that small
+        QVERIFY(!FakeNitro::shrinkImage({ QStringLiteral("x.png"), QStringLiteral("image/png"), "nope" }, 10));
+        QVERIFY(!FakeNitro::shrinkImage(file, 10));
+    }
+
+    void sentenceSizeAndHiddenText()
+    {
+        QVERIFY(FakeNitro::isEmojiOnly(QStringLiteral("<:a:1> <a:b:2>")));
+        QVERIFY(!FakeNitro::isEmojiOnly(QStringLiteral("hi <:a:1>")));
+        QVERIFY(!FakeNitro::isEmojiOnly(QStringLiteral("   ")));
+
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.host->settings(h.id)->setValue(QStringLiteral("emojiSize"), QStringLiteral("128"));
+        h.host->settings(h.id)->setValue(QStringLiteral("sentenceEmojiSize"), QStringLiteral("32"));
+        const auto send = [&](const QString &content) {
+            OutgoingMessage out;
+            out.accountId = 1;
+            out.channelId = Channel;
+            out.guildId = 100000000000000001ULL;
+            out.content = content;
+            h.host->dispatchBeforeSend(out);
+            return out.content;
+        };
+        QVERIFY(send(QStringLiteral("<:far_away:200000000000000003>")).contains(QLatin1String("size=128")));
+        QVERIFY(send(QStringLiteral("look <:far_away:200000000000000003>")).contains(QLatin1String("size=32")));
+
+        h.host->settings(h.id)->setValue(QStringLiteral("hideLinkText"), true);
+        const QString hidden = send(QStringLiteral("<:far_away:200000000000000003>"));
+        QVERIFY2(hidden.startsWith(QStringLiteral("[") + FakeNitro::HiddenLinkText + QStringLiteral("](")),
+                 qPrintable(hidden));
+    }
+
+    void counterAndVideoSwitches()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(h.expressions.shrinkVideos);
+        QVERIFY(bool(h.expressions.splitter));
+        QCOMPARE(h.expressions.splitter(QString(4500, QLatin1Char('x')), 2000), 3);
+        h.host->settings(h.id)->setValue(QStringLiteral("splitLongMessages"), false);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeVideos"), false);
+        QVERIFY(!h.expressions.splitter);
+        QVERIFY(!h.expressions.shrinkVideos);
+        h.host->settings(h.id)->setValue(QStringLiteral("shrinkLargeVideos"), true);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.shrinkVideos);
+    }
+
+    void videoOptions()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QCOMPARE(h.expressions.videoPriority, 0);
+        QCOMPARE(h.expressions.maxVideoSeconds, 0);
+        QVERIFY(h.expressions.trimVideosToFit);
+        h.host->settings(h.id)->setValue(QStringLiteral("videoPriority"), QStringLiteral("smooth"));
+        h.host->settings(h.id)->setValue(QStringLiteral("videoMaxLength"), QStringLiteral("30"));
+        h.host->settings(h.id)->setValue(QStringLiteral("trimLongVideos"), false);
+        QCOMPARE(h.expressions.videoPriority, 2);
+        QCOMPARE(h.expressions.maxVideoSeconds, 30);
+        QVERIFY(!h.expressions.trimVideosToFit);
+    }
+
+    void fakeReactionsNeedTheEmojiBypass()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        QVERIFY(!h.expressions.fakeReactions); // off by default
+        h.host->settings(h.id)->setValue(QStringLiteral("fakeReactions"), true);
+        QVERIFY(h.expressions.fakeReactions);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableEmojiBypass"), false);
+        QVERIFY(!h.expressions.fakeReactions);
+        h.host->settings(h.id)->setValue(QStringLiteral("enableEmojiBypass"), true);
+        QVERIFY(h.expressions.fakeReactions);
+        QVERIFY(h.host->setEnabled(h.id, false));
+        QVERIFY(!h.expressions.fakeReactions);
+    }
+
+    void shrinksAnimatedGifs()
+    {
+        if (!QImageWriter::supportedImageFormats().contains("gif") && !QImageReader::supportedImageFormats().contains("gif"))
+            QSKIP("Qt's GIF reader is not available");
+        // A noisy 12-frame animation
+        QList<QImage> frames;
+        QList<double> delays;
+        quint32 seed = 3;
+        for (int f = 0; f < 12; ++f) {
+            QImage frame(200, 150, QImage::Format_ARGB32);
+            for (int y = 0; y < 150; ++y)
+                for (int x = 0; x < 200; ++x) {
+                    seed = seed * 1664525u + 1013904223u;
+                    frame.setPixel(x, y, seed | 0xFF000000u);
+                }
+            frames.append(frame);
+            delays.append(80);
+        }
+        const QByteArray gif = ApngToGif::encodeGif(frames, delays);
+        QVERIFY(gif.size() > 100000);
+        const qint64 limit = gif.size() / 4;
+        const auto out = FakeNitro::shrinkImage({ QStringLiteral("dance.gif"), QStringLiteral("image/gif"), gif }, limit);
+        QVERIFY(out);
+        QVERIFY(out->data.size() <= limit);
+        QCOMPARE(out->fileName, QStringLiteral("dance.gif"));
+        QCOMPARE(out->mimeType, QStringLiteral("image/gif"));
+        QBuffer in(const_cast<QByteArray *>(&out->data));
+        in.open(QIODevice::ReadOnly);
+        QImageReader reader(&in, "gif");
+        QVERIFY(reader.imageCount() > 1); // still animated
+        QVERIFY(reader.read().width() < 200);
+    }
+
+    void shownFakeExpressionsHaveNotes()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        IncomingMessage in;
+        in.accountId = 1;
+        in.channelId = Channel;
+        in.content = QStringLiteral("[x](https://cdn.discordapp.com/emojis/200000000000000003.webp?size=48&name=x)");
+        h.host->dispatchTransformIncomingContent(in);
+        QVERIFY(in.emojiNotes.value(200000000000000003ULL).contains(QLatin1String("FakeNitro emoji")));
+
+        IncomingMessage sticker;
+        sticker.accountId = 1;
+        sticker.channelId = Channel;
+        sticker.content = QStringLiteral("https://media.discordapp.net/stickers/400000000000000001.png?size=160");
+        h.host->dispatchTransformIncomingContent(sticker);
+        QCOMPARE(sticker.addedStickers.size(), 1);
+        QVERIFY(sticker.addedStickers[0].note.contains(QLatin1String("FakeNitro sticker")));
+    }
+
     void checkboxDisablesTheNotice()
     {
         SinglePluginHost h(qord_register_fakenitro);
         QVERIFY(h.enableWithAllPermissions());
         fillStores(h.expressions, golden());
         h.expressions.denied = FakeNitro::EmbedLinks;
+        h.host->settings(h.id)->setValue(QStringLiteral("uploadWithoutEmbedLinks"), false);
         h.ui.checkboxAnswer = true;
         OutgoingMessage out;
         out.accountId = 1;
@@ -466,6 +781,73 @@ private slots:
         h.host->dispatchBeforeSend(out);
         QVERIFY(!out.cancel);
         QVERIFY(h.host->settings(h.id)->boolValue(QStringLiteral("disableEmbedPermissionCheck")));
+    }
+
+    // Qord: no Embed Links but Attach Files, so the images go as files
+    void uploadsWhereLinksDontEmbed()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.expressions.denied = FakeNitro::EmbedLinks;
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.guildId = 100000000000000001ULL;
+        out.content = QStringLiteral("look <:far_away:200000000000000003>  here\n<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(out);
+        QVERIFY(!out.cancel);
+        QCOMPARE(countConfirmations(h.ui, QStringLiteral("Send Anyway")), 0);
+        QCOMPARE(out.content, QStringLiteral("look here"));
+        QVERIFY(out.deferred);
+
+        std::optional<QString> sent;
+        QList<AttachedFile> files;
+        int calls = 0;
+        out.deferred(out.content, [&](std::optional<QString> content, QList<AttachedFile> attached) {
+            ++calls;
+            sent = content;
+            files = attached;
+        });
+        QCOMPARE(h.network.urls.size(), 1); // once, though it's there twice
+        QCOMPARE(h.network.urls[0].host(), QStringLiteral("cdn.discordapp.com"));
+        QVERIFY(h.network.urls[0].path().startsWith(QLatin1String("/emojis/200000000000000003.")));
+        QCOMPARE(calls, 0);
+        QVERIFY(h.network.respond(true, QByteArray("image bytes")));
+        QCOMPARE(calls, 1);
+        QCOMPARE(sent, std::optional<QString>(QStringLiteral("look here")));
+        QCOMPARE(files.size(), 1);
+        QVERIFY(files[0].fileName.startsWith(QLatin1String("far_away.")));
+        QCOMPARE(files[0].data, QByteArray("image bytes"));
+
+        // A failed download leaves the text in the box
+        OutgoingMessage again;
+        again.accountId = 1;
+        again.channelId = Channel;
+        again.guildId = out.guildId;
+        again.content = QStringLiteral("<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(again);
+        QVERIFY(again.deferred);
+        calls = 0;
+        again.deferred(again.content, [&](std::optional<QString> content, QList<AttachedFile>) {
+            ++calls;
+            sent = content;
+        });
+        QVERIFY(h.network.respond(false, {}, 404));
+        QCOMPARE(calls, 1);
+        QVERIFY(!sent);
+
+        // Without Attach Files, it's upstream's notice
+        h.expressions.denied = FakeNitro::EmbedLinks | FakeNitro::AttachFiles;
+        h.ui.confirmAnswer = true;
+        OutgoingMessage noFiles;
+        noFiles.accountId = 1;
+        noFiles.channelId = Channel;
+        noFiles.guildId = out.guildId;
+        noFiles.content = QStringLiteral("<:far_away:200000000000000003>");
+        h.host->dispatchBeforeSend(noFiles);
+        QVERIFY(!noFiles.deferred);
+        QCOMPARE(countConfirmations(h.ui, QStringLiteral("Send Anyway")), 1);
     }
 
     void needsPermissions()
@@ -488,6 +870,34 @@ private slots:
         QVERIFY(h.enableWithAllPermissions());
         fillStores(h.expressions, golden());
         h.host->settings(h.id)->setValue(QStringLiteral("stickerSize"), QStringLiteral("16"));
+
+        // Qord: sent with the message, text and all
+        OutgoingMessage withText;
+        withText.accountId = 1;
+        withText.channelId = Channel;
+        withText.guildId = 100000000000000001ULL;
+        withText.content = QStringLiteral("party time");
+        withText.stickerIds = { 400000000000000002ULL };
+        h.host->dispatchBeforeSend(withText);
+        QVERIFY(!withText.cancel);
+        QVERIFY(withText.deferred);
+        QVERIFY(withText.stickerIds.isEmpty());
+        std::optional<QString> sent;
+        QList<AttachedFile> files;
+        withText.deferred(withText.content, [&](std::optional<QString> content, QList<AttachedFile> attached) {
+            sent = content;
+            files = attached;
+        });
+        QVERIFY(h.network.respond(true, makeApng()));
+        QCOMPARE(sent, std::optional<QString>(QStringLiteral("party time")));
+        QCOMPARE(files.size(), 1);
+        QCOMPARE(files[0].fileName, QStringLiteral("400000000000000002.gif"));
+        QVERIFY(files[0].data.startsWith("GIF89a"));
+        QVERIFY(h.ui.attachments.isEmpty());
+
+        // Upstream: put in the message box, the send stopped
+        h.host->settings(h.id)->setValue(QStringLiteral("attachAnimatedStickers"), false);
+        h.network.urls.clear();
         OutgoingMessage out;
         out.accountId = 1;
         out.channelId = Channel;
@@ -501,6 +911,30 @@ private slots:
         QCOMPARE(h.ui.attachments[0].fileName, QStringLiteral("400000000000000002.gif"));
         QCOMPARE(h.ui.attachments[0].mimeType, QStringLiteral("image/gif"));
         QVERIFY(h.ui.attachments[0].data.startsWith("GIF89a"));
+    }
+
+    // Qord: each of several stickers; usable ones stay stickers
+    void severalStickers()
+    {
+        SinglePluginHost h(qord_register_fakenitro);
+        QVERIFY(h.enableWithAllPermissions());
+        fillStores(h.expressions, golden());
+        h.host->settings(h.id)->setValue(QStringLiteral("hideLinkText"), false);
+        OutgoingMessage out;
+        out.accountId = 1;
+        out.channelId = Channel;
+        out.guildId = 100000000000000001ULL;
+        out.content = QStringLiteral("hi");
+        out.stickerIds = { 400000000000000001ULL, 400000000000000003ULL, 400000000000000004ULL };
+        h.host->dispatchBeforeSend(out);
+        QVERIFY(!out.cancel);
+        QCOMPARE(out.stickerIds, QList<Id>({ 400000000000000001ULL })); // this server's
+        QVERIFY2(out.content.startsWith(QLatin1String("hi [gif one](https://media.discordapp.net/stickers/"
+                                                      "400000000000000003.gif")),
+                 qPrintable(out.content));
+        QVERIFY2(out.content.contains(QLatin1String(" [png far](https://media.discordapp.net/stickers/"
+                                                    "400000000000000004.png")),
+                 qPrintable(out.content));
     }
 
     void apngFramesAndGif()
@@ -538,6 +972,72 @@ private slots:
         QCOMPARE(QColor(second.pixel(1, 1)), QColor(255, 0, 0));
         QCOMPARE(QColor(second.pixel(8, 8)), QColor(0, 0, 255));
         QCOMPARE(reader.nextImageDelay(), 50);
+    }
+
+    // Qord: frames after the first are drawn as what changed, and frames like
+    // the one before are merged; the decoded animation is unchanged
+    void gifFramesAreDeltas()
+    {
+        if (!QImageReader::supportedImageFormats().contains("gif"))
+            QSKIP("Qt's GIF reader is not available");
+        // A square moving over a transparent background, then over a still
+        // opaque one; the fourth frame repeats the third
+        QList<QImage> frames;
+        for (int f = 0; f < 6; ++f) {
+            QImage frame(64, 48, QImage::Format_ARGB32);
+            frame.fill(f < 2 ? QColor(Qt::transparent) : QColor(30, 60, 200));
+            const int at = f == 3 ? 2 * 8 : f * 8;
+            for (int y = 10; y < 20; ++y)
+                for (int x = at; x < at + 10; ++x)
+                    frame.setPixel(x, y, qRgba(250, 200, 10, 255));
+            frames.append(frame);
+        }
+        const QByteArray gif = ApngToGif::encodeGif(frames, { 100, 100, 100, 100, 100, 100 });
+        QBuffer in(const_cast<QByteArray *>(&gif));
+        in.open(QIODevice::ReadOnly);
+        QImageReader reader(&in, "gif");
+        QList<QImage> decoded;
+        QList<int> delays;
+        while (reader.canRead()) {
+            const QImage image = reader.read();
+            if (image.isNull())
+                break;
+            delays.append(reader.nextImageDelay());
+            decoded.append(image.convertToFormat(QImage::Format_ARGB32));
+        }
+        QCOMPARE(decoded.size(), 5); // the repeat merged
+        QCOMPARE(delays[2], 200);
+        const QList<int> sources = { 0, 1, 2, 4, 5 };
+        for (int i = 0; i < decoded.size(); ++i) {
+            const QImage &want = frames[sources[i]];
+            for (int y = 0; y < 48; y += 3)
+                for (int x = 0; x < 64; x += 3) {
+                    const QRgb a = want.pixel(x, y);
+                    const QRgb b = decoded[i].pixel(x, y);
+                    QVERIFY2((qAlpha(a) >= 128) == (qAlpha(b) >= 128), qPrintable(QStringLiteral("frame %1 at %2,%3").arg(i).arg(x).arg(y)));
+                    if (qAlpha(a) >= 128)
+                        QVERIFY(qAbs(qRed(a) - qRed(b)) <= 8 && qAbs(qBlue(a) - qBlue(b)) <= 8);
+                }
+        }
+        // Mostly-still frames come out far smaller than whole ones would
+        QList<QImage> still;
+        quint32 seed = 9;
+        QImage background(160, 120, QImage::Format_ARGB32);
+        for (int y = 0; y < 120; ++y)
+            for (int x = 0; x < 160; ++x) {
+                seed = seed * 1664525u + 1013904223u;
+                background.setPixel(x, y, seed | 0xFF000000u);
+            }
+        for (int f = 0; f < 10; ++f) {
+            QImage frame = background;
+            for (int y = 50; y < 60; ++y)
+                for (int x = f * 10; x < f * 10 + 10; ++x)
+                    frame.setPixel(x, y, qRgb(255, 255, 255));
+            still.append(frame);
+        }
+        const QByteArray deltas = ApngToGif::encodeGif(still, { 80, 80, 80, 80, 80, 80, 80, 80, 80, 80 });
+        const QByteArray one = ApngToGif::encodeGif({ still.first() }, { 80 });
+        QVERIFY2(deltas.size() < one.size() * 2, qPrintable(QString::number(deltas.size())));
     }
 
     void gifKeepsTransparency()

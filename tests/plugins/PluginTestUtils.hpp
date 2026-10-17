@@ -6,6 +6,7 @@
 #include "Plugins/PluginHost.hpp"
 
 #include <QHash>
+#include <QMap>
 #include <QSet>
 #include <QTemporaryDir>
 #include <QTest>
@@ -172,6 +173,8 @@ public:
         profilesOpened.append({ accountId, userId });
     }
     QList<QPair<Id, Id>> profilesOpened;
+    Id currentAccountId() const override { return currentAccount; }
+    Id currentAccount = 1;
     void showToast(const QString &text, ToastType type) override { toasts.append({ text, type }); }
     QList<QPair<QString, ToastType>> toasts;
     void showPermissions(const PermissionsView &view) override { permissionViews.append(view); }
@@ -559,6 +562,18 @@ public:
     QList<Id> ownRoles(Id, Id guildId) const override { return roles.value(guildId); }
     bool hasChannelPermission(Id, Id, quint64 permission) const override { return !(denied & permission); }
     void setChatBypass(bool emojis, bool stickers) override { bypass = { emojis, stickers }; }
+    bool hasGuildPermission(Id, Id guildId, quint64) const override { return adminOf.contains(guildId); }
+    void setStreamQualityBypass(bool on) override { streamQuality = on; }
+    void setOversizeImageHandler(ImageShrinker shrink) override { shrinker = std::move(shrink); }
+    void setLongMessageSplitter(SplitCounter count) override { splitter = std::move(count); }
+    void setVideoShrinking(bool on) override { shrinkVideos = on; }
+    void setFakeReactions(bool on) override { fakeReactions = on; }
+    void setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit) override
+    {
+        videoPriority = priority;
+        maxVideoSeconds = maxSeconds;
+        trimVideosToFit = trimToFit;
+    }
 
     int premium = 0;
     QHash<Id, CustomEmojiInfo> emojis;
@@ -566,6 +581,15 @@ public:
     QHash<Id, QList<Id>> roles;
     quint64 denied = 0;
     std::pair<bool, bool> bypass { false, false };
+    QList<Id> adminOf;
+    bool streamQuality = false;
+    ImageShrinker shrinker;
+    SplitCounter splitter;
+    bool shrinkVideos = false;
+    bool fakeReactions = false;
+    int videoPriority = -1;
+    int maxVideoSeconds = -1;
+    bool trimVideosToFit = false;
 };
 
 class FakeGuilds : public GuildDirectory
@@ -586,6 +610,12 @@ public:
     void requestMembers(Id, Id guildId, const QList<Id> &userIds) override { requested.append({ guildId, userIds }); }
     QList<Id> guildIds(Id) const override { return guildOrder; }
     QList<Id> memberIds(Id, Id guildId) const override { return guildMembers.value(guildId); }
+    std::optional<QString> rawJson(Id, RawKind kind, Id id, Id) const override
+    {
+        const auto it = raw.constFind({ int(kind), id });
+        return it == raw.constEnd() ? std::nullopt : std::optional<QString>(*it);
+    }
+    QMap<QPair<int, Id>, QString> raw;
     QList<Id> guildOrder;
     QHash<Id, QList<Id>> guildMembers;
 

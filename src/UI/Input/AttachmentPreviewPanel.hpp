@@ -2,10 +2,14 @@
 
 #include <QWidget>
 
+#include <atomic>
+#include <memory>
+
 #include "Core/PendingAttachment.hpp"
 
 class QHBoxLayout;
 class QLabel;
+class QProgressBar;
 class QScrollArea;
 class QTimer;
 
@@ -33,6 +37,9 @@ signals:
 private:
     static constexpr int MaxFiles = 10;
     bool appendAttachment(Core::PendingAttachment attachment);
+    bool startShrinking(const Core::PendingAttachment &attachment);
+    bool startShrinkingVideo(const Core::PendingAttachment &attachment);
+    void showNotice(const QString &message);
     void rebuildCards();
     QWidget *createCard(int index);
     QPixmap thumbnailFor(const Core::PendingAttachment &item) const;
@@ -46,6 +53,10 @@ private:
     QHBoxLayout *cardsLayout;
     QLabel *errorLabel;
     QTimer *errorTimer;
+    // Qord: a video being shrunk, with a way to stop it
+    QWidget *progressRow = nullptr;
+    QProgressBar *progressBar = nullptr;
+    std::shared_ptr<std::atomic<bool>> stopShrinking;
     qint64 maxFileSize = 10ll * 1024 * 1024;
 };
 

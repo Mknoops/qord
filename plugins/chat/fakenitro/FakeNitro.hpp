@@ -17,6 +17,7 @@ class ExpressionService;
 namespace FakeNitro {
 
 // Discord permission bits FakeNitro checks
+constexpr quint64 Administrator = quint64(1) << 3;
 constexpr quint64 EmbedLinks = quint64(1) << 14;
 constexpr quint64 AttachFiles = quint64(1) << 15;
 constexpr quint64 UseExternalEmojis = quint64(1) << 18;
@@ -42,6 +43,10 @@ std::optional<QString> queryParam(const QString &url, const QString &name);
 QString emojiLink(Id id, const QString &name, bool animated, int size, bool forSend);
 // getStickerLink() with name and lossless set
 QString stickerLink(Id id, const QString &name, int formatType, int size);
+// Qord: the image to upload for a fake emoji or sticker where links don't embed
+QString uploadUrl(Id id, bool sticker, bool animated, int size);
+// The text with these emojis taken out and the spaces they leave tidied
+QString withoutTokens(QString text, const QStringList &tokens);
 // [text](url) or the bare url
 QString linkMarkup(const QString &url, const QString &name, bool hyperlink, const QString &hyperLinkText);
 
@@ -85,6 +90,21 @@ QList<ContentLink> topLevelLinks(const QString &content);
 // Whether the message is anything but a single link (more than one AST node)
 bool isCompound(const QString &content, const QList<ContentLink> &links);
 
+// Qord: a message too long to send cut into messages of at most `limit`
+// characters, at a line break or else a space when one is in the second
+// half; a code block cut in two is closed and reopened (with its language)
+QStringList splitMessage(const QString &content, int limit);
+// Qord: link text other people don't see (only the emoji or sticker image)
+extern const QString HiddenLinkText;
+// Whether a message is only custom emojis (and spaces): sent big, the rest small
+bool isEmojiOnly(const QString &content);
+// Discord's message length limit: 4000 with Nitro, otherwise 2000
+int messageLengthLimit(int premiumType);
+// Qord: an image too large to upload made to fit `limit` bytes: re-encoded
+// (JPEG, or PNG when it has transparent pixels), then scaled down step by
+// step. Nothing for animated images, which would lose their animation.
+std::optional<AttachedFile> shrinkImage(const AttachedFile &file, qint64 limit);
+
 } // namespace FakeNitro
 
 class FakeNitroPlugin : public Plugin
@@ -112,7 +132,19 @@ private:
     [[nodiscard]] bool hasPermission(Id accountId, Id channelId, quint64 permission) const;
     [[nodiscard]] bool confirmWithoutEmbeds();
     void applyPickerBypass();
+    void applyQordBypasses();
+    void splitLongMessage(OutgoingMessage &message);
+    [[nodiscard]] QString linkText() const;
+    [[nodiscard]] int emojiSizeFor(const QString &content) const;
     void sendAnimatedSticker(const StickerInfo &sticker, const QString &link);
+    struct Upload
+    {
+        QString url;
+        QString fileName;
+        QString mimeType;
+        bool apng = false; // an animated sticker, sent as a GIF
+    };
+    void uploadInstead(OutgoingMessage &message, const QString &text, const QList<Upload> &uploads);
 
     PluginContext *context = nullptr;
     std::shared_ptr<bool> alive;

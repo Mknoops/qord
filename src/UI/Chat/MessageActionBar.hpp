@@ -30,10 +30,21 @@ public:
     void setCanDelete(bool canDelete);
     void setMoreButtonDown(bool down);
 
+    // Qord: plugin buttons (Hook::MessagePopover), before the bar's own
+    struct PluginButton
+    {
+        QString pluginId;
+        QString id;
+        QString tooltip;
+        QByteArray svg;
+    };
+    void setPluginButtons(const QList<PluginButton> &buttons);
+
 signals:
     void triggered(Acheron::UI::MessageActionBar::Action action);
     void moreRequested(const QPoint &buttonTopLeft);
     void shiftHeldChanged(bool held);
+    void pluginButtonClicked(const QString &pluginId, const QString &buttonId, bool rightClick);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -50,6 +61,8 @@ private:
 
     bool shiftHeld = false;
     bool canDelete = false;
+    QList<QToolButton *> pluginButtons;
+    QList<PluginButton> shownPluginButtons;
 };
 
 } // namespace UI

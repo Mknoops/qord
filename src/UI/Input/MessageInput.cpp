@@ -3,9 +3,12 @@
 #include "TextEdgeNavigation.hpp"
 
 #include "Core/Emoji/UnicodeEmojiIndex.hpp"
+#include "Core/Emoji/EmojiManager.hpp"
 #include "Core/Theme/Icons.hpp"
+#include "Core/Theme/Manager.hpp"
 
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QKeyEvent>
 #include <QAbstractTextDocumentLayout>
@@ -123,6 +126,14 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     outerLayout->addWidget(replyBar);
 
+    // Qord: stickers going with the message, each removable
+    stickerBar = new QWidget(this);
+    stickerBar->setVisible(false);
+    stickerLayout = new QHBoxLayout(stickerBar);
+    stickerLayout->setContentsMargins(8, 4, 4, 2);
+    stickerLayout->setSpacing(6);
+    outerLayout->addWidget(stickerBar);
+
     attachmentPanel = new AttachmentPreviewPanel(this);
     outerLayout->addWidget(attachmentPanel);
 
@@ -153,24 +164,14 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
     textEdit = new ChatTextEdit(inputContainer);
     setFocusProxy(textEdit);
 
-    connect(textEdit, &ChatTextEdit::returnPressed, [this]() {
-        if (sendBlocked || sending)
-            return;
-        const QString txt = draftText();
-        if (txt.isEmpty() && !attachmentPanel->hasAttachments())
-            return;
-        emit sendMessage(txt, attachmentPanel->attachments());
-        if (keepAfterSend)
-            keepAfterSend = false;
-        else
-            clear();
-    });
+    connect(textEdit, &ChatTextEdit::returnPressed, this, &MessageInput::submit);
 
     connect(textEdit, &ChatTextEdit::editLastMessageRequested, this, &MessageInput::editLastMessageRequested);
 
     connect(textEdit, &ChatTextEdit::escapePressed, this, [this]() {
         clearReplyTarget();
         attachmentPanel->clearAttachments();
+        clearStickers();
     });
 
     connect(textEdit->document(), &QTextDocument::contentsChanged, this,
@@ -179,6 +180,7 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
         if (!textEdit->document()->isEmpty())
             emit userTyping();
         checkDraftEmpty();
+        updateLengthCounter();
     });
 
     autocomplete = new EmojiAutocomplete(textEdit, this);
@@ -219,7 +221,58 @@ MessageInput::MessageInput(QWidget *parent) : QWidget(parent)
 
     setAcceptDrops(true);
 
+    // Qord: Discord's character counter, bottom right of the box
+    lengthCounter = new QLabel(this);
+    lengthCounter->setObjectName(QStringLiteral("MessageLengthCounter"));
+    lengthCounter->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    lengthCounter->hide();
+
     adjustHeight();
+}
+
+void MessageInput::setMessageLengthLimit(int limit)
+{
+    lengthLimit = limit > 0 ? limit : 2000;
+    updateLengthCounter();
+}
+
+// Shown from 200 characters before the limit: what's left, or how far over
+// it is in red; when FakeNitro splits long messages, how many it will send
+void MessageInput::updateLengthCounter()
+{
+    if (!lengthCounter)
+        return;
+    QString text = textEdit->toPlainText();
+    static const QString SilentPrefix = QStringLiteral("@silent ");
+    if (text.startsWith(SilentPrefix))
+        text = text.mid(SilentPrefix.size());
+    const int length = int(text.size());
+    if (length < lengthLimit - 200) {
+        lengthCounter->hide();
+        return;
+    }
+    const auto &theme = Core::Theme::Manager::instance();
+    const auto &split = Core::expressionBypass().splitCount;
+    QColor color = theme.color(Core::Theme::Token::MutedText);
+    if (length <= lengthLimit) {
+        lengthCounter->setText(QString::number(lengthLimit - length));
+        lengthCounter->setToolTip(tr("%1 of %2 characters").arg(length).arg(lengthLimit));
+    } else if (split) {
+        const int parts = split(text, lengthLimit);
+        lengthCounter->setText(tr("%1 messages").arg(parts));
+        lengthCounter->setToolTip(tr("FakeNitro will send this as %1 messages of up to %2 characters")
+                                          .arg(parts)
+                                          .arg(lengthLimit));
+    } else {
+        color = theme.color(Core::Theme::Token::ChatError);
+        lengthCounter->setText(QString::number(lengthLimit - length));
+        lengthCounter->setToolTip(tr("Your message is too long (%1 of %2 characters)").arg(length).arg(lengthLimit));
+    }
+    lengthCounter->setStyleSheet(QStringLiteral("color: %1; font-size: 11px; background: transparent;").arg(color.name()));
+    lengthCounter->adjustSize();
+    lengthCounter->move(width() - lengthCounter->width() - 12, height() - lengthCounter->height() - 2);
+    lengthCounter->show();
+    lengthCounter->raise();
 }
 
 void MessageInput::setPlaceholder(const QString &name)
@@ -230,6 +283,7 @@ void MessageInput::setPlaceholder(const QString &name)
 void MessageInput::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
+    updateLengthCounter();
 }
 
 void MessageInput::setSending(bool value)
@@ -243,7 +297,88 @@ void MessageInput::clear()
     textEdit->clear();
     clearReplyTarget();
     attachmentPanel->clearAttachments();
+    clearStickers();
     adjustHeight();
+}
+
+void MessageInput::submit()
+{
+    if (sendBlocked || sending)
+        return;
+    const QString txt = draftText();
+    if (txt.isEmpty() && !attachmentPanel->hasAttachments() && stagedStickers.isEmpty())
+        return;
+    emit sendMessage(txt, attachmentPanel->attachments());
+    if (keepAfterSend)
+        keepAfterSend = false;
+    else
+        clear();
+}
+
+bool MessageInput::addSticker(Core::Snowflake id, const QString &name)
+{
+    if (stagedStickers.size() >= 3)
+        return false;
+    for (const StagedSticker &staged : std::as_const(stagedStickers))
+        if (staged.id == id)
+            return true;
+    stagedStickers.append({ id, name });
+    rebuildStickerBar();
+    return true;
+}
+
+QList<Core::Snowflake> MessageInput::stickerIds() const
+{
+    QList<Core::Snowflake> ids;
+    for (const StagedSticker &staged : stagedStickers)
+        ids.append(staged.id);
+    return ids;
+}
+
+void MessageInput::clearStickers()
+{
+    if (stagedStickers.isEmpty())
+        return;
+    stagedStickers.clear();
+    rebuildStickerBar();
+}
+
+void MessageInput::rebuildStickerBar()
+{
+    // Hidden while rebuilt, so showing it again shows the new chips too
+    stickerBar->hide();
+    while (QLayoutItem *item = stickerLayout->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+    if (!stagedStickers.isEmpty()) {
+        auto *label = new QLabel(tr("Stickers:"), stickerBar);
+        label->setStyleSheet("color: #b5bac1; font-size: 12px;");
+        stickerLayout->addWidget(label);
+        for (const StagedSticker &staged : std::as_const(stagedStickers)) {
+            auto *chip = new QToolButton(stickerBar);
+            chip->setText(staged.name.isEmpty() ? tr("Sticker") : staged.name);
+            chip->setIcon(Core::Theme::Icons::icon(Core::Theme::Icons::Name::X, Core::Theme::Token::PlaceholderText));
+            chip->setIconSize(QSize(12, 12));
+            chip->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+            chip->setLayoutDirection(Qt::RightToLeft); // the x after the name
+            chip->setAutoRaise(true);
+            chip->setCursor(Qt::PointingHandCursor);
+            chip->setToolTip(tr("Remove"));
+            const Core::Snowflake id = staged.id;
+            connect(chip, &QToolButton::clicked, this, [this, id]() {
+                for (qsizetype i = 0; i < stagedStickers.size(); ++i)
+                    if (stagedStickers[i].id == id)
+                        stagedStickers.removeAt(i--);
+                rebuildStickerBar();
+            });
+            stickerLayout->addWidget(chip);
+        }
+        stickerLayout->addStretch(1);
+    }
+    stickerBar->setVisible(!stagedStickers.isEmpty());
+    adjustHeight();
+    checkDraftEmpty();
 }
 
 void MessageInput::attachData(const QString &fileName, const QByteArray &data, const QString &mimeType)
@@ -359,6 +494,8 @@ void MessageInput::adjustHeight()
     int totalHeight = newHeight + 12;
     if (replyBar->isVisible())
         totalHeight += replyBar->sizeHint().height();
+    if (stickerBar && !stickerBar->isHidden())
+        totalHeight += stickerBar->sizeHint().height();
     if (attachmentPanel->isVisible())
         totalHeight += attachmentPanel->sizeHint().height();
 
@@ -377,7 +514,7 @@ bool MessageInput::hasPendingAttachments() const
 
 void MessageInput::checkDraftEmpty()
 {
-    const bool empty = textEdit->document()->isEmpty() && !attachmentPanel->hasAttachments();
+    const bool empty = textEdit->document()->isEmpty() && !attachmentPanel->hasAttachments() && stagedStickers.isEmpty();
     if (empty == draftEmpty)
         return;
     draftEmpty = empty;

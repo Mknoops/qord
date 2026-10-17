@@ -31,6 +31,26 @@ class TestDecodeBase64 : public QObject
     }
 
 private slots:
+    void popoverDecodesAndCopies()
+    {
+        SinglePluginHost h(&qord_register_decodebase64);
+        QVERIFY(h.enableWithAllPermissions());
+        MessageContext m;
+        m.content = QStringLiteral("aGVsbG8gd29ybGQ=");
+        const auto buttons = h.host->dispatchMessagePopoverButtons(m);
+        QCOMPARE(buttons.size(), 1);
+        QCOMPARE(buttons[0].button.tooltip, QStringLiteral("Decode Base64 (Left Click) / Copy Decoded (Right Click)"));
+        h.host->dispatchMessagePopoverClicked(h.id, buttons[0].button.id, m, false);
+        QCOMPARE(h.ui.dialogTitle, QStringLiteral("Decoded Base64 Content"));
+        h.host->dispatchMessagePopoverClicked(h.id, buttons[0].button.id, m, true);
+        QCOMPARE(h.clipboard.text, QStringLiteral("hello world"));
+        // Click method Right swaps them
+        h.host->settings(h.id)->setValue(QStringLiteral("clickMethod"), QStringLiteral("Right"));
+        h.clipboard.text.clear();
+        h.host->dispatchMessagePopoverClicked(h.id, buttons[0].button.id, m, false);
+        QCOMPARE(h.clipboard.text, QStringLiteral("hello world"));
+    }
+
     void findsAndDecodes()
     {
         // "hello world", with and without padding, inside other text

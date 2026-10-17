@@ -1058,6 +1058,56 @@ QList<PluginHost::PluginInboxTab> PluginHost::dispatchInboxTabs(Id accountId)
     return out;
 }
 
+QList<PluginHost::PluginButton> PluginHost::dispatchMessagePopoverButtons(const MessageContext &message)
+{
+    QList<PluginButton> out;
+    const int h = hookIndex(Hook::MessagePopover);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "messagePopoverButtons", [&] {
+            for (const ChatBarButton &button : tables[h][i]->messagePopoverButtons(message))
+                out.append({ tableIds[h][i], button });
+        });
+    return out;
+}
+
+std::optional<ProfileTheme> PluginHost::dispatchProfileTheme(const ProfileThemeContext &profile)
+{
+    const int h = hookIndex(Hook::ProfileTheme);
+    for (size_t i = 0; i < tables[h].size(); ++i) {
+        std::optional<ProfileTheme> theme;
+        guarded(tableIds[h][i], "profileTheme", [&] { theme = tables[h][i]->profileTheme(profile); });
+        if (theme)
+            return theme;
+    }
+    return std::nullopt;
+}
+
+QList<PluginHost::PluginMenuItem> PluginHost::dispatchRoleContextMenuItems(const RoleContext &role)
+{
+    QList<PluginMenuItem> out;
+    const int h = hookIndex(Hook::RoleContextMenu);
+    for (size_t i = 0; i < tables[h].size(); ++i)
+        guarded(tableIds[h][i], "roleContextMenuItems", [&] {
+            for (const auto &item : tables[h][i]->roleContextMenuItems(role))
+                out.append({ tableIds[h][i], item });
+        });
+    return out;
+}
+
+void PluginHost::dispatchRoleContextMenuAction(const QString &pluginId, const QString &itemId, const RoleContext &role)
+{
+    if (Plugin *plugin = tablePlugin(Hook::RoleContextMenu, pluginId))
+        guarded(pluginId, "onRoleContextMenuAction", [&] { plugin->onRoleContextMenuAction(itemId, role); });
+}
+
+void PluginHost::dispatchMessagePopoverClicked(const QString &pluginId, const QString &buttonId,
+                                               const MessageContext &message, bool rightClick)
+{
+    if (Plugin *plugin = tablePlugin(Hook::MessagePopover, pluginId))
+        guarded(pluginId, "onMessagePopoverClicked",
+                [&] { plugin->onMessagePopoverClicked(buttonId, message, rightClick); });
+}
+
 void PluginHost::dispatchInboxMessageRemoved(const QString &pluginId, const QString &tabId, Id accountId, Id messageId)
 {
     if (Plugin *plugin = tablePlugin(Hook::InboxTabs, pluginId))

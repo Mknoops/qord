@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QLoggingCategory>
+#include <QRegularExpression>
 #include <QSaveFile>
 
 #include <cmath>
@@ -32,6 +33,8 @@ std::optional<SettingType> settingTypeFromString(const QString &name)
         return SettingType::Number;
     if (name == QLatin1String("action"))
         return SettingType::Action;
+    if (name == QLatin1String("color"))
+        return SettingType::Color;
     return std::nullopt;
 }
 
@@ -54,6 +57,8 @@ QString settingTypeToString(SettingType type)
         return QStringLiteral("number");
     case SettingType::Action:
         return QStringLiteral("action");
+    case SettingType::Color:
+        return QStringLiteral("color");
     }
     return {};
 }
@@ -91,6 +96,11 @@ QString SettingSpec::validate(const QJsonValue &value) const
     }
     case SettingType::String:
         return value.isString() ? QString() : QStringLiteral("expected text");
+    case SettingType::Color: {
+        static const QRegularExpression hex(QStringLiteral("^#[0-9a-fA-F]{6}$"));
+        return value.isString() && hex.match(value.toString()).hasMatch() ? QString()
+                                                                         : QStringLiteral("expected a colour like #5865f2");
+    }
     case SettingType::Choice:
         if (!value.isString())
             return QStringLiteral("expected one of the choices");

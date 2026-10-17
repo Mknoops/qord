@@ -1,5 +1,222 @@
 {
   "$comment": "Hand-maintained overrides only. Statuses Implemented/Tested/Complete are derived by tools/check_equicord_plugins.py and may not be set here. See docs/plugin-status.md.",
   "version": 1,
-  "plugins": {}
+  "plugins": {
+    "BetterRoleDot": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "With role colors next to names, clicking the role dot after a name in a message and in the member list copied the role color (#206694)."
+      }
+    },
+    "ClearURLs": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Sent a link with utm_source, utm_medium and fbclid; it arrived with only id=5 left."
+      }
+    },
+    "CopyFileContents": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Sent a .txt attachment; its copy button put the file's two lines on the clipboard."
+      }
+    },
+    "CopyUserMention": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Copy User Mention in a member's menu copied <@id>."
+      }
+    },
+    "CopyUserURLs": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Copy User URL copied <https://discord.com/users/id>."
+      }
+    },
+    "DecodeBase64": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed \"hello from Qord\" for a message with aGVsbG8gZnJvbSBRb3Jk in it, and a right click copied it."
+      }
+    },
+    "DontRoundMyTimestamps": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "A <t:…:R> timestamp 160 s old showed \"2 minutes ago\" (rounding would show 3)."
+      }
+    },
+    "FakeNitro": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Without Nitro, an animated emoji from the server was offered by the picker and sent as a link; alone it showed as the emoji with its embed hidden, and hovering it showed the FakeNitro note. A 3,805-character message went out as two messages and a 2,902-character code block as two code blocks; an 18 MB PNG was attached as a 4.33 MB JPEG and sent. Not checked: fake stickers (the account is in one server only) and Go Live quality (UDP is blocked here). Round three (build a0b6b7c): with Fake reactions on, the reaction picker offered the server's animated emoji and picking it sent a reply holding it as a link; in #gagbot with Embed Links denied, a fake emoji went as a 128 px GIF attachment; text and two shift-clicked stickers went as one message; a 164 MB video showed a progress bar and Cancel stopped it, and with \"The first 15 seconds\" it was cut to 15 s (9.59 MB)."
+      }
+    },
+    "FakeProfileThemes": {
+      "verifiedInClient": {
+        "date": "2026-10-17",
+        "build": "a0b6b7c",
+        "by": "Maarten's test account, IK server",
+        "notes": "The colour settings picked #5865f2 and #eb459e, Copy 3y3 put \" [#5865f2,#eb459e]\" as tag characters on the clipboard, and Preview opened the account's own profile in a blue-to-pink gradient with the banner in the primary colour. Not checked live: another user's bio with the text in it (no account with one); decoding is covered by the plugin's test."
+      }
+    },
+    "Ingtoninator": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "With the chat-bar toggle on, \"ingtoninator check\" was sent with \"ington\" added to a word; toggled off afterwards."
+      }
+    },
+    "NoBlockedMessages": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Blocking the other member hid all their messages in the channel; unblocking showed them again."
+      }
+    },
+    "NoReplyMention": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Replies started from the menu and with QuickReply showed @ OFF."
+      }
+    },
+    "NormalizeMessageLinks": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Copy Message Link went through the plugin and gave a discord.com link."
+      }
+    },
+    "PlatformIndicators": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "A desktop icon after the other member's name in messages and the member list."
+      }
+    },
+    "PolishWording": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "\"case test. second sentence here. im ok and dont worry\" was sent as \"Case test. Second sentence here. I'm ok and don't worry\"."
+      }
+    },
+    "QuickReply": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Ctrl+Up replied to the newest message, again to the one before; Ctrl+Shift+Up started editing the last own message."
+      }
+    },
+    "ReadAllNotificationsButton": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "With #algemeen unread, Read All in the server list marked it read."
+      }
+    },
+    "SendTimestamps": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "`17:59` was sent as a timestamp; the calendar button's picker inserted <t:…>."
+      }
+    },
+    "SilentMessageToggle": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "With the toggle on, the sent message had flags 4096 (View Raw)."
+      }
+    },
+    "TalkInReverse": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "With the toggle on, \"reverse check\" was sent reversed."
+      }
+    },
+    "TextReplace": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "A brb → be right back rule: the rule tester and a sent message both read \"ok be right back soon\"."
+      }
+    },
+    "Translate": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed the translation under the message with the translate icon and Dismiss; the settings button opened the languages window, and the DeepL key and Kagi session fields showed only for their service."
+      }
+    },
+    "Unindent": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "An 8-space indented code block was sent with the common indent removed."
+      }
+    },
+    "UnitConverter": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed 25°C as 77.00°F under the message with the convert icon, leaving the Base64 word next to it alone."
+      }
+    },
+    "ViewRaw": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "c42ad31",
+        "by": "Maarten's test account, IK server",
+        "notes": "The hover-bar button showed the message's content and data and a right click copied the content; View Raw showed the data of #algemeen, the IK server, a member, their profile (from its More button) and a role (from the profile), and appeared in the message menu with that setting on."
+      }
+    },
+    "WhoReacted": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "A reaction from the other member showed their avatar next to the count."
+      }
+    },
+    "WriteUpperCase": {
+      "verifiedInClient": {
+        "date": "2026-10-16",
+        "build": "38f2ade",
+        "by": "Maarten's test account, IK server",
+        "notes": "Sentences were sent with their first letters capitalised (same message as PolishWording)."
+      }
+    }
+  }
 }

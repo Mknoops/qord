@@ -68,6 +68,13 @@ public:
     // send is cancelled (called from the sendMessage handler)
     void attachData(const QString &fileName, const QByteArray &data, const QString &mimeType);
     void keepContentsAfterSend() { keepAfterSend = true; }
+    // Qord: stickers to send with the message (Discord takes three). False
+    // when there are three already.
+    bool addSticker(Core::Snowflake id, const QString &name);
+    [[nodiscard]] QList<Core::Snowflake> stickerIds() const;
+    void clearStickers();
+    // Sends what's in the box, as Enter does
+    void submit();
     // Qord: a plugin is finishing the send (auto-translate); the text can't
     // be edited or sent again meanwhile
     void setSending(bool sending);
@@ -93,7 +100,14 @@ signals:
     // Qord: the box went from empty to holding text or files, or back
     void draftEmptyChanged(bool empty);
 
+public:
+    // Qord: Discord's length limit for the account; the box counts down near it
+    void setMessageLengthLimit(int limit);
+
 private:
+    QLabel *lengthCounter = nullptr;
+    int lengthLimit = 2000;
+    void updateLengthCounter();
     ChatTextEdit *textEdit;
     bool sending = false;
     QHBoxLayout *inputLayout;
@@ -103,6 +117,15 @@ private:
     QToolButton *replyCancelButton;
     AttachmentPreviewPanel *attachmentPanel;
     EmojiAutocomplete *autocomplete;
+    QWidget *stickerBar = nullptr;
+    QHBoxLayout *stickerLayout = nullptr;
+    struct StagedSticker
+    {
+        Core::Snowflake id;
+        QString name;
+    };
+    QList<StagedSticker> stagedStickers;
+    void rebuildStickerBar();
 
     Core::Snowflake replyMessageId;
     bool replyMention = true;

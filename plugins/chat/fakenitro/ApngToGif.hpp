@@ -40,6 +40,9 @@ QByteArray convert(const QByteArray &apng, int resolution);
 // transparent) and their delays in milliseconds
 QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs);
 
+// Every frame scaled to `size` (smooth), several at a time
+QList<QImage> scaledFrames(const QList<QImage> &frames, const QSize &size);
+
 } // namespace ApngToGif
 } // namespace Plugins
 } // namespace Qord

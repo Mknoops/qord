@@ -27,4 +27,4 @@ The Equicord plugins Qord should port next, most useful and popular first. A plu
 | 17 | NoTypingAnimation | small |  | A display option to stop the typing indicator's dots animating. |
 | 18 | SilenceUsers | medium |  | Per-user silencing of notifications and sounds (the notifications hook exists). |
 
-Beyond this list, 305 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.
+Beyond this list, 304 plugins are Not Started; [the compatibility matrix](equicord-plugin-compatibility.md) has all of them.

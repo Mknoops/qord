@@ -4,6 +4,7 @@
 #include "Plugins/PluginHost.hpp"
 
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -14,7 +15,10 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPlainTextEdit>
+#include <QPointer>
 #include <QPushButton>
+
+#include <memory>
 #include <QScrollArea>
 #include <QDoubleSpinBox>
 #include <QSpinBox>
@@ -225,6 +229,8 @@ void PluginsPage::showDetails(const QString &id)
     desc->setWordWrap(true);
     layout->addWidget(desc);
     layout->addWidget(helpLabel(tr("Port of Equicord's %1 by %2").arg(m.equicordName, m.authors.join(QStringLiteral(", "))), page));
+    if (!m.contributors.isEmpty())
+        layout->addWidget(helpLabel(tr("Qord additions by %1").arg(m.contributors.join(QStringLiteral(", "))), page));
     if (!m.notes.isEmpty())
         layout->addWidget(helpLabel(m.notes, page));
     for (const QString &gap : m.gaps)
@@ -239,6 +245,16 @@ void PluginsPage::showDetails(const QString &id)
     if (m.permissions) {
         auto *box = new QGroupBox(tr("Permissions"), page);
         auto *boxLayout = new QVBoxLayout(box);
+        // An update can ask for more than was granted when it was enabled;
+        // those parts stay off until allowed here
+        if (info->enabled && (m.permissions & ~info->granted)) {
+            auto *note = new QLabel(tr("Some of this plugin's features need a permission that isn't allowed yet. "
+                                       "Tick it below to use them."),
+                                    box);
+            note->setWordWrap(true);
+            note->setStyleSheet(QStringLiteral("color: #f0b232;"));
+            boxLayout->addWidget(note);
+        }
         for (Permission p : allPermissions()) {
             if (!m.permissions.testFlag(p))
                 continue;
@@ -276,10 +292,25 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
         return editor;
 
     bool customDone = false;
+    // Settings shown only for some values of another (showWhen), re-checked
+    // after every change
+    QVBoxLayout *outer = form;
+    auto conditional = std::make_shared<QList<QPair<QPointer<QWidget>, SettingSpec>>>();
+    const auto refreshVisibility = [settings, conditional]() {
+        for (const auto &[block, spec] : std::as_const(*conditional))
+            if (block)
+                block->setVisible(spec.showWhenValues.contains(settings->value(spec.showWhenKey).toVariant().toString()));
+    };
     for (const SettingSpec &spec : settings->schema()) {
         if (spec.hidden)
             continue;
         const QString key = spec.key;
+        auto *block = new QWidget(editor);
+        form = new QVBoxLayout(block);
+        form->setContentsMargins(0, 0, 0, 0);
+        outer->addWidget(block);
+        if (!spec.showWhenKey.isEmpty())
+            conditional->append({ block, spec });
         auto addHelp = [&] {
             if (!spec.description.isEmpty())
                 form->addWidget(helpLabel(spec.description, editor));
@@ -287,15 +318,17 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
         auto *error = new QLabel(editor);
         error->setStyleSheet(QStringLiteral("color: #f23f43;"));
         error->setVisible(false);
-        auto commit = [settings, key, error](const QJsonValue &v) {
+        auto commit = [settings, key, error, refreshVisibility](const QJsonValue &v) {
             const QString e = settings->setValue(key, v);
             error->setText(e);
             error->setVisible(!e.isEmpty());
+            refreshVisibility();
         };
 
         switch (spec.type) {
         case SettingType::Action: {
-            auto *button = new QPushButton(spec.label, editor);
+            // "&" in a label is text, not a shortcut marker
+            auto *button = new QPushButton(QString(spec.label).replace(u'&', QStringLiteral("&&")), editor);
             button->setCursor(Qt::PointingHandCursor);
             connect(button, &QPushButton::clicked, editor, [id, key]() {
                 if (auto *host = Qord::Plugins::PluginHost::instance())
@@ -339,6 +372,31 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
             spin->setValue(settings->numberValue(key));
             connect(spin, &QDoubleSpinBox::editingFinished, editor, [spin, commit] { commit(spin->value()); });
             row->addWidget(spin);
+            row->addStretch();
+            form->addLayout(row);
+            addHelp();
+            break;
+        }
+        case SettingType::Color: {
+            auto *row = new QHBoxLayout;
+            row->addWidget(new QLabel(spec.label, editor));
+            auto *button = new QPushButton(editor);
+            button->setCursor(Qt::PointingHandCursor);
+            const auto show = [button](const QColor &color) {
+                QPixmap swatch(14, 14);
+                swatch.fill(color);
+                button->setIcon(QIcon(swatch));
+                button->setText(color.name());
+            };
+            show(QColor(settings->stringValue(key)));
+            connect(button, &QPushButton::clicked, editor, [button, show, commit, label = spec.label]() {
+                const QColor picked = QColorDialog::getColor(QColor(button->text()), button, label);
+                if (!picked.isValid())
+                    return;
+                show(picked);
+                commit(picked.name());
+            });
+            row->addWidget(button);
             row->addStretch();
             form->addLayout(row);
             addHelp();
@@ -419,6 +477,7 @@ QWidget *PluginsPage::buildSettingsEditor(const QString &id, QWidget *parent)
         }
         form->addWidget(error);
     }
+    refreshVisibility();
     return editor;
 }
 

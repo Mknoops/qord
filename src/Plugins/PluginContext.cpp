@@ -274,6 +274,7 @@ public:
     {
         inner->openUserProfile(accountId, guildId, userId);
     }
+    [[nodiscard]] Id currentAccountId() const override { return inner->currentAccountId(); }
     void refreshAttachments(Id accountId, Id channelId, Id messageId) override
     {
         inner->refreshAttachments(accountId, channelId, messageId);

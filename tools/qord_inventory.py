@@ -95,7 +95,7 @@ PERMISSIONS = {
     "read_memberships",
 }
 
-SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action"}
+SETTING_TYPES = {"bool", "int", "number", "string", "choice", "stringlist", "json", "action", "color"}
 
 # Hook name -> call that must appear in client code (outside src/Plugins) for
 # the hook to count as wired into the running client. Must match PluginHost.
@@ -138,6 +138,9 @@ HOOK_DISPATCH = {
     "memberships": "dispatchRemoved(",
     "highlights": "dispatchHighlightMessage(",
     "inboxTabs": "dispatchInboxTabs(",
+    "messagePopover": "dispatchMessagePopoverButtons(",
+    "roleContextMenu": "dispatchRoleContextMenuItems(",
+    "profileTheme": "dispatchProfileTheme(",
 }
 
 # One line per hook for docs/writing-plugins.md; every hook needs one.
@@ -180,6 +183,9 @@ HOOK_DOCS = {
     "memberships": "Your friends, incoming requests, servers and group DMs, and when one of them removes you",
     "highlights": "Treat a message as if it mentioned you: the gold highlight and a mention's notification",
     "inboxTabs": "Tabs of messages in the inbox next to Mentions, with remove and Clear All",
+    "messagePopover": "Buttons on a message's hover bar, before the client's own; left and right click",
+    "roleContextMenu": "Items in a role's right-click menu (server settings' role list, PermissionsViewer)",
+    "profileTheme": "The theme colours a profile is shown with (FakeProfileThemes)",
 }
 
 MANIFEST_REQUIRED = {
@@ -362,10 +368,25 @@ def validate_manifest(path: Path, m, inventory_by_name: dict[str, dict]) -> list
         if s["key"] in keys:
             issues.append(Issue("manifest", f"{rel}: duplicate setting key {s['key']!r}"))
         keys.add(s["key"])
+        when = s.get("showWhen")
+        if when is not None and (not isinstance(when, dict) or not when.get("key") or not when.get("values")):
+            issues.append(Issue("manifest", f"{rel}: setting {s['key']} has a showWhen without key and values"))
         if s["type"] == "choice":
             values = [c.get("value") for c in s.get("choices", []) if isinstance(c, dict)]
             if not values or s["default"] not in values:
                 issues.append(Issue("manifest", f"{rel}: choice setting {s['key']} needs choices containing its default"))
+
+    for field in ("gaps", "notApplicable", "contributors"):
+        value = m.get(field, [])
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            issues.append(Issue("manifest", f"{rel}: {field} must be a list of strings"))
+        elif field == "notApplicable" and any(len(v.strip()) < 20 for v in value):
+            issues.append(Issue("manifest", f"{rel}: each notApplicable entry must say what Qord lacks (at least 20 characters)"))
+
+    for s in m.get("settings") or []:
+        when = s.get("showWhen") if isinstance(s, dict) else None
+        if isinstance(when, dict) and when.get("key") and when["key"] not in keys:
+            issues.append(Issue("manifest", f"{rel}: setting {s['key']} shows when unknown setting {when['key']!r}"))
 
     name = m.get("equicordName")
     entry = inventory_by_name.get(name)
@@ -567,9 +588,15 @@ def derive_status(rec: PluginRecord, errors: list[Issue], warnings: list[Issue],
             notes.append("unwired hooks: " + ", ".join(rec.unwired_hooks))
         elif rec.hooks_wired and not verified:
             notes.append("wired; not yet verified in the running client")
+    def listed(items):
+        return "; ".join(i.strip().rstrip(".") for i in items)
+
     gaps = rec.manifest.get("gaps") or []
     if gaps:
-        notes.append("gaps: " + "; ".join(gaps))
+        notes.append("gaps: " + listed(gaps))
+    not_applicable = rec.manifest.get("notApplicable") or []
+    if not_applicable:
+        notes.append("not applicable: " + listed(not_applicable))
     if rec.manifest.get("notes"):
         notes.insert(0, rec.manifest["notes"])
     rec.status = status

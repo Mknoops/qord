@@ -4,6 +4,7 @@
  * Equicord's src/utils/apng.ts (apng-canvas, MIT, David Mzareulyan); the
  * frame drawing follows FakeNitro's sendAnimatedSticker(). Upstream encodes
  * with gifenc; this is a small GIF89a writer instead.
+ * The GIF writer (parallel, frame deltas): Maarten
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "ApngToGif.hpp"
@@ -12,9 +13,13 @@
 
 #include <QHash>
 #include <QPainter>
+#include <QVector>
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <thread>
+#include <vector>
 
 namespace Qord {
 namespace Plugins {
@@ -160,6 +165,7 @@ QList<QRgb> quantize(const QHash<quint16, int> &histogram, int maxColors)
 QByteArray lzw(const QByteArray &indices, int minCodeSize)
 {
     QByteArray out;
+    out.reserve(indices.size() / 2);
     quint32 bitBuffer = 0;
     int bitCount = 0;
     const auto write = [&](int code, int size) {
@@ -174,7 +180,17 @@ QByteArray lzw(const QByteArray &indices, int minCodeSize)
     const int clearCode = 1 << minCodeSize;
     int codeSize = minCodeSize + 1;
     int maxCode = clearCode + 1;
-    QHash<quint32, int> dictionary;
+    // (prefix code, next index) -> code, open addressing: much faster than
+    // a QHash, and cheap to clear
+    constexpr quint32 TableSize = 8192;
+    std::vector<qint32> keys(TableSize, -1);
+    std::vector<quint16> codes(TableSize);
+    const auto slot = [&](quint32 key) {
+        quint32 h = (key * 2654435761u) >> 19; // top 13 bits
+        while (keys[h] != -1 && quint32(keys[h]) != key)
+            h = (h + 1) & (TableSize - 1);
+        return h;
+    };
     write(clearCode, codeSize);
     if (indices.isEmpty()) {
         write(clearCode + 1, codeSize);
@@ -183,18 +199,20 @@ QByteArray lzw(const QByteArray &indices, int minCodeSize)
         for (qsizetype i = 1; i < indices.size(); ++i) {
             const int next = byteAt(indices, i);
             const quint32 key = (quint32(current) << 8) | quint32(next);
-            const auto found = dictionary.constFind(key);
-            if (found != dictionary.constEnd()) {
-                current = *found;
+            const quint32 h = slot(key);
+            if (keys[h] != -1) {
+                current = codes[h];
                 continue;
             }
             write(current, codeSize);
-            dictionary.insert(key, ++maxCode);
+            ++maxCode;
+            keys[h] = qint32(key);
+            codes[h] = quint16(maxCode);
             if (maxCode >= (1 << codeSize))
                 ++codeSize;
             if (maxCode == 4095) {
                 write(clearCode, codeSize);
-                dictionary.clear();
+                std::fill(keys.begin(), keys.end(), -1);
                 codeSize = minCodeSize + 1;
                 maxCode = clearCode + 1;
             }
@@ -215,6 +233,127 @@ QByteArray lzw(const QByteArray &indices, int minCodeSize)
     }
     blocks.append('\0');
     return blocks;
+}
+
+// Runs body(0..count-1) over the machine's cores
+template <typename F>
+void parallelFor(qsizetype count, F &&body)
+{
+    const qsizetype threads =
+            qMin<qsizetype>(count, qBound(1, int(std::thread::hardware_concurrency()), 16));
+    if (threads <= 1) {
+        for (qsizetype i = 0; i < count; ++i)
+            body(i);
+        return;
+    }
+    std::atomic<qsizetype> next { 0 };
+    const auto work = [&] {
+        for (qsizetype i = next++; i < count; i = next++)
+            body(i);
+    };
+    std::vector<std::thread> pool;
+    pool.reserve(size_t(threads - 1));
+    for (qsizetype t = 1; t < threads; ++t)
+        pool.emplace_back(work);
+    work();
+    for (std::thread &thread : pool)
+        thread.join();
+}
+
+// A colour at 5 bits per channel, as the palette is built
+inline quint16 colorKey(QRgb px)
+{
+    return quint16(((qRed(px) >> 3) << 10) | ((qGreen(px) >> 3) << 5) | (qBlue(px) >> 3));
+}
+
+struct FramePlan
+{
+    QRect rect;
+    bool delta = false; // drawn over the frame before
+    bool sparse = false; // and its unchanged pixels left transparent
+    int disposal = 2; // 1 keep, 2 clear, before the next frame
+};
+
+// One frame's graphic control extension, descriptor, colour table and data
+QByteArray encodeFrame(const QImage &image, const QImage *before, const FramePlan &plan, double delayMs)
+{
+    const QRect r = plan.rect;
+    const auto drawn = [&](int x, int y, QRgb px) {
+        if (qAlpha(px) < 128)
+            return false;
+        if (!plan.sparse)
+            return true;
+        const QRgb old = reinterpret_cast<const QRgb *>(before->constScanLine(y))[x];
+        return qAlpha(old) < 128 || colorKey(old) != colorKey(px);
+    };
+
+    QHash<quint16, int> histogram;
+    for (int y = r.top(); y <= r.bottom(); ++y) {
+        const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = r.left(); x <= r.right(); ++x)
+            if (drawn(x, y, line[x]))
+                ++histogram[colorKey(line[x])];
+    }
+    const QList<QRgb> palette = histogram.isEmpty() ? QList<QRgb>() : quantize(histogram, 255);
+    // The smallest table that holds the palette and the transparent index
+    const int transparent = int(palette.size());
+    int bits = 1;
+    while ((1 << bits) < transparent + 1)
+        ++bits;
+
+    std::vector<qint16> nearest(32768, -1);
+    QByteArray indices;
+    indices.reserve(qsizetype(r.width()) * r.height());
+    for (int y = r.top(); y <= r.bottom(); ++y) {
+        const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = r.left(); x <= r.right(); ++x) {
+            const QRgb px = line[x];
+            if (!drawn(x, y, px)) {
+                indices.append(static_cast<char>(quint8(transparent)));
+                continue;
+            }
+            const quint16 key = colorKey(px);
+            if (nearest[key] < 0) {
+                int best = 0;
+                long bestDistance = -1;
+                for (int i = 0; i < palette.size(); ++i) {
+                    const long dr = qRed(palette[i]) - qRed(px);
+                    const long dg = qGreen(palette[i]) - qGreen(px);
+                    const long db = qBlue(palette[i]) - qBlue(px);
+                    const long d = dr * dr + dg * dg + db * db;
+                    if (bestDistance < 0 || d < bestDistance) {
+                        bestDistance = d;
+                        best = i;
+                    }
+                }
+                nearest[key] = qint16(best);
+            }
+            indices.append(char(nearest[key]));
+        }
+    }
+
+    QByteArray out;
+    // Graphic control: disposal, transparent index, delay
+    out.append("\x21\xF9\x04", 3);
+    out.append(char((plan.disposal << 2) | 1));
+    appendLe16(out, int(std::lround(delayMs / 10.0)));
+    out.append(static_cast<char>(quint8(transparent)));
+    out.append('\0');
+    // Image descriptor with a local colour table
+    out.append('\x2C');
+    appendLe16(out, r.left());
+    appendLe16(out, r.top());
+    appendLe16(out, r.width());
+    appendLe16(out, r.height());
+    out.append(static_cast<char>(quint8(0x80 | (bits - 1))));
+    for (int i = 0; i < (1 << bits); ++i) {
+        const QRgb c = i < palette.size() ? palette[i] : qRgb(0, 0, 0);
+        out.append(char(qRed(c))).append(char(qGreen(c))).append(char(qBlue(c)));
+    }
+    const int minCodeSize = qMax(2, bits);
+    out.append(char(minCodeSize));
+    out += lzw(indices, minCodeSize);
+    return out;
 }
 
 } // namespace
@@ -368,6 +507,70 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
     if (width <= 0 || height <= 0 || width > 0xFFFF || height > 0xFFFF)
         return {};
 
+    QVector<QImage> images(frames.size()); // sized up front: filled by index on several threads
+    parallelFor(frames.size(), [&](qsizetype i) { images[i] = frames[i].convertToFormat(QImage::Format_ARGB32); });
+    // Qord: a frame like the one before only adds its time to it
+    QList<QImage> kept;
+    QList<double> times;
+    for (qsizetype i = 0; i < images.size(); ++i) {
+        if (images[i].width() != width || images[i].height() != height)
+            return {};
+        const double delay = delaysMs.value(i, 100);
+        if (!kept.isEmpty() && images[i] == kept.last()) {
+            times.last() += delay;
+            continue;
+        }
+        kept.append(images[i]);
+        times.append(delay);
+    }
+    images.clear();
+
+    // Qord: a frame after the first draws only the rectangle that changed,
+    // over the frame before (kept: disposal 1), with what didn't change in
+    // it transparent unless most of it did.
+    // A pixel turning transparent can't be drawn that way, so then the
+    // frame before is cleared (disposal 2) and this one drawn whole.
+    const qsizetype count = kept.size();
+    QVector<FramePlan> plans(count);
+    parallelFor(count, [&](qsizetype i) {
+        FramePlan &plan = plans[i];
+        plan.rect = QRect(0, 0, width, height);
+        if (i == 0)
+            return;
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        qint64 changed = 0;
+        for (int y = 0; y < height; ++y) {
+            const auto *now = reinterpret_cast<const QRgb *>(kept[i].constScanLine(y));
+            const auto *before = reinterpret_cast<const QRgb *>(kept[i - 1].constScanLine(y));
+            for (int x = 0; x < width; ++x) {
+                const bool opaque = qAlpha(now[x]) >= 128;
+                const bool wasOpaque = qAlpha(before[x]) >= 128;
+                if (!opaque && wasOpaque)
+                    return;
+                if (opaque != wasOpaque || (opaque && colorKey(now[x]) != colorKey(before[x]))) {
+                    ++changed;
+                    minX = qMin(minX, x);
+                    maxX = qMax(maxX, x);
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+        }
+        plan.delta = true;
+        plan.rect = maxX < 0 ? QRect(0, 0, 1, 1) : QRect(QPoint(minX, minY), QPoint(maxX, maxY));
+        // Scattered transparent pixels in a mostly changed area cost more
+        // than they save
+        plan.sparse = changed < qint64(plan.rect.width()) * plan.rect.height() * 3 / 4;
+    });
+    for (qsizetype i = 0; i < count; ++i)
+        plans[i].disposal = i + 1 < count && plans[i + 1].delta ? 1 : 2;
+
+    // Each frame quantized and compressed on its own thread, joined in order
+    QVector<QByteArray> blocks(count);
+    parallelFor(count, [&](qsizetype i) {
+        blocks[i] = encodeFrame(kept[i], i ? &kept[i - 1] : nullptr, plans[i], times[i]);
+    });
+
     QByteArray gif("GIF89a");
     appendLe16(gif, width);
     appendLe16(gif, height);
@@ -376,78 +579,20 @@ QByteArray encodeGif(const QList<QImage> &frames, const QList<double> &delaysMs)
     gif.append('\0'); // aspect
     // Loop forever (NETSCAPE2.0)
     gif.append("\x21\xFF\x0BNETSCAPE2.0\x03\x01\x00\x00\x00", 19);
-
-    constexpr int Transparent = 255;
-    for (qsizetype f = 0; f < frames.size(); ++f) {
-        const QImage image = frames[f].convertToFormat(QImage::Format_ARGB32);
-        if (image.width() != width || image.height() != height)
-            return {};
-
-        QHash<quint16, int> histogram;
-        for (int y = 0; y < height; ++y) {
-            const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
-            for (int x = 0; x < width; ++x)
-                if (qAlpha(line[x]) >= 128)
-                    ++histogram[quint16(((qRed(line[x]) >> 3) << 10) | ((qGreen(line[x]) >> 3) << 5) | (qBlue(line[x]) >> 3))];
-        }
-        const QList<QRgb> palette = quantize(histogram, 255);
-
-        QHash<quint16, quint8> nearest;
-        QByteArray indices;
-        indices.reserve(qsizetype(width) * height);
-        for (int y = 0; y < height; ++y) {
-            const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
-            for (int x = 0; x < width; ++x) {
-                const QRgb px = line[x];
-                if (qAlpha(px) < 128) {
-                    indices.append(static_cast<char>(quint8(Transparent)));
-                    continue;
-                }
-                const quint16 key = quint16(((qRed(px) >> 3) << 10) | ((qGreen(px) >> 3) << 5) | (qBlue(px) >> 3));
-                auto it = nearest.constFind(key);
-                if (it == nearest.constEnd()) {
-                    int best = 0;
-                    long bestDistance = -1;
-                    for (int i = 0; i < palette.size(); ++i) {
-                        const long dr = qRed(palette[i]) - qRed(px);
-                        const long dg = qGreen(palette[i]) - qGreen(px);
-                        const long db = qBlue(palette[i]) - qBlue(px);
-                        const long d = dr * dr + dg * dg + db * db;
-                        if (bestDistance < 0 || d < bestDistance) {
-                            bestDistance = d;
-                            best = i;
-                        }
-                    }
-                    it = nearest.insert(key, quint8(best));
-                }
-                indices.append(char(*it));
-            }
-        }
-
-        // Graphic control: restore to background, transparent index, delay
-        const int delayCs = int(std::lround(delaysMs.value(f, 100) / 10.0));
-        gif.append("\x21\xF9\x04", 3);
-        gif.append(char((2 << 2) | 1));
-        appendLe16(gif, delayCs);
-        gif.append(static_cast<char>(quint8(Transparent)));
-        gif.append('\0');
-
-        // Image descriptor with a 256-entry local colour table
-        gif.append('\x2C');
-        appendLe16(gif, 0);
-        appendLe16(gif, 0);
-        appendLe16(gif, width);
-        appendLe16(gif, height);
-        gif.append(static_cast<char>(quint8(0x80 | 7)));
-        for (int i = 0; i < 256; ++i) {
-            const QRgb c = i < palette.size() ? palette[i] : qRgb(0, 0, 0);
-            gif.append(char(qRed(c))).append(char(qGreen(c))).append(char(qBlue(c)));
-        }
-        gif.append(char(8));
-        gif += lzw(indices, 8);
-    }
+    for (const QByteArray &block : std::as_const(blocks))
+        gif += block;
     gif.append('\x3B');
     return gif;
+}
+
+QList<QImage> scaledFrames(const QList<QImage> &frames, const QSize &size)
+{
+    QVector<QImage> scaled(frames.size());
+    parallelFor(frames.size(), [&](qsizetype i) {
+        scaled[i] = frames[i].size() == size ? frames[i]
+                                             : frames[i].scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    });
+    return QList<QImage>(scaled.begin(), scaled.end());
 }
 
 } // namespace ApngToGif

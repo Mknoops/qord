@@ -1,5 +1,6 @@
 #include "Core/OpenExternalUrl.hpp"
 #include "ClientPlugins.hpp"
+#include "RawJson.hpp"
 #include <QPointer>
 #include <memory>
 
@@ -240,7 +241,8 @@ void SessionRelationshipDirectory::fetchUserAffinities(Id accountId, AffinitiesC
                 QList<UserAffinity> out;
                 for (const auto &[userId, rank] : affinities)
                     out.append({ quint64(userId), rank });
-                done(response.success, out);
+                // 404: Discord has no affinities for the account
+                done(response.success || response.statusCode == 404, out);
             });
 }
 
@@ -611,6 +613,17 @@ void QtUiService::showServerInfo(const ServerInfoView &view)
 {
     if (serverInfoShower())
         serverInfoShower()(view);
+}
+
+Id QtUiService::currentAccountId() const
+{
+    return currentAccountProvider() ? currentAccountProvider()() : 0;
+}
+
+std::function<Id()> &QtUiService::currentAccountProvider()
+{
+    static std::function<Id()> provider;
+    return provider;
 }
 
 void QtUiService::openUserProfile(Id accountId, Id guildId, Id userId)
@@ -1198,15 +1211,26 @@ std::optional<StickerInfo> SessionExpressions::sticker(Id accountId, Id stickerI
     if (!instance || !instance->emojis())
         return std::nullopt;
     const auto found = instance->emojis()->stickerById(Acheron::Core::Snowflake(stickerId));
-    if (!found)
+    if (!found) {
+        // Discord's own packs (once the sticker picker loaded them)
+        for (const auto &pack : instance->discord()->cachedStickerPacks())
+            for (const auto &sticker : pack.stickers)
+                if (quint64(sticker.id.get()) == stickerId) {
+                    StickerInfo info;
+                    info.id = stickerId;
+                    info.name = sticker.name.get();
+                    info.formatType = int(sticker.formatType.get());
+                    info.standard = true;
+                    return info;
+                }
         return std::nullopt;
+    }
     StickerInfo info;
     info.id = stickerId;
     info.name = found->name.get();
     info.formatType = int(found->formatType.get());
     info.guildId = found->guildId.hasValue() ? quint64(found->guildId.get()) : 0;
     info.available = !found->available.hasValue() || found->available.get();
-    info.standard = false; // only servers' stickers are known
     return info;
 }
 
@@ -1237,7 +1261,117 @@ bool SessionExpressions::hasChannelPermission(Id accountId, Id channelId, quint6
 
 void SessionExpressions::setChatBypass(bool emojis, bool stickers)
 {
-    Acheron::Core::expressionBypass() = { emojis, stickers };
+    Acheron::Core::expressionBypass().emojis = emojis;
+    Acheron::Core::expressionBypass().stickers = stickers;
+}
+
+bool SessionExpressions::hasGuildPermission(Id accountId, Id guildId, quint64 permission) const
+{
+    Acheron::Core::ClientInstance *instance = session->client(Acheron::Core::Snowflake(accountId));
+    if (!instance || !guildId)
+        return false;
+    return instance->permissions()->hasGuildPermission(instance->accountId(), Acheron::Core::Snowflake(guildId),
+                                                       Acheron::Discord::Permission(permission));
+}
+
+void SessionExpressions::setStreamQualityBypass(bool on)
+{
+    Acheron::Core::expressionBypass().streamQuality = on;
+}
+
+void SessionExpressions::setVideoShrinking(bool on)
+{
+    Acheron::Core::expressionBypass().shrinkVideos = on;
+}
+
+void SessionExpressions::setVideoShrinkOptions(int priority, int maxSeconds, bool trimToFit)
+{
+    auto &bypass = Acheron::Core::expressionBypass();
+    bypass.videoPriority = qBound(0, priority, 2);
+    bypass.maxVideoSeconds = qMax(0, maxSeconds);
+    bypass.trimVideosToFit = trimToFit;
+}
+
+void SessionExpressions::setFakeReactions(bool on)
+{
+    Acheron::Core::expressionBypass().reactions = on;
+}
+
+void SessionExpressions::setLongMessageSplitter(SplitCounter count)
+{
+    Acheron::Core::expressionBypass().splitCount = std::move(count);
+}
+
+void SessionExpressions::setOversizeImageHandler(ImageShrinker shrink)
+{
+    if (!shrink) {
+        Acheron::Core::expressionBypass().shrinkImage = nullptr;
+        return;
+    }
+    Acheron::Core::expressionBypass().shrinkImage =
+            [shrink](const QString &fileName, const QString &mimeType, const QByteArray &data,
+                     qint64 limit) -> std::optional<Acheron::Core::ShrunkImage> {
+        const std::optional<AttachedFile> out = shrink({ fileName, mimeType, data }, limit);
+        if (!out)
+            return std::nullopt;
+        return Acheron::Core::ShrunkImage { out->fileName, out->mimeType, out->data };
+    };
+}
+
+std::optional<QString> SessionGuilds::rawJson(Id accountId, RawKind kind, Id id, Id guildId) const
+{
+    namespace Raw = Acheron::Discord::RawJson;
+    using Acheron::Core::Snowflake;
+    Acheron::Core::ClientInstance *instance = session->client(Snowflake(accountId));
+    if (!instance || !id)
+        return std::nullopt;
+    QJsonObject json;
+    switch (kind) {
+    case RawKind::Guild: {
+        auto guild = instance->getGuild(Snowflake(id));
+        if (!guild)
+            return std::nullopt;
+        if (!guild->roles.hasValue())
+            guild->roles = instance->getRolesForGuild(Snowflake(id));
+        json = Raw::toJson(*guild);
+        break;
+    }
+    case RawKind::Channel: {
+        const auto channel = instance->getChannel(Snowflake(id));
+        if (!channel)
+            return std::nullopt;
+        json = Raw::toJson(*channel);
+        break;
+    }
+    case RawKind::User: {
+        const auto user = instance->users() ? instance->users()->getUser(Snowflake(id)) : std::nullopt;
+        if (!user)
+            return std::nullopt;
+        json = Raw::toJson(*user);
+        break;
+    }
+    case RawKind::Role: {
+        for (const auto &role : instance->getRolesForGuild(Snowflake(guildId)))
+            if (quint64(role.id.get()) == id)
+                json = Raw::toJson(role);
+        if (json.isEmpty())
+            return std::nullopt;
+        break;
+    }
+    case RawKind::Member: {
+        if (!instance->users())
+            return std::nullopt;
+        const auto member = instance->users()->getMember(Snowflake(guildId), Snowflake(id));
+        if (!member)
+            return std::nullopt;
+        json = Raw::toJson(*member);
+        if (!json.contains(QLatin1String("user")))
+            if (const auto user = instance->users()->getUser(Snowflake(id)))
+                json.insert(QStringLiteral("user"), Raw::toJson(*user));
+        break;
+    }
+    }
+    return QString::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Indented)).trimmed();
 }
 
 std::optional<GuildInfo> SessionGuilds::guild(Id accountId, Id guildId) const

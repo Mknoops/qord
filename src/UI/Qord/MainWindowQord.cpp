@@ -120,9 +120,11 @@ class ChatClickWatcher : public QObject
 public:
     using ClickHandler = std::function<void(const QPoint &pos, int detail, Qt::MouseButton button)>;
 
+    // One application-wide filter: it sees the viewport's mouse events and the
+    // keys held anywhere. A second filter on the viewport itself would see
+    // every press twice, making each click a double click.
     ChatClickWatcher(QWidget *viewport, QObject *parent) : QObject(parent), viewport(viewport)
     {
-        viewport->installEventFilter(this);
         qApp->installEventFilter(this);
     }
 
@@ -503,6 +505,9 @@ void MainWindow::setupQordFeatures()
         if (Core::ClientInstance *instance = session->client(Snowflake(accountId)))
             showUserProfile(instance, Snowflake(userId), Snowflake(guildId));
     };
+    Qord::Plugins::QtUiService::currentAccountProvider() = [this]() -> Qord::Plugins::Id {
+        return currentInstance ? quint64(currentInstance->accountId()) : 0;
+    };
     Qord::Plugins::SessionGuilds::guildIdsProvider() = [this](Qord::Plugins::Id accountId) {
         QList<Qord::Plugins::Id> out;
         for (const Snowflake id : channelTreeModel->guildIds(Snowflake(accountId)))
@@ -566,6 +571,7 @@ void MainWindow::setupQordFeatures()
         Qord::Plugins::QtUiService::localMessageShower() = nullptr;
         Qord::Plugins::QtUiService::serverInfoShower() = nullptr;
         Qord::Plugins::QtUiService::profileOpener() = nullptr;
+        Qord::Plugins::QtUiService::currentAccountProvider() = nullptr;
         Qord::Plugins::SessionGuilds::guildIdsProvider() = nullptr;
     });
 
@@ -692,8 +698,15 @@ void MainWindow::setupQordFeatures()
             return;
         disconnect(emojiPicker, &EmojiPicker::emojiPicked, nullptr, nullptr);
         connect(emojiPicker, &EmojiPicker::emojiPicked, this, [this, channelId, messageId](const Core::EmojiMatch &match) {
-            if (currentInstance)
-                currentInstance->messages()->addReaction(channelId, messageId, EmojiPicker::reactionKey(match), false);
+            if (!currentInstance)
+                return;
+            // FakeNitro: an emoji you can't react with goes as a reply, without a ping
+            if (match.isCustom() && Core::expressionBypass().reactions
+                && !currentInstance->emojis()->canReactWith(match.customId, channelId)) {
+                currentInstance->messages()->sendMessage(channelId, match.insertText, messageId, {}, false);
+                return;
+            }
+            currentInstance->messages()->addReaction(channelId, messageId, EmojiPicker::reactionKey(match), false);
         });
         emojiPicker->open(currentInstance, channelId, true, chatView);
         emojiPicker->moveNear(QCursor::pos()); // next to the pointer, like Discord's reaction picker
@@ -789,38 +802,19 @@ void MainWindow::setupQordFeatures()
     // A GIF is sent as its link, through the normal send path (plugins, slowmode, replies)
     connect(expressionPicker, &ExpressionPicker::gifPicked, this,
             [this](const QString &url) { emit messageInput->sendMessage(url, {}); });
-    connect(expressionPicker, &ExpressionPicker::stickerPicked, this, [this](Snowflake stickerId) {
-        if (!currentInstance || !chatModel->getActiveChannelId().isValid())
-            return;
-        const Snowflake channelId = chatModel->getActiveChannelId();
-        const Snowflake replyTo = messageInput->replyTargetMessageId();
-        // Plugins see the sticker like any send (FakeNitro may turn it into a link)
-        QString content;
-        auto *host = Qord::Plugins::PluginHost::instance();
-        if (host && host->hasHook(Qord::Plugins::Hook::BeforeSend)) {
-            Qord::Plugins::OutgoingMessage out;
-            out.accountId = quint64(currentInstance->accountId());
-            out.channelId = Qord::Plugins::pluginId(channelId);
-            out.guildId = Qord::Plugins::pluginId(currentInstance->discord()->getGuildIdForChannel(channelId));
-            out.replyToMessageId = quint64(replyTo);
-            out.stickerIds = { quint64(stickerId) };
-            host->dispatchBeforeSend(out);
-            if (out.cancel)
-                return;
-            content = out.content;
-            if (out.stickerIds.isEmpty()) {
-                messageInput->clearReplyTarget();
-                if (!content.trimmed().isEmpty())
-                    (void)currentInstance->messages()->sendMessage(channelId, content, replyTo, {},
-                                                                   messageInput->replyMentionEnabled(), false);
-                return;
-            }
-            stickerId = Snowflake(out.stickerIds.first());
-        }
-        messageInput->clearReplyTarget();
-        currentInstance->discord()->sendSticker(channelId, stickerId, replyTo, [](const Core::Result<void> &) {},
-                                                content);
-    });
+    // A sticker goes through the normal send path (plugins, replies, slowmode)
+    // with whatever is in the message box; shift-click collects up to three
+    connect(expressionPicker, &ExpressionPicker::stickerPicked, this,
+            [this](Snowflake stickerId, const QString &name, bool more) {
+                if (!currentInstance || !chatModel->getActiveChannelId().isValid())
+                    return;
+                if (!messageInput->addSticker(stickerId, name)) {
+                    Toast::show(this, tr("You can send up to 3 stickers at once"), Toast::Type::Failure);
+                    return;
+                }
+                if (!more)
+                    messageInput->submit();
+            });
     Qord::Plugins::QtUiService::fileAttacher() = [this](const QString &fileName, const QByteArray &data,
                                                         const QString &mimeType) {
         messageInput->attachData(fileName, data, mimeType);

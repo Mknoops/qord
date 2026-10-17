@@ -9,6 +9,7 @@
 #include <QTimer>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 
 #include "Core/Emoji/EmojiMatch.hpp"
@@ -30,11 +31,37 @@ struct FrecencyUserSettings;
 
 namespace Core {
 
-// Qord: FakeNitro lets the pickers offer emojis and stickers Discord would lock
+// Qord: an image made small enough to upload
+struct ShrunkImage
+{
+    QString fileName;
+    QString mimeType;
+    QByteArray data;
+};
+
+// Qord: FakeNitro lets the pickers offer emojis and stickers Discord would
+// lock, Go Live offer Nitro qualities, and shrinks images too large to upload
 struct ExpressionBypass
 {
     bool emojis = false;
     bool stickers = false;
+    bool streamQuality = false;
+    // Videos over the upload limit are re-encoded to fit (where Qord has the
+    // video encoders)
+    bool shrinkVideos = false;
+    // How: 0 balanced, 1 sharper (15 FPS), 2 smoother (up to 60 FPS); only
+    // the first maxVideoSeconds (0: all); cut to what fits when too long
+    int videoPriority = 0;
+    int maxVideoSeconds = 0;
+    bool trimVideosToFit = false;
+    // The reaction picker offers what the message picker does; an emoji you
+    // can't react with is sent as a reply instead (FakeNitro)
+    bool reactions = false;
+    // How many messages a too-long message is sent as; unset when it isn't split
+    std::function<int(const QString &text, int limit)> splitCount;
+    std::function<std::optional<ShrunkImage>(const QString &fileName, const QString &mimeType,
+                                             const QByteArray &data, qint64 limit)>
+            shrinkImage;
 };
 inline ExpressionBypass &expressionBypass()
 {
@@ -71,6 +98,8 @@ public:
     // Qord: an emoji by frecency key (custom emoji id or Unicode name), if
     // you can use it here
     [[nodiscard]] std::optional<EmojiMatch> matchForKey(const QString &key, Snowflake channelId, bool forReaction);
+    // Qord: whether Discord takes this custom emoji as your reaction here
+    [[nodiscard]] bool canReactWith(Snowflake emojiId, Snowflake channelId);
     // Qord: your Discord favorite emojis (same keys), in Discord's order
     [[nodiscard]] const QStringList &favoriteEmojis() const { return favorites_; }
     // Qord: an emoji as plugins see it

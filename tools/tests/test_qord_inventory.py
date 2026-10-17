@@ -138,6 +138,11 @@ class StatusDerivation(unittest.TestCase):
         self.assertEqual(self.derive(self.rec(**verified))[0], inv.COMPLETE)
         gapped = dict(verified, manifest=self.manifest(gaps=["render path"]))
         self.assertEqual(self.derive(self.rec(**gapped))[0], inv.TESTED)
+        # Upstream behavior for a Discord feature Qord lacks entirely doesn't hold it back
+        absent = dict(verified, manifest=self.manifest(notApplicable=["Qord has no soundboard to unlock"]))
+        r = self.rec(**absent)
+        self.assertEqual(self.derive(r)[0], inv.COMPLETE)
+        self.assertIn("not applicable: Qord has no soundboard", r.notes)
 
     def test_scaffold_test_is_not_tested(self):
         with tempfile.TemporaryDirectory() as d:

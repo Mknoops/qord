@@ -152,6 +152,7 @@ ChatView::ChatView(QWidget *parent) : QListView(parent), hoveredRow(-1), hovered
     connect(actionBar, &MessageActionBar::shiftHeldChanged, this, &ChatView::updateHoveredMessage);
     connect(actionBar, &MessageActionBar::triggered, this, &ChatView::onActionBarTriggered);
     connect(actionBar, &MessageActionBar::moreRequested, this, &ChatView::onActionBarMoreRequested);
+    connect(actionBar, &MessageActionBar::pluginButtonClicked, this, &ChatView::onActionBarPluginButton);
 
     auto *highlightFade = new QVariantAnimation(this);
     highlightFade->setDuration(1000);
@@ -782,7 +783,15 @@ bool ChatView::viewportEvent(QEvent *event)
             return true;
         }
         if (region && region->kind == ChatLayout::HitRegion::Kind::Sticker) {
-            QToolTip::showText(helpEvent->globalPos(), resolved.ctx.stickers[region->index].name, viewport(), region->rect);
+            const auto &sticker = resolved.ctx.stickers[region->index];
+            const QString tip = sticker.note.isEmpty() ? sticker.name : sticker.name + QLatin1Char('\n') + sticker.note;
+            QToolTip::showText(helpEvent->globalPos(), tip, viewport(), region->rect);
+            return true;
+        }
+
+        // Qord: a custom emoji's name
+        if (const QString tip = ChatLayout::getToolTipAt(resolved, helpEvent->pos()); !tip.isEmpty()) {
+            QToolTip::showText(helpEvent->globalPos(), tip, viewport());
             return true;
         }
 
@@ -1104,7 +1113,10 @@ void ChatView::updateHoveredMessage()
         return;
     }
 
-    actionBarMessageId = hovered.data(ChatModel::MessageIdRole).toULongLong();
+    const Core::Snowflake hoveredId = hovered.data(ChatModel::MessageIdRole).toULongLong();
+    if (hoveredId != actionBarMessageId || !actionBar->isVisible())
+        updatePluginPopoverButtons(hovered);
+    actionBarMessageId = hoveredId;
     actionBar->setCanDelete(canDeleteMessage(hovered));
     actionBar->adjustSize();
     actionBar->move(actionBarPosition(hovered));
@@ -1143,6 +1155,31 @@ void ChatView::triggerMessageAction(MessageActionBar::Action action, Core::Snowf
         emit addReactionRequested(chatModel->getActiveChannelId(), messageId);
         break;
     }
+}
+
+// Qord: plugin buttons on the hover bar (Hook::MessagePopover)
+void ChatView::updatePluginPopoverButtons(const QModelIndex &index)
+{
+    QList<MessageActionBar::PluginButton> buttons;
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (plugins && plugins->hasHook(Qord::Plugins::Hook::MessagePopover))
+        if (const auto ctx = pluginContext(index.row()))
+            for (const auto &entry : plugins->dispatchMessagePopoverButtons(*ctx))
+                buttons.append({ entry.pluginId, entry.button.id, entry.button.tooltip, entry.button.svg });
+    actionBar->setPluginButtons(buttons);
+}
+
+void ChatView::onActionBarPluginButton(const QString &pluginId, const QString &buttonId, bool rightClick)
+{
+    auto *chatModel = qobject_cast<ChatModel *>(model());
+    auto *plugins = Qord::Plugins::PluginHost::instance();
+    if (!chatModel || !plugins)
+        return;
+    const int row = chatModel->rowForMessage(actionBarMessageId);
+    if (row < 0)
+        return;
+    if (const auto ctx = pluginContext(row, true))
+        plugins->dispatchMessagePopoverClicked(pluginId, buttonId, *ctx, rightClick);
 }
 
 void ChatView::onActionBarTriggered(MessageActionBar::Action action)

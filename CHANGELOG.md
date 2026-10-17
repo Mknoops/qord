@@ -5,6 +5,16 @@ reasoning behind each change is in [docs/decisions.md](docs/decisions.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Settings looks like Discord's: pages grouped under User Settings, App Settings and
+  Qord in a sidebar, each page under its title, an ESC button to close, and a
+  roomier plugin list. Buttons, fields, checkboxes, menus and sliders in settings
+  windows and dialogs are drawn in Discord's style, and dialog buttons lose their
+  icons. Server Settings uses the same sidebar.
+- The member list no longer draws lines between role groups, and the columns of
+  the main window meet without a gap.
+
 ### Added
 
 - Plugins can add slash commands, shown in the message box's "/" suggestions with

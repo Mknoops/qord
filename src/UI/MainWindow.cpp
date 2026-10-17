@@ -1421,6 +1421,7 @@ void MainWindow::setupUi()
     leftSideWidget = buildLeftSide();
 
     mainSplitter = new QSplitter(this);
+    mainSplitter->setHandleWidth(1); // Qord: Discord's columns meet without a gap
     mainSplitter->addWidget(leftSideWidget);
     mainSplitter->addWidget(rightSideWidget);
     mainSplitter->addWidget(memberListView);

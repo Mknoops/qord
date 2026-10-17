@@ -30,9 +30,11 @@ signals:
 
 private:
     void setupUi();
+    void showPage(QWidget *page);
 
     QListWidget *categoryList;
     QStackedWidget *pages;
+    QLabel *pageTitle = nullptr;
     class PluginsPage *pluginsPage = nullptr;
     class DevicesPage *devicesPage = nullptr;
 };

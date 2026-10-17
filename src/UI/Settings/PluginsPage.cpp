@@ -84,13 +84,18 @@ PluginsPage::PluginsPage(QWidget *parent)
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
     list = new QListWidget(splitter);
-    list->setMinimumWidth(170);
+    list->setObjectName(QStringLiteral("PluginList"));
+    list->setMinimumWidth(240);
+    list->setFrameShape(QFrame::NoFrame);
+    list->setSpacing(1);
     detailsScroll = new QScrollArea(splitter);
     detailsScroll->setWidgetResizable(true);
     detailsScroll->setFrameShape(QFrame::NoFrame);
     splitter->addWidget(list);
     splitter->addWidget(detailsScroll);
     splitter->setStretchFactor(1, 1);
+    splitter->setHandleWidth(12);
+    splitter->setSizes({ 260, 600 });
     layout->addWidget(splitter, 1);
 
     populate();
@@ -126,6 +131,7 @@ void PluginsPage::populate()
         auto *item = new QListWidgetItem(m.name, list);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         item->setCheckState(info->enabled ? Qt::Checked : Qt::Unchecked);
+        item->setSizeHint(QSize(0, 32));
         item->setData(IdRole, id);
         item->setData(SearchRole, QStringList { m.name, m.description, m.equicordName, m.tags.join(' ') }.join(' ').toLower());
         item->setData(CategoriesRole, m.categories);

@@ -88,16 +88,7 @@ void MemberListDelegate::paintGroup(QPainter *painter, const QStyleOptionViewIte
     QString groupName = index.data(MemberListModel::GroupNameRole).toString();
     int groupCount = index.data(MemberListModel::GroupCountRole).toInt();
 
-    // separator except for the first
-    if (index.row() > 0) {
-        QColor sepColor = option.palette.mid().color();
-        sepColor.setAlpha(60);
-        painter->setPen(QPen(sepColor, 1));
-        painter->drawLine(option.rect.left() + HorizontalPadding,
-                          option.rect.top(),
-                          option.rect.right() - HorizontalPadding,
-                          option.rect.top());
-    }
+    // Qord: no separator line, as Discord's groups are set apart by space only
 
     QString text = groupName.toUpper() + QString::fromUtf8(" \u2014 ") + QString::number(groupCount);
 

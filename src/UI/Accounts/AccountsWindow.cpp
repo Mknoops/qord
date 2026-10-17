@@ -19,6 +19,7 @@ AccountsWindow::AccountsWindow(Session *session, AccountsModel *sharedModel, QWi
     : QWidget(parent, Qt::Window), session(session)
 {
     setWindowTitle(tr("Manage Accounts"));
+    setProperty("qordForm", true); // Discord's controls (Core/Theme/Stylesheet.cpp)
     resize(700, 450);
 
     this->model = sharedModel;

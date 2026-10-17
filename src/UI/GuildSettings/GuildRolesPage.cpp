@@ -810,6 +810,7 @@ QWidget *GuildRolesPage::buildListPane()
     layout->setSpacing(8);
 
     defaultPermissionsCard = new QPushButton(pane);
+    defaultPermissionsCard->setObjectName(QStringLiteral("SettingsCardButton"));
     defaultPermissionsCard->setCheckable(true);
     auto *cardLayout = new QVBoxLayout(defaultPermissionsCard);
     cardLayout->setContentsMargins(12, 8, 12, 8);

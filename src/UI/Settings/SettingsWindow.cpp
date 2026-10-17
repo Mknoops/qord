@@ -23,14 +23,26 @@ SettingsWindow::SettingsWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
 {
     setWindowTitle(tr("Settings"));
-    resize(760, 540);
+    setObjectName(QStringLiteral("SettingsWindow"));
+    setProperty("qordForm", true); // Discord's controls (Core/Theme/Stylesheet.cpp)
+    resize(1040, 720);
 
     setupUi();
 }
 
+void SettingsWindow::showPage(QWidget *page)
+{
+    for (int i = 0; i < categoryList->count(); ++i)
+        if (categoryList->item(i)->data(Qt::UserRole).toInt() == pages->indexOf(page)
+            && categoryList->item(i)->flags() & Qt::ItemIsEnabled) {
+            categoryList->setCurrentRow(i);
+            return;
+        }
+}
+
 void SettingsWindow::showPlugin(const QString &pluginId)
 {
-    categoryList->setCurrentRow(pages->indexOf(pluginsPage));
+    showPage(pluginsPage);
     pluginsPage->selectPlugin(pluginId);
 }
 
@@ -41,23 +53,83 @@ void SettingsWindow::setInstance(Core::ClientInstance *instance)
 
 void SettingsWindow::showDevices()
 {
-    categoryList->setCurrentRow(pages->indexOf(devicesPage));
+    showPage(devicesPage);
 }
 
 void SettingsWindow::setupUi()
 {
+    // Discord's settings: a sidebar of grouped pages, the page on the right
+    // under its title, and an ESC button to close
     auto *mainLayout = new QHBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    categoryList = new QListWidget(this);
-    categoryList->setFixedWidth(150);
+    auto *sidebar = new QWidget(this);
+    sidebar->setObjectName(QStringLiteral("SettingsSidebar"));
+    sidebar->setAttribute(Qt::WA_StyledBackground);
+    sidebar->setFixedWidth(232);
+    auto *sidebarLayout = new QVBoxLayout(sidebar);
+    sidebarLayout->setContentsMargins(16, 40, 8, 16);
+    categoryList = new QListWidget(sidebar);
+    categoryList->setObjectName(QStringLiteral("SettingsNav"));
+    categoryList->setFrameShape(QFrame::NoFrame);
+    categoryList->setFocusPolicy(Qt::NoFocus);
+    categoryList->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    sidebarLayout->addWidget(categoryList);
 
-    pages = new QStackedWidget(this);
+    auto *content = new QWidget(this);
+    content->setObjectName(QStringLiteral("SettingsContent"));
+    content->setAttribute(Qt::WA_StyledBackground);
+    auto *contentLayout = new QVBoxLayout(content);
+    contentLayout->setContentsMargins(40, 36, 24, 0);
+    contentLayout->setSpacing(16);
+    auto *titleRow = new QHBoxLayout;
+    pageTitle = new QLabel(content);
+    pageTitle->setObjectName(QStringLiteral("SettingsPageTitle"));
+    titleRow->addWidget(pageTitle, 1);
+    auto *close = new QToolButton(content);
+    close->setObjectName(QStringLiteral("SettingsClose"));
+    close->setText(QStringLiteral("\u2715"));
+    close->setToolTip(tr("Close (Esc)"));
+    close->setCursor(Qt::PointingHandCursor);
+    close->setFixedSize(36, 36);
+    connect(close, &QToolButton::clicked, this, &QWidget::close);
+    auto *closeColumn = new QVBoxLayout;
+    closeColumn->setSpacing(4);
+    closeColumn->addWidget(close, 0, Qt::AlignHCenter);
+    auto *escLabel = new QLabel(QStringLiteral("ESC"), content);
+    escLabel->setObjectName(QStringLiteral("SettingsEsc"));
+    closeColumn->addWidget(escLabel, 0, Qt::AlignHCenter);
+    titleRow->addLayout(closeColumn);
+    contentLayout->addLayout(titleRow);
+    auto *escape = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    connect(escape, &QShortcut::activated, this, &QWidget::close);
 
+    pages = new QStackedWidget(content);
+    contentLayout->addWidget(pages, 1);
+
+    auto addHeader = [this](const QString &name) {
+        auto *item = new QListWidgetItem(name.toUpper(), categoryList);
+        item->setFlags(Qt::NoItemFlags);
+        QFont font = categoryList->font();
+        font.setPixelSize(11);
+        font.setBold(true);
+        item->setFont(font);
+        item->setSizeHint(QSize(0, categoryList->count() > 1 ? 40 : 26));
+        item->setTextAlignment(Qt::AlignLeft | Qt::AlignBottom);
+    };
     auto addPage = [this](const QString &name, QWidget *page) {
-        categoryList->addItem(name);
-        pages->addWidget(page);
+        auto *item = new QListWidgetItem(name, categoryList);
+        item->setData(Qt::UserRole, pages->addWidget(page));
+        item->setSizeHint(QSize(0, 34));
     };
 
+    // Qord: Discord's Devices, under User Settings
+    addHeader(tr("User Settings"));
+    devicesPage = new DevicesPage(this);
+    addPage(tr("Devices"), devicesPage);
+
+    addHeader(tr("App Settings"));
     auto *general = new GeneralPage(this);
     addPage(tr("General"), general);
     connect(general, &GeneralPage::animateEmojiChanged, this, &SettingsWindow::animateEmojiChanged);
@@ -105,19 +177,21 @@ void SettingsWindow::setupUi()
         addPage(tr("Notifications"), page);
     }
 
-    // Qord: Discord's Devices
-    devicesPage = new DevicesPage(this);
-    addPage(tr("Devices"), devicesPage);
-
+    addHeader(tr("Qord"));
     pluginsPage = new PluginsPage(this);
     addPage(tr("Plugins"), pluginsPage);
 
-    categoryList->setCurrentRow(0);
+    connect(categoryList, &QListWidget::currentRowChanged, this, [this](int row) {
+        const QListWidgetItem *item = categoryList->item(row);
+        if (!item || !(item->flags() & Qt::ItemIsEnabled))
+            return;
+        pages->setCurrentIndex(item->data(Qt::UserRole).toInt());
+        pageTitle->setText(item->text());
+    });
+    showPage(general);
 
-    connect(categoryList, &QListWidget::currentRowChanged, pages, &QStackedWidget::setCurrentIndex);
-
-    mainLayout->addWidget(categoryList);
-    mainLayout->addWidget(pages, 1);
+    mainLayout->addWidget(sidebar);
+    mainLayout->addWidget(content, 1);
 }
 
 } // namespace UI
